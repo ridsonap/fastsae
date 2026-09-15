@@ -10,3 +10,4 @@
 ^\.Rtmp$
 ^\.DS_Store$
 ^docs$
+^CLAUDE\.md$

@@ -102,7 +102,7 @@ m2 <- eblup_sfh(
   y ~ x1 + x2 + x3,
   data = mys,
   vardir = ~vardir,
-  mse_method = 'pbmse',
+  mse_method = "pbmse",
   B = 50,
   W = mys_proxmat
 )

@@ -1,6 +1,7 @@
-library(emdi)
-library(MASS) # untuk mvrnorm jika diperlukan
-
+suppressMessages({
+  library(emdi)
+  library(MASS) # untuk mvrnorm jika diperlukan
+})
 
 # helper ------------------------------------------------------------------
 quiet <- function(expr) {
@@ -21,15 +22,15 @@ quiet <- function(expr) {
 # dipertahankan di 0.7 (sudah divalidasi: 0/100 mentok batas, 0/100 gagal
 # konvergen dengan desain ini).
 pop <- simulate_safe_sfh(rho_true = 0.7)
-m           <- pop$m
-W           <- pop$W
-X           <- pop$X
-beta_true   <- pop$beta_true
+m <- pop$m
+W <- pop$W
+X <- pop$X
+beta_true <- pop$beta_true
 sigma2_true <- pop$sigma2_true
-rho_true    <- pop$rho_true
-vardir      <- pop$vardir
-u_true      <- pop$u_true
-theta_true  <- pop$theta_true
+rho_true <- pop$rho_true
+vardir <- pop$vardir
+u_true <- pop$u_true
+theta_true <- pop$theta_true
 
 # ------------------------- 2. Pengaturan simulasi ---------------------------
 nsim <- 100
@@ -38,8 +39,6 @@ B <- 50
 # Struktur penyimpanan hasil: array [replikasi, area]
 eblup_fast <- eblup_emdi <- matrix(NA_real_, nsim, m)
 mse_fast <- mse_emdi <- matrix(NA_real_, nsim, m)
-
-
 
 
 # ------------------------- 3. Loop simulasi Monte Carlo ---------------------
@@ -105,10 +104,6 @@ for (s in seq_len(nsim)) {
 }
 
 
-
-
-
-
 # ------------------------- 4. True MSE empiris per area ---------------------
 true_mse <- function(eblup_mat, theta_true) {
   colMeans((sweep(eblup_mat, 2, theta_true, "-"))^2, na.rm = TRUE)
@@ -125,5 +120,3 @@ test_that("Non Parametric Bootstrap MSE agrees with emdi::fh", {
     tolerance = 1e-6
   )
 })
-
-

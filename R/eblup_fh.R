@@ -76,6 +76,10 @@ eblup_fh <- function(
 
   # attach beberapa info tambahan
   row.names(res$estcoef) <- colnames(X)
+
+  # Tambahkan domain identifier ke df_eblup
+  res$df_eblup$domain <- .get_domain_id(data)
+
   res$call <- match.call()
   class(res) <- "fastsae"
 
@@ -112,4 +116,17 @@ eblup_fh <- function(
     cli::cli_abort('variable "{variable}" is not found in the data')
   }
   return(variable)
+}
+
+# extract or generate domain identifier
+.get_domain_id <- function(data) {
+  # Coba cari kolom domain yang umum
+  domain_cols <- c("area", "domain", "id", "region", "kabupaten", "kota")
+  for (col in domain_cols) {
+    if (col %in% colnames(data)) {
+      return(data[[col]])
+    }
+  }
+  # Jika tidak ada, generate index
+  return(seq_len(nrow(data)))
 }

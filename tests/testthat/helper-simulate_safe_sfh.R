@@ -41,7 +41,7 @@ make_grid_W <- function(nrow_grid, ncol_grid) {
     dc <- abs(coords$col[i] - coords$col)
     W[i, ] <- as.numeric((dr + dc) == 1)
   }
-  W / rowSums(W)  # row-standardize -> row-stochastic (radius spektral = 1)
+  W / rowSums(W) # row-standardize -> row-stochastic (radius spektral = 1)
 }
 
 #' Bangkitkan populasi "kebenaran" untuk simulasi model Spatial Fay-Herriot.
@@ -58,13 +58,13 @@ make_grid_W <- function(nrow_grid, ncol_grid) {
 #' @return list dengan elemen `W`, `X`, `vardir`, `beta_true`, `sigma2_true`,
 #'   `rho_true`, `u_true`, `theta_true`, `m`.
 simulate_safe_sfh <- function(
-    nrow_grid = 8,
-    ncol_grid = 8,
-    beta_true = c(5, 1.2, -0.8, 0.5),
-    sigma2_true = 1,
-    rho_true = 0.6,
-    vardir_range = c(0.5, 1.5),
-    seed = 7842
+  nrow_grid = 8,
+  ncol_grid = 8,
+  beta_true = c(5, 1.2, -0.8, 0.5),
+  sigma2_true = 1,
+  rho_true = 0.6,
+  vardir_range = c(0.5, 1.5),
+  seed = 7842
 ) {
   set.seed(seed)
 

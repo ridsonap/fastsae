@@ -1,4 +1,6 @@
 
+<img src="man/figures/logo.png" align="right" height="139" alt="" />
+
 # fastsae
 
 <!-- badges: start -->
@@ -19,7 +21,8 @@ are too slow.
 | Model | Description | MSE Estimation |
 |----|----|----|
 | Fay-Herriot (Area-level) | `eblup_fh()` | Analytical |
-| Spatial Fay-Herriot | `seblup_fh()` | Analytical, Parametric Bootstrap MSE, Non Parametric Bootstrap MSE (Bias Corrected & Non Bias Corrected) |
+| Spatial Fay-Herriot | `eblup_sfh()` | Analytical, Parametric Bootstrap MSE, Non Parametric Bootstrap MSE (Bias Corrected & Non Bias Corrected) |
+| Spatio Temporal Fay-Herriot | `eblup_stfh()` | Parametric Bootstrap MSE |
 | Battese-Harter-Fuller (Unit-level) | `eblup_unit()` | Parametric Bootstrap MSE |
 
 ## Installation
@@ -62,7 +65,7 @@ m1 <- eblup_fh(
 mys_sampled <- mys[!is.na(mys$y), ]
 W_sampled <- mys_proxmat[!is.na(mys$y), !is.na(mys$y)]
 
-m2 <- seblup_fh(
+m2 <- eblup_sfh(
   y ~ x1 + x2 + x3,
   data = mys_sampled,
   vardir = "vardir",
@@ -75,7 +78,7 @@ m2 <- seblup_fh(
 
 ``` r
 # Parametric Bootstrap MSE
-m_pb <- seblup_fh(
+m_pb <- eblup_sfh(
   y ~ x1 + x2 + x3,
   data = mys_sampled,
   vardir = "vardir",
@@ -86,7 +89,7 @@ m_pb <- seblup_fh(
 )
 
 # Nonparametric Bootstrap MSE
-m_npb <- seblup_fh(
+m_npb <- eblup_sfh(
   y ~ x1 + x2 + x3,
   data = mys_sampled,
   vardir = "vardir",
@@ -103,7 +106,7 @@ fastsae supports multi-threaded bootstrap MSE estimation via OpenMP:
 
 ``` r
 # Use multiple threads for bootstrap
-m_parallel <- seblup_fh(
+m_parallel <- eblup_sfh(
   y ~ x1 + x2 + x3,
   data = mys_sampled,
   vardir = "vardir",
@@ -125,7 +128,7 @@ df_meanpop <- cornsoybeanmeans |>
 df_cornsoybean <- cornsoybean |>
   rename(CountyIndex = County)
 
-m3 <- eblup_unit(
+m3 <- eblup_bhf(
   formula = CornHec ~ CornPix + SoyBeansPix,
   unit_data = df_cornsoybean,
   Xpop = df_meanpop,

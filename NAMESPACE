@@ -1,6 +1,15 @@
 exportPattern("^[[:alpha:]]+")
+export(autoplot)
 useDynLib(fastsae, .registration = TRUE)
+S3method(autoplot, fastsae)
+S3method(autoplot, list)
 importFrom(Rcpp, evalCpp)
 importFrom(RcppParallel, RcppParallelLibs)
-importFrom("stats", "rnorm")
-importFrom("utils", "head")
+importFrom(stats, rnorm)
+importFrom(utils, head)
+importFrom(ggplot2, ggplot, aes, geom_point, geom_line, geom_ribbon,
+           facet_wrap, labs, theme_minimal, theme, element_text,
+           scale_color_brewer, geom_bar, geom_errorbar, geom_hline,
+           geom_vline, position_dodge, expand_limits, geom_abline,
+           scale_fill_brewer, .data, autoplot)
+importFrom(methods, is)

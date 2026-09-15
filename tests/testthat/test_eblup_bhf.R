@@ -1,7 +1,9 @@
-library(testthat)
-library(fastsae)
-library(dplyr)
-library(sae)
+suppressMessages({
+  library(testthat)
+  library(fastsae)
+  library(dplyr)
+  library(sae)
+})
 
 skip_if_not_installed("sae")
 

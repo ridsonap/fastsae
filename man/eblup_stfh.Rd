@@ -86,19 +86,20 @@ cells (\code{NA} in the response) are not supported -- \code{data} must be a
 complete panel, again matching \code{eblupSTFH()}'s requirements.
 }
 \examples{
-\dontrun{
 library(fastsae)
+library(dplyr)
+
+mys_panel_nona <- mys_panel |> filter(!is.na(y))
 
 m1 <- eblup_stfh(
-  y ~ x1 + x2,
-  data = mys_panel,
+  y ~ x1 + x2 + x3,
+  data = mys_panel_nona,
   vardir = ~vardir,
   domain = ~area,
   time = ~year,
-  W = W,
+  W = mys_proxmat[-c(21, 25), -c(21, 25)],
   model = "ST"
 )
-}
 
 }
 \references{

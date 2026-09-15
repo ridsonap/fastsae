@@ -1,6 +1,7 @@
-library(emdi)
-library(MASS) # untuk mvrnorm jika diperlukan
-
+suppressMessages({
+  library(emdi)
+  library(MASS) # untuk mvrnorm jika diperlukan
+})
 
 # helper ------------------------------------------------------------------
 quiet <- function(expr) {
@@ -19,15 +20,15 @@ quiet <- function(expr) {
 # batas +-1 di hampir semua replikasi (beda dari desain lama berbasis
 # mys/mys_proxmat, yang mentok batas di ~19 dari 20 replikasi).
 pop <- simulate_safe_sfh()
-m           <- pop$m
-W           <- pop$W
-X           <- pop$X
-beta_true   <- pop$beta_true
+m <- pop$m
+W <- pop$W
+X <- pop$X
+beta_true <- pop$beta_true
 sigma2_true <- pop$sigma2_true
-rho_true    <- pop$rho_true
-vardir      <- pop$vardir
-u_true      <- pop$u_true
-theta_true  <- pop$theta_true
+rho_true <- pop$rho_true
+vardir <- pop$vardir
+u_true <- pop$u_true
+theta_true <- pop$theta_true
 
 # ------------------------- 2. Pengaturan simulasi ---------------------------
 nsim <- 20
@@ -103,8 +104,6 @@ for (s in seq_len(nsim)) {
 }
 
 
-
-
 # ------------------------- 4. True MSE empiris per area ---------------------
 true_mse <- function(eblup_mat, theta_true) {
   colMeans((sweep(eblup_mat, 2, theta_true, "-"))^2, na.rm = TRUE)
@@ -121,5 +120,3 @@ test_that("Parametric Bootstrap MSE agrees with emdi::fh", {
     tolerance = 1e-6
   )
 })
-
-

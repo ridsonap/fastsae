@@ -73,25 +73,25 @@
 #'   y ~ x1 + x2 + x3,
 #'   data = mys,
 #'   vardir = ~vardir,
-#'   mse_method = 'pbmse',
+#'   mse_method = "pbmse",
 #'   B = 50,
 #'   W = mys_proxmat
 #' )
 #'
 #' @md
 eblup_sfh <- function(
-    formula,
-    vardir,
-    data,
-    method = c("REML", "ML"),
-    mse_method = c("analytical", "pbmse", "npbmse"),
-    W = NULL,
-    B = 100,
-    n_threads = 0,
-    seed = -1,
-    maxiter = 100,
-    precision = 1e-4,
-    print_result = TRUE
+  formula,
+  vardir,
+  data,
+  method = c("REML", "ML"),
+  mse_method = c("analytical", "pbmse", "npbmse"),
+  W = NULL,
+  B = 100,
+  n_threads = 0,
+  seed = -1,
+  maxiter = 100,
+  precision = 1e-4,
+  print_result = TRUE
 ) {
   method <- match.arg(toupper(method), choices = c("REML", "ML"))
   mse_method <- match.arg(tolower(mse_method), choices = c("analytical", "pbmse", "npbmse"))
@@ -133,8 +133,6 @@ eblup_sfh <- function(
   }
 
 
-
-
   idx_s <- !is.na(y)
   has_unsampled <- any(!idx_s)
 
@@ -146,10 +144,10 @@ eblup_sfh <- function(
     }
 
     # Fungsi bootstrap butuh input complete-case (sampled-only, tanpa NA).
-    Xs      <- X[idx_s, , drop = FALSE]
-    ys      <- y[idx_s]
+    Xs <- X[idx_s, , drop = FALSE]
+    ys <- y[idx_s]
     vardirs <- vardir[idx_s]
-    Ws      <- W[idx_s, idx_s, drop = FALSE]
+    Ws <- W[idx_s, idx_s, drop = FALSE]
 
     if (mse_method == "pbmse") {
       res <- .seblup_pbmse(
@@ -166,7 +164,6 @@ eblup_sfh <- function(
     }
 
 
-
     if (has_unsampled) {
       # Lengkapi df_eblup dengan area tak-tersampel via kriging spasial
       # penuh (mse_method = "analytical" style, dihitung sekali lagi
@@ -180,8 +177,8 @@ eblup_sfh <- function(
       # timpa baris area TERSAMPEL dengan hasil dari fit bootstrap (sama
       # titik estimasinya, tapi mse/rse dari bootstrap dipakai)
       df_full$eblup[idx_s] <- res$df_eblup$eblup
-      df_full$mse[idx_s]   <- res$df_eblup$mse
-      df_full$rse[idx_s]   <- res$df_eblup$rse
+      df_full$mse[idx_s] <- res$df_eblup$mse
+      df_full$rse[idx_s] <- res$df_eblup$rse
 
       # tempelkan kolom bootstrap-spesifik (mse_pb/mse_pbbc atau
       # mse_npb/mse_npbbc) -- NA untuk area tak-tersampel, karena metode
@@ -210,6 +207,10 @@ eblup_sfh <- function(
 
   # attach beberapa info tambahan
   row.names(res$estcoef) <- colnames(X)
+
+  # Tambahkan domain identifier ke df_eblup
+  res$df_eblup$domain <- .get_domain_id(data)
+
   res$call <- match.call()
   class(res) <- "fastsae"
 
@@ -226,7 +227,6 @@ eblup_sfh <- function(
   }
   return(res)
 }
-
 
 
 # Fungsi Penolong ---------------------------------------------------------
@@ -248,4 +248,17 @@ eblup_sfh <- function(
     cli::cli_abort('variable "{variable}" is not found in the data')
   }
   return(variable)
+}
+
+# extract or generate domain identifier
+.get_domain_id <- function(data) {
+  # Coba cari kolom domain yang umum
+  domain_cols <- c("area", "domain", "id", "region", "kabupaten", "kota")
+  for (col in domain_cols) {
+    if (col %in% colnames(data)) {
+      return(data[[col]])
+    }
+  }
+  # Jika tidak ada, generate index
+  return(seq_len(nrow(data)))
 }
