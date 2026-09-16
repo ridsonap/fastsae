@@ -38,6 +38,22 @@ namespace Rcpp {
 }
 
 // Exported function declarations
+Rcpp::List eblup_stfh_core(
+    const arma::mat& X,
+    const arma::vec& y,
+    const arma::vec& vardir,
+    const arma::mat& proxmat,
+    int D,
+    int Tt,
+    std::string model,
+    int maxiter,
+    double precision,
+    double sigma21_start,
+    double rho1_start,
+    double sigma22_start,
+    double rho2_start
+);
+
 Rcpp::List pbmse_stfh(
     const arma::mat& X,
     const arma::vec& y,

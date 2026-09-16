@@ -50,6 +50,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// pbmse_stfh
+List pbmse_stfh(const arma::mat& X, const arma::vec& y, const arma::vec& vardir, const arma::mat& proxmat, int D, int Tt, std::string model, int maxiter, double precision, int B, int n_threads, int seed);
+RcppExport SEXP _fastsae_pbmse_stfh(SEXP XSEXP, SEXP ySEXP, SEXP vardirSEXP, SEXP proxmatSEXP, SEXP DSEXP, SEXP TtSEXP, SEXP modelSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP BSEXP, SEXP n_threadsSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type vardir(vardirSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type proxmat(proxmatSEXP);
+    Rcpp::traits::input_parameter< int >::type D(DSEXP);
+    Rcpp::traits::input_parameter< int >::type Tt(TtSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
+    Rcpp::traits::input_parameter< double >::type precision(precisionSEXP);
+    Rcpp::traits::input_parameter< int >::type B(BSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(pbmse_stfh(X, y, vardir, proxmat, D, Tt, model, maxiter, precision, B, n_threads, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
 // eblup_bhf_cpp
 List eblup_bhf_cpp(CharacterVector selectdom, CharacterVector dom, NumericMatrix Xs, NumericMatrix meanxpop, NumericVector ys, NumericVector popnsize, NumericMatrix betaest, DataFrame upred);
 RcppExport SEXP _fastsae_eblup_bhf_cpp(SEXP selectdomSEXP, SEXP domSEXP, SEXP XsSEXP, SEXP meanxpopSEXP, SEXP ysSEXP, SEXP popnsizeSEXP, SEXP betaestSEXP, SEXP upredSEXP) {
@@ -131,6 +153,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_fastsae_eblup_core", (DL_FUNC) &_fastsae_eblup_core, 6},
     {"_fastsae_eblup_stfh_core", (DL_FUNC) &_fastsae_eblup_stfh_core, 13},
+    {"_fastsae_pbmse_stfh", (DL_FUNC) &_fastsae_pbmse_stfh, 12},
     {"_fastsae_eblup_bhf_cpp", (DL_FUNC) &_fastsae_eblup_bhf_cpp, 8},
     {"_fastsae_seblup_core", (DL_FUNC) &_fastsae_seblup_core, 8},
     {"_fastsae_seblup_npbmse", (DL_FUNC) &_fastsae_seblup_npbmse, 11},

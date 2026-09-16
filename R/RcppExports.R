@@ -9,6 +9,10 @@
     .Call(`_fastsae_eblup_stfh_core`, X, y, vardir, proxmat, D, Tt, model, maxiter, precision, sigma21_start, rho1_start, sigma22_start, rho2_start)
 }
 
+.pbmse_stfh <- function(X, y, vardir, proxmat, D, Tt, model = "ST", maxiter = 100L, precision = 1e-4, B = 100L, n_threads = 0L, seed = -1L) {
+    .Call(`_fastsae_pbmse_stfh`, X, y, vardir, proxmat, D, Tt, model, maxiter, precision, B, n_threads, seed)
+}
+
 .eblup_bhf_cpp <- function(selectdom, dom, Xs, meanxpop, ys, popnsize, betaest, upred) {
     .Call(`_fastsae_eblup_bhf_cpp`, selectdom, dom, Xs, meanxpop, ys, popnsize, betaest, upred)
 }

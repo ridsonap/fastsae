@@ -39,6 +39,13 @@
 #'   the variance/autocorrelation components. Defaults mirror \code{eblupSTFH()}:
 #'   \code{0.5 * median(vardir)} for the variances and \code{0.5} for the
 #'   autocorrelations. \code{rho2_start} is ignored when \code{model = "S"}.
+#' @param compute_mse logical, if \code{TRUE} computes parametric bootstrap MSE
+#'   using \code{B} bootstrap replicates. Default \code{FALSE}.
+#' @param B number of bootstrap replicates for MSE computation. Only used when
+#'   \code{compute_mse = TRUE}. Default \code{100}.
+#' @param n_threads number of threads for parallel bootstrap MSE computation.
+#'   Use \code{0} for all available cores. Default \code{1}.
+#' @param seed random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.
 #' @param print_result print the estimated coefficients or not. Default \code{TRUE}.
 #'
 #' @returns A list with the same structure as \code{seblup_area()}, with additional
@@ -47,10 +54,12 @@
 #'     \item{\code{estcoef}}{data frame with beta, std.error, tvalue, pvalue.}
 #'     \item{\code{estvarcomp}}{data frame with estimate, std.error for sigma21, rho1, sigma22, rho2.}
 #'     \item{\code{goodness}}{vector with loglike, AIC, BIC.}
-#'     \item{\code{df_eblup}}{data frame with eblup, random_effect_u1, random_effect_u2.}
+#'     \item{\code{df_eblup}}{data frame with eblup, mse, rse, random_effect_u1, random_effect_u2.}
+#'       When \code{compute_mse = FALSE}, mse and rse are \code{NA}.
 #'     \item{\code{model}}{model type ("ST" or "S").}
 #'     \item{\code{convergence}}{logical, whether the algorithm converged.}
 #'     \item{\code{n_iter}}{number of iterations.}
+#'     \item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE).}
 #'   }
 #'
 #' @details
@@ -66,6 +75,7 @@
 #'
 #' mys_panel_nona <- mys_panel |> filter(!is.na(y))
 #'
+#' # Basic EBLUP without MSE
 #' m1 <- eblup_stfh(
 #'   y ~ x1 + x2 + x3,
 #'   data = mys_panel_nona,
@@ -74,6 +84,20 @@
 #'   time = ~year,
 #'   W = mys_proxmat[-c(21, 25), -c(21, 25)],
 #'   model = "ST"
+#' )
+#'
+#' # EBLUP with parametric bootstrap MSE
+#' m2 <- eblup_stfh(
+#'   y ~ x1 + x2 + x3,
+#'   data = mys_panel_nona,
+#'   vardir = ~vardir,
+#'   domain = ~area,
+#'   time = ~year,
+#'   W = mys_proxmat[-c(21, 25), -c(21, 25)],
+#'   model = "ST",
+#'   compute_mse = TRUE,
+#'   B = 100,
+#'   seed = 42
 #' )
 #'
 #' @md
@@ -91,6 +115,10 @@ eblup_stfh <- function(
   rho1_start = 0.5,
   sigma22_start = NULL,
   rho2_start = 0.5,
+  compute_mse = FALSE,
+  B = 100,
+  n_threads = 1,
+  seed = -1,
   print_result = TRUE
 ) {
   model <- match.arg(model, choices = c("ST", "S"))
@@ -188,6 +216,39 @@ eblup_stfh <- function(
     return(res)
   }
 
+  # ---- compute PBMSE if requested ----
+  if (compute_mse) {
+    if (print_result) {
+      cli::cli_alert_info("Computing parametric bootstrap MSE with B = {B} replicates...")
+    }
+
+    # Call C++ PBMSE function
+    pbmse_res <- .pbmse_stfh(
+      X = X,
+      y = y,
+      vardir = vardir,
+      proxmat = W,
+      D = as.integer(n_domain),
+      Tt = as.integer(n_time),
+      model = model,
+      maxiter = as.integer(maxiter),
+      precision = precision,
+      B = as.integer(B),
+      n_threads = as.integer(n_threads),
+      seed = as.integer(seed)
+    )
+
+    # Update df_eblup with MSE
+    res$df_eblup$mse <- as.numeric(pbmse_res$mse_pb)
+    res$df_eblup$rse <- sqrt(as.numeric(pbmse_res$mse_pb)) / abs(res$df_eblup$eblup) * 100
+    res$B <- pbmse_res$B
+  } else {
+    # Add NA columns for mse and rse
+    res$df_eblup$mse <- NA_real_
+    res$df_eblup$rse <- NA_real_
+    res$B <- NA_integer_
+  }
+
   # Print results
   if (print_result) {
     cli::cli_alert_success("Convergence after {.orange {res$n_iter}} iterations")
@@ -196,6 +257,17 @@ eblup_stfh <- function(
     stats::printCoefmat(res$estcoef, signif.stars = TRUE)
     cli::cli_h1("Variance / autocorrelation components")
     print(res$estvarcomp)
+    if (compute_mse) {
+      cli::cli_h1("MSE (Parametric Bootstrap, B = {res$B})")
+      cli::cli_text(
+        "Range: [{round(range(res$df_eblup$mse, na.rm = TRUE)[1], 4)}, ",
+        "{round(range(res$df_eblup$mse, na.rm = TRUE)[2], 4)}]"
+      )
+      cli::cli_text(
+        "RSE range: [{round(range(res$df_eblup$rse, na.rm = TRUE)[1], 2)}, ",
+        "{round(range(res$df_eblup$rse, na.rm = TRUE)[2], 2)}]%"
+      )
+    }
   }
 
   return(res)
