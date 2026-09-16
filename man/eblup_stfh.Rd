@@ -18,6 +18,10 @@ eblup_stfh(
   rho1_start = 0.5,
   sigma22_start = NULL,
   rho2_start = 0.5,
+  compute_mse = FALSE,
+  B = 100,
+  n_threads = 1,
+  seed = -1,
   print_result = TRUE
 )
 }
@@ -55,6 +59,17 @@ the variance/autocorrelation components. Defaults mirror \code{eblupSTFH()}:
 \code{0.5 * median(vardir)} for the variances and \code{0.5} for the
 autocorrelations. \code{rho2_start} is ignored when \code{model = "S"}.}
 
+\item{compute_mse}{logical, if \code{TRUE} computes parametric bootstrap MSE
+using \code{B} bootstrap replicates. Default \code{FALSE}.}
+
+\item{B}{number of bootstrap replicates for MSE computation. Only used when
+\code{compute_mse = TRUE}. Default \code{100}.}
+
+\item{n_threads}{number of threads for parallel bootstrap MSE computation.
+Use \code{0} for all available cores. Default \code{1}.}
+
+\item{seed}{random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.}
+
 \item{print_result}{print the estimated coefficients or not. Default \code{TRUE}.}
 }
 \value{
@@ -64,10 +79,12 @@ A list with the same structure as \code{seblup_area()}, with additional
 \item{\code{estcoef}}{data frame with beta, std.error, tvalue, pvalue.}
 \item{\code{estvarcomp}}{data frame with estimate, std.error for sigma21, rho1, sigma22, rho2.}
 \item{\code{goodness}}{vector with loglike, AIC, BIC.}
-\item{\code{df_eblup}}{data frame with eblup, random_effect_u1, random_effect_u2.}
+\item{\code{df_eblup}}{data frame with eblup, mse, rse, random_effect_u1, random_effect_u2.}
+When \code{compute_mse = FALSE}, mse and rse are \code{NA}.
 \item{\code{model}}{model type ("ST" or "S").}
 \item{\code{convergence}}{logical, whether the algorithm converged.}
 \item{\code{n_iter}}{number of iterations.}
+\item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE).}
 }
 }
 \description{
@@ -89,8 +106,10 @@ complete panel, again matching \code{eblupSTFH()}'s requirements.
 library(fastsae)
 library(dplyr)
 
-mys_panel_nona <- mys_panel |> filter(!is.na(y))
+mys_panel_nona <- mys_panel |>
+    filter(!is.na(y) & year >= 2024)
 
+# Basic EBLUP without MSE
 m1 <- eblup_stfh(
   y ~ x1 + x2 + x3,
   data = mys_panel_nona,
@@ -99,6 +118,20 @@ m1 <- eblup_stfh(
   time = ~year,
   W = mys_proxmat[-c(21, 25), -c(21, 25)],
   model = "ST"
+)
+
+# EBLUP with parametric bootstrap MSE
+m2 <- eblup_stfh(
+  y ~ x1 + x2 + x3,
+  data = mys_panel_nona,
+  vardir = ~vardir,
+  domain = ~area,
+  time = ~year,
+  W = mys_proxmat[-c(21, 25), -c(21, 25)],
+  model = "ST",
+  compute_mse = TRUE,
+  B = 100,
+  seed = 42
 )
 
 }

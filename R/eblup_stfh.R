@@ -73,7 +73,8 @@
 #' library(fastsae)
 #' library(dplyr)
 #'
-#' mys_panel_nona <- mys_panel |> filter(!is.na(y))
+#' mys_panel_nona <- mys_panel |>
+#'     filter(!is.na(y) & year >= 2024)
 #'
 #' # Basic EBLUP without MSE
 #' m1 <- eblup_stfh(
@@ -239,12 +240,12 @@ eblup_stfh <- function(
     )
 
     # Update df_eblup with MSE
-    res$df_eblup$mse <- as.numeric(pbmse_res$mse_pb)
+    res$df_eblup$mse_pb <- as.numeric(pbmse_res$mse_pb)
     res$df_eblup$rse <- sqrt(as.numeric(pbmse_res$mse_pb)) / abs(res$df_eblup$eblup) * 100
     res$B <- pbmse_res$B
   } else {
     # Add NA columns for mse and rse
-    res$df_eblup$mse <- NA_real_
+    res$df_eblup$mse_pb <- NA_real_
     res$df_eblup$rse <- NA_real_
     res$B <- NA_integer_
   }

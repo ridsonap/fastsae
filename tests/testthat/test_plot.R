@@ -37,7 +37,7 @@ test_that("autoplot works for single model", {
   expect_s3_class(p3, "ggplot")
 })
 
-test_that("autoplot.fastsae_list works for multiple models", {
+test_that("autoplot.list works for multiple models", {
   skip_if_not_installed("sae")
 
   fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", print_result = FALSE)
@@ -50,33 +50,33 @@ test_that("autoplot.fastsae_list works for multiple models", {
   fits_list <- list("FH" = fit_fh, "SFH" = fit_sfh)
 
   # Test comparison plot using the method directly
-  p1 <- autoplot.fastsae_list(fits_list, type = "comparison")
+  p1 <- autoplot.list(fits_list, type = "comparison")
   expect_s3_class(p1, "ggplot")
 
   # Test mse plot
-  p2 <- autoplot.fastsae_list(fits_list, type = "mse")
+  p2 <- autoplot.list(fits_list, type = "mse")
   expect_s3_class(p2, "ggplot")
 
   # Test scatter plot (exactly 2 models)
-  p3 <- autoplot.fastsae_list(fits_list, type = "scatter")
+  p3 <- autoplot.list(fits_list, type = "scatter")
   expect_s3_class(p3, "ggplot")
 })
 
-test_that("autoplot.fastsae_list scatter requires exactly 2 models", {
+test_that("autoplot.list scatter requires exactly 2 models", {
   skip_if_not_installed("sae")
 
   fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", print_result = FALSE)
 
   # Single model should error
   expect_error(
-    autoplot.fastsae_list(list("FH" = fit_fh), type = "scatter"),
+    autoplot.list(list("FH" = fit_fh), type = "scatter"),
     "exactly two models"
   )
 
   # Three models should error
   fits_three <- list("FH1" = fit_fh, "FH2" = fit_fh, "FH3" = fit_fh)
   expect_error(
-    autoplot.fastsae_list(fits_three, type = "scatter"),
+    autoplot.list(fits_three, type = "scatter"),
     "exactly two models"
   )
 })
