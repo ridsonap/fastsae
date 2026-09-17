@@ -667,6 +667,12 @@
               </svg>
               eblup_bhf
             </a>
+            <a href="#autoplot" class="nav-item" data-section="autoplot">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              autoplot
+            </a>
           </div>
         </div>
 
@@ -733,13 +739,16 @@
           <h1>Fast Small Area Estimation</h1>
           <p class="subtitle">
             High-performance R package for Small Area Estimation using
-            Fay-Herriot, Spatial Fay-Herriot, and Battese-Harter-Fuller
-            models powered by C++.
+            Fay-Herriot, Spatial Fay-Herriot, Spatio-Temporal Fay-Herriot,
+            and Battese-Harter-Fuller models powered by C++ with built-in
+            diagnostic plotting.
           </p>
           <div class="kw">
             <span class="k">up to 12,000x faster</span>
             <span class="k">RcppArmadillo</span>
             <span class="k">Parallel bootstrap</span>
+            <span class="k">Spatio-temporal models</span>
+            <span class="k">Diagnostic plots</span>
             <span class="k">GPL-3.0 license</span>
           </div>
         </div>
@@ -777,8 +786,8 @@ install.packages("fastsae")</code></pre>
           </tr>
           <tr>
             <td><code>eblup_stfh()</code></td>
-            <td>Spatio Temporal Fay-Herriot</td>
-            <td>PBMSE</td>
+            <td>Spatio-Temporal Fay-Herriot</td>
+            <td>PBMSE (parametric bootstrap)</td>
           </tr>
           <tr>
             <td><code>eblup_bhf()</code></td>
@@ -834,14 +843,41 @@ m1 <- eblup_fh(
             <!-- eblup_stfh Section -->
       <section id="eblup_stfh" class="content-section">
         <h2>eblup_stfh — Spatio Temporal Fay-Herriot</h2>
-        <pre><code>library(dplyr)
+        <p>
+          The Spatio-Temporal Fay-Herriot (ST-FH) model extends the spatial Fay-Herriot
+          model by adding an AR(1) temporal component. It estimates small area means
+          while accounting for both spatial autocorrelation and temporal dynamics.
+        </p>
 
+        <h3>Model Types</h3>
+        <table>
+          <tr>
+            <th>Model</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>"ST"</code></td>
+            <td>Spatio-temporal model with both spatial and temporal (AR(1)) components</td>
+          </tr>
+          <tr>
+            <td><code>"S"</code></td>
+            <td>Spatial-only model (no temporal AR(1) component)</td>
+          </tr>
+        </table>
+
+        <h3>Basic Usage</h3>
+        <pre><code>library(fastsae)
+library(dplyr)
+
+# Remove NA values and prepare data
 mys_panel_nona <- mys_panel |>
   filter(!is.na(y))
+
+# Prepare spatial weights matrix (matching sampled domains)
 mys_proxmat_nona <- mys_proxmat[-c(21, 25), -c(21, 25)]
 
-
-fit_fast <- eblup_stfh(
+# Fit ST-FH model
+fit_stfh <- eblup_stfh(
   y ~ x1 + x2 + x3,
   data = mys_panel_nona,
   vardir = ~vardir,
@@ -849,8 +885,116 @@ fit_fast <- eblup_stfh(
   time = ~year,
   W = mys_proxmat_nona,
   model = "ST",
-  print_result = FALSE
+  precision = 1e-4,
+  print_result = TRUE
 )</code></pre>
+
+        <h3>With Parametric Bootstrap MSE</h3>
+        <pre><code># Fit ST-FH model with PBMSE
+fit_stfh_mse <- eblup_stfh(
+  y ~ x1 + x2 + x3,
+  data = mys_panel_nona,
+  vardir = ~vardir,
+  domain = ~area,
+  time = ~year,
+  W = mys_proxmat_nona,
+  model = "ST",
+  compute_mse = TRUE,
+  B = 100,           # Number of bootstrap replicates
+  n_threads = 4,     # Parallel threads (0 = all cores)
+  seed = 42
+)
+
+# View results
+head(fit_stfh_mse$df_eblup)
+#   domain time    y    eblup  random_effect_u1 random_effect_u2    mse_pb    rse
+# 1   D01 2024 15.2  14.8532           0.2341          -0.1156  0.8423   6.18
+# 2   D01 2025 16.8  16.4523           0.1892           0.0893  0.9156   5.84</code></pre>
+
+        <h3>Parameters</h3>
+        <table>
+          <tr>
+            <th>Parameter</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>formula</code></td>
+            <td>formula</td>
+            <td>Model formula (response ~ predictors)</td>
+          </tr>
+          <tr>
+            <td><code>data</code></td>
+            <td>data.frame</td>
+            <td>Panel data with domain × time rows (complete panel required)</td>
+          </tr>
+          <tr>
+            <td><code>vardir</code></td>
+            <td>character/formula</td>
+            <td>Column name for sampling variances</td>
+          </tr>
+          <tr>
+            <td><code>domain</code></td>
+            <td>character/formula</td>
+            <td>Column name for domain identifiers</td>
+          </tr>
+          <tr>
+            <td><code>time</code></td>
+            <td>character/formula</td>
+            <td>Column name for time period identifiers</td>
+          </tr>
+          <tr>
+            <td><code>W</code></td>
+            <td>matrix</td>
+            <td>Row-standardized spatial proximity matrix (D × D)</td>
+          </tr>
+          <tr>
+            <td><code>model</code></td>
+            <td>character</td>
+            <td><code>"ST"</code> (spatio-temporal) or <code>"S"</code> (spatial only)</td>
+          </tr>
+          <tr>
+            <td><code>compute_mse</code></td>
+            <td>logical</td>
+            <td>Compute parametric bootstrap MSE (default: FALSE)</td>
+          </tr>
+          <tr>
+            <td><code>B</code></td>
+            <td>integer</td>
+            <td>Bootstrap replicates for MSE (default: 100)</td>
+          </tr>
+          <tr>
+            <td><code>n_threads</code></td>
+            <td>integer</td>
+            <td>Parallel threads for bootstrap (0 = all cores)</td>
+          </tr>
+        </table>
+
+        <h3>Output Structure</h3>
+        <pre><code>names(fit_stfh)
+# [1] "estcoef"        "estvarcomp"     "goodness"       "df_eblup"
+# [5] "model"          "convergence"    "n_iter"         "formula"
+# [9] "call"           "B"
+
+# Variance components (spatial + temporal)
+fit_stfh$estvarcomp
+#         estimate std.error
+# sigma21  0.5423    0.0891   # Spatial variance
+# rho1     0.7234    0.0542   # Spatial autocorrelation
+# sigma22  0.3156    0.0423   # Temporal variance
+# rho2     0.4567    0.0618   # Temporal autocorrelation (AR(1))
+
+# Goodness of fit
+fit_stfh$goodness
+#    loglike        AIC        BIC
+#    -245.32     502.64     528.91</code></pre>
+
+        <h3>Important Notes</h3>
+        <ul style="color: var(--fg-secondary); margin-left: 20px;">
+          <li><strong>Complete panel required:</strong> Unlike <code>eblup_fh</code>, unsampled domain/time cells are NOT supported</li>
+          <li><strong>Domain-major order:</strong> Data must be sorted so all time periods of domain 1 come first, then domain 2, etc.</li>
+          <li><strong>Spatial weights:</strong> W matrix must cover ALL domains (excluding unsampled)</li>
+        </ul>
       </section>
 
       <!-- eblup_bhf Section -->
@@ -871,6 +1015,91 @@ m3 <- eblup_bhf(
   domain_var = "CountyIndex",
   popsize_var = "PopnSegments"
 )</code></pre>
+      </section>
+
+      <!-- autoplot Section -->
+      <section id="autoplot" class="content-section">
+        <h2>autoplot — Diagnostic Plots</h2>
+        <p>
+          The <code>autoplot()</code> function creates diagnostic and comparison plots
+          for <code>fastsae</code> model objects. It extends <code>ggplot2::autoplot</code>
+          to provide quick visualizations of EBLUP estimates and MSE comparisons.
+        </p>
+
+        <h3>Single Model Plots</h3>
+        <pre><code>library(fastsae)
+
+# Fit a model
+fit <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
+
+# EBLUP Estimates vs Direct Estimates
+autoplot(fit, type = "estimates")</code></pre>
+
+        <h3>Model Comparison Plots</h3>
+        <pre><code># Compare multiple models
+fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
+fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
+
+# Comparison plot with confidence bands
+autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
+
+# Scatter plot comparing two models
+autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "scatter")</code></pre>
+
+        <h3>Plot Types</h3>
+        <table>
+          <tr>
+            <th>Type</th>
+            <th>Input</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>"estimates"</code></td>
+            <td>Single model</td>
+            <td>Scatter plot of EBLUP vs Direct estimates with 45° reference line</td>
+          </tr>
+          <tr>
+            <td><code>"comparison"</code></td>
+            <td>Single/List</td>
+            <td>EBLUP estimates with 95% confidence bands across domains</td>
+          </tr>
+          <tr>
+            <td><code>"mse"</code></td>
+            <td>Single/List</td>
+            <td>Bar chart of Mean Squared Error by domain</td>
+          </tr>
+          <tr>
+            <td><code>"scatter"</code></td>
+            <td>List (2 models)</td>
+            <td>Scatter plot comparing estimates from two models with correlation</td>
+          </tr>
+        </table>
+
+        <h3>Customizing Plots</h3>
+        <pre><code># Add custom title
+autoplot(fit, type = "estimates", title = "Model Diagnostics")
+
+# Combine with ggplot2 layers
+library(ggplot2)
+autoplot(fit, type = "mse") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90))</code></pre>
+
+        <h3>Example Output</h3>
+        <pre><code># Full workflow example
+library(fastsae)
+library(ggplot2)
+
+# Fit models
+fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
+
+# Generate all plots
+p1 <- autoplot(fit_fh, type = "estimates")
+p2 <- autoplot(fit_fh, type = "mse")
+
+# Arrange plots
+library(patchwork)
+p1 / p2</code></pre>
       </section>
 
       <!-- Performance Section -->
@@ -930,6 +1159,7 @@ m3 <- eblup_bhf(
         <ul>
           <li>Fay, R. E., &amp; Herriot, R. A. (1979). Estimates of income for small places. <em>JASA</em>, 74(366), 269-277.</li>
           <li>Battese, G. E., Harter, R. M., &amp; Fuller, W. A. (1988). An error-components model. <em>JASA</em>, 83(401), 28-36.</li>
+          <li>Marhuenda, Y., Molina, I., &amp; Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models. <em>Computational Statistics &amp; Data Analysis</em>, 58, 308-325.</li>
           <li>Rao, J. N. K., &amp; Molina, I. (2015). <em>Small Area Estimation</em>, 2nd Ed. Wiley.</li>
         </ul>
       </section>
@@ -1268,7 +1498,7 @@ m3 <- eblup_bhf(
             }
 
             // If in models section, expand and highlight parent
-            if (['models', 'eblup_fh', 'eblup_sfh', 'eblup_bhf'].includes(id)) {
+            if (['models', 'eblup_fh', 'eblup_sfh', 'eblup_stfh', 'eblup_bhf'].includes(id)) {
               modelsToggle.classList.add('active', 'expanded');
               modelsSubmenu.classList.add('expanded');
             }
@@ -1288,7 +1518,7 @@ m3 <- eblup_bhf(
 
           // If in models section, highlight parent
           const section = item.dataset.section;
-          if (['models', 'eblup_fh', 'eblup_sfh', 'eblup_bhf'].includes(section)) {
+          if (['models', 'eblup_fh', 'eblup_sfh', 'eblup_stfh', 'eblup_bhf'].includes(section)) {
             modelsToggle.classList.add('active');
           }
         });
