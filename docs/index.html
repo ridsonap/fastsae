@@ -1105,11 +1105,16 @@ p1 / p2</code></pre>
       <!-- Performance Section -->
       <section id="benchmark" class="content-section">
         <h2>Performance</h2>
+        <p class="subtitle">
+          How fast is fastsae compared to sae and emdi? Benchmark comparing execution time,
+          memory usage, and throughput across data sizes (n = 30 to 1,000 areas).
+        </p>
 
         <div class="controls">
           <div class="btn-group">
-            <button class="btn active" onclick="setAlgo('EBLUP')" id="btn-eblup">EBLUP</button>
-            <button class="btn" onclick="setAlgo('SEBLUP')" id="btn-seblup">SEBLUP</button>
+            <button class="btn active" onclick="setAlgo('FH')" id="btn-fh">FH</button>
+            <button class="btn" onclick="setAlgo('SFH')" id="btn-sfh">SFH</button>
+            <button class="btn" onclick="setAlgo('STFH')" id="btn-stfh">STFH</button>
           </div>
           <div class="btn-group">
             <button class="btn accent active" onclick="setMetric('time')" id="btn-time">Time</button>
@@ -1120,7 +1125,7 @@ p1 / p2</code></pre>
 
         <div class="chart-card">
           <div class="chart-label" id="chart-label">
-            Execution time (median, seconds) — EBLUP · log scale
+            Execution time (median, seconds) — FH · log scale
           </div>
           <div class="chart-container">
             <canvas id="main-chart"></canvas>
@@ -1129,7 +1134,7 @@ p1 / p2</code></pre>
 
         <div class="chart-card">
           <div class="chart-label">
-            Speedup factor of fastsae vs competitors — EBLUP
+            Speedup factor of fastsae vs competitors — FH
           </div>
           <div class="chart-container">
             <canvas id="speedup-chart"></canvas>
@@ -1137,18 +1142,21 @@ p1 / p2</code></pre>
         </div>
 
         <div class="narrative">
-          <h3>Chart Explanations</h3>
+          <h3>How fast is fastsae compared to sae and emdi?</h3>
           <p>
-            <strong>Execution Time Chart:</strong> Shows how long each package
-            takes to complete estimation across different sample sizes.
+            <strong>Execution Time:</strong> The chart shows median execution time across
+            different sample sizes (n = 30 to 1,000 areas). fastsae consistently
+            outperforms both sae and emdi packages across all model types and data sizes.
           </p>
           <p>
-            <strong>Memory Usage:</strong> Displays peak RAM consumption during
-            estimation.
+            <strong>Memory Usage:</strong> fastsae uses minimal memory (~0.2 MB for FH,
+            ~23 MB for SFH at n=1,000) while emdi requires up to 4 GB at large scales.
+            This makes fastsae suitable for resource-constrained environments.
           </p>
           <p>
-            <strong>Speedup Chart:</strong> Illustrates the performance advantage
-            of fastsae over competitors.
+            <strong>Speedup Factor:</strong> The speedup ranges from 19× at small sample
+            sizes (n=30) to 12,343× at large sample sizes (n=1,000) when compared to emdi.
+            For FH, fastsae achieves up to 34× speedup over sae and 12,343× over emdi.
           </p>
         </div>
       </section>
@@ -1171,45 +1179,59 @@ p1 / p2</code></pre>
     // Benchmark Data
     // ========================================
     const RAW = [
-      // EBLUP results
-      { Method: "fastsae", Median: 0.000588, Mem: 0.005, IPS: 1623, n: 30, Algo: "EBLUP" },
-      { Method: "emdi", Median: 0.01088, Mem: 4.18, IPS: 91, n: 30, Algo: "EBLUP" },
-      { Method: "sae", Median: 0.00155, Mem: 0.153, IPS: 632, n: 30, Algo: "EBLUP" },
-      { Method: "fastsae", Median: 0.000511, Mem: 0.009, IPS: 1912, n: 50, Algo: "EBLUP" },
-      { Method: "emdi", Median: 0.01806, Mem: 10.47, IPS: 52, n: 50, Algo: "EBLUP" },
-      { Method: "sae", Median: 0.00195, Mem: 0.373, IPS: 494, n: 50, Algo: "EBLUP" },
-      { Method: "fastsae", Median: 0.00055, Mem: 0.016, IPS: 1761, n: 100, Algo: "EBLUP" },
-      { Method: "emdi", Median: 0.0505, Mem: 37.34, IPS: 19, n: 100, Algo: "EBLUP" },
-      { Method: "sae", Median: 0.00344, Mem: 0.918, IPS: 288, n: 100, Algo: "EBLUP" },
-      { Method: "fastsae", Median: 0.0009, Mem: 0.039, IPS: 1081, n: 250, Algo: "EBLUP" },
-      { Method: "emdi", Median: 0.857, Mem: 240.89, IPS: 1.16, n: 250, Algo: "EBLUP" },
-      { Method: "sae", Median: 0.0376, Mem: 6.35, IPS: 26, n: 250, Algo: "EBLUP" },
-      { Method: "fastsae", Median: 0.0014, Mem: 0.076, IPS: 697, n: 500, Algo: "EBLUP" },
-      { Method: "emdi", Median: 5.86, Mem: 880.31, IPS: 0.17, n: 500, Algo: "EBLUP" },
-      { Method: "sae", Median: 0.197, Mem: 18.24, IPS: 5.03, n: 500, Algo: "EBLUP" },
-      { Method: "fastsae", Median: 0.00413, Mem: 0.186, IPS: 176, n: 1000, Algo: "EBLUP" },
-      { Method: "emdi", Median: 51.02, Mem: 3773.6, IPS: 0.02, n: 1000, Algo: "EBLUP" },
-      { Method: "sae", Median: 1.504, Mem: 72.0, IPS: 0.66, n: 1000, Algo: "EBLUP" },
+      // FH (Fay-Herriot) results
+      { Method: "fastsae", Median: 0.000588, Mem: 0.005, IPS: 1623, n: 30, Algo: "FH" },
+      { Method: "emdi", Median: 0.01088, Mem: 4.18, IPS: 91, n: 30, Algo: "FH" },
+      { Method: "sae", Median: 0.00155, Mem: 0.153, IPS: 632, n: 30, Algo: "FH" },
+      { Method: "fastsae", Median: 0.000511, Mem: 0.009, IPS: 1912, n: 50, Algo: "FH" },
+      { Method: "emdi", Median: 0.01806, Mem: 10.47, IPS: 52, n: 50, Algo: "FH" },
+      { Method: "sae", Median: 0.00195, Mem: 0.373, IPS: 494, n: 50, Algo: "FH" },
+      { Method: "fastsae", Median: 0.00055, Mem: 0.016, IPS: 1761, n: 100, Algo: "FH" },
+      { Method: "emdi", Median: 0.0505, Mem: 37.34, IPS: 19, n: 100, Algo: "FH" },
+      { Method: "sae", Median: 0.00344, Mem: 0.918, IPS: 288, n: 100, Algo: "FH" },
+      { Method: "fastsae", Median: 0.0009, Mem: 0.039, IPS: 1081, n: 250, Algo: "FH" },
+      { Method: "emdi", Median: 0.857, Mem: 240.89, IPS: 1.16, n: 250, Algo: "FH" },
+      { Method: "sae", Median: 0.0376, Mem: 6.35, IPS: 26, n: 250, Algo: "FH" },
+      { Method: "fastsae", Median: 0.0014, Mem: 0.076, IPS: 697, n: 500, Algo: "FH" },
+      { Method: "emdi", Median: 5.86, Mem: 880.31, IPS: 0.17, n: 500, Algo: "FH" },
+      { Method: "sae", Median: 0.197, Mem: 18.24, IPS: 5.03, n: 500, Algo: "FH" },
+      { Method: "fastsae", Median: 0.00413, Mem: 0.186, IPS: 176, n: 1000, Algo: "FH" },
+      { Method: "emdi", Median: 51.02, Mem: 3773.6, IPS: 0.02, n: 1000, Algo: "FH" },
+      { Method: "sae", Median: 1.504, Mem: 72.0, IPS: 0.66, n: 1000, Algo: "FH" },
 
-      // SEBLUP results
-      { Method: "fastsae", Median: 0.000735, Mem: 0.03, IPS: 1312, n: 30, Algo: "SEBLUP" },
-      { Method: "emdi", Median: 0.01071, Mem: 4.18, IPS: 93, n: 30, Algo: "SEBLUP" },
-      { Method: "sae", Median: 0.0041, Mem: 1.37, IPS: 246, n: 30, Algo: "SEBLUP" },
-      { Method: "fastsae", Median: 0.00115, Mem: 0.074, IPS: 841, n: 50, Algo: "SEBLUP" },
-      { Method: "emdi", Median: 0.018, Mem: 10.47, IPS: 44, n: 50, Algo: "SEBLUP" },
-      { Method: "sae", Median: 0.00968, Mem: 3.31, IPS: 103, n: 50, Algo: "SEBLUP" },
-      { Method: "fastsae", Median: 0.00473, Mem: 0.259, IPS: 208, n: 100, Algo: "SEBLUP" },
-      { Method: "emdi", Median: 0.053, Mem: 37.34, IPS: 17, n: 100, Algo: "SEBLUP" },
-      { Method: "sae", Median: 0.0705, Mem: 18.0, IPS: 13, n: 100, Algo: "SEBLUP" },
-      { Method: "fastsae", Median: 0.0238, Mem: 1.5, IPS: 37, n: 250, Algo: "SEBLUP" },
-      { Method: "emdi", Median: 0.844, Mem: 240.89, IPS: 1.17, n: 250, Algo: "SEBLUP" },
-      { Method: "sae", Median: 1.07, Mem: 110.39, IPS: 0.93, n: 250, Algo: "SEBLUP" },
-      { Method: "fastsae", Median: 0.142, Mem: 5.86, IPS: 6.96, n: 500, Algo: "SEBLUP" },
-      { Method: "emdi", Median: 3.14, Mem: 949.86, IPS: 0.32, n: 500, Algo: "SEBLUP" },
-      { Method: "sae", Median: 7.12, Mem: 776.4, IPS: 0.14, n: 500, Algo: "SEBLUP" },
-      { Method: "fastsae", Median: 0.832, Mem: 23.15, IPS: 1.19, n: 1000, Algo: "SEBLUP" },
-      { Method: "emdi", Median: 51.06, Mem: 3772.6, IPS: 0.02, n: 1000, Algo: "SEBLUP" },
-      { Method: "sae", Median: 67.15, Mem: 1920.0, IPS: 0.015, n: 1000, Algo: "SEBLUP" },
+      // SFH (Spatial Fay-Herriot) results
+      { Method: "fastsae", Median: 0.000735, Mem: 0.03, IPS: 1312, n: 30, Algo: "SFH" },
+      { Method: "emdi", Median: 0.01071, Mem: 4.18, IPS: 93, n: 30, Algo: "SFH" },
+      { Method: "sae", Median: 0.0041, Mem: 1.37, IPS: 246, n: 30, Algo: "SFH" },
+      { Method: "fastsae", Median: 0.00115, Mem: 0.074, IPS: 841, n: 50, Algo: "SFH" },
+      { Method: "emdi", Median: 0.018, Mem: 10.47, IPS: 44, n: 50, Algo: "SFH" },
+      { Method: "sae", Median: 0.00968, Mem: 3.31, IPS: 103, n: 50, Algo: "SFH" },
+      { Method: "fastsae", Median: 0.00473, Mem: 0.259, IPS: 208, n: 100, Algo: "SFH" },
+      { Method: "emdi", Median: 0.053, Mem: 37.34, IPS: 17, n: 100, Algo: "SFH" },
+      { Method: "sae", Median: 0.0705, Mem: 18.0, IPS: 13, n: 100, Algo: "SFH" },
+      { Method: "fastsae", Median: 0.0238, Mem: 1.5, IPS: 37, n: 250, Algo: "SFH" },
+      { Method: "emdi", Median: 0.844, Mem: 240.89, IPS: 1.17, n: 250, Algo: "SFH" },
+      { Method: "sae", Median: 1.07, Mem: 110.39, IPS: 0.93, n: 250, Algo: "SFH" },
+      { Method: "fastsae", Median: 0.142, Mem: 5.86, IPS: 6.96, n: 500, Algo: "SFH" },
+      { Method: "emdi", Median: 3.14, Mem: 949.86, IPS: 0.32, n: 500, Algo: "SFH" },
+      { Method: "sae", Median: 7.12, Mem: 776.4, IPS: 0.14, n: 500, Algo: "SFH" },
+      { Method: "fastsae", Median: 0.832, Mem: 23.15, IPS: 1.19, n: 1000, Algo: "SFH" },
+      { Method: "emdi", Median: 51.06, Mem: 3772.6, IPS: 0.02, n: 1000, Algo: "SFH" },
+      { Method: "sae", Median: 67.15, Mem: 1920.0, IPS: 0.015, n: 1000, Algo: "SFH" },
+
+      // STFH (Spatio-Temporal Fay-Herriot) results
+      { Method: "fastsae", Median: 0.0367, Mem: 0.027, IPS: 25.87, n: 30, Algo: "STFH" },
+      { Method: "sae", Median: 0.1186, Mem: 43.8, IPS: 7.86, n: 30, Algo: "STFH" },
+      { Method: "fastsae", Median: 0.0898, Mem: 0.047, IPS: 10.92, n: 50, Algo: "STFH" },
+      { Method: "sae", Median: 0.42, Mem: 107.8, IPS: 2.28, n: 50, Algo: "STFH" },
+      { Method: "fastsae", Median: 2.299, Mem: 0.090, IPS: 0.434, n: 100, Algo: "STFH" },
+      { Method: "sae", Median: 17.94, Mem: 2551.1, IPS: 0.056, n: 100, Algo: "STFH" },
+      { Method: "fastsae", Median: 3.817, Mem: 0.225, IPS: 0.261, n: 250, Algo: "STFH" },
+      { Method: "sae", Median: 58.43, Mem: 3624.7, IPS: 0.017, n: 250, Algo: "STFH" },
+      { Method: "fastsae", Median: 10.36, Mem: 0.448, IPS: 0.096, n: 500, Algo: "STFH" },
+      { Method: "sae", Median: 253.34, Mem: 8124.4, IPS: 0.004, n: 500, Algo: "STFH" },
+      { Method: "fastsae", Median: 58.10, Mem: 0.894, IPS: 0.017, n: 1000, Algo: "STFH" },
+      { Method: "sae", Median: 1786.49, Mem: 32478.3, IPS: 0.0006, n: 1000, Algo: "STFH" },
     ];
 
     const N_LEVELS = [30, 50, 100, 250, 500, 1000];
@@ -1220,7 +1242,7 @@ p1 / p2</code></pre>
       emdi: "#7A5FA8"
     };
 
-    let currentAlgo = "EBLUP";
+    let currentAlgo = "FH";
     let currentMetric = "time";
     let mainChart, speedupChart;
 
@@ -1277,8 +1299,9 @@ p1 / p2</code></pre>
     // ========================================
     function setAlgo(algo) {
       currentAlgo = algo;
-      document.getElementById("btn-eblup").classList.toggle("active", algo === "EBLUP");
-      document.getElementById("btn-seblup").classList.toggle("active", algo === "SEBLUP");
+      document.getElementById("btn-fh").classList.toggle("active", algo === "FH");
+      document.getElementById("btn-sfh").classList.toggle("active", algo === "SFH");
+      document.getElementById("btn-stfh").classList.toggle("active", algo === "STFH");
       updateCharts();
     }
 
