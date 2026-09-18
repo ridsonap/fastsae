@@ -31,14 +31,15 @@
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm. Default value is 0.0001.
 #' @param print_result print coefficient or not, default value is TRUE.
 #'
-#' @returns The function returns a list with the following objects (\code{df_res} and \code{fit}):
+#' @returns The function returns a list with the following objects:
 #' \code{estcoef} a data frame with the estimated model coefficients in the first column (beta),
 #'    their asymptotic standard errors in the second column (std.error),
 #'    the t-statistics in the third column (tvalue) and the p-values of the significance of each coefficient
 #'    in last column (pvalue) \cr
-#' \code{formula} model formula applied \cr
 #' \code{random_effect_var} estimated random effect variance \cr
-#' \code{goodness} vector containing several goodness-of-fit measures: loglikehood, AIC, and BIC \cr
+#' \code{rho} estimated spatial autocorrelation parameter \cr
+#' \code{estvarcomp} a data frame with parameter, estimate, and std.error \cr
+#' \code{goodness} vector containing several goodness-of-fit measures: loglikelihood, AIC, and BIC \cr
 #' \code{df_eblup} a data frame that contains the following columns: \cr
 #'    * \code{y} variable response \cr
 #'    * \code{eblup} estimated results for each area \cr
@@ -228,37 +229,3 @@ eblup_sfh <- function(
   return(res)
 }
 
-
-# Fungsi Penolong ---------------------------------------------------------
-
-# extract variable from data frame
-.get_variable <- function(data, variable) {
-  if (length(variable) == nrow(data)) {
-    return(variable)
-  } else if (methods::is(variable, "character")) {
-    if (variable %in% colnames(data)) {
-      variable <- data[[variable]]
-    } else {
-      cli::cli_abort('variable "{variable}" is not found in the data')
-    }
-  } else if (methods::is(variable, "formula")) {
-    # extract column name (class character) from formula
-    variable <- data[[all.vars(variable)]]
-  } else {
-    cli::cli_abort('variable "{variable}" is not found in the data')
-  }
-  return(variable)
-}
-
-# extract or generate domain identifier
-.get_domain_id <- function(data) {
-  # Coba cari kolom domain yang umum
-  domain_cols <- c("area", "domain", "id", "region", "kabupaten", "kota")
-  for (col in domain_cols) {
-    if (col %in% colnames(data)) {
-      return(data[[col]])
-    }
-  }
-  # Jika tidak ada, generate index
-  return(seq_len(nrow(data)))
-}

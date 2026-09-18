@@ -87,7 +87,7 @@ test_that("eblup_bhf returns valid structure", {
   expect_s3_class(fit_fast, "fastsae_unit")
   expect_true("eblup" %in% names(fit_fast))
   expect_true("fit" %in% names(fit_fast))
-  expect_true("sigma2_u" %in% names(fit_fast$fit))
+  expect_true("random_effect_var" %in% names(fit_fast$fit))
   expect_true("sigma2_e" %in% names(fit_fast$fit))
 })
 
@@ -105,7 +105,7 @@ test_that("EBLUP agrees with sae::eblupBHF", {
 
 test_that("Variance components agree with sae::eblupBHF", {
   expect_equal(
-    fit_fast$fit$sigma2_u,
+    fit_fast$fit$random_effect_var,
     fit_sae$fit$refvar,
     tolerance = tol
   )

@@ -31,5 +31,14 @@ LinkingTo:
     RcppParallel
 Depends: 
     R (>= 4.1.0)
+Collate:
+    utils.R
+    RcppExports.R
+    data.R
+    autoplot.R
+    eblup_fh.R
+    eblup_sfh.R
+    eblup_stfh.R
+    eblup_bhf.R
 Config/roxygen2/version: 8.0.0
 Config/testthat/edition: 3

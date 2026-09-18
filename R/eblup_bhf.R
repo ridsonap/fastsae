@@ -25,7 +25,7 @@
 #' *Journal of the American Statistical Association*, 83(401), 28-36.
 #'
 #' @examples
-#' \dontrun{
+#'
 #' library(dplyr)
 #' df_meanpop <- cornsoybeanmeans |>
 #'   rename(CornPix = MeanCornPixPerSeg, SoyBeansPix = MeanSoyBeansPixPerSeg)
@@ -39,7 +39,7 @@
 #'   domain_var = "CountyIndex",
 #'   popsize_var = "PopnSegments"
 #' )
-#' }
+#'
 #' @export
 eblup_bhf <- function(
   formula,
@@ -63,12 +63,24 @@ eblup_bhf <- function(
   dom <- .get_variable(unit_data, domain_var)
   selectdom <- unique(dom)
 
+  # --- build design matrix and response (FIX Issue #4) ---
+  # Extract response variable name from formula
+  resp_name <- as.character(formula)[[2]]
   Xs <- stats::model.matrix(formula, unit_data)
-  ys <- formuladata[[1]]
+  ys <- formuladata[[resp_name]]
 
-  # --- fit linear mixed model ---
-  formula_lmer <- ys ~ -1 + Xs + (1 | dom)
-  fit <- lme4::lmer(formula_lmer, data = unit_data)
+  # --- fit linear mixed model (FIX Issue #4: use proper column names) ---
+  term_labels <- attr(stats::terms(formula), "term.labels")
+  lmer_data <- data.frame(
+    y = ys,
+    unit_data[, term_labels, drop = FALSE],
+    dom = dom
+  )
+  # Build formula with actual column names (keep intercept to match sae::eblupBHF)
+  fixed_part <- paste(term_labels, collapse = " + ")
+  formula_lmer <- stats::as.formula(paste("y ~", fixed_part, "+ (1 | dom)"))
+
+  fit <- lme4::lmer(formula_lmer, data = lmer_data)
   betaest <- matrix(lme4::fixef(fit), ncol = 1)
   upred <- lme4::ranef(fit)$dom
 
@@ -142,7 +154,7 @@ eblup_bhf <- function(
     eblup = eblup_df,
     fit = list(
       method = method,
-      sigma2_u = sigma2_u,
+      random_effect_var = sigma2_u,
       sigma2_e = sigma2_e,
       beta = betaest,
       random_effect = upred
@@ -187,8 +199,11 @@ pbmse_unit <- function(
   dom <- .get_variable(unit_data, domain_var)
   selectdom <- unique(dom)
 
+  # --- build design matrix and response (FIX Issue #4) ---
+  # Extract response variable name from formula
+  resp_name <- as.character(formula)[[2]]
   Xs <- stats::model.matrix(formula, unit_data)
-  ys <- formuladata[[1]]
+  ys <- formuladata[[resp_name]]
 
   # --- prepare population data ---
   Xpop <- dplyr::arrange(Xpop, match(domain_var, selectdom))
@@ -197,9 +212,18 @@ pbmse_unit <- function(
   formula_noy <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
   meanxpop <- stats::model.matrix(formula_noy, Xpop)
 
-  # --- initial fit ---
-  formula_lmer <- ys ~ -1 + Xs + (1 | dom)
-  fit <- lme4::lmer(formula_lmer, data = unit_data)
+  # --- initial fit (FIX Issue #4: use proper column names) ---
+  term_labels <- attr(stats::terms(formula), "term.labels")
+  lmer_data <- data.frame(
+    y = ys,
+    unit_data[, term_labels, drop = FALSE],
+    dom = dom
+  )
+  # Build formula with actual column names (keep intercept to match sae::eblupBHF)
+  fixed_part <- paste(term_labels, collapse = " + ")
+  formula_lmer <- stats::as.formula(paste("y ~", fixed_part, "+ (1 | dom)"))
+
+  fit <- lme4::lmer(formula_lmer, data = lmer_data)
   betaest <- matrix(lme4::fixef(fit), ncol = 1)
   upred <- lme4::ranef(fit)$dom
 
@@ -248,8 +272,13 @@ pbmse_unit <- function(
       y_boot[i] <- as.numeric(Xs[i, ] %*% betaest) + u_boot[d] + e_boot[i]
     }
 
-    # Fit bootstrap model
-    fit_boot <- lme4::lmer(formula_lmer, data = data.frame(y_boot, Xs, dom))
+    # Fit bootstrap model (FIX Issue #4: use proper data frame)
+    lmer_data_boot <- data.frame(
+      y = y_boot,
+      unit_data[, term_labels, drop = FALSE],
+      dom = dom
+    )
+    fit_boot <- lme4::lmer(formula_lmer, data = lmer_data_boot)
     beta_boot <- matrix(lme4::fixef(fit_boot), ncol = 1)
     upred_boot <- lme4::ranef(fit_boot)$dom
 
@@ -278,24 +307,4 @@ pbmse_unit <- function(
     method = method,
     B = B
   ))
-}
-
-# Fungsi Penolong ---------------------------------------------------------
-
-# extract variable from data frame
-.get_variable <- function(data, variable) {
-  if (length(variable) == nrow(data)) {
-    return(variable)
-  } else if (methods::is(variable, "character")) {
-    if (variable %in% colnames(data)) {
-      variable <- data[[variable]]
-    } else {
-      cli::cli_abort('variable "{variable}" is not found in the data')
-    }
-  } else if (methods::is(variable, "formula")) {
-    variable <- data[[all.vars(variable)]]
-  } else {
-    cli::cli_abort('variable "{variable}" is not found in the data')
-  }
-  return(variable)
 }

@@ -66,7 +66,7 @@ proposed by Battese, Harter, and Fuller (1988), which combines survey data
 (sample units) and auxiliary population information.
 }
 \examples{
-\dontrun{
+
 library(dplyr)
 df_meanpop <- cornsoybeanmeans |>
   rename(CornPix = MeanCornPixPerSeg, SoyBeansPix = MeanSoyBeansPixPerSeg)
@@ -80,7 +80,7 @@ res <- eblup_bhf(
   domain_var = "CountyIndex",
   popsize_var = "PopnSegments"
 )
-}
+
 }
 \references{
 Battese, G. E., Harter, R. M., and Fuller, W. A. (1988). An error-components

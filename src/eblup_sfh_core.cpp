@@ -1,4 +1,4 @@
-// src/seblup_core.cpp
+// src/eblup_sfh_core.cpp
 // Core Spatial Fay-Herriot EBLUP estimation with unified ML/REML loops
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
@@ -414,8 +414,9 @@ List seblup_core(
     vec g1d = Ga.diag();
 
     return List::create(
+      _["convergence"] = (k < maxiter),
       _["sigma2_u"] = sigma2,
-      _["rho"]       = rho_fix,
+      _["rho"]      = rho_fix,
       _["beta"]     = beta,
       _["Xbeta"]    = Xbeta,
       _["theta"]    = eblup,
@@ -616,25 +617,25 @@ List seblup_core(
     _["rse"]   = rse
   );
 
-  List out = List::create(
-    _["estcoef"]     = df_coef,
-    _["df_eblup"]    = df_eblup,
-    _["sigma2_u"]    = sigma2,
-    _["rho"]         = rho_fix,
-    _["goodness"]    = goodness,
-    _["n_iter"]      = k,
-    _["convergence"] = (k < maxiter),
+  // Standardized output structure
+  DataFrame estvarcomp = DataFrame::create(
+    _["parameter"] = CharacterVector::create("sigma2_u", "rho"),
+    _["estimate"] = NumericVector::create(sigma2, rho_fix),
+    _["std.error"] = NumericVector::create(NA_REAL, NA_REAL)  // SE not computed analytically for spatial
+  );
 
-    _["beta"]        = beta,
-    _["Xbeta"]       = Xbeta,
-    _["theta"]       = eblup,
-    _["GVi"]         = GVi,
-    _["g1d"]         = g1d,
-    _["g2d"]         = g2d,
-    _["Q"]           = Q,
-    _["XtVi"]        = XtVi,
-    _["Vi"]          = Vi,
-    _["G"]           = G
+  List out = List::create(
+    _["estcoef"]          = df_coef,
+    _["random_effect_var"] = sigma2,
+    _["rho"]              = rho_fix,
+    _["estvarcomp"]       = estvarcomp,
+    _["goodness"]         = goodness,
+    _["df_eblup"]         = df_eblup,
+    _["model"]            = "SFH",
+    _["level"]            = "area",
+    _["n_iter"]           = k,
+    _["convergence"]      = (k < maxiter),
+    _["method"]           = method
   );
 
   return out;

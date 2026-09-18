@@ -38,9 +38,29 @@ tol <- 1e-6
 test_that("eblup_sfh returns valid structure", {
   expect_true(is.list(fit_fast))
 
-  expect_true("df_eblup" %in% names(fit_fast))
-  expect_true("sigma2_u" %in% names(fit_fast))
+  # Standardized fields
   expect_true("estcoef" %in% names(fit_fast))
+  expect_true("random_effect_var" %in% names(fit_fast))
+  expect_true("rho" %in% names(fit_fast))
+  expect_true("estvarcomp" %in% names(fit_fast))
+  expect_true("goodness" %in% names(fit_fast))
+  expect_true("df_eblup" %in% names(fit_fast))
+  expect_true("model" %in% names(fit_fast))
+  expect_true("level" %in% names(fit_fast))
+  expect_true("n_iter" %in% names(fit_fast))
+  expect_true("convergence" %in% names(fit_fast))
+  expect_true("method" %in% names(fit_fast))
+
+  # Check estvarcomp structure
+  expect_true("parameter" %in% names(fit_fast$estvarcomp))
+  expect_true("estimate" %in% names(fit_fast$estvarcomp))
+  expect_true("std.error" %in% names(fit_fast$estvarcomp))
+
+  # Check values
+  expect_equal(fit_fast$model, "SFH")
+  expect_equal(fit_fast$level, "area")
+  expect_true(fit_fast$convergence)
+  expect_true(fit_fast$n_iter > 0)
 
   expect_length(
     fit_fast$df_eblup$eblup,
@@ -83,10 +103,15 @@ test_that("MSE agrees with sae::mseSFH", {
 
 test_that("random effect variance agrees with sae::mseSFH", {
   expect_equal(
-    fit_fast$sigma2_u,
+    fit_fast$random_effect_var,
     fit_sae$est$fit$refvar,
     tolerance = tol
   )
+})
+
+test_that("rho parameter is in reasonable range", {
+  # Spatial autocorrelation should be in (-1, 1)
+  expect_true(fit_fast$rho >= -1 && fit_fast$rho <= 1)
 })
 
 # ------------------------------------------------------------------

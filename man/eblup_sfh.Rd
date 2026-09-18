@@ -56,14 +56,15 @@ A value of -1 leaves the current R RNG state unchanged.}
 \item{print_result}{print coefficient or not, default value is TRUE.}
 }
 \value{
-The function returns a list with the following objects (\code{df_res} and \code{fit}):
+The function returns a list with the following objects:
 \code{estcoef} a data frame with the estimated model coefficients in the first column (beta),
 their asymptotic standard errors in the second column (std.error),
 the t-statistics in the third column (tvalue) and the p-values of the significance of each coefficient
 in last column (pvalue) \cr
-\code{formula} model formula applied \cr
 \code{random_effect_var} estimated random effect variance \cr
-\code{goodness} vector containing several goodness-of-fit measures: loglikehood, AIC, and BIC \cr
+\code{rho} estimated spatial autocorrelation parameter \cr
+\code{estvarcomp} a data frame with parameter, estimate, and std.error \cr
+\code{goodness} vector containing several goodness-of-fit measures: loglikelihood, AIC, and BIC \cr
 \code{df_eblup} a data frame that contains the following columns: \cr
 \itemize{
 \item \code{y} variable response \cr

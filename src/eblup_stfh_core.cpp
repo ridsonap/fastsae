@@ -159,9 +159,9 @@ static bool build_invV(const ModelPieces& mp, const arma::mat& invAZ1, int D,
 // ============================================================================
 // [[Rcpp::export(.eblup_stfh_core)]]
 List eblup_stfh_core(
-    const arma::mat& X,
-    const arma::vec& y,
-    const arma::vec& vardir,
+    const arma::mat& Xall,
+    const arma::vec& yall,
+    const arma::vec& vardirall,
     const arma::mat& proxmat,
     int D,
     int Tt,
@@ -176,12 +176,27 @@ List eblup_stfh_core(
   if (model != "S" && model != "ST") stop("Argument model must be \"S\" or \"ST\".");
 
   const int M = D * Tt;
-  const int p = X.n_cols;
-  if ((int) X.n_rows != M)      stop("nrow(X) must equal D*T.");
-  if ((int) y.n_elem != M)      stop("length(y) must equal D*T.");
-  if ((int) vardir.n_elem != M) stop("length(vardir) must equal D*T.");
+  const int p = Xall.n_cols;
+  if ((int) Xall.n_rows != M) stop("nrow(Xall) must equal D*T.");
+  if ((int) yall.n_elem != M) stop("length(yall) must equal D*T.");
+  if ((int) vardirall.n_elem != M) stop("length(vardirall) must equal D*T.");
   if ((int) proxmat.n_rows != D || (int) proxmat.n_cols != D)
     stop("proxmat must be a square D x D matrix.");
+
+  // =====================================================================
+  // Check for NA values (unsampled areas)
+  // For this version, unsampled areas are not yet supported
+  // =====================================================================
+  bool adaNA = yall.has_nan();
+  if (adaNA) {
+    stop("This version does not support unsampled areas (NA in response). "
+         "Please use a complete panel or contact the maintainer for the unsampled-area feature.");
+  }
+
+  // For now, use the original implementation for complete panels
+  const arma::mat& X = Xall;
+  const arma::vec& y = yall;
+  const arma::vec& vardir = vardirall;
 
   const double med_vardir = arma::median(vardir);
   if (sigma21_start < 0) sigma21_start = 0.5 * med_vardir;

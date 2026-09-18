@@ -1,8 +1,8 @@
-// src/seblup_pbmse.cpp
+// src/eblup_sfh_pbmse.cpp
 // Parametric Bootstrap MSE for Spatial Fay-Herriot Model
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
-#include "seblup_core.h"
+#include "eblup_sfh.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -33,7 +33,7 @@ List seblup_pbmse(
   List result_awal = seblup_core(
     X, y, vardir, W,
     method, maxiter, precision,
-    false
+    true
   );
 
   const int m = X.n_rows;
@@ -106,6 +106,12 @@ List seblup_pbmse(
 
   // bias corrected
   vec mse_pb2 = 2.0 * (g1 + g2) - g1_pb - g2_pb + g3_pb;
+
+  result_awal = seblup_core(
+    X, y, vardir, W,
+    method, maxiter, precision,
+    false
+  );
 
   DataFrame df_eblup = Rcpp::as<Rcpp::DataFrame>(result_awal["df_eblup"]);
   df_eblup.push_back(mse_pb, "mse_pb");

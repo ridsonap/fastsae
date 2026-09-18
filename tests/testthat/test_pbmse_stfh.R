@@ -18,8 +18,17 @@ formula_stfh <- y ~ x1 + x2 + x3
 mys_panel_nona <- mys_panel |> filter(!is.na(y))
 mys_proxmat_nona <- mys_proxmat[-c(21, 25), -c(21, 25)]
 
-
 model_stfh <- "ST" # default spatial-temporal model
+
+# Common parameters for do.call tests (FIX: was missing)
+params_stfh <- list(
+  data = mys_panel_nona,
+  vardir = ~vardir,
+  domain = ~area,
+  time = ~year,
+  W = mys_proxmat_nona,
+  print_result = FALSE
+)
 
 fit_nona <- eblup_stfh(
   formula = formula_stfh,

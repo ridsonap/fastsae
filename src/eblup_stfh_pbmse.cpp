@@ -230,9 +230,9 @@ static STFitArma fit_stfh_eblup_only(
 // ============================================================================
 // [[Rcpp::export(.pbmse_stfh)]]
 List pbmse_stfh(
-    const arma::mat& X,
-    const arma::vec& y,
-    const arma::vec& vardir,
+    const arma::mat& Xall,
+    const arma::vec& yall,
+    const arma::vec& vardirall,
     const arma::mat& proxmat,
     int D,
     int Tt,
@@ -246,7 +246,7 @@ List pbmse_stfh(
   if (seed >= 0) set_r_seed(seed);
 
   const int M = D * Tt;
-  const double med_vardir = median(vardir);
+  const double med_vardir = median(vardirall);
 
   // ============================================================================
   // 1) Initial fit using the robust .eblup_stfh_core function
@@ -254,7 +254,7 @@ List pbmse_stfh(
   bool isST = (model == "ST");
 
   List init_fit = eblup_stfh_core(
-    X, y, vardir, proxmat, D, Tt,
+    Xall, yall, vardirall, proxmat, D, Tt,
     model, maxiter, precision,
     0.5 * med_vardir, 0.5,
     0.5 * med_vardir, 0.5
@@ -276,7 +276,7 @@ List pbmse_stfh(
   DataFrame estcoef = as<DataFrame>(init_fit["estcoef"]);
   NumericVector beta_ = estcoef["beta"];
   vec beta_est = as<vec>(beta_);
-  vec theta_est = X * beta_est;
+  vec theta_est = Xall * beta_est;
   DataFrame df_eblup = as<DataFrame>(init_fit["df_eblup"]);
   vec eblup_est = as<vec>(df_eblup["eblup"]);
 
@@ -354,7 +354,7 @@ List pbmse_stfh(
 
     vec eps_boot(M);
     for (int i = 0; i < M; ++i) {
-      eps_boot(i) = R::rnorm(0.0, std::sqrt(vardir(i)));
+      eps_boot(i) = R::rnorm(0.0, std::sqrt(vardirall(i)));
     }
 
     // y_boot = theta + u1_expanded + u2 + epsilon
@@ -362,7 +362,7 @@ List pbmse_stfh(
 
     // Compute EBLUP using fixed theta (no re-estimation)
     STFitArma fit_b = fit_stfh_eblup_only(
-      X, y_boot, vardir, proxmat, D, Tt,
+      Xall, y_boot, vardirall, proxmat, D, Tt,
       isST,
       sigma21_est, rho1_est,
       sigma22_est, rho2_est

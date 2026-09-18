@@ -97,36 +97,3 @@ eblup_fh <- function(
   return(res)
 }
 
-# Fungsi Penolong ---------------------------------------------------------
-
-# extract variable from data frame
-.get_variable <- function(data, variable) {
-  if (length(variable) == nrow(data)) {
-    return(variable)
-  } else if (methods::is(variable, "character")) {
-    if (variable %in% colnames(data)) {
-      variable <- data[[variable]]
-    } else {
-      cli::cli_abort('variable "{variable}" is not found in the data')
-    }
-  } else if (methods::is(variable, "formula")) {
-    # extract column name (class character) from formula
-    variable <- data[[all.vars(variable)]]
-  } else {
-    cli::cli_abort('variable "{variable}" is not found in the data')
-  }
-  return(variable)
-}
-
-# extract or generate domain identifier
-.get_domain_id <- function(data) {
-  # Coba cari kolom domain yang umum
-  domain_cols <- c("area", "domain", "id", "region", "kabupaten", "kota")
-  for (col in domain_cols) {
-    if (col %in% colnames(data)) {
-      return(data[[col]])
-    }
-  }
-  # Jika tidak ada, generate index
-  return(seq_len(nrow(data)))
-}

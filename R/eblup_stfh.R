@@ -63,10 +63,9 @@
 #'   }
 #'
 #' @details
-#' This function does not (yet) compute an analytical or bootstrap MSE, matching
-#' \code{eblupSTFH()}'s scope. Unlike \code{eblupSTFH()}, unsampled domain/time
-#' cells (\code{NA} in the response) are not supported -- \code{data} must be a
-#' complete panel, again matching \code{eblupSTFH()}'s requirements.
+#' This function requires a complete panel (no NA values in the response variable).
+#' If your data contains NA values (unsampled areas/time periods), please filter them out
+#' before calling this function. Future versions may support automatic handling of unsampled areas.
 #'
 #' @export
 #' @examples
@@ -125,10 +124,23 @@ eblup_stfh <- function(
   model <- match.arg(model, choices = c("ST", "S"))
 
   # ---- model frame & matrix design ----
-  mf <- stats::model.frame(formula, data, na.action = stats::na.omit)
-  if (nrow(mf) != nrow(data)) {
-    stop("Argument formula=", deparse(formula), " contains NA values (unsampled domains/periods are not supported).")
+  # Use na.pass to detect NA values first
+  mf_full <- stats::model.frame(formula, data, na.action = stats::na.pass)
+  y_full <- stats::model.response(mf_full, "numeric")
+  has_unsampled <- any(is.na(y_full))
+
+  # Check for unsampled areas
+  if (has_unsampled) {
+    cli::cli_abort(c(
+      "This version of eblup_stfh does not support unsampled areas (NA in response).",
+      "i" = "Found {sum(is.na(y_full))} NA value(s) in the response variable.",
+      "i" = "Use only complete panel data, or remove unsampled observations.",
+      "i" = "Example: filter(!is.na(y)"
+    ))
   }
+
+  # Use complete data
+  mf <- stats::model.frame(formula, data, na.action = stats::na.omit)
   X <- stats::model.matrix(attr(mf, "terms"), mf)
   y <- stats::model.response(mf, "numeric")
 
@@ -138,9 +150,8 @@ eblup_stfh <- function(
     stop("Length of 'vardir' must equal number of observations in data")
   }
 
-  y_valid <- !is.na(y)
-  if (any(vardir[y_valid] <= 0, na.rm = TRUE)) {
-    stop("vardir must be strictly positive for sampled areas")
+  if (any(vardir <= 0, na.rm = TRUE)) {
+    stop("vardir must be strictly positive for all areas")
   }
 
   # domain & time
@@ -181,9 +192,9 @@ eblup_stfh <- function(
 
   # ---- call C++ core ----
   res <- .eblup_stfh_core(
-    X = X,
-    y = y,
-    vardir = vardir,
+    Xall = X,
+    yall = y,
+    vardirall = vardir,
     proxmat = W,
     D = as.integer(n_domain),
     Tt = as.integer(n_time),
@@ -225,9 +236,9 @@ eblup_stfh <- function(
 
     # Call C++ PBMSE function
     pbmse_res <- .pbmse_stfh(
-      X = X,
-      y = y,
-      vardir = vardir,
+      Xall = X,
+      yall = y,
+      vardirall = vardir,
       proxmat = W,
       D = as.integer(n_domain),
       Tt = as.integer(n_time),
@@ -241,7 +252,7 @@ eblup_stfh <- function(
 
     # Update df_eblup with MSE
     res$df_eblup$mse_pb <- as.numeric(pbmse_res$mse_pb)
-    res$df_eblup$rse <- sqrt(as.numeric(pbmse_res$mse_pb)) / abs(res$df_eblup$eblup) * 100
+    res$df_eblup$rse <- ifelse(abs(res$df_eblup$eblup) < .Machine$double.eps, NA_real_, sqrt(as.numeric(pbmse_res$mse_pb)) / abs(res$df_eblup$eblup) * 100)
     res$B <- pbmse_res$B
   } else {
     # Add NA columns for mse and rse
@@ -261,8 +272,8 @@ eblup_stfh <- function(
     if (compute_mse) {
       cli::cli_h1("MSE (Parametric Bootstrap, B = {res$B})")
       cli::cli_text(
-        "Range: [{round(range(res$df_eblup$mse, na.rm = TRUE)[1], 4)}, ",
-        "{round(range(res$df_eblup$mse, na.rm = TRUE)[2], 4)}]"
+        "Range: [{round(range(res$df_eblup$mse_pb, na.rm = TRUE)[1], 4)}, ",
+        "{round(range(res$df_eblup$mse_pb, na.rm = TRUE)[2], 4)}]"
       )
       cli::cli_text(
         "RSE range: [{round(range(res$df_eblup$rse, na.rm = TRUE)[1], 2)}, ",
@@ -274,23 +285,3 @@ eblup_stfh <- function(
   return(res)
 }
 
-# Fungsi Penolong ---------------------------------------------------------
-
-# extract variable from data frame
-.get_variable <- function(data, variable) {
-  if (length(variable) == nrow(data)) {
-    return(variable)
-  } else if (methods::is(variable, "character")) {
-    if (variable %in% colnames(data)) {
-      variable <- data[[variable]]
-    } else {
-      cli::cli_abort('variable "{variable}" is not found in the data')
-    }
-  } else if (methods::is(variable, "formula")) {
-    # extract column name (class character) from formula
-    variable <- data[[all.vars(variable)]]
-  } else {
-    cli::cli_abort('variable "{variable}" is not found in the data')
-  }
-  return(variable)
-}
