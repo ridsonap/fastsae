@@ -32,6 +32,8 @@ with the gold-standard implementations in the **sae** package (Molina &
 Rao), ensuring that your statistical conclusions remain 100% faithful to
 the published literature while executing in a fraction of a second.
 
+Documentation : <https://ridsonap.github.io/fastsae/>
+
 ### Key Features
 
 - ⚡ **Blazing Fast**: Core Fisher-scoring algorithms and iterative
