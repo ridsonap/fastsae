@@ -1,13 +1,16 @@
 
-<img src="man/figures/logo.png" align="right" height="139" alt="fastsae logo" />
+<img src="man/figures/logo.png" alt="fastsae logo" align="right" height="139"/>
 
 # fastsae: Fast Small Area Estimation in R
 
 <!-- badges: start -->
 
+[![CRAN
+status](https://www.r-pkg.org/badges/version/fastsae)](https://CRAN.R-project.org/package=fastsae)
 [![R-CMD-check](https://github.com/ridsonap/fastsae/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ridsonap/fastsae/actions/workflows/R-CMD-check.yaml)
 [![License:
 GPL-3](https://img.shields.io/badge/License-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 <!-- badges: end -->
 
 ## Overview
@@ -70,18 +73,24 @@ mys_df <- as.data.frame(na.omit(mys))
 fit_fast <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_df, print_result = FALSE)
 fit_sae  <- sae::eblupFH(y ~ x1 + x2 + x3, vardir = vardir, data = mys_df)
 
-isTRUE(all.equal(fit_fast$df_eblup$eblup, as.vector(fit_sae$eblup)))        # TRUE
-isTRUE(all.equal(as.vector(coef(fit_fast)), as.vector(fit_sae$fit$estcoef$beta))) # TRUE
-isTRUE(all.equal(fit_fast$random_effect_var, fit_sae$fit$refvar))           # TRUE
+all.equal(fit_fast$df_eblup$eblup, as.vector(fit_sae$eblup))      
+# TRUE
+all.equal(as.vector(coef(fit_fast)), as.vector(fit_sae$fit$estcoef$beta))
+# TRUE
+all.equal(fit_fast$random_effect_var, fit_sae$fit$refvar)          
+# TRUE
 
 # 2. Spatial Fay-Herriot Model (SAR)
 W_clean <- mys_proxmat[!is.na(mys$y), !is.na(mys$y)]
 sfh_fast <- eblup_sfh(y ~ x1 + x2 + x3, vardir = ~vardir, W = W_clean, data = mys_df, print_result = FALSE)
 sfh_sae  <- sae::eblupSFH(y ~ x1 + x2 + x3, vardir = vardir, proxmat = W_clean, data = mys_df)
 
-isTRUE(all.equal(sfh_fast$df_eblup$eblup, as.vector(sfh_sae$eblup)))       # TRUE
-isTRUE(all.equal(sfh_fast$rho, sfh_sae$fit$spatialcorr))                    # TRUE
-isTRUE(all.equal(sfh_fast$random_effect_var, sfh_sae$fit$refvar))           # TRUE
+all.equal(sfh_fast$df_eblup$eblup, as.vector(sfh_sae$eblup))       
+# TRUE
+all.equal(sfh_fast$rho, sfh_sae$fit$spatialcorr)                    
+# TRUE
+all.equal(sfh_fast$random_effect_var, sfh_sae$fit$refvar)           
+# TRUE
 ```
 
 ------------------------------------------------------------------------
@@ -106,12 +115,16 @@ $n = 1,000$ (with 5 covariates):
 | Metric | `fastsae` | `sae` | `emdi` |
 |:---|:--:|:--:|:--:|
 | **Mean Time (EBLUP FH)** | **0.0015 s** | 0.291 s | 9.64 s |
-| **Mean Time (Spatial SFH)** | **0.165 s** | 12.60 s | 8.69 s |
+| **Mean Time (Spatial FH)** | **0.165 s** | 12.60 s | 8.69 s |
+| **Mean Time (Spatio Temporal FH)** | **12.5 s** | 353.0 s | \- |
 | **Peak Memory (EBLUP FH)** | **0.055 MB** | 16.3 MB | 824 MB |
-| **Peak Memory (Spatial SFH)** | **5.15 MB** | 408 MB | 824 MB |
+| **Peak Memory (Spatial FH)** | **5.15 MB** | 408 MB | 824 MB |
+| **Peak Memory (Spatio Temporal FH)** | **0.289 MB** | 7822 MB | \- |
 | **Speedup at n = 1,000** | **Baseline** | **~34x slower** | **~12,300x slower** |
 
-![](README_files/figure-gfm/benchmark_plots-1.png)<!-- -->
+![](README_files/figure-gfm/benchmark_plots-1.png)
+
+![](README_files/figure-gfm/benchmark_plots_mem.png)
 
 ------------------------------------------------------------------------
 
@@ -122,6 +135,8 @@ You can install the development version from GitHub:
 ``` r
 # install.packages("remotes")
 remotes::install_github("ridsonap/fastsae")
+# or cran version
+install.packages('fastsae')
 ```
 
 ------------------------------------------------------------------------
