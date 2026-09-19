@@ -1,12 +1,4 @@
-PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
-PKG_CXXFLAGS += $(SHLIB_OPENMP_CXXFLAGS)
-PKG_LIBS += $(SHLIB_OPENMP_CXXFLAGS)
+CXX_STD = CXX17
 
-## Strip debug symbols after build (same purpose as in Makevars; Windows
-## toolchain always uses GNU Make via Rtools, so += etc. here is fine).
-.PHONY: all
-
-all: $(SHLIB)
-
-strippedLib: $(SHLIB)
-	if test -e "$(SHLIB)"; then $(STRIP) --strip-debug $(SHLIB); fi
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

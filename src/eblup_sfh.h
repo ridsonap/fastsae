@@ -34,10 +34,10 @@ Rcpp::List seblup_core(
     const arma::vec& yall,
     const arma::vec& vardirall,
     const arma::mat& Wall,
-    std::string method = "REML",
-    int maxiter = 100,
-    double precision = 1e-4,
-    bool only_core = false
+    std::string method,
+    int maxiter,
+    double precision,
+    bool only_core
 );
 
 #endif // SEBLUP_CORE_H

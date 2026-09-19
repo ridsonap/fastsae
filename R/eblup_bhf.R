@@ -58,34 +58,34 @@ eblup_bhf <- function(
   method <- match.arg(method, choices = c("REML", "ML"))
 
   # --- data preparation ---
-  formuladata_all <- stats::model.frame(formula, na.action = stats::na.pass, unit_data)
   formuladata <- stats::model.frame(formula, na.action = stats::na.omit, unit_data)
   dom <- .get_variable(unit_data, domain_var)
+  if (!is.null(attr(formuladata, "na.action"))) {
+    dom <- dom[-attr(formuladata, "na.action")]
+  }
   selectdom <- unique(dom)
 
-  # --- build design matrix and response (FIX Issue #4) ---
-  # Extract response variable name from formula
-  resp_name <- as.character(formula)[[2]]
-  Xs <- stats::model.matrix(formula, unit_data)
-  ys <- formuladata[[resp_name]]
+  # --- build design matrix and response ---
+  ys <- stats::model.response(formuladata)
+  Xs <- stats::model.matrix(formula, formuladata)
 
-  # --- fit linear mixed model (FIX Issue #4: use proper column names) ---
+  # --- fit linear mixed model with method (REML vs ML) ---
   term_labels <- attr(stats::terms(formula), "term.labels")
   lmer_data <- data.frame(
     y = ys,
-    unit_data[, term_labels, drop = FALSE],
+    formuladata[, term_labels, drop = FALSE],
     dom = dom
   )
-  # Build formula with actual column names (keep intercept to match sae::eblupBHF)
   fixed_part <- paste(term_labels, collapse = " + ")
   formula_lmer <- stats::as.formula(paste("y ~", fixed_part, "+ (1 | dom)"))
 
-  fit <- lme4::lmer(formula_lmer, data = lmer_data)
+  fit <- lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML"))
   betaest <- matrix(lme4::fixef(fit), ncol = 1)
   upred <- lme4::ranef(fit)$dom
 
-  # --- prepare population data ---
-  Xpop <- dplyr::arrange(Xpop, match(domain_var, selectdom))
+  # --- prepare population data sorted to match selectdom ---
+  pop_dom <- .get_variable(Xpop, domain_var)
+  Xpop <- Xpop[order(match(pop_dom, selectdom)), , drop = FALSE]
   popnsize <- .get_variable(Xpop, popsize_var)
 
   if (is.null(popnmean_xpop)) {
@@ -93,6 +93,13 @@ eblup_bhf <- function(
     meanxpop <- stats::model.matrix(formula_noy, Xpop)
   } else {
     meanxpop <- as.matrix(popnmean_xpop)
+    if (ncol(meanxpop) == ncol(Xs) - 1 && "(Intercept)" %in% colnames(Xs)) {
+      meanxpop <- cbind(`(Intercept)` = 1, meanxpop)
+    }
+  }
+
+  if (ncol(meanxpop) != ncol(Xs)) {
+    cli::cli_abort("Number of columns in auxiliary population means ({ncol(meanxpop)}) must match design matrix ({ncol(Xs)}).")
   }
 
   # --- extract variance components ---
@@ -101,8 +108,8 @@ eblup_bhf <- function(
 
   # --- compute EBLUP ---
   result <- .eblup_bhf_cpp(
-    selectdom = selectdom,
-    dom = dom,
+    selectdom = as.character(selectdom),
+    dom = as.character(dom),
     Xs = Xs,
     meanxpop = meanxpop,
     ys = ys,
@@ -149,28 +156,53 @@ eblup_bhf <- function(
     eblup_df <- merge(eblup_df, mse_df, by = "domain", sort = FALSE)
   }
 
+  df_eblup <- eblup_df
+  if (mse && "mse" %in% names(df_eblup)) {
+    df_eblup$rse <- ifelse(abs(df_eblup$eblup) < .Machine$double.eps, NA_real_,
+                           sqrt(df_eblup$mse) / abs(df_eblup$eblup) * 100)
+  } else {
+    df_eblup$mse <- NA_real_
+    df_eblup$rse <- NA_real_
+  }
+
+  # Build standardized estcoef
+  lmer_sum <- summary(fit)
+  coef_mat <- as.data.frame(lmer_sum$coefficients)
+  estcoef <- data.frame(
+    beta = coef_mat[, 1],
+    std.error = coef_mat[, 2],
+    stderr_beta = coef_mat[, 2],
+    tvalue = coef_mat[, 3],
+    zvalue = coef_mat[, 3],
+    pvalue = 2 * stats::pnorm(abs(coef_mat[, 3]), lower.tail = FALSE),
+    row.names = rownames(coef_mat)
+  )
+
   # --- assemble output ---
   out <- list(
-    eblup = eblup_df,
+    df_eblup = df_eblup,
+    eblup = df_eblup,  # backward compatibility
+    estcoef = estcoef,
+    random_effect_var = sigma2_u,
     fit = list(
       method = method,
       random_effect_var = sigma2_u,
       sigma2_e = sigma2_e,
       beta = betaest,
-      random_effect = upred
+      random_effect = upred,
+      lme = fit
     ),
+    formula = formula,
+    model = "BHF",
+    level = "unit",
+    convergence = TRUE,
     call = match.call()
   )
 
-  class(out) <- "fastsae_unit"
+  class(out) <- c("fastsae", "fastsae_unit")
 
   if (print_result) {
-    cli::cli_alert_success("EBLUP estimation completed")
-    cli::cli_h1("Summary")
-    print(head(out$eblup, 10))
-    if (nrow(out$eblup) > 10) {
-      cli::cli_text("... and {nrow(out$eblup) - 10} more rows")
-    }
+    print(out)
   }
 
   return(out)
@@ -197,33 +229,37 @@ pbmse_unit <- function(
   # --- data preparation ---
   formuladata <- stats::model.frame(formula, na.action = stats::na.omit, unit_data)
   dom <- .get_variable(unit_data, domain_var)
+  if (!is.null(attr(formuladata, "na.action"))) {
+    dom <- dom[-attr(formuladata, "na.action")]
+  }
   selectdom <- unique(dom)
 
-  # --- build design matrix and response (FIX Issue #4) ---
-  # Extract response variable name from formula
-  resp_name <- as.character(formula)[[2]]
-  Xs <- stats::model.matrix(formula, unit_data)
-  ys <- formuladata[[resp_name]]
+  # --- build design matrix and response ---
+  ys <- stats::model.response(formuladata)
+  Xs <- stats::model.matrix(formula, formuladata)
 
-  # --- prepare population data ---
-  Xpop <- dplyr::arrange(Xpop, match(domain_var, selectdom))
+  # --- prepare population data sorted to match selectdom ---
+  pop_dom <- .get_variable(Xpop, domain_var)
+  Xpop <- Xpop[order(match(pop_dom, selectdom)), , drop = FALSE]
   popnsize <- .get_variable(Xpop, popsize_var)
 
   formula_noy <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
   meanxpop <- stats::model.matrix(formula_noy, Xpop)
+  if (ncol(meanxpop) == ncol(Xs) - 1 && "(Intercept)" %in% colnames(Xs)) {
+    meanxpop <- cbind(`(Intercept)` = 1, meanxpop)
+  }
 
-  # --- initial fit (FIX Issue #4: use proper column names) ---
+  # --- initial fit ---
   term_labels <- attr(stats::terms(formula), "term.labels")
   lmer_data <- data.frame(
     y = ys,
-    unit_data[, term_labels, drop = FALSE],
+    formuladata[, term_labels, drop = FALSE],
     dom = dom
   )
-  # Build formula with actual column names (keep intercept to match sae::eblupBHF)
   fixed_part <- paste(term_labels, collapse = " + ")
   formula_lmer <- stats::as.formula(paste("y ~", fixed_part, "+ (1 | dom)"))
 
-  fit <- lme4::lmer(formula_lmer, data = lmer_data)
+  fit <- lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML"))
   betaest <- matrix(lme4::fixef(fit), ncol = 1)
   upred <- lme4::ranef(fit)$dom
 
@@ -232,8 +268,8 @@ pbmse_unit <- function(
 
   # --- initial EBLUP ---
   init_result <- .eblup_bhf_cpp(
-    selectdom = selectdom,
-    dom = dom,
+    selectdom = as.character(selectdom),
+    dom = as.character(dom),
     Xs = Xs,
     meanxpop = meanxpop,
     ys = ys,
@@ -249,43 +285,44 @@ pbmse_unit <- function(
   if (seed >= 0) set.seed(seed)
 
   mse <- numeric(length(selectdom))
-  n_domain <- length(selectdom)
 
   # Group indices by domain
   dom_factor <- factor(dom, levels = as.character(selectdom))
   dom_idx <- split(seq_along(dom), dom_factor)
 
-  # Unique domains in sample and their indices
-  sample_domains <- names(dom_idx)
-
   for (b in seq_len(B)) {
     # Generate bootstrap sample
-    u_boot <- rnorm(length(selectdom), sd = sqrt(sigma2_u))
+    u_boot <- stats::rnorm(length(selectdom), sd = sqrt(sigma2_u))
     names(u_boot) <- as.character(selectdom)
 
-    e_boot <- rnorm(length(ys), sd = sqrt(sigma2_e))
+    e_boot <- stats::rnorm(length(ys), sd = sqrt(sigma2_e))
 
     # y_boot = X * beta + u_boot[dom] + e_boot
-    y_boot <- ys
+    y_boot <- numeric(length(ys))
     for (i in seq_along(ys)) {
       d <- as.character(dom[i])
       y_boot[i] <- as.numeric(Xs[i, ] %*% betaest) + u_boot[d] + e_boot[i]
     }
 
-    # Fit bootstrap model (FIX Issue #4: use proper data frame)
+    # Fit bootstrap model
     lmer_data_boot <- data.frame(
       y = y_boot,
-      unit_data[, term_labels, drop = FALSE],
+      formuladata[, term_labels, drop = FALSE],
       dom = dom
     )
-    fit_boot <- lme4::lmer(formula_lmer, data = lmer_data_boot)
+    fit_boot <- tryCatch(
+      lme4::lmer(formula_lmer, data = lmer_data_boot, REML = (method == "REML")),
+      error = function(e) NULL
+    )
+    if (is.null(fit_boot)) next
+
     beta_boot <- matrix(lme4::fixef(fit_boot), ncol = 1)
     upred_boot <- lme4::ranef(fit_boot)$dom
 
     # Compute bootstrap EBLUP
     eblup_boot <- .eblup_bhf_cpp(
-      selectdom = selectdom,
-      dom = dom,
+      selectdom = as.character(selectdom),
+      dom = as.character(dom),
       Xs = Xs,
       meanxpop = meanxpop,
       ys = y_boot,
@@ -294,8 +331,30 @@ pbmse_unit <- function(
       upred = upred_boot
     )$eblup
 
-    # Accumulate MSE
-    mse <- mse + (eblup_boot - eblup_init)^2
+    # Compute true population mean in bootstrap population
+    truemean_boot <- numeric(length(selectdom))
+    for (i in seq_along(selectdom)) {
+      d <- as.character(selectdom[i])
+      idx_d <- dom_idx[[d]]
+      nd <- length(idx_d)
+      Ni <- popnsize[i]
+      rd <- max(Ni - nd, 0)
+      mud <- sum(meanxpop[i, ] * betaest)
+      if (nd > 0 && rd > 0) {
+        esdmean <- mean(e_boot[idx_d])
+        erdmean <- stats::rnorm(1, 0, sqrt(sigma2_e / rd))
+        edmean <- esdmean * (nd / Ni) + erdmean * (rd / Ni)
+        truemean_boot[i] <- mud + u_boot[d] + edmean
+      } else if (nd > 0 && rd == 0) {
+        esdmean <- mean(e_boot[idx_d])
+        truemean_boot[i] <- mud + u_boot[d] + esdmean
+      } else {
+        truemean_boot[i] <- mud + u_boot[d] + stats::rnorm(1, 0, sqrt(sigma2_e / Ni))
+      }
+    }
+
+    # Accumulate MSE: (eblup_boot - truemean_boot)^2
+    mse <- mse + (eblup_boot - truemean_boot)^2
   }
 
   mse <- mse / B

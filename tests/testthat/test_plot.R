@@ -1,14 +1,7 @@
 # Tests for autoplot.fastsae methods
 library(testthat)
 
-# Load fastsae functions
-load_all_path <- system.file(package = "fastsae")
-if (load_all_path == "") {
-  # Not installed as package, try devtools
-  devtools::load_all()
-} else {
-  library(fastsae)
-}
+library(fastsae)
 
 skip_if_not_installed("sae")
 

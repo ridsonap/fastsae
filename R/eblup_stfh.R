@@ -207,14 +207,18 @@ eblup_stfh <- function(
     rho2_start = rho2_start
   )
 
-  # ---- attach additional info (matching seblup_area structure) ----
+  # ---- attach additional info (matching fastsae standardized structure) ----
   # Row names for estcoef
   if (!is.null(res$estcoef)) {
     row.names(res$estcoef) <- colnames(X)
+    res$estcoef$stderr_beta <- res$estcoef$std.error
+    res$estcoef$zvalue <- res$estcoef$tvalue
   }
 
-  # Attach formula
+  # Attach formula and metadata
   res$formula <- formula
+  res$level <- "area"
+  res$method <- "REML"
 
   # Add class
   res$call <- match.call()
@@ -252,34 +256,29 @@ eblup_stfh <- function(
 
     # Update df_eblup with MSE
     res$df_eblup$mse_pb <- as.numeric(pbmse_res$mse_pb)
+    res$df_eblup$mse <- as.numeric(pbmse_res$mse_pb)
     res$df_eblup$rse <- ifelse(abs(res$df_eblup$eblup) < .Machine$double.eps, NA_real_, sqrt(as.numeric(pbmse_res$mse_pb)) / abs(res$df_eblup$eblup) * 100)
     res$B <- pbmse_res$B
   } else {
     # Add NA columns for mse and rse
     res$df_eblup$mse_pb <- NA_real_
+    res$df_eblup$mse <- NA_real_
     res$df_eblup$rse <- NA_real_
     res$B <- NA_integer_
   }
 
+  # Standardize df_eblup columns
+  res$df_eblup$domain <- domain
+  res$df_eblup$time <- time
+  res$df_eblup$y <- y
+  res$df_eblup$vardir <- vardir
+  cols_order <- c("domain", "time", "y", "eblup", "vardir", "mse", "rse", "mse_pb",
+                  "random_effect_u1", "random_effect_u2")
+  res$df_eblup <- res$df_eblup[, intersect(cols_order, names(res$df_eblup))]
+
   # Print results
   if (print_result) {
-    cli::cli_alert_success("Convergence after {.orange {res$n_iter}} iterations")
-    cli::cli_alert("Model : {model}")
-    cli::cli_h1("Coefficient")
-    stats::printCoefmat(res$estcoef, signif.stars = TRUE)
-    cli::cli_h1("Variance / autocorrelation components")
-    print(res$estvarcomp)
-    if (compute_mse) {
-      cli::cli_h1("MSE (Parametric Bootstrap, B = {res$B})")
-      cli::cli_text(
-        "Range: [{round(range(res$df_eblup$mse_pb, na.rm = TRUE)[1], 4)}, ",
-        "{round(range(res$df_eblup$mse_pb, na.rm = TRUE)[2], 4)}]"
-      )
-      cli::cli_text(
-        "RSE range: [{round(range(res$df_eblup$rse, na.rm = TRUE)[1], 2)}, ",
-        "{round(range(res$df_eblup$rse, na.rm = TRUE)[2], 2)}]%"
-      )
-    }
+    print(res)
   }
 
   return(res)

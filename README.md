@@ -23,7 +23,7 @@ are too slow.
 | Fay-Herriot (Area-level) | `eblup_fh()` | Analytical |
 | Spatial Fay-Herriot | `eblup_sfh()` | Analytical, Parametric Bootstrap MSE, Non Parametric Bootstrap MSE (Bias Corrected & Non Bias Corrected) |
 | Spatio Temporal Fay-Herriot | `eblup_stfh()` | Parametric Bootstrap MSE |
-| Battese-Harter-Fuller (Unit-level) | `eblup_unit()` | Parametric Bootstrap MSE |
+| Battese-Harter-Fuller (Unit-level) | `eblup_bhf()` (`eblup_unit()`) | Parametric Bootstrap MSE |
 
 ## Installation
 
@@ -38,8 +38,7 @@ install.packages("fastsae")
 
 ### Dependencies
 
-**Imports:** cli, dplyr, lme4, Rcpp, RcppArmadillo, RcppParallel,
-methods
+**Imports:** cli, ggplot2, lme4, methods, Rcpp, RcppArmadillo, rlang, stats, utils
 
 ## Quick Start
 

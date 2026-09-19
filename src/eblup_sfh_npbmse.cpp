@@ -174,7 +174,9 @@ List seblup_npbmse(
 
       bool valid = res.converged &&
         res.sigma2 >= 0.0 &&
-        res.rho_fix >= -1.0 && res.rho_fix <= 1.0;
+        res.theta.is_finite() &&
+        res.g1d.is_finite() &&
+        res.g2d.is_finite();
 
       if (!valid) continue;
 

@@ -2,26 +2,11 @@
 // Core Spatial Fay-Herriot EBLUP estimation with unified ML/REML loops
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
+#include "eblup_sfh.h"
 using namespace Rcpp;
 using namespace arma;
 
 // [[Rcpp::depends(RcppArmadillo)]]
-
-// ============================================================================
-// SeblupFitArma
-//
-// Lightweight struct untuk menyimpan hasil fitting (tanpa SEXP/R objects).
-// Aman dipanggil dari region paralel OpenMP.
-// ============================================================================
-struct SeblupFitArma {
-  arma::vec theta;   // EBLUP
-  arma::vec g1d;     // MSE component g1
-  arma::vec g2d;     // MSE component g2
-  double sigma2;     // random effect variance
-  double rho_fix;    // spatial autocorrelation parameter
-  int n_iter;
-  bool converged;
-};
 
 // ============================================================================
 // seblup_fit_core_arma()
@@ -127,24 +112,36 @@ SeblupFitArma seblup_fit_core_arma(
     vec par_stim(2);
     par_stim(0) = sigma2_u(k - 1);
     par_stim(1) = rho(k - 1);
-    stime_fin = par_stim + solve(Idev, s);
 
-    // bound rho ke (-1, 1)
-    if (stime_fin(1) <= -1) stime_fin(1) = -0.999;
-    if (stime_fin(1) >= 1)  stime_fin(1) = 0.999;
+    vec step;
+    bool ok_solve = solve(step, Idev, s);
+    if (!ok_solve || !step.is_finite()) {
+      k = maxiter;
+      break;
+    }
+
+    stime_fin = par_stim + step;
+
+    // bound rho ke (-0.999, 0.999)
+    if (stime_fin(1) <= -0.999) stime_fin(1) = -0.999;
+    if (stime_fin(1) >= 0.999)  stime_fin(1) = 0.999;
 
     sigma2_u(k) = stime_fin(0);
     rho(k) = stime_fin(1);
 
     diff = max(abs(stime_fin - par_stim) / abs(par_stim + 1e-12));
+    if (!std::isfinite(diff)) {
+      k = maxiter;
+      break;
+    }
   }
 
   // ================================================================
   // Final estimates
   // ================================================================
   double rho_fix = rho(k);
-  if (rho_fix == -0.999) rho_fix = -1;
-  else if (rho_fix == 0.999) rho_fix = 1;
+  if (rho_fix <= -0.999) rho_fix = -0.999;
+  if (rho_fix >= 0.999)  rho_fix = 0.999;
 
   double sigma2 = sigma2_u(k);
   if (sigma2 < 0.0) sigma2 = 0.0;
@@ -156,7 +153,7 @@ SeblupFitArma seblup_fit_core_arma(
 
   mat G = sigma2 * derSigma;
   V = G + diagmat(vardir);
-  ok_inv = inv_sympd(Vi, V);
+  ok_inv = inv_sympd(Vi, V) && ok_inv;
   if (!ok_inv) Vi = pinv(V);
 
   // beta estimate
@@ -164,7 +161,7 @@ SeblupFitArma seblup_fit_core_arma(
   XtViX = XtVi * X;
   mat XtViy = XtVi * y;
 
-  ok_inv = inv_sympd(Q, XtViX);
+  ok_inv = inv_sympd(Q, XtViX) && ok_inv;
   if (!ok_inv) Q = solve(XtViX, eye_p);
 
   mat beta = Q * XtViy;
@@ -183,6 +180,9 @@ SeblupFitArma seblup_fit_core_arma(
   vec g2d = sum((R * Q) % R, 1);
 
   // return
+  bool ok_all = ok_inv && beta.is_finite() && eblup.is_finite() && g1d.is_finite() && g2d.is_finite() &&
+                arma::all(g1d >= 0.0) && (arma::max(g1d) < 1e6) && (arma::max(arma::abs(eblup)) < 1e6);
+
   SeblupFitArma out;
   out.theta     = eblup;
   out.g1d       = g1d;
@@ -190,7 +190,7 @@ SeblupFitArma seblup_fit_core_arma(
   out.sigma2    = sigma2;
   out.rho_fix   = rho_fix;
   out.n_iter    = k;
-  out.converged = (k < maxiter);
+  out.converged = (k < maxiter) && (diff <= precision) && ok_all;
   return out;
 }
 
@@ -359,23 +359,35 @@ List seblup_core(
     vec par_stim(2);
     par_stim(0) = sigma2_u(k - 1);
     par_stim(1) = rho(k - 1);
-    stime_fin = par_stim + solve(Idev, s);
 
-    if (stime_fin(1) <= -1) stime_fin(1) = -0.999;
-    if (stime_fin(1) >= 1)  stime_fin(1) = 0.999;
+    vec step;
+    bool ok_solve = solve(step, Idev, s);
+    if (!ok_solve || !step.is_finite()) {
+      k = maxiter;
+      break;
+    }
+
+    stime_fin = par_stim + step;
+
+    if (stime_fin(1) <= -0.999) stime_fin(1) = -0.999;
+    if (stime_fin(1) >= 0.999)  stime_fin(1) = 0.999;
 
     sigma2_u(k) = stime_fin(0);
     rho(k) = stime_fin(1);
 
     diff = max(abs(stime_fin - par_stim) / abs(par_stim + 1e-12));
+    if (!std::isfinite(diff)) {
+      k = maxiter;
+      break;
+    }
   }
 
   // ================================================================
   // Final estimates
   // ================================================================
   double rho_fix = rho(k);
-  if (rho_fix == -0.999) rho_fix = -1;
-  else if (rho_fix == 0.999) rho_fix = 1;
+  if (rho_fix == -0.999) rho_fix = -1.0;
+  else if (rho_fix == 0.999) rho_fix = 1.0;
 
   double sigma2 = sigma2_u(k);
   if (sigma2 < 0.0) sigma2 = 0.0;
@@ -387,7 +399,7 @@ List seblup_core(
 
   mat G = sigma2 * derSigma;
   V = G + diagmat(vardir);
-  ok_inv = inv_sympd(Vi, V);
+  ok_inv = inv_sympd(Vi, V) && ok_inv;
   if (!ok_inv) Vi = pinv(V);
 
   // beta
@@ -395,10 +407,12 @@ List seblup_core(
   XtViX = XtVi * X;
   mat XtViy = XtVi * y;
 
-  ok_inv = inv_sympd(Q, XtViX);
+  ok_inv = inv_sympd(Q, XtViX) && ok_inv;
   if (!ok_inv) Q = solve(XtViX, eye_p);
 
   mat beta = Q * XtViy;
+
+  bool is_converged = (k < maxiter) && (diff <= precision);
 
   // only_core mode: return lightweight results
   if (only_core) {
@@ -414,7 +428,7 @@ List seblup_core(
     vec g1d = Ga.diag();
 
     return List::create(
-      _["convergence"] = (k < maxiter),
+      _["convergence"] = is_converged,
       _["sigma2_u"] = sigma2,
       _["rho"]      = rho_fix,
       _["beta"]     = beta,
@@ -582,6 +596,11 @@ List seblup_core(
     vec g2d_ns = sum((R_ns * Q) % R_ns, 1);
     vec mse_ns = g1d_ns + g2d_ns;
 
+    vec u_sampled = GVi * resid;
+    vec u_all(Xall.n_rows);
+    u_all.elem(idx_s) = u_sampled;
+    u_all.elem(idx_ns) = KrigW * resid;
+
     eblup_all.elem(idx_s)  = eblup;
     eblup_all.elem(idx_ns)  = eblup_ns;
     mse_all.elem(idx_s)     = mse2d;
@@ -589,6 +608,15 @@ List seblup_core(
   } else {
     eblup_all = eblup;
     mse_all = mse2d;
+  }
+
+  vec u_all(Xall.n_rows);
+  if (!adaNA) {
+    u_all = GVi * resid;
+  } else {
+    // already populated inside if (adaNA)
+    u_all.elem(idx_s) = GVi * resid;
+    // idx_ns already set
   }
 
   // ================================================================
@@ -604,24 +632,28 @@ List seblup_core(
   // ================================================================
   DataFrame df_coef = DataFrame::create(
     _["beta"]        = beta,
+    _["std.error"]   = stderr_beta,
     _["stderr_beta"] = stderr_beta,
     _["zvalue"]      = zvalue,
     _["pvalue"]      = pvalue
   );
 
   DataFrame df_eblup = DataFrame::create(
-    _["y"]     = yall,
-    _["vardir"] = vardirall,
-    _["eblup"] = eblup_all,
-    _["mse"]   = mse_all,
-    _["rse"]   = rse
+    _["y"]             = yall,
+    _["vardir"]        = vardirall,
+    _["eblup"]         = eblup_all,
+    _["random_effect"] = u_all,
+    _["mse"]           = mse_all,
+    _["rse"]           = rse
   );
 
   // Standardized output structure
+  double se_sigma2 = (Idevi(0, 0) > 0.0) ? std::sqrt(Idevi(0, 0)) : NA_REAL;
+  double se_rho = (Idevi(1, 1) > 0.0) ? std::sqrt(Idevi(1, 1)) : NA_REAL;
   DataFrame estvarcomp = DataFrame::create(
     _["parameter"] = CharacterVector::create("sigma2_u", "rho"),
-    _["estimate"] = NumericVector::create(sigma2, rho_fix),
-    _["std.error"] = NumericVector::create(NA_REAL, NA_REAL)  // SE not computed analytically for spatial
+    _["estimate"]  = NumericVector::create(sigma2, rho_fix),
+    _["std.error"] = NumericVector::create(se_sigma2, se_rho)
   );
 
   List out = List::create(
@@ -634,7 +666,7 @@ List seblup_core(
     _["model"]            = "SFH",
     _["level"]            = "area",
     _["n_iter"]           = k,
-    _["convergence"]      = (k < maxiter),
+    _["convergence"]      = is_converged,
     _["method"]           = method
   );
 

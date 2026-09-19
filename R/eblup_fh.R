@@ -54,15 +54,15 @@ eblup_fh <- function(
   vardir <- .get_variable(data, vardir)
 
   if (nrow(mf) != length(vardir)) {
-    stop("Length of 'vardir' must equal number of observations in data")
+    cli::cli_abort("Length of 'vardir' must equal number of observations in data.")
   }
 
   y <- stats::model.response(mf, "numeric")
   X <- stats::model.matrix(attr(mf, "terms"), mf)
 
-  # cek Auxiliary variabels mengandung NA atau tidak
+  # Check auxiliary variables for NA values
   if (anyNA(X)) {
-    cli::cli_abort("Auxiliary variabels contains NA values.")
+    cli::cli_abort("Auxiliary variables contain NA values.")
   }
 
   res <- .eblup_core(
@@ -74,11 +74,14 @@ eblup_fh <- function(
     precision = precision
   )
 
-  # attach beberapa info tambahan
+  # attach metadata
   row.names(res$estcoef) <- colnames(X)
+  res$formula <- formula
+  res$model <- "FH"
 
-  # Tambahkan domain identifier ke df_eblup
+  # Add domain identifier as first column in df_eblup
   res$df_eblup$domain <- .get_domain_id(data)
+  res$df_eblup <- res$df_eblup[, c("domain", "y", "eblup", "vardir", "mse", "rse")]
 
   res$call <- match.call()
   class(res) <- "fastsae"
@@ -89,10 +92,7 @@ eblup_fh <- function(
   }
 
   if (print_result) {
-    cli::cli_alert_success("Convergence after {.orange {res$n_iter}} iterations")
-    cli::cli_alert("Method : {method}")
-    cli::cli_h1("Coefficient")
-    stats::printCoefmat(res$estcoef, signif.stars = TRUE)
+    print(res)
   }
   return(res)
 }

@@ -13,8 +13,8 @@
     .Call(`_fastsae_seblup_npbmse`, X, y, vardir, W, method, maxiter, precision, B, n_threads, max_attempts_factor, seed)
 }
 
-.seblup_pbmse <- function(X, y, vardir, W, method = "REML", maxiter = 100L, precision = 1e-4, B = 100L, n_threads = 0L, seed = -1L) {
-    .Call(`_fastsae_seblup_pbmse`, X, y, vardir, W, method, maxiter, precision, B, n_threads, seed)
+.seblup_pbmse <- function(X, y, vardir, W, method = "REML", maxiter = 100L, precision = 1e-4, B = 100L, n_threads = 0L, max_attempts_factor = 5L, seed = -1L) {
+    .Call(`_fastsae_seblup_pbmse`, X, y, vardir, W, method, maxiter, precision, B, n_threads, max_attempts_factor, seed)
 }
 
 .eblup_stfh_core <- function(Xall, yall, vardirall, proxmat, D, Tt, model = "ST", maxiter = 100L, precision = 1e-4, sigma21_start = -1.0, rho1_start = 0.5, sigma22_start = -1.0, rho2_start = 0.5) {

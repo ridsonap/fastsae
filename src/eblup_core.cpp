@@ -105,8 +105,9 @@ List eblup_core(
     if (is_ml) {
       Isigma2 = 0.5 * accu(Vi_sq);
     } else {
-      mat M = trans(XtVi) * QXtVi;
-      double tracePP = accu(Vi_sq) - 2.0 * accu(Vi % M.diag()) + trace(M * M);
+      vec M_diag = sum(XtVi % QXtVi, 0).t();
+      mat K = QXtVi * XtVi.t();
+      double tracePP = accu(Vi_sq) - 2.0 * accu(Vi % M_diag) + trace(K * K);
       Isigma2 = 0.5 * tracePP;
     }
 
@@ -222,6 +223,7 @@ List eblup_core(
   // ================================================================
   DataFrame df_coef = DataFrame::create(
     _["beta"] = beta,
+    _["std.error"] = stderr_beta,
     _["stderr_beta"] = stderr_beta,
     _["zvalue"] = zvalue,
     _["pvalue"] = pvalue

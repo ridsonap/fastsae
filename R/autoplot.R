@@ -76,19 +76,25 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 #' @noRd
 .autoplot_single_comparison <- function(x, title = NULL, ...) {
   df <- x$df_eblup
-  df$ci_lower <- df$eblup - 1.96 * sqrt(df$mse)
-  df$ci_upper <- df$eblup + 1.96 * sqrt(df$mse)
+  has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
+  if (has_mse) {
+    df$ci_lower <- df$eblup - 1.96 * sqrt(df$mse)
+    df$ci_upper <- df$eblup + 1.96 * sqrt(df$mse)
+  }
 
   if (is.null(title)) {
     title <- "EBLUP Estimates with 95% Confidence Bands"
   }
 
-  ggplot(df, aes(x = .data$domain, y = .data$eblup)) +
-    geom_point(color = "#2E86AB", size = 2) +
-    geom_ribbon(aes(ymin = .data$ci_lower, ymax = .data$ci_upper),
-      fill = "#2E86AB", alpha = 0.2
-    ) +
-    geom_line(aes(group = 1), color = "#2E86AB", alpha = 0.6) +
+  p <- ggplot(df, aes(x = .data$domain, y = .data$eblup)) +
+    geom_point(color = "#2E86AB", size = 2)
+
+  if (has_mse) {
+    p <- p + geom_ribbon(aes(ymin = .data$ci_lower, ymax = .data$ci_upper, group = 1),
+                         fill = "#2E86AB", alpha = 0.2)
+  }
+
+  p + geom_line(aes(group = 1), color = "#2E86AB", alpha = 0.6) +
     labs(
       title = title,
       x = "Domain",
@@ -162,10 +168,17 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
   # Combine data from all models
   plot_data <- lapply(names(x), function(name) {
     df <- x[[name]]$df_eblup
-    df$model <- name
-    df$ci_lower <- df$eblup - 1.96 * sqrt(df$mse)
-    df$ci_upper <- df$eblup + 1.96 * sqrt(df$mse)
-    df
+    has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
+    ci_l <- if (has_mse) df$eblup - 1.96 * sqrt(df$mse) else df$eblup
+    ci_u <- if (has_mse) df$eblup + 1.96 * sqrt(df$mse) else df$eblup
+    data.frame(
+      domain = df$domain,
+      eblup = df$eblup,
+      ci_lower = ci_l,
+      ci_upper = ci_u,
+      model = name,
+      stringsAsFactors = FALSE
+    )
   })
   plot_data <- do.call(rbind, plot_data)
 
@@ -209,11 +222,14 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
   # Combine MSE data from all models
   plot_data <- lapply(names(x), function(name) {
     df <- x[[name]]$df_eblup
-    df$model <- name
-    df
+    data.frame(
+      domain = as.character(df$domain),
+      mse = df$mse,
+      model = name,
+      stringsAsFactors = FALSE
+    )
   })
   plot_data <- do.call(rbind, plot_data)
-  plot_data$domain <- as.character(plot_data$domain)
 
   if (is.null(title)) {
     title <- "Mean Squared Error Comparison Across Domains"
@@ -289,7 +305,10 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
   min_val <- min(all_vals, na.rm = TRUE)
   max_val <- max(all_vals, na.rm = TRUE)
 
-  ggplot(plot_data, aes(x = .data[[2]], y = .data[[3]])) +
+  col1 <- names(plot_data)[2]
+  col2 <- names(plot_data)[3]
+
+  ggplot(plot_data, aes(x = .data[[col1]], y = .data[[col2]])) +
     geom_point(color = "#2E86AB", size = 2.5, alpha = 0.7) +
     geom_abline(
       intercept = 0, slope = 1, linetype = "dashed",

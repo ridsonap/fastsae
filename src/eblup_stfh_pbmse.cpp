@@ -297,10 +297,11 @@ List pbmse_stfh(
   }
 
   // ============================================================================
-  // 3) Generate bootstrap random effects
+  // 3) Generate bootstrap random effects and errors SEQUENTIALLY
   // ============================================================================
   mat U1_boot(D, B);
   mat U2_boot(M, B);
+  mat Eps_boot(M, B);
 
   for (int b = 0; b < B; ++b) {
     vec u1_d(D);
@@ -325,6 +326,10 @@ List pbmse_stfh(
       for (int d = 0; d < D; ++d) {
         U2_boot.rows(d * Tt, (d + 1) * Tt - 1).col(b) = u2_d;
       }
+    }
+
+    for (int i = 0; i < M; ++i) {
+      Eps_boot(i, b) = R::rnorm(0.0, std::sqrt(vardirall(i)));
     }
   }
 
@@ -352,10 +357,7 @@ List pbmse_stfh(
       u1_expanded.subvec(d * Tt, (d + 1) * Tt - 1).fill(u1_b(d));
     }
 
-    vec eps_boot(M);
-    for (int i = 0; i < M; ++i) {
-      eps_boot(i) = R::rnorm(0.0, std::sqrt(vardirall(i)));
-    }
+    vec eps_boot = Eps_boot.col(b);
 
     // y_boot = theta + u1_expanded + u2 + epsilon
     vec y_boot = theta_est + u1_expanded + u2_b + eps_boot;

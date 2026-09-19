@@ -97,10 +97,9 @@ making it substantially faster and more memory-efficient than the original
 R implementation -- especially for a large number of domains/time periods.
 }
 \details{
-This function does not (yet) compute an analytical or bootstrap MSE, matching
-\code{eblupSTFH()}'s scope. Unlike \code{eblupSTFH()}, unsampled domain/time
-cells (\code{NA} in the response) are not supported -- \code{data} must be a
-complete panel, again matching \code{eblupSTFH()}'s requirements.
+This function requires a complete panel (no NA values in the response variable).
+If your data contains NA values (unsampled areas/time periods), please filter them out
+before calling this function. Future versions may support automatic handling of unsampled areas.
 }
 \examples{
 library(fastsae)

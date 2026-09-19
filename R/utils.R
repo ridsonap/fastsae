@@ -13,23 +13,26 @@
 #'
 #' @return The variable as a vector.
 #'
-#' @keywords internal
+#' @noRd
 .get_variable <- function(data, variable) {
-  if (length(variable) == nrow(data)) {
-    return(variable)
-  } else if (methods::is(variable, "character")) {
+  if (is.character(variable) && length(variable) == 1) {
     if (variable %in% colnames(data)) {
-      variable <- data[[variable]]
+      return(data[[variable]])
     } else {
       cli::cli_abort('variable "{variable}" is not found in the data')
     }
-  } else if (methods::is(variable, "formula")) {
-    # extract column name (class character) from formula
-    variable <- data[[all.vars(variable)]]
+  } else if (inherits(variable, "formula")) {
+    v_names <- all.vars(variable)
+    if (length(v_names) == 1 && v_names %in% colnames(data)) {
+      return(data[[v_names]])
+    } else {
+      cli::cli_abort('formula does not reference a valid single column in data')
+    }
+  } else if (length(variable) == nrow(data)) {
+    return(variable)
   } else {
-    cli::cli_abort('variable "{variable}" is not found in the data')
+    cli::cli_abort('variable is not valid or length does not match data ({length(variable)} vs {nrow(data)})')
   }
-  return(variable)
 }
 
 #' Extract or generate domain identifier
@@ -41,7 +44,7 @@
 #'
 #' @return A vector of domain identifiers.
 #'
-#' @keywords internal
+#' @noRd
 .get_domain_id <- function(data) {
   # Try common domain column names
   domain_cols <- c("area", "domain", "id", "region", "kabupaten", "kota")

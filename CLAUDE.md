@@ -24,9 +24,6 @@ Rscript -e "testthat::test_file('tests/testthat/test_eblup_fh.R')"
 # Compile C++ and regenerate Rcpp exports
 Rscript -e "Rcpp::compileAttributes()"
 
-# Run configure (generates src/Makevars for RcppParallel)
-./configure
-
 # Clean build artifacts
 rm -f src/*.o src/*.so && R CMD build .
 ```

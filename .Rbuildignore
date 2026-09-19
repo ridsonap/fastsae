@@ -8,6 +8,9 @@
 ^\.RDataTmp$
 ^\.checkpkgs\.R$
 ^\.Rtmp$
-^\.DS_Store$
+(?i)\.ds_store$
 ^docs$
 ^CLAUDE\.md$
+^\.RData$
+^\.Rhistory$
+^\.Rapp\.history$

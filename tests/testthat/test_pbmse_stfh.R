@@ -2,9 +2,6 @@ suppressMessages({
   library(testthat)
   library(fastsae)
   library(dplyr)
-  library(parallel)
-  library(foreach)
-  library(doParallel)
 })
 
 skip_if_not_installed("sae")

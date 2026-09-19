@@ -20,6 +20,16 @@ List eblup_bhf_cpp(
   const int n = dom.size();
   const int p = Xs.ncol();
 
+  if (meanxpop.ncol() != p) {
+    stop("Number of columns in meanxpop (%d) must match ncol(Xs) (%d).", meanxpop.ncol(), p);
+  }
+  if (meanxpop.nrow() != I) {
+    stop("Number of rows in meanxpop (%d) must match length of selectdom (%d).", meanxpop.nrow(), I);
+  }
+  if (popnsize.size() != I) {
+    stop("Length of popnsize (%d) must match length of selectdom (%d).", popnsize.size(), I);
+  }
+
   NumericVector eblup(I, NA_REAL);
   NumericVector samp_size(I, 0.0);
   std::vector<std::string> warn_domains;

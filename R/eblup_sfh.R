@@ -109,20 +109,19 @@ eblup_sfh <- function(
   y <- stats::model.response(mf, "numeric")
   X <- stats::model.matrix(attr(mf, "terms"), mf)
 
-  # cek Auxiliary variabels mengandung NA atau tidak
+  # Check auxiliary variables for NA values
   if (anyNA(X)) {
-    cli::cli_abort("Auxiliary variabels contains NA values.")
+    cli::cli_abort("Auxiliary variables contain NA values.")
   }
 
   # Validasi vardir untuk area tersampel saja (y tidak NA)
   y_valid <- !is.na(y)
   if (any(vardir[y_valid] <= 0, na.rm = TRUE)) {
-    stop("vardir must be strictly positive for sampled areas")
+    cli::cli_abort("vardir must be strictly positive for sampled areas.")
   }
 
-
   if (is.null(W)) {
-    cli::cli_abort("Argument `W` (spatial weight matrix) must be provided when `spatial = TRUE`.")
+    cli::cli_abort("Argument `W` (spatial weight matrix) must be provided.")
   }
 
   n_total <- nrow(X)
@@ -206,11 +205,14 @@ eblup_sfh <- function(
     )
   }
 
-  # attach beberapa info tambahan
+  # attach metadata
   row.names(res$estcoef) <- colnames(X)
+  res$formula <- formula
+  res$model <- "SFH"
 
-  # Tambahkan domain identifier ke df_eblup
+  # Tambahkan domain identifier ke df_eblup sebagai kolom pertama
   res$df_eblup$domain <- .get_domain_id(data)
+  res$df_eblup <- res$df_eblup[, c("domain", setdiff(names(res$df_eblup), "domain"))]
 
   res$call <- match.call()
   class(res) <- "fastsae"
@@ -221,10 +223,7 @@ eblup_sfh <- function(
   }
 
   if (print_result) {
-    cli::cli_alert_success("Convergence after {.orange {res$n_iter}} iterations")
-    cli::cli_alert("Method : {method}")
-    cli::cli_h1("Coefficient")
-    stats::printCoefmat(res$estcoef, signif.stars = TRUE)
+    print(res)
   }
   return(res)
 }

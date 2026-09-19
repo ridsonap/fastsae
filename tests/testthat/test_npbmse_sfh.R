@@ -1,3 +1,6 @@
+skip_if_not_installed("emdi")
+skip_if_not_installed("MASS")
+
 suppressMessages({
   library(emdi)
   library(MASS) # untuk mvrnorm jika diperlukan
@@ -34,7 +37,7 @@ theta_true <- pop$theta_true
 
 # ------------------------- 2. Pengaturan simulasi ---------------------------
 nsim <- 100
-B <- 50
+B <- 100
 
 # Struktur penyimpanan hasil: array [replikasi, area]
 eblup_fast <- eblup_emdi <- matrix(NA_real_, nsim, m)
@@ -60,15 +63,17 @@ for (s in seq_len(nsim)) {
 
   set.seed(seed_s)
   fit_fast_s <- tryCatch(
-    eblup_sfh(
-      y ~ x1 + x2 + x3,
-      vardir = "vardir",
-      method = "REML",
-      data = dat_s,
-      W = W,
-      mse_method = "npbmse",
-      print_result = FALSE,
-      B = B
+    quiet(
+      eblup_sfh(
+        y ~ x1 + x2 + x3,
+        vardir = "vardir",
+        method = "REML",
+        data = dat_s,
+        W = W,
+        mse_method = "npbmse",
+        print_result = FALSE,
+        B = B
+      )
     ),
     error = function(e) NULL
   )
@@ -92,14 +97,11 @@ for (s in seq_len(nsim)) {
   )
 
   # simpan hasil
-  if (!is.null(fit_fast_s)) {
+  if (!is.null(fit_fast_s) && !is.null(fit_emdi_s)) {
     eblup_fast[s, ] <- fit_fast_s$df_eblup$eblup
-    mse_fast[s, ] <- fit_fast_s$df_eblup$mse_npbbc
-  }
-
-  if (!is.null(fit_emdi_s)) {
+    mse_fast[s, ]   <- fit_fast_s$df_eblup$mse_npbbc
     eblup_emdi[s, ] <- fit_emdi_s$ind$FH
-    mse_emdi[s, ] <- fit_emdi_s$MSE$FH
+    mse_emdi[s, ]   <- fit_emdi_s$MSE$FH
   }
 }
 
@@ -109,14 +111,43 @@ true_mse <- function(eblup_mat, theta_true) {
   colMeans((sweep(eblup_mat, 2, theta_true, "-"))^2, na.rm = TRUE)
 }
 
+
+
 true_mse_fast <- true_mse(eblup_fast, theta_true)
 true_mse_emdi <- true_mse(eblup_emdi, theta_true)
 
-
-test_that("Non Parametric Bootstrap MSE agrees with emdi::fh", {
+# pertama
+  test_that("Unbias", {
   expect_equal(
     true_mse_fast,
     true_mse_emdi,
     tolerance = 1e-6
   )
+})
+
+
+# kedua
+test_that("Non Parametric Bootstrap MSE agrees with emdi::fh", {
+  mse_domain_sae  <- colMeans(mse_emdi, na.rm = TRUE)
+  mse_domain_fast <- colMeans(mse_fast, na.rm = TRUE)
+
+  # 1. Selisih relatif rata-rata MSE per area harus kecil (< 5%)
+  expect_equal(
+    mse_domain_sae,
+    mse_domain_fast,
+    tolerance = 0.05
+  )
+
+  # 2. Pola/ranking MSE antar area harus konsisten (m = 20-50 area -> ambang 0.9 bermakna)
+  cor_mse <- cor(mse_domain_sae, mse_domain_fast, method = "spearman")
+  expect_gt(cor_mse, 0.9, label = paste("Spearman correlation of MSE:", cor_mse))
+
+  # 3. Safety net longgar: guard kalau tolerance di atas suatu saat dilonggarkan,
+  #    order of magnitude tetap tidak boleh menyimpang jauh.
+  #    (Catatan: dengan tolerance 5% di atas, cek ini praktis selalu lolos
+  #    kalau expect_equal juga lolos -- dipertahankan sebagai dokumentasi niat,
+  #    bukan lapisan proteksi independen.)
+  ratio <- mean(mse_domain_sae) / mean(mse_domain_fast)
+  expect_gt(ratio, 0.5, label = paste("Ratio of mean MSE:", ratio))
+  expect_lt(ratio, 2.0, label = paste("Ratio of mean MSE:", ratio))
 })

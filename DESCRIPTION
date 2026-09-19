@@ -17,24 +17,32 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     cli,
-    methods,
-    Rcpp,
-    dplyr,
     ggplot2,
     lme4,
-    RcppParallel
+    methods,
+    Rcpp,
+    rlang,
+    stats,
+    utils
 Suggests:
+    doParallel,
+    dplyr,
+    emdi,
+    foreach,
+    MASS,
+    parallel,
+    sae,
     testthat (>= 3.0.0)
 LinkingTo: 
     Rcpp,
-    RcppArmadillo,
-    RcppParallel
+    RcppArmadillo
 Depends: 
     R (>= 4.1.0)
 Collate:
     utils.R
     RcppExports.R
     data.R
+    methods.R
     autoplot.R
     eblup_fh.R
     eblup_sfh.R

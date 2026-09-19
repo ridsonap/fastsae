@@ -67,8 +67,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // seblup_pbmse
-List seblup_pbmse(const arma::mat& X, const arma::vec& y, const arma::vec& vardir, const arma::mat& W, std::string method, int maxiter, double precision, int B, int n_threads, int seed);
-RcppExport SEXP _fastsae_seblup_pbmse(SEXP XSEXP, SEXP ySEXP, SEXP vardirSEXP, SEXP WSEXP, SEXP methodSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP BSEXP, SEXP n_threadsSEXP, SEXP seedSEXP) {
+List seblup_pbmse(const arma::mat& X, const arma::vec& y, const arma::vec& vardir, const arma::mat& W, std::string method, int maxiter, double precision, int B, int n_threads, int max_attempts_factor, int seed);
+RcppExport SEXP _fastsae_seblup_pbmse(SEXP XSEXP, SEXP ySEXP, SEXP vardirSEXP, SEXP WSEXP, SEXP methodSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP BSEXP, SEXP n_threadsSEXP, SEXP max_attempts_factorSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -81,8 +81,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type precision(precisionSEXP);
     Rcpp::traits::input_parameter< int >::type B(BSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< int >::type max_attempts_factor(max_attempts_factorSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(seblup_pbmse(X, y, vardir, W, method, maxiter, precision, B, n_threads, seed));
+    rcpp_result_gen = Rcpp::wrap(seblup_pbmse(X, y, vardir, W, method, maxiter, precision, B, n_threads, max_attempts_factor, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -154,7 +155,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastsae_eblup_core", (DL_FUNC) &_fastsae_eblup_core, 6},
     {"_fastsae_seblup_core", (DL_FUNC) &_fastsae_seblup_core, 8},
     {"_fastsae_seblup_npbmse", (DL_FUNC) &_fastsae_seblup_npbmse, 11},
-    {"_fastsae_seblup_pbmse", (DL_FUNC) &_fastsae_seblup_pbmse, 10},
+    {"_fastsae_seblup_pbmse", (DL_FUNC) &_fastsae_seblup_pbmse, 11},
     {"_fastsae_eblup_stfh_core", (DL_FUNC) &_fastsae_eblup_stfh_core, 13},
     {"_fastsae_pbmse_stfh", (DL_FUNC) &_fastsae_pbmse_stfh, 12},
     {"_fastsae_eblup_bhf_cpp", (DL_FUNC) &_fastsae_eblup_bhf_cpp, 8},
