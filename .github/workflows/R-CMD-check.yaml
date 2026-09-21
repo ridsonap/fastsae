@@ -40,15 +40,27 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - name: Configure pak for macOS
+      - name: Setup macOS compiler flags
         if: runner.os == 'macOS'
-        run: echo "PKG_PLATFORMS=source" >> $GITHUB_ENV
+        run: |
+          brew install gettext || true
+          mkdir -p ~/.R
+          if [ -d "/opt/homebrew/opt/gettext" ]; then
+            echo "CPPFLAGS += -I/opt/homebrew/opt/gettext/include" >> ~/.R/Makevars
+            echo "LDFLAGS += -L/opt/homebrew/opt/gettext/lib" >> ~/.R/Makevars
+          elif [ -d "/usr/local/opt/gettext" ]; then
+            echo "CPPFLAGS += -I/usr/local/opt/gettext/include" >> ~/.R/Makevars
+            echo "LDFLAGS += -L/usr/local/opt/gettext/lib" >> ~/.R/Makevars
+          fi
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: |
+            any::rcmdcheck
+            any::knitr?source
+            any::xfun?source
           needs: check
-          cache-version: 2
+          cache-version: 3
 
       - uses: r-lib/actions/check-r-package@v2
         with:
