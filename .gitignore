@@ -13,6 +13,7 @@
 # Package build
 *.tar.gz
 *.Rcheck/
+Rplots.pdf
 
 # macOS
 .DS_Store
