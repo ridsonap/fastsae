@@ -13,7 +13,6 @@
 #' @return The original object invisibly.
 #' @export
 print.fastsae <- function(x, ...) {
-  cli::start_app(output = "stdout")
   cli::cli_h1("Fast Small Area Estimation (fastsae)")
 
   if (!is.null(x$call)) {
@@ -32,8 +31,7 @@ print.fastsae <- function(x, ...) {
     }
   }
 
-  model_type <- switch(
-    x$model %||% "FH",
+  model_type <- switch(x$model %||% "FH",
     "FH"  = "Fay-Herriot (Area-level)",
     "SFH" = "Spatial Fay-Herriot (Area-level SAR)",
     "ST"  = "Spatio-Temporal Fay-Herriot (ST-FH)",
@@ -61,7 +59,8 @@ print.fastsae <- function(x, ...) {
     cols_to_print <- intersect(c("beta", "std.error", "zvalue", "pvalue"), names(x$estcoef))
     if (length(cols_to_print) == 0) cols_to_print <- names(x$estcoef)
     stats::printCoefmat(as.matrix(x$estcoef[, cols_to_print, drop = FALSE]),
-                        signif.stars = TRUE, ...)
+      signif.stars = TRUE, ...
+    )
   }
 
   if (!is.null(x$df_eblup)) {
@@ -110,7 +109,6 @@ summary.fastsae <- function(object, ...) {
 #' @return The original object invisibly.
 #' @export
 print.summary.fastsae <- function(x, ...) {
-  cli::start_app(output = "stdout")
   cli::cli_h1("Summary of fastsae Fit")
 
   if (!is.null(x$call)) {
@@ -120,8 +118,7 @@ print.summary.fastsae <- function(x, ...) {
     cli::cli_end()
   }
 
-  model_type <- switch(
-    x$model %||% "FH",
+  model_type <- switch(x$model %||% "FH",
     "FH"  = "Fay-Herriot (Area-level)",
     "SFH" = "Spatial Fay-Herriot (Area-level SAR)",
     "ST"  = "Spatio-Temporal Fay-Herriot (ST-FH)",
@@ -157,7 +154,8 @@ print.summary.fastsae <- function(x, ...) {
     cols_to_print <- intersect(c("beta", "std.error", "zvalue", "pvalue"), names(x$coefficients))
     if (length(cols_to_print) == 0) cols_to_print <- names(x$coefficients)
     stats::printCoefmat(as.matrix(x$coefficients[, cols_to_print, drop = FALSE]),
-                        signif.stars = TRUE, ...)
+      signif.stars = TRUE, ...
+    )
   }
 
   if (!is.null(x$goodness)) {

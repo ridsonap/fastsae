@@ -2,17 +2,18 @@
 % Please edit documentation in R/eblup_sfh.R
 \name{eblup_sfh}
 \alias{eblup_sfh}
-\title{EBLUPs based on a Spatial Fay-Herriot Model.}
+\title{Empirical Best Linear Unbiased Prediction based on a Spatial Fay-Herriot Model.}
 \usage{
 eblup_sfh(
   formula,
   vardir,
+  domain = NULL,
   data,
   method = c("REML", "ML"),
   mse_method = c("analytical", "pbmse", "npbmse"),
   W = NULL,
   B = 100,
-  n_threads = 0,
+  n_threads = 1,
   seed = -1,
   maxiter = 100,
   precision = 1e-04,
@@ -23,6 +24,9 @@ eblup_sfh(
 \item{formula}{an object of class formula that contains a description of the model to be fitted. The variables included in the formula must be contained in the data.}
 
 \item{vardir}{vector or column names from data that contain variance sampling from the direct estimator for each area.}
+
+\item{domain}{vector, column name or one-sided formula referencing a domain names column
+in \code{data}. If NULL, the domains are numbered consecutively.}
 
 \item{data}{a data frame or a data frame extension (e.g. a tibble).}
 
@@ -41,10 +45,10 @@ from 0 to 1. Rows and columns must be ordered consistently with the domain ident
 \code{data}. Do NOT pre-subset \code{W} to sampled domains only -- unsampled domains' spatial MSE/
 prediction relies on their relation (in \code{W}) to sampled neighbors.}
 
-\item{B}{Number of bootstrap replications when mse_methpd = "pbmse" or "npbmse".}
+\item{B}{Number of bootstrap replications when mse_method = "pbmse" or "npbmse".}
 
-\item{n_threads}{Number of threads used in parallel computation.
-Values less than or equal to 0 use the default OpenMP configuration (all cores).}
+\item{n_threads}{Number of threads used in parallel computation (default 1).
+Values less than or equal to 0 use all available cores.}
 
 \item{seed}{Integer seed for bootstrap resampling.
 A value of -1 leaves the current R RNG state unchanged.}

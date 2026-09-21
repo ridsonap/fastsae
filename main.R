@@ -11,6 +11,44 @@ load_all()
 
 
 
+# SFH ---------------------------------------------------------------------
+# Spatial Fay-Herriot model
+m1 <- eblup_sfh(
+  y ~ x1 + x2 + x3,
+  data = mys,
+  domain = ~area,
+  vardir = ~vardir,
+  W = mys_proxmat
+)
+
+# Spatial Fay-Herriot model with Parametric Bootstrap MSE
+m2 <- eblup_sfh(
+  y ~ x1 + x2 + x3,
+  data = mys,
+  domain = ~area,
+  vardir = ~vardir,
+  mse_method = "pbmse",
+  B = 50,
+  W = mys_proxmat
+)
+
+
+# BHF ---------------------------------------------------------------------
+library(dplyr)
+df_meanpop <- cornsoybeanmeans |>
+  rename(CornPix = MeanCornPixPerSeg, SoyBeansPix = MeanSoyBeansPixPerSeg)
+df_cornsoybean <- cornsoybean |>
+  rename(CountyIndex = County)
+
+res <- eblup_bhf(
+  formula = CornHec ~ CornPix + SoyBeansPix,
+  Xpop = df_meanpop,
+  unit_data = df_cornsoybean,
+  domain_var = "CountyIndex",
+  popsize_var = "PopnSegments"
+)
+
+
 
 # Plot -------------------------------------------------------------------------
 library(ggplot2)
@@ -104,4 +142,7 @@ combined_data |>
     mem = mean(Mem)
   )
 
+
+dim(mys_proxmat)
+?sae::eblupSFH()
 

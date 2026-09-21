@@ -1,4 +1,4 @@
-#' EBLUPs based on a Spatial Fay-Herriot Model.
+#' Empirical Best Linear Unbiased Prediction based on a Spatial Fay-Herriot Model.
 #'
 #' @description This function gives the Spatial Empirical Best Linear Unbiased Prediction (EBLUP) or Empirical Best (EB) predictor under normality based on a Fay-Herriot model.
 #'
@@ -10,6 +10,8 @@
 #' @param formula an object of class formula that contains a description of the model to be fitted. The variables included in the formula must be contained in the data.
 #' @param data a data frame or a data frame extension (e.g. a tibble).
 #' @param vardir vector or column names from data that contain variance sampling from the direct estimator for each area.
+#' @param domain vector, column name or one-sided formula referencing a domain names column
+#'   in \code{data}. If NULL, the domains are numbered consecutively.
 #' @param method Fitting method can be chosen between 'ML' and 'REML'.
 #' @param W A square matrix with dimension equal to the TOTAL number of domains in `data`
 #' (including any unsampled domains where the response is `NA`). It should contain the
@@ -23,8 +25,8 @@
 #' sampled domains; unsampled domains automatically get a full-spatial synthetic (kriging)
 #' prediction and analytical MSE merged into the result regardless of `mse_method`.
 #' @param B Number of bootstrap replications when mse_method = "pbmse" or "npbmse".
-#' @param n_threads Number of threads used in parallel computation.
-#'   Values less than or equal to 0 use the default OpenMP configuration (all cores).
+#' @param n_threads Number of threads used in parallel computation (default 1).
+#'   Values less than or equal to 0 use all available cores.
 #' @param seed Integer seed for bootstrap resampling.
 #'   A value of -1 leaves the current R RNG state unchanged.
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm. Default is 100 iterations.
@@ -83,12 +85,13 @@
 eblup_sfh <- function(
   formula,
   vardir,
+  domain = NULL,
   data,
   method = c("REML", "ML"),
   mse_method = c("analytical", "pbmse", "npbmse"),
   W = NULL,
   B = 100,
-  n_threads = 0,
+  n_threads = 1,
   seed = -1,
   maxiter = 100,
   precision = 1e-4,
@@ -96,6 +99,11 @@ eblup_sfh <- function(
 ) {
   method <- match.arg(toupper(method), choices = c("REML", "ML"))
   mse_method <- match.arg(tolower(mse_method), choices = c("analytical", "pbmse", "npbmse"))
+  if (is.null(domain)) {
+    domain <- 1:nrow(data)
+  } else {
+    domain <- .get_variable(data, domain)
+  }
 
   # model frame & validasi
   mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
@@ -211,7 +219,7 @@ eblup_sfh <- function(
   res$model <- "SFH"
 
   # Tambahkan domain identifier ke df_eblup sebagai kolom pertama
-  res$df_eblup$domain <- .get_domain_id(data)
+  res$df_eblup$domain <- domain
   res$df_eblup <- res$df_eblup[, c("domain", setdiff(names(res$df_eblup), "domain"))]
 
   res$call <- match.call()
@@ -227,4 +235,3 @@ eblup_sfh <- function(
   }
   return(res)
 }
-

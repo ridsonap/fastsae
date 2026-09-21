@@ -19,6 +19,7 @@ List eblup_core(
   // ================================================================
   arma::vec eblup_all(Xall.n_rows);
   arma::vec mse_all(Xall.n_rows);
+  arma::vec u_all(Xall.n_rows);
 
   // ================================================================
   // Handle unsampled areas (y=NA only)
@@ -27,7 +28,7 @@ List eblup_core(
   arma::mat Xs, Xns;
   arma::vec y, vardir;
   arma::uvec idx_ns, idx_s;
-  
+
   // Find unsampled areas: y is NA (any vardir)
   idx_ns = arma::find_nonfinite(yall);
   idx_s = arma::find_finite(yall);
@@ -160,8 +161,8 @@ List eblup_core(
   vec sigma_vardir = sigma2 + vardir;
   vec Bd = vardir / sigma_vardir;
 
-  vec u = (sigma2 / sigma_vardir) % resid;
-  vec eblup_s = Xbeta_s + u;
+  vec u_sampled = (sigma2 / sigma_vardir) % resid;
+  vec eblup_s = Xbeta_s + u_sampled;
 
   // ================================================================
   // Goodness of fit
@@ -211,9 +212,13 @@ List eblup_core(
     eblup_all.elem(idx_ns) = eblup_ns;
     mse_all.elem(idx_s) = mse_s;
     mse_all.elem(idx_ns) = mse_ns;
+
+    u_all.fill(NA_REAL);
+    u_all.elem(idx_s) = u_sampled;
   } else {
     eblup_all = eblup_s;
     mse_all = mse_s;
+    u_all = u_sampled;
   }
 
   // ================================================================
@@ -239,6 +244,7 @@ List eblup_core(
     _["y"] = yall,
     _["eblup"] = eblup_all,
     _["vardir"] = vardirall,
+    _["random_effect"] = u_all,
     _["mse"] = mse_all,
     _["rse"] = rse
   );

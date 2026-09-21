@@ -30,7 +30,6 @@ ggplot2::autoplot
 #' @return A \code{ggplot} object.
 #'
 #' @examples
-#' \dontrun{
 #' library(fastsae)
 #'
 #' # Single model plot
@@ -40,7 +39,6 @@ ggplot2::autoplot
 #' # Compare two models
 #' fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
 #' autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
-#' }
 #'
 #' @importFrom ggplot2 autoplot
 #' @export
@@ -91,7 +89,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 
   if (has_mse) {
     p <- p + geom_ribbon(aes(ymin = .data$ci_lower, ymax = .data$ci_upper, group = 1),
-                         fill = "#2E86AB", alpha = 0.2)
+      fill = "#2E86AB", alpha = 0.2
+    )
   }
 
   p + geom_line(aes(group = 1), color = "#2E86AB", alpha = 0.6) +
@@ -110,6 +109,13 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 #' @noRd
 .autoplot_estimates <- function(x, title = NULL, ...) {
   df <- x$df_eblup
+
+  if (!"y" %in% names(df)) {
+    cli::cli_abort(c(
+      "Plot type 'estimates' requires direct estimates 'y' in df_eblup.",
+      "i" = "This plot type is only applicable for area-level models (FH, SFH, STFH)."
+    ))
+  }
 
   # Filter out NA values for direct estimates
   df <- df[!is.na(df$y), ]
@@ -333,6 +339,14 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 #' @noRd
 .autoplot_mse <- function(x, title = NULL, ...) {
   df <- x$df_eblup
+
+  if (!"mse" %in% names(df) || all(is.na(df$mse))) {
+    cli::cli_abort(c(
+      "MSE estimates are not available in this object.",
+      "i" = "Fit the model with MSE computation enabled (e.g. compute_mse = TRUE)."
+    ))
+  }
+
   df$domain <- as.character(df$domain)
 
   if (is.null(title)) {

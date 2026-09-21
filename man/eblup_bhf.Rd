@@ -2,7 +2,6 @@
 % Please edit documentation in R/eblup_bhf.R
 \name{eblup_bhf}
 \alias{eblup_bhf}
-\alias{pbmse_unit}
 \title{Empirical Best Linear Unbiased Prediction (EBLUP) for the Battese-Harter-Fuller Model}
 \usage{
 eblup_bhf(
@@ -14,22 +13,10 @@ eblup_bhf(
   method = c("REML", "ML"),
   popnmean_xpop = NULL,
   B = 100,
-  mse = FALSE,
+  compute_mse = FALSE,
   n_threads = 1,
   seed = -1,
   print_result = TRUE
-)
-
-pbmse_unit(
-  formula,
-  unit_data,
-  Xpop,
-  domain_var,
-  popsize_var,
-  method = c("REML", "ML"),
-  B = 100,
-  n_threads = 1,
-  seed = -1
 )
 }
 \arguments{
@@ -47,9 +34,9 @@ pbmse_unit(
 
 \item{popnmean_xpop}{Population mean of auxiliary variables per domain.}
 
-\item{B}{Number of bootstrap replicates for MSE (if mse = TRUE).}
+\item{B}{Number of bootstrap replicates for MSE (if compute_mse = TRUE).}
 
-\item{mse}{If TRUE, compute bootstrap MSE.}
+\item{compute_mse}{If TRUE, compute bootstrap MSE.}
 
 \item{n_threads}{Number of threads for parallel computation.}
 

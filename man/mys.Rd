@@ -5,11 +5,11 @@
 \alias{mys}
 \title{mys: mean years of schooling people with disabilities.}
 \format{
-A data frame with 42 rows and 7 variables with 10 domains are non-sampled areas.
+A data frame with 42 rows and 9 variables with 10 domains as non-sampled areas.
 
 \describe{
-  \item{area}{regency municipality}
-  \item{y}{mean years of schooling people with disabilities}
+  \item{area}{regency municipality identifier}
+  \item{y}{mean years of schooling people with disabilities (NA for unsampled areas)}
   \item{vardir}{variance sampling from the direct estimator for each area}
   \item{rse}{relative standard error (\%)}
   \item{x1}{Number of Elementary Schools}
@@ -19,10 +19,13 @@ A data frame with 42 rows and 7 variables with 10 domains are non-sampled areas.
   \item{weight}{Weight}
 }
 }
+\source{
+Simulated based on empirical characteristics of the National Socio-Economic Survey (Susenas), BPS-Statistics Indonesia.
+}
 \usage{
 mys
 }
 \description{
-A dataset containing the mean years of schooling people with disabilities.
+A synthetic dataset containing the mean years of schooling for people with disabilities across 42 regencies/municipalities.
 }
 \keyword{datasets}

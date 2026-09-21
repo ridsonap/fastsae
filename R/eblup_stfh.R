@@ -1,11 +1,10 @@
-#' EBLUPs based on a Spatio-Temporal Fay-Herriot Model.
+#' Empirical Best Linear Unbiased Prediction based on a Spatio-Temporal Fay-Herriot Model.
 #'
 #' @description This function gives the Spatio-Temporal Empirical Best Linear
 #' Unbiased Prediction (EBLUP) under normality based on a spatio-temporal
 #' Fay-Herriot model. It reimplements the same Fisher-scoring algorithm as
 #' \code{eblupSTFH()} (package \pkg{sae}, Marhuenda, Molina & Morales 2013),
-#' but the estimation loop runs in compiled C++/Armadillo (\code{.eblup_stfh_core}),
-#' making it substantially faster and more memory-efficient than the original
+#' but the estimation loop runs in compiled C++/Armadillo, making it substantially faster and more memory-efficient than the original
 #' R implementation -- especially for a large number of domains/time periods.
 #'
 #' @references
@@ -25,7 +24,7 @@
 #' @param vardir vector, column name or one-sided formula referencing a column
 #'   in \code{data}, with the sampling variances of the direct estimator.
 #' @param domain vector, column name or one-sided formula referencing a domain names column
-#'   in \code{data}.
+#'   in \code{data}. If NULL, the domains are numbered consecutively.
 #' @param time vector, column name, or one-sided formula referencing a time names column
 #'   in \code{data}.
 #' @param W a square proximity/spatial weights matrix of dimension
@@ -73,7 +72,7 @@
 #' library(dplyr)
 #'
 #' mys_panel_nona <- mys_panel |>
-#'     filter(!is.na(y) & year >= 2024)
+#'   filter(!is.na(y) & year >= 2024)
 #'
 #' # Basic EBLUP without MSE
 #' m1 <- eblup_stfh(
@@ -176,7 +175,8 @@ eblup_stfh <- function(
   if (nrow(W) != n_domain || ncol(W) != n_domain) {
     cli::cli_abort(
       c("Argument W must be a square matrix of size Domain = {n_domain}.",
-        "i" = "Got a {nrow(W)}x{ncol(W)} matrix.")
+        "i" = "Got a {nrow(W)}x{ncol(W)} matrix."
+      )
     )
   }
 
@@ -276,8 +276,10 @@ eblup_stfh <- function(
   res$df_eblup$time <- time
   res$df_eblup$y <- y
   res$df_eblup$vardir <- vardir
-  cols_order <- c("domain", "time", "y", "eblup", "vardir", "mse", "rse", "mse_pb",
-                  "random_effect_u1", "random_effect_u2")
+  cols_order <- c(
+    "domain", "time", "y", "eblup", "vardir", "mse", "rse", "mse_pb",
+    "random_effect_u1", "random_effect_u2"
+  )
   res$df_eblup <- res$df_eblup[, intersect(cols_order, names(res$df_eblup))]
 
   # Print results
@@ -287,4 +289,3 @@ eblup_stfh <- function(
 
   return(res)
 }
-

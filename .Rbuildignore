@@ -14,8 +14,12 @@
 ^\.RData$
 ^\.Rhistory$
 ^\.Rapp\.history$
-^main.R
+^main\.R$
 ^README_files
 ^docs_old$
 ^_pkgdown\.yml$
 ^pkgdown$
+^.*\.Rcheck$
+^.*\.tar\.gz$
+^cran-comments\.md$
+^inst/exdata$

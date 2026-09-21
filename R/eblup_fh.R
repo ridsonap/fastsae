@@ -1,4 +1,4 @@
-#' EBLUPs based on a Fay-Herriot Model.
+#' Empirical Best Linear Unbiased Prediction based on a Fay-Herriot Model.
 #'
 #' @description This function gives the Empirical Best Linear Unbiased Prediction (EBLUP) or Empirical Best (EB) predictor under normality based on a Fay-Herriot model.
 #'
@@ -10,6 +10,8 @@
 #' @param formula an object of class formula that contains a description of the model to be fitted.
 #' @param data a data frame or a data frame extension (e.g. a tibble).
 #' @param vardir vector or column names from data that contain variance sampling from the direct estimator.
+#' @param domain vector, column name or one-sided formula referencing a domain names column
+#'   in \code{data}. If NULL, the domains are numbered consecutively.
 #' @param method Fitting method can be chosen between 'ML' and 'REML'.
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
@@ -19,7 +21,13 @@
 #' \code{estcoef} a data frame with the estimated model coefficients,
 #' \code{random_effect_var} estimated random effect variance,
 #' \code{goodness} vector containing several goodness-of-fit measures,
-#' \code{df_eblup} a data frame that contains y, eblup, vardir, mse, and rse.
+#' \code{df_eblup} a data frame that contains y, eblup, random_effect, vardir, mse, and rse. \cr
+#'    * \code{y} variable response \cr
+#'    * \code{eblup} estimated results for each area \cr
+#'    * \code{random_effect} random effect for each area \cr
+#'    * \code{vardir} variance sampling from the direct estimator for each area \cr
+#'    * \code{mse} Mean Square Error \cr
+#'    * \code{rse} Relative Standart Error (%) \cr
 #'
 #' @details
 #' The model has a form that is response ~ auxiliary variables.
@@ -41,6 +49,7 @@
 eblup_fh <- function(
   formula,
   vardir,
+  domain = NULL,
   data,
   method = c("REML", "ML"),
   maxiter = 100,
@@ -48,6 +57,11 @@ eblup_fh <- function(
   print_result = TRUE
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
+  if (is.null(domain)) {
+    domain <- 1:nrow(data)
+  } else {
+    domain <- .get_variable(data, domain)
+  }
 
   # model frame & validasi
   mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
@@ -80,8 +94,8 @@ eblup_fh <- function(
   res$model <- "FH"
 
   # Add domain identifier as first column in df_eblup
-  res$df_eblup$domain <- .get_domain_id(data)
-  res$df_eblup <- res$df_eblup[, c("domain", "y", "eblup", "vardir", "mse", "rse")]
+  res$df_eblup$domain <- domain
+  res$df_eblup <- res$df_eblup[, c("domain", "y", "eblup", "vardir", "random_effect","mse", "rse")]
 
   res$call <- match.call()
   class(res) <- "fastsae"
@@ -96,4 +110,3 @@ eblup_fh <- function(
   }
   return(res)
 }
-

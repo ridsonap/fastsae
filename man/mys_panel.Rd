@@ -3,14 +3,14 @@
 \docType{data}
 \name{mys_panel}
 \alias{mys_panel}
-\title{mys: mean years of schooling people with disabilities disabilities 2016 - 2026.}
+\title{mys_panel: mean years of schooling people with disabilities 2016 - 2026.}
 \format{
-A data frame with 42 rows and 7 variables with 10 domains are non-sampled areas.
+A data frame with 462 rows and 10 variables.
 
 \describe{
-  \item{area}{regency municipality}
-  \item{y}{mean years of schooling people with disabilities}
-  \item{year}{year}
+  \item{area}{regency municipality identifier}
+  \item{year}{year of observation (2016 to 2026)}
+  \item{y}{mean years of schooling people with disabilities (NA for unsampled areas)}
   \item{vardir}{variance sampling from the direct estimator for each area}
   \item{rse}{relative standard error (\%)}
   \item{x1}{Number of Elementary Schools}
@@ -20,10 +20,13 @@ A data frame with 42 rows and 7 variables with 10 domains are non-sampled areas.
   \item{weight}{Weight}
 }
 }
+\source{
+Simulated panel data based on empirical characteristics of the National Socio-Economic Survey (Susenas), BPS-Statistics Indonesia.
+}
 \usage{
 mys_panel
 }
 \description{
-A dataset containing the mean years of schooling people with disabilities 2016 - 2026.
+A synthetic panel dataset containing the mean years of schooling for people with disabilities across 42 regencies/municipalities over 11 time periods (2016 - 2026).
 }
 \keyword{datasets}

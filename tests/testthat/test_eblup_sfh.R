@@ -15,6 +15,7 @@ mys_proxmat_nona <- mys_proxmat[idx, idx]
 fit_fast <- eblup_sfh(
   y ~ x1 + x2 + x3,
   vardir = "vardir",
+  domain = "area",
   method = "REML",
   data = mysnona,
   W = mys_proxmat_nona,
@@ -32,6 +33,7 @@ fit_sae <- sae::mseSFH(
 fit_fast_ml <- eblup_sfh(
   y ~ x1 + x2 + x3,
   vardir = "vardir",
+  domain = "area",
   method = "ML",
   data = mysnona,
   W = mys_proxmat_nona,

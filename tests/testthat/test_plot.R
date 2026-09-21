@@ -42,16 +42,16 @@ test_that("autoplot.list works for multiple models", {
   # Create list of models
   fits_list <- list("FH" = fit_fh, "SFH" = fit_sfh)
 
-  # Test comparison plot using the method directly
-  p1 <- autoplot.list(fits_list, type = "comparison")
+  # Test comparison plot using S3 generic
+  p1 <- autoplot(fits_list, type = "comparison")
   expect_s3_class(p1, "ggplot")
 
   # Test mse plot
-  p2 <- autoplot.list(fits_list, type = "mse")
+  p2 <- autoplot(fits_list, type = "mse")
   expect_s3_class(p2, "ggplot")
 
   # Test scatter plot (exactly 2 models)
-  p3 <- autoplot.list(fits_list, type = "scatter")
+  p3 <- autoplot(fits_list, type = "scatter")
   expect_s3_class(p3, "ggplot")
 })
 
@@ -62,14 +62,14 @@ test_that("autoplot.list scatter requires exactly 2 models", {
 
   # Single model should error
   expect_error(
-    autoplot.list(list("FH" = fit_fh), type = "scatter"),
+    autoplot(list("FH" = fit_fh), type = "scatter"),
     "exactly two models"
   )
 
   # Three models should error
   fits_three <- list("FH1" = fit_fh, "FH2" = fit_fh, "FH3" = fit_fh)
   expect_error(
-    autoplot.list(fits_three, type = "scatter"),
+    autoplot(fits_three, type = "scatter"),
     "exactly two models"
   )
 })

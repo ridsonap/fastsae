@@ -5,12 +5,15 @@
 \alias{mys_proxmat}
 \title{Example proximity matrix}
 \format{
-A matrix with n rows and n columns
+A square numeric matrix with 42 rows and 42 columns with values between 0 and 1.
+}
+\source{
+Simulated based on contiguous administrative boundaries.
 }
 \usage{
 mys_proxmat
 }
 \description{
-A sample proximity matrix for SAE demo.
+A 42 by 42 row-standardized spatial proximity matrix for the 42 areas in \code{mys}.
 }
 \keyword{datasets}

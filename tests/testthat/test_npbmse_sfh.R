@@ -1,3 +1,4 @@
+skip_on_cran()
 skip_if_not_installed("emdi")
 skip_if_not_installed("MASS")
 
@@ -99,9 +100,9 @@ for (s in seq_len(nsim)) {
   # simpan hasil
   if (!is.null(fit_fast_s) && !is.null(fit_emdi_s)) {
     eblup_fast[s, ] <- fit_fast_s$df_eblup$eblup
-    mse_fast[s, ]   <- fit_fast_s$df_eblup$mse_npbbc
+    mse_fast[s, ] <- fit_fast_s$df_eblup$mse_npbbc
     eblup_emdi[s, ] <- fit_emdi_s$ind$FH
-    mse_emdi[s, ]   <- fit_emdi_s$MSE$FH
+    mse_emdi[s, ] <- fit_emdi_s$MSE$FH
   }
 }
 
@@ -112,12 +113,11 @@ true_mse <- function(eblup_mat, theta_true) {
 }
 
 
-
 true_mse_fast <- true_mse(eblup_fast, theta_true)
 true_mse_emdi <- true_mse(eblup_emdi, theta_true)
 
 # pertama
-  test_that("Unbias", {
+test_that("Unbias", {
   expect_equal(
     true_mse_fast,
     true_mse_emdi,
@@ -128,7 +128,7 @@ true_mse_emdi <- true_mse(eblup_emdi, theta_true)
 
 # kedua
 test_that("Non Parametric Bootstrap MSE agrees with emdi::fh", {
-  mse_domain_sae  <- colMeans(mse_emdi, na.rm = TRUE)
+  mse_domain_sae <- colMeans(mse_emdi, na.rm = TRUE)
   mse_domain_fast <- colMeans(mse_fast, na.rm = TRUE)
 
   # 1. Selisih relatif rata-rata MSE per area harus kecil (< 5%)

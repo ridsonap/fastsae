@@ -1,3 +1,4 @@
+skip_on_cran()
 skip_if_not_installed("emdi")
 skip_if_not_installed("MASS")
 
@@ -99,9 +100,9 @@ for (s in seq_len(nsim)) {
   # simpan hasil
   if (!is.null(fit_fast_s) && !is.null(fit_emdi_s)) {
     eblup_fast[s, ] <- fit_fast_s$df_eblup$eblup
-    mse_fast[s, ]   <- fit_fast_s$df_eblup$mse_pbbc
+    mse_fast[s, ] <- fit_fast_s$df_eblup$mse_pbbc
     eblup_emdi[s, ] <- fit_emdi_s$ind$FH
-    mse_emdi[s, ]   <- fit_emdi_s$MSE$FH
+    mse_emdi[s, ] <- fit_emdi_s$MSE$FH
   }
 }
 
@@ -124,7 +125,7 @@ test_that("Unbias Monte Carlo", {
 })
 
 test_that("Parametric Bootstrap MSE agrees with emdi::fh", {
-  mse_domain_sae  <- colMeans(mse_emdi, na.rm = TRUE)
+  mse_domain_sae <- colMeans(mse_emdi, na.rm = TRUE)
   mse_domain_fast <- colMeans(mse_fast, na.rm = TRUE)
 
   # 1. Selisih relatif rata-rata MSE per area harus kecil (< 5%)
@@ -147,6 +148,3 @@ test_that("Parametric Bootstrap MSE agrees with emdi::fh", {
   expect_gt(ratio, 0.5, label = paste("Ratio of mean MSE:", ratio))
   expect_lt(ratio, 2.0, label = paste("Ratio of mean MSE:", ratio))
 })
-
-
-

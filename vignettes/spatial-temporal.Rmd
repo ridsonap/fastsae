@@ -52,10 +52,10 @@ data("mys_proxmat")
 # Fit Spatial Fay-Herriot model with REML
 fit_sfh <- eblup_sfh(
   formula = y ~ x1 + x2 + x3,
-  vardir  = ~vardir,
-  data    = mys,
-  W       = mys_proxmat,
-  method  = "REML",
+  vardir = ~vardir,
+  data = mys,
+  W = mys_proxmat,
+  method = "REML",
   print_result = FALSE
 )
 
@@ -85,14 +85,14 @@ In addition to analytical Prasad-Rao style MSE, `eblup_sfh` supports multi-threa
 
 ```{r sfh_pbmse}
 fit_sfh_pb <- eblup_sfh(
-  formula    = y ~ x1 + x2 + x3,
-  vardir     = ~vardir,
-  data       = mys,
-  W          = mys_proxmat,
+  formula = y ~ x1 + x2 + x3,
+  vardir = ~vardir,
+  data = mys,
+  W = mys_proxmat,
   mse_method = "pbmse",
-  B          = 50,
-  n_threads  = 2,
-  seed       = 123,
+  B = 50,
+  n_threads = 2,
+  seed = 123,
   print_result = FALSE
 )
 
@@ -125,16 +125,16 @@ W_sub <- mys_proxmat[-c(21, 25), -c(21, 25)]
 
 # Fit Spatio-Temporal model with bootstrap MSE
 fit_stfh <- eblup_stfh(
-  formula     = y ~ x1 + x2 + x3,
-  data        = panel_data,
-  vardir      = ~vardir,
-  domain      = ~area,
-  time        = ~year,
-  W           = W_sub,
-  model       = "ST",
+  formula = y ~ x1 + x2 + x3,
+  data = panel_data,
+  vardir = ~vardir,
+  domain = ~area,
+  time = ~year,
+  W = W_sub,
+  model = "ST",
   compute_mse = TRUE,
-  B           = 25,
-  seed        = 42,
+  B = 25,
+  seed = 42,
   print_result = FALSE
 )
 

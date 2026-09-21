@@ -2,7 +2,7 @@
 % Please edit documentation in R/eblup_stfh.R
 \name{eblup_stfh}
 \alias{eblup_stfh}
-\title{EBLUPs based on a Spatio-Temporal Fay-Herriot Model.}
+\title{Empirical Best Linear Unbiased Prediction based on a Spatio-Temporal Fay-Herriot Model.}
 \usage{
 eblup_stfh(
   formula,
@@ -38,7 +38,7 @@ domain 2, and so on (i.e. domain-major order) -- exactly as required by
 \code{eblupSTFH()}.}
 
 \item{domain}{vector, column name or one-sided formula referencing a domain names column
-in \code{data}.}
+in \code{data}. If NULL, the domains are numbered consecutively.}
 
 \item{time}{vector, column name, or one-sided formula referencing a time names column
 in \code{data}.}
@@ -92,8 +92,7 @@ This function gives the Spatio-Temporal Empirical Best Linear
 Unbiased Prediction (EBLUP) under normality based on a spatio-temporal
 Fay-Herriot model. It reimplements the same Fisher-scoring algorithm as
 \code{eblupSTFH()} (package \pkg{sae}, Marhuenda, Molina & Morales 2013),
-but the estimation loop runs in compiled C++/Armadillo (\code{.eblup_stfh_core}),
-making it substantially faster and more memory-efficient than the original
+but the estimation loop runs in compiled C++/Armadillo, making it substantially faster and more memory-efficient than the original
 R implementation -- especially for a large number of domains/time periods.
 }
 \details{
@@ -106,7 +105,7 @@ library(fastsae)
 library(dplyr)
 
 mys_panel_nona <- mys_panel |>
-    filter(!is.na(y) & year >= 2024)
+  filter(!is.na(y) & year >= 2024)
 
 # Basic EBLUP without MSE
 m1 <- eblup_stfh(

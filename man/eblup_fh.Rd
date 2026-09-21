@@ -2,11 +2,12 @@
 % Please edit documentation in R/eblup_fh.R
 \name{eblup_fh}
 \alias{eblup_fh}
-\title{EBLUPs based on a Fay-Herriot Model.}
+\title{Empirical Best Linear Unbiased Prediction based on a Fay-Herriot Model.}
 \usage{
 eblup_fh(
   formula,
   vardir,
+  domain = NULL,
   data,
   method = c("REML", "ML"),
   maxiter = 100,
@@ -18,6 +19,9 @@ eblup_fh(
 \item{formula}{an object of class formula that contains a description of the model to be fitted.}
 
 \item{vardir}{vector or column names from data that contain variance sampling from the direct estimator.}
+
+\item{domain}{vector, column name or one-sided formula referencing a domain names column
+in \code{data}. If NULL, the domains are numbered consecutively.}
 
 \item{data}{a data frame or a data frame extension (e.g. a tibble).}
 
@@ -34,7 +38,15 @@ The function returns a list with the following objects:
 \code{estcoef} a data frame with the estimated model coefficients,
 \code{random_effect_var} estimated random effect variance,
 \code{goodness} vector containing several goodness-of-fit measures,
-\code{df_eblup} a data frame that contains y, eblup, vardir, mse, and rse.
+\code{df_eblup} a data frame that contains y, eblup, random_effect, vardir, mse, and rse. \cr
+\itemize{
+\item \code{y} variable response \cr
+\item \code{eblup} estimated results for each area \cr
+\item \code{random_effect} random effect for each area \cr
+\item \code{vardir} variance sampling from the direct estimator for each area \cr
+\item \code{mse} Mean Square Error \cr
+\item \code{rse} Relative Standart Error (\%) \cr
+}
 }
 \description{
 This function gives the Empirical Best Linear Unbiased Prediction (EBLUP) or Empirical Best (EB) predictor under normality based on a Fay-Herriot model.

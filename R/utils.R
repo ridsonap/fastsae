@@ -26,33 +26,11 @@
     if (length(v_names) == 1 && v_names %in% colnames(data)) {
       return(data[[v_names]])
     } else {
-      cli::cli_abort('formula does not reference a valid single column in data')
+      cli::cli_abort("formula does not reference a valid single column in data")
     }
   } else if (length(variable) == nrow(data)) {
     return(variable)
   } else {
-    cli::cli_abort('variable is not valid or length does not match data ({length(variable)} vs {nrow(data)})')
+    cli::cli_abort("variable is not valid or length does not match data ({length(variable)} vs {nrow(data)})")
   }
-}
-
-#' Extract or generate domain identifier
-#'
-#' @description This helper function attempts to find a domain identifier column
-#' in the data frame. If none is found, it generates sequential indices.
-#'
-#' @param data A data frame or data frame extension.
-#'
-#' @return A vector of domain identifiers.
-#'
-#' @noRd
-.get_domain_id <- function(data) {
-  # Try common domain column names
-  domain_cols <- c("area", "domain", "id", "region", "kabupaten", "kota")
-  for (col in domain_cols) {
-    if (col %in% colnames(data)) {
-      return(data[[col]])
-    }
-  }
-  # If not found, generate index
-  return(seq_len(nrow(data)))
 }

@@ -586,7 +586,8 @@ List seblup_core(
     mat G_rr = G_full.submat(idx_ns, idx_ns);
 
     mat KrigW = G_rs * Vi;
-    vec eblup_ns = Xns * beta + KrigW * resid;
+    mat u_ns = KrigW * resid;
+    vec eblup_ns = Xns * beta + u_ns;
 
     mat Gb_ns = KrigW * X;
     mat R_ns = Xns - Gb_ns;
@@ -599,7 +600,7 @@ List seblup_core(
     vec u_sampled = GVi * resid;
     vec u_all(Xall.n_rows);
     u_all.elem(idx_s) = u_sampled;
-    u_all.elem(idx_ns) = KrigW * resid;
+    u_all.elem(idx_ns) = u_ns;
 
     eblup_all.elem(idx_s)  = eblup;
     eblup_all.elem(idx_ns)  = eblup_ns;

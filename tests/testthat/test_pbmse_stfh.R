@@ -225,12 +225,14 @@ test_that("EBLUP estimates are unchanged when compute_mse = TRUE", {
 # ------------------------------------------------------------------
 
 test_that("parallel computation gives same results as sequential", {
+  skip_on_cran()
+
   fit_seq <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = TRUE, B = 50, n_threads = 1, seed = 1
+    model = model_stfh, compute_mse = TRUE, B = 20, n_threads = 1, seed = 1
   ))
 
   fit_par <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = TRUE, B = 50, n_threads = 3, seed = 1
+    model = model_stfh, compute_mse = TRUE, B = 20, n_threads = 2, seed = 1
   ))
 
   # EBLUP should be identical with same seed
@@ -267,6 +269,8 @@ test_that("spatial-only model (model = 'S') computes MSE correctly", {
 # ------------------------------------------------------------------
 
 test_that("larger B gives more stable MSE estimates", {
+  skip_on_cran()
+
   fit_small_B <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
     model = model_stfh, compute_mse = TRUE, B = 20, seed = 1
   ))

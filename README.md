@@ -124,19 +124,9 @@ $n = 1,000$ (with 5 covariates):
 | **Peak Memory (Spatio Temporal FH)** | **0.289 MB** | 7822 MB | \- |
 | **Speedup at n = 1,000** | **Baseline** | **~364x slower** | **~12,300x slower** |
 
-<figure>
-<img src="man/figures/benchmark_plots-1.png"
-alt="Benchmark Execution Time Comparison" />
-<figcaption aria-hidden="true">Benchmark Execution Time
-Comparison</figcaption>
-</figure>
+![](README_files/figure-gfm/benchmark_plots-1.png)
 
-<figure>
-<img src="man/figures/benchmark_plots_mem.png"
-alt="Benchmark Peak Memory Comparison" />
-<figcaption aria-hidden="true">Benchmark Peak Memory
-Comparison</figcaption>
-</figure>
+![](README_files/figure-gfm/benchmark_plots_mem.png)
 
 ------------------------------------------------------------------------
 
@@ -241,7 +231,7 @@ fit_bhf <- eblup_bhf(
   Xpop = df_pop,
   domain_var = "County",
   popsize_var = "PopnSegments",
-  mse = TRUE,
+  compute_mse = TRUE,
   B = 50,
   seed = 123
 )

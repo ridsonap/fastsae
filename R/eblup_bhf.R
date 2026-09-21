@@ -11,8 +11,8 @@
 #' @param popsize_var A character string for population size variable.
 #' @param method Fitting method: "REML" (default) or "ML".
 #' @param popnmean_xpop Population mean of auxiliary variables per domain.
-#' @param B Number of bootstrap replicates for MSE (if mse = TRUE).
-#' @param mse If TRUE, compute bootstrap MSE.
+#' @param B Number of bootstrap replicates for MSE (if compute_mse = TRUE).
+#' @param compute_mse If TRUE, compute bootstrap MSE.
 #' @param n_threads Number of threads for parallel computation.
 #' @param seed Random seed for reproducibility.
 #' @param print_result Print results (default TRUE).
@@ -50,7 +50,7 @@ eblup_bhf <- function(
   method = c("REML", "ML"),
   popnmean_xpop = NULL,
   B = 100,
-  mse = FALSE,
+  compute_mse = FALSE,
   n_threads = 1,
   seed = -1,
   print_result = TRUE
@@ -131,12 +131,12 @@ eblup_bhf <- function(
   }
 
   # --- bootstrap MSE ---
-  if (mse) {
+  if (compute_mse) {
     if (print_result) {
       cli::cli_alert_info("Computing bootstrap MSE with B = {B} replicates...")
     }
 
-    mse_result <- pbmse_unit(
+    mse_result <- .pbmse_unit(
       formula = formula,
       unit_data = unit_data,
       Xpop = Xpop,
@@ -157,9 +157,10 @@ eblup_bhf <- function(
   }
 
   df_eblup <- eblup_df
-  if (mse && "mse" %in% names(df_eblup)) {
+  if (compute_mse && "mse" %in% names(df_eblup)) {
     df_eblup$rse <- ifelse(abs(df_eblup$eblup) < .Machine$double.eps, NA_real_,
-                           sqrt(df_eblup$mse) / abs(df_eblup$eblup) * 100)
+      sqrt(df_eblup$mse) / abs(df_eblup$eblup) * 100
+    )
   } else {
     df_eblup$mse <- NA_real_
     df_eblup$rse <- NA_real_
@@ -181,7 +182,7 @@ eblup_bhf <- function(
   # --- assemble output ---
   out <- list(
     df_eblup = df_eblup,
-    eblup = df_eblup,  # backward compatibility
+    eblup = df_eblup, # backward compatibility
     estcoef = estcoef,
     random_effect_var = sigma2_u,
     fit = list(
@@ -208,12 +209,8 @@ eblup_bhf <- function(
   return(out)
 }
 
-# ============================================================================
-# Parametric Bootstrap MSE for Unit-level Model
-# ============================================================================
-#' @rdname eblup_bhf
-#' @export
-pbmse_unit <- function(
+#' @noRd
+.pbmse_unit <- function(
   formula,
   unit_data,
   Xpop,

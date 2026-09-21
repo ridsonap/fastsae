@@ -1,6 +1,11 @@
 useDynLib(fastsae, .registration = TRUE)
-exportPattern("^[[:alpha:]]+")
+
 export(autoplot)
+export(eblup_bhf)
+export(eblup_fh)
+export(eblup_sfh)
+export(eblup_stfh)
+
 S3method(autoplot, fastsae)
 S3method(autoplot, list)
 S3method(print, fastsae)
@@ -9,6 +14,7 @@ S3method(print, summary.fastsae)
 S3method(coef, fastsae)
 S3method(fitted, fastsae)
 S3method(residuals, fastsae)
+
 importFrom(Rcpp, evalCpp)
 importFrom(rlang, .data)
 importFrom(stats, rnorm)

@@ -33,7 +33,6 @@ models fitted with \pkg{fastsae}. This extends the generic
 \code{\link[ggplot2]{autoplot}} from \pkg{ggplot2}.
 }
 \examples{
-\dontrun{
 library(fastsae)
 
 # Single model plot
@@ -43,6 +42,5 @@ autoplot(fit_fh, type = "estimates")
 # Compare two models
 fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
 autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
-}
 
 }

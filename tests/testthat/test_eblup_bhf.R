@@ -85,7 +85,7 @@ tol <- 1e-4
 # ============================================================================
 test_that("eblup_bhf returns valid structure", {
   expect_s3_class(fit_fast, "fastsae_unit")
-  expect_true("eblup" %in% names(fit_fast))
+  expect_true("df_eblup" %in% names(fit_fast))
   expect_true("fit" %in% names(fit_fast))
   expect_true("random_effect_var" %in% names(fit_fast$fit))
   expect_true("sigma2_e" %in% names(fit_fast$fit))
@@ -93,7 +93,7 @@ test_that("eblup_bhf returns valid structure", {
 
 test_that("EBLUP agrees with sae::eblupBHF", {
   # Order by domain
-  fast_eblup <- fit_fast$eblup[order(fit_fast$eblup$domain), ]
+  fast_eblup <- fit_fast$df_eblup[order(fit_fast$df_eblup$domain), ]
   sae_eblup <- fit_sae$eblup[order(fit_sae$eblup$domain), ]
 
   expect_equal(
@@ -129,7 +129,7 @@ test_that("pbmse_unit returns valid structure", {
   skip_on_cran()
 
   B_test <- 50
-  mse_fast <- pbmse_unit(
+  mse_fast <- .pbmse_unit(
     formula = CornHec ~ CornPix + SoyBeansPix,
     unit_data = df_cornsoybean,
     Xpop = Xpop,
@@ -151,7 +151,7 @@ test_that("pbmse_unit produces valid MSE estimates", {
   B_test <- 50
   set.seed(123)
 
-  mse_result <- pbmse_unit(
+  mse_result <- .pbmse_unit(
     formula = CornHec ~ CornPix + SoyBeansPix,
     unit_data = df_cornsoybean,
     Xpop = Xpop,

@@ -12,6 +12,7 @@ mysnona <- mys[!is.na(mys$y), ]
 fit_fast <- eblup_fh(
   y ~ x1 + x2 + x3,
   vardir = "vardir",
+  domain = "area",
   method = "REML",
   data = mysnona,
   print_result = FALSE
@@ -26,6 +27,7 @@ fit_sae <- sae::mseFH(
 fit_fast_ml <- eblup_fh(
   y ~ x1 + x2 + x3,
   vardir = "vardir",
+  domain = "area",
   method = "ML",
   data = mysnona,
   print_result = FALSE
