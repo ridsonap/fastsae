@@ -38,7 +38,7 @@ List seblup_pbmse(
   );
 
   if (!(bool) result_awal["convergence"]) {
-    warning("Initial fit did not converge; bootstrap MSE results may be unreliable.");
+    Rcpp::warning("Initial fit did not converge; bootstrap MSE results may be unreliable.");
   }
 
   const int m = X.n_rows;
@@ -81,7 +81,7 @@ List seblup_pbmse(
     if (n_attempted_total + need > max_total_attempts) {
       int remaining_budget = max_total_attempts - n_attempted_total;
       if (remaining_budget <= 0) {
-        stop("Failed to collect %d valid replicates after %d total attempts "
+        Rcpp::stop("Failed to collect %d valid replicates after %d total attempts "
              "(too many replicates failed to converge).", B, n_attempted_total);
       }
       need = remaining_budget;

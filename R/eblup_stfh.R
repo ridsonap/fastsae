@@ -147,11 +147,11 @@ eblup_stfh <- function(
   # vardir
   vardir <- .get_variable(data, vardir)
   if (nrow(mf) != length(vardir)) {
-    stop("Length of 'vardir' must equal number of observations in data")
+    cli::cli_abort("Length of 'vardir' must equal number of observations in data ({nrow(mf)} vs {length(vardir)}).")
   }
 
   if (any(vardir <= 0, na.rm = TRUE)) {
-    stop("vardir must be strictly positive for all areas")
+    cli::cli_abort("vardir must be strictly positive for all areas.")
   }
 
   # domain & time
@@ -163,31 +163,35 @@ eblup_stfh <- function(
   # check dimension
   M <- n_domain * n_time
   if (nrow(X) != M || length(y) != M || length(vardir) != M) {
-    stop(
-      "formula=", deparse(formula), " [rows=", nrow(X), "] and vardir [rows=",
-      length(vardir), "] must have domain * time = ", n_domain, "*", n_time, " = ", M, " rows."
+    cli::cli_abort(
+      c("Dimensions mismatch!",
+        "i" = "Formula produces {nrow(X)} rows, but domain * time = {M}.",
+        "i" = "vardir has {length(vardir)} values."
+      )
     )
   }
 
   # check W
-  if (!is.matrix(W)) W <- as.matrix(W)
-  if (anyNA(W)) stop("Argument W contains NA values.")
+  if (anyNA(W)) cli::cli_abort("Argument W contains NA values.")
   if (nrow(W) != n_domain || ncol(W) != n_domain) {
-    stop("Argument W must be a square matrix of size Domain =", n_domain, ".")
+    cli::cli_abort(
+      c("Argument W must be a square matrix of size Domain = {n_domain}.",
+        "i" = "Got a {nrow(W)}x{ncol(W)} matrix.")
+    )
   }
 
   # check sigma and rho
   if (!is.null(sigma21_start) && sigma21_start < 0) {
-    stop("Argument sigma21_start must be >= 0.")
+    cli::cli_abort("sigma21_start must be >= 0.")
   }
   if (!is.null(sigma22_start) && sigma22_start < 0) {
-    stop("Argument sigma22_start must be >= 0.")
+    cli::cli_abort("sigma22_start must be >= 0.")
   }
   if (rho1_start <= -1 || rho1_start >= 1) {
-    stop("Argument rho1_start must be in the interval (-1,1).")
+    cli::cli_abort("rho1_start must be in the interval (-1, 1).")
   }
   if (model == "ST" && (rho2_start <= -1 || rho2_start >= 1)) {
-    stop("Argument rho2_start must be in the interval (-1,1).")
+    cli::cli_abort("rho2_start must be in the interval (-1, 1).")
   }
 
   # ---- call C++ core ----

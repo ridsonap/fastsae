@@ -28,6 +28,23 @@ fit_sae <- sae::mseSFH(
   method = "REML"
 )
 
+
+fit_fast_ml <- eblup_sfh(
+  y ~ x1 + x2 + x3,
+  vardir = "vardir",
+  method = "ML",
+  data = mysnona,
+  W = mys_proxmat_nona,
+  print_result = FALSE
+)
+
+fit_sae_ml <- sae::mseSFH(
+  mysnona$y ~ mysnona$x1 + mysnona$x2 + mysnona$x3,
+  vardir = mysnona$vardir,
+  proxmat = mys_proxmat_nona,
+  method = "ML"
+)
+
 tol <- 1e-6
 
 
@@ -83,6 +100,12 @@ test_that("EBLUP agrees with sae::mseSFH", {
     as.numeric(fit_sae$est$eblup),
     tolerance = tol
   )
+
+  expect_equal(
+    fit_fast_ml$df_eblup$eblup,
+    as.numeric(fit_sae_ml$est$eblup),
+    tolerance = tol
+  )
 })
 
 # ------------------------------------------------------------------
@@ -95,6 +118,12 @@ test_that("MSE agrees with sae::mseSFH", {
     fit_sae$mse,
     tolerance = tol
   )
+
+  expect_equal(
+    fit_fast_ml$df_eblup$mse,
+    fit_sae_ml$mse,
+    tolerance = tol
+  )
 })
 
 # ------------------------------------------------------------------
@@ -105,6 +134,12 @@ test_that("random effect variance agrees with sae::mseSFH", {
   expect_equal(
     fit_fast$random_effect_var,
     fit_sae$est$fit$refvar,
+    tolerance = tol
+  )
+
+  expect_equal(
+    fit_fast_ml$random_effect_var,
+    fit_sae_ml$est$fit$refvar,
     tolerance = tol
   )
 })
@@ -124,7 +159,14 @@ test_that("goodness statistics agree with sae::mseSFH", {
     as.numeric(fit_sae$est$fit$goodness[-4]),
     tolerance = tol
   )
+
+  expect_equal(
+    as.numeric(fit_fast_ml$goodness),
+    as.numeric(fit_sae_ml$est$fit$goodness[-4]),
+    tolerance = tol
+  )
 })
+
 
 # ------------------------------------------------------------------
 # Regression coefficients
@@ -141,6 +183,17 @@ test_that("beta estimates agree with sae::mseSFH", {
     fit_sae$est$fit$estcoef$beta,
     tolerance = tol
   )
+
+  expect_identical(
+    names(fit_fast_ml$estcoef$beta),
+    names(fit_sae_ml$est$fit$estcoef$beta)
+  )
+
+  expect_equal(
+    fit_fast_ml$estcoef$beta,
+    fit_sae_ml$est$fit$estcoef$beta,
+    tolerance = tol
+  )
 })
 
 # ------------------------------------------------------------------
@@ -151,6 +204,12 @@ test_that("beta standard errors agree with sae::mseSFH", {
   expect_equal(
     fit_fast$estcoef$stderr_beta,
     fit_sae$est$fit$estcoef$std.error,
+    tolerance = tol
+  )
+
+  expect_equal(
+    fit_fast_ml$estcoef$stderr_beta,
+    fit_sae_ml$est$fit$estcoef$std.error,
     tolerance = tol
   )
 })

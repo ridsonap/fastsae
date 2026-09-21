@@ -15,3 +15,7 @@
 ^\.Rhistory$
 ^\.Rapp\.history$
 ^main.R
+^README_files
+^docs_old$
+^_pkgdown\.yml$
+^pkgdown$

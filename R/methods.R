@@ -13,6 +13,7 @@
 #' @return The original object invisibly.
 #' @export
 print.fastsae <- function(x, ...) {
+  cli::start_app(output = "stdout")
   cli::cli_h1("Fast Small Area Estimation (fastsae)")
 
   if (!is.null(x$call)) {
@@ -109,6 +110,7 @@ summary.fastsae <- function(object, ...) {
 #' @return The original object invisibly.
 #' @export
 print.summary.fastsae <- function(x, ...) {
+  cli::start_app(output = "stdout")
   cli::cli_h1("Summary of fastsae Fit")
 
   if (!is.null(x$call)) {

@@ -1,0 +1,316 @@
+---
+title: "Performance & Scalability Benchmarks"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Performance & Scalability Benchmarks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Executive Summary
+
+Small Area Estimation often involves large administrative registries or extensive spatial networks with hundreds or thousands of domains. Traditional implementations in R often rely on interpreted loops, pure R Fisher-scoring routines, or large memory allocations for $D \times D$ dense covariance matrices.
+
+**fastsae** re-architects core estimation algorithms in compiled C++ using `RcppArmadillo` and native `OpenMP` multi-threading, delivering:
+
+- **Up to 364x faster** than `sae` and **12,300x faster** than `emdi` for Fay-Herriot models at $n = 1,000$.
+- **Up to 80x faster** than `sae` for Spatial Fay-Herriot models at $n = 1,000$.
+- **Up to 31x faster** than `sae` for Spatio-Temporal models at $n = 1,000$.
+- **Massive RAM reduction**: Peak memory footprint stays under **25 MB** where existing packages require hundreds of megabytes or several gigabytes.
+
+---
+
+## Benchmark Results Table
+
+The following benchmarks were conducted on simulated datasets across domain sizes ranging from $n = 30$ to $n = 1,000$ (with 5 auxiliary covariates):
+
+| Metric | `fastsae` | `sae` (Molina & Rao) | `emdi` (Kreutzmann et al.) |
+|:---|:---:|:---:|:---:|
+| **Mean Time (EBLUP FH)** | **0.0015 s** | 0.291 s | 9.64 s |
+| **Mean Time (Spatial FH)** | **0.165 s** | 12.60 s | 8.69 s |
+| **Mean Time (Spatio-Temporal FH)** | **12.5 s** | 353.0 s | \- |
+| **Peak Memory (EBLUP FH)** | **0.055 MB** | 16.3 MB | 824 MB |
+| **Peak Memory (Spatial FH)** | **5.15 MB** | 408 MB | 824 MB |
+| **Peak Memory (Spatio-Temporal FH)** | **0.289 MB** | 7,822 MB | \- |
+| **Speedup at n = 1,000 (FH)** | **Baseline** | **~364x slower** | **~12,300x slower** |
+
+---
+
+## Interactive Benchmark Explorer
+
+Use the interactive controls below to compare execution time, RAM consumption, and iterations per second across sample sizes:
+
+```{=html}
+<div class="my-4 p-3 border rounded bg-light">
+  <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="btn-group" role="group" aria-label="Model selection">
+      <button type="button" class="btn btn-sm btn-primary active" id="btn-algo-fh" onclick="setBenchmarkAlgo('FH')">Fay-Herriot (FH)</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-algo-sfh" onclick="setBenchmarkAlgo('SFH')">Spatial FH (SFH)</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-algo-stfh" onclick="setBenchmarkAlgo('STFH')">Spatio-Temporal (STFH)</button>
+    </div>
+    <div class="btn-group" role="group" aria-label="Metric selection">
+      <button type="button" class="btn btn-sm btn-success active" id="btn-metric-time" onclick="setBenchmarkMetric('time')">Execution Time</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-metric-mem" onclick="setBenchmarkMetric('mem')">Peak Memory</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-metric-ips" onclick="setBenchmarkMetric('ips')">Throughput (iter/s)</button>
+    </div>
+  </div>
+
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-bold" id="main-chart-title">
+      Execution time (median, seconds) — FH · log scale
+    </div>
+    <div class="card-body" style="position: relative; height: 350px;">
+      <canvas id="benchmark-main-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold" id="speedup-chart-title">
+      Speedup Factor (fastsae vs competitors) — FH
+    </div>
+    <div class="card-body" style="position: relative; height: 280px;">
+      <canvas id="benchmark-speedup-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function() {
+  const RAW_DATA = [
+    // FH
+    { Method: "fastsae", Median: 0.000588, Mem: 0.005, IPS: 1623, n: 30, Algo: "FH" },
+    { Method: "emdi", Median: 0.01088, Mem: 4.18, IPS: 91, n: 30, Algo: "FH" },
+    { Method: "sae", Median: 0.00155, Mem: 0.153, IPS: 632, n: 30, Algo: "FH" },
+    { Method: "fastsae", Median: 0.000511, Mem: 0.009, IPS: 1912, n: 50, Algo: "FH" },
+    { Method: "emdi", Median: 0.01806, Mem: 10.47, IPS: 52, n: 50, Algo: "FH" },
+    { Method: "sae", Median: 0.00195, Mem: 0.373, IPS: 494, n: 50, Algo: "FH" },
+    { Method: "fastsae", Median: 0.00055, Mem: 0.016, IPS: 1761, n: 100, Algo: "FH" },
+    { Method: "emdi", Median: 0.0505, Mem: 37.34, IPS: 19, n: 100, Algo: "FH" },
+    { Method: "sae", Median: 0.00344, Mem: 0.918, IPS: 288, n: 100, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0009, Mem: 0.039, IPS: 1081, n: 250, Algo: "FH" },
+    { Method: "emdi", Median: 0.857, Mem: 240.89, IPS: 1.16, n: 250, Algo: "FH" },
+    { Method: "sae", Median: 0.0376, Mem: 6.35, IPS: 26, n: 250, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0014, Mem: 0.076, IPS: 697, n: 500, Algo: "FH" },
+    { Method: "emdi", Median: 5.86, Mem: 880.31, IPS: 0.17, n: 500, Algo: "FH" },
+    { Method: "sae", Median: 0.197, Mem: 18.24, IPS: 5.03, n: 500, Algo: "FH" },
+    { Method: "fastsae", Median: 0.00413, Mem: 0.186, IPS: 176, n: 1000, Algo: "FH" },
+    { Method: "emdi", Median: 51.02, Mem: 3773.6, IPS: 0.02, n: 1000, Algo: "FH" },
+    { Method: "sae", Median: 1.504, Mem: 72.0, IPS: 0.66, n: 1000, Algo: "FH" },
+
+    // SFH
+    { Method: "fastsae", Median: 0.000735, Mem: 0.03, IPS: 1312, n: 30, Algo: "SFH" },
+    { Method: "emdi", Median: 0.01071, Mem: 4.18, IPS: 93, n: 30, Algo: "SFH" },
+    { Method: "sae", Median: 0.0041, Mem: 1.37, IPS: 246, n: 30, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.00115, Mem: 0.074, IPS: 841, n: 50, Algo: "SFH" },
+    { Method: "emdi", Median: 0.018, Mem: 10.47, IPS: 44, n: 50, Algo: "SFH" },
+    { Method: "sae", Median: 0.00968, Mem: 3.31, IPS: 103, n: 50, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.00473, Mem: 0.259, IPS: 208, n: 100, Algo: "SFH" },
+    { Method: "emdi", Median: 0.053, Mem: 37.34, IPS: 17, n: 100, Algo: "SFH" },
+    { Method: "sae", Median: 0.0705, Mem: 18.0, IPS: 13, n: 100, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.0238, Mem: 1.5, IPS: 37, n: 250, Algo: "SFH" },
+    { Method: "emdi", Median: 0.844, Mem: 240.89, IPS: 1.17, n: 250, Algo: "SFH" },
+    { Method: "sae", Median: 1.07, Mem: 110.39, IPS: 0.93, n: 250, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.142, Mem: 5.86, IPS: 6.96, n: 500, Algo: "SFH" },
+    { Method: "emdi", Median: 3.14, Mem: 949.86, IPS: 0.32, n: 500, Algo: "SFH" },
+    { Method: "sae", Median: 7.12, Mem: 776.4, IPS: 0.14, n: 500, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.832, Mem: 23.15, IPS: 1.19, n: 1000, Algo: "SFH" },
+    { Method: "emdi", Median: 51.06, Mem: 3772.6, IPS: 0.02, n: 1000, Algo: "SFH" },
+    { Method: "sae", Median: 67.15, Mem: 1920.0, IPS: 0.015, n: 1000, Algo: "SFH" },
+
+    // STFH
+    { Method: "fastsae", Median: 0.0367, Mem: 0.027, IPS: 25.87, n: 30, Algo: "STFH" },
+    { Method: "sae", Median: 0.1186, Mem: 43.8, IPS: 7.86, n: 30, Algo: "STFH" },
+    { Method: "fastsae", Median: 0.0898, Mem: 0.047, IPS: 10.92, n: 50, Algo: "STFH" },
+    { Method: "sae", Median: 0.42, Mem: 107.8, IPS: 2.28, n: 50, Algo: "STFH" },
+    { Method: "fastsae", Median: 2.299, Mem: 0.090, IPS: 0.434, n: 100, Algo: "STFH" },
+    { Method: "sae", Median: 17.94, Mem: 2551.1, IPS: 0.056, n: 100, Algo: "STFH" },
+    { Method: "fastsae", Median: 3.817, Mem: 0.225, IPS: 0.261, n: 250, Algo: "STFH" },
+    { Method: "sae", Median: 58.43, Mem: 3624.7, IPS: 0.017, n: 250, Algo: "STFH" },
+    { Method: "fastsae", Median: 10.36, Mem: 0.448, IPS: 0.096, n: 500, Algo: "STFH" },
+    { Method: "sae", Median: 253.34, Mem: 8124.4, IPS: 0.004, n: 500, Algo: "STFH" },
+    { Method: "fastsae", Median: 58.10, Mem: 0.894, IPS: 0.017, n: 1000, Algo: "STFH" },
+    { Method: "sae", Median: 1786.49, Mem: 32478.3, IPS: 0.0006, n: 1000, Algo: "STFH" }
+  ];
+
+  const N_LIST = [30, 50, 100, 250, 500, 1000];
+  let curAlgo = "FH";
+  let curMetric = "time";
+  let chartMain, chartSpeedup;
+
+  function fmtVal(v, m) {
+    if (v === null || v === undefined) return "N/A";
+    if (m === "time") {
+      if (v < 0.001) return (v * 1e6).toFixed(0) + " µs";
+      if (v < 1) return (v * 1000).toFixed(2) + " ms";
+      return v.toFixed(2) + " s";
+    }
+    if (m === "mem") return v.toFixed(2) + " MB";
+    if (m === "ips") return v.toFixed(2) + " it/s";
+    return v;
+  }
+
+  function getMetricTitle(m) {
+    if (m === "time") return "Execution time (median, seconds)";
+    if (m === "mem") return "Memory usage (MB)";
+    if (m === "ips") return "Throughput (iterations per second)";
+    return m;
+  }
+
+  window.setBenchmarkAlgo = function(algo) {
+    curAlgo = algo;
+    ["fh", "sfh", "stfh"].forEach(id => {
+      const btn = document.getElementById("btn-algo-" + id);
+      if (btn) {
+        btn.classList.toggle("btn-primary", id.toUpperCase() === algo);
+        btn.classList.toggle("btn-outline-primary", id.toUpperCase() !== algo);
+        btn.classList.toggle("active", id.toUpperCase() === algo);
+      }
+    });
+    updateBenchmarkCharts();
+  };
+
+  window.setBenchmarkMetric = function(m) {
+    curMetric = m;
+    ["time", "mem", "ips"].forEach(id => {
+      const btn = document.getElementById("btn-metric-" + id);
+      if (btn) {
+        btn.classList.toggle("btn-success", id === m);
+        btn.classList.toggle("btn-outline-success", id !== m);
+        btn.classList.toggle("active", id === m);
+      }
+    });
+    updateBenchmarkCharts();
+  };
+
+  function updateBenchmarkCharts() {
+    const key = curMetric === "time" ? "Median" : curMetric === "mem" ? "Mem" : "IPS";
+
+    const fastsaeData = N_LIST.map(n => {
+      const r = RAW_DATA.find(x => x.Algo === curAlgo && x.n === n && x.Method === "fastsae");
+      return r ? r[key] : null;
+    });
+    const saeData = N_LIST.map(n => {
+      const r = RAW_DATA.find(x => x.Algo === curAlgo && x.n === n && x.Method === "sae");
+      return r ? r[key] : null;
+    });
+    const emdiData = N_LIST.map(n => {
+      const r = RAW_DATA.find(x => x.Algo === curAlgo && x.n === n && x.Method === "emdi");
+      return r ? r[key] : null;
+    });
+
+    const speedupSae = N_LIST.map(n => {
+      const f = RAW_DATA.find(x => x.Algo === curAlgo && x.n === n && x.Method === "fastsae");
+      const s = RAW_DATA.find(x => x.Algo === curAlgo && x.n === n && x.Method === "sae");
+      return f && s ? s.Median / f.Median : null;
+    });
+    const speedupEmdi = N_LIST.map(n => {
+      const f = RAW_DATA.find(x => x.Algo === curAlgo && x.n === n && x.Method === "fastsae");
+      const e = RAW_DATA.find(x => x.Algo === curAlgo && x.n === n && x.Method === "emdi");
+      return f && e ? e.Median / f.Median : null;
+    });
+
+    document.getElementById("main-chart-title").textContent =
+      getMetricTitle(curMetric) + " — " + curAlgo + " · log scale";
+    document.getElementById("speedup-chart-title").textContent =
+      "Speedup Factor (fastsae vs competitors) — " + curAlgo;
+
+    chartMain.data.datasets[0].data = fastsaeData;
+    chartMain.data.datasets[1].data = saeData;
+    chartMain.data.datasets[2].data = emdiData;
+    chartMain.options.scales.y.title.text = getMetricTitle(curMetric);
+    chartMain.update();
+
+    chartSpeedup.data.datasets[0].data = speedupSae;
+    chartSpeedup.data.datasets[1].data = speedupEmdi;
+    chartSpeedup.update();
+  }
+
+  window.addEventListener("DOMContentLoaded", function() {
+    const ctx1 = document.getElementById("benchmark-main-chart");
+    const ctx2 = document.getElementById("benchmark-speedup-chart");
+    if (!ctx1 || !ctx2) return;
+
+    chartMain = new Chart(ctx1.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: N_LIST.map(String),
+        datasets: [
+          { label: "fastsae", data: [], borderColor: "#1D6A5C", backgroundColor: "rgba(29,106,92,0.15)", tension: 0.3, fill: true, pointRadius: 5 },
+          { label: "sae", data: [], borderColor: "#C77B3B", backgroundColor: "rgba(199,123,59,0.15)", tension: 0.3, fill: true, pointRadius: 5 },
+          { label: "emdi", data: [], borderColor: "#7A5FA8", backgroundColor: "rgba(122,95,168,0.15)", tension: 0.3, fill: true, pointRadius: 5 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: { type: "logarithmic", title: { display: true, text: "" } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + fmtVal(ctx.raw, curMetric)
+            }
+          }
+        }
+      }
+    });
+
+    chartSpeedup = new Chart(ctx2.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: N_LIST.map(String),
+        datasets: [
+          { label: "vs sae", data: [], backgroundColor: "#C77B3B", borderRadius: 4 },
+          { label: "vs emdi", data: [], backgroundColor: "#7A5FA8", borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: { type: "logarithmic", title: { display: true, text: "Speedup Factor (x faster)" } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + (ctx.raw ? ctx.raw.toFixed(1) + "x faster" : "N/A")
+            }
+          }
+        }
+      }
+    });
+
+    updateBenchmarkCharts();
+  });
+})();
+</script>
+```
+
+---
+
+## Architectural Insights: Why is fastsae so Fast?
+
+1. **Compiled C++ Linear Solvers**:
+   Instead of interpreting nested loops in R, `fastsae` implements Fisher-scoring parameter search and Woodbury identity matrix inversions in Armadillo C++, directly leveraging optimized BLAS/LAPACK routines.
+
+2. **Zero-Copy Matrix Operations**:
+   Memory allocations for large intermediate structures ($V$, $V^{-1}$, $P$) are avoided or reused across Fisher iterations rather than reallocated on the heap.
+
+3. **OpenMP Multi-Threaded Bootstrap**:
+   Bootstrap resampling runs natively in parallel across CPU cores using `#pragma omp parallel for`, avoiding the serialization overhead of R worker processes (`parallel::makeCluster` / `foreach`).
+
+4. **Woodbury Identity for Panel Data**:
+   In `eblup_stfh`, inversion of the block $(DT \times DT)$ covariance matrix $V$ is reduced to operations on individual $D \times D$ and $T \times T$ blocks via Kronecker and Woodbury decomposition, transforming an $O((DT)^3)$ bottleneck into scalable $O(D^3 + T^3)$ steps.

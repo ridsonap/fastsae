@@ -54,7 +54,7 @@ eblup_fh <- function(
   vardir <- .get_variable(data, vardir)
 
   if (nrow(mf) != length(vardir)) {
-    cli::cli_abort("Length of 'vardir' must equal number of observations in data.")
+    cli::cli_abort("Length of 'vardir' must equal number of observations in data ({nrow(mf)} vs {length(vardir)}).")
   }
 
   y <- stats::model.response(mf, "numeric")

@@ -49,12 +49,12 @@ List eblup_core(
   const int p = Xs.n_cols;
 
   // safety checks
-  if (m == 0) stop("No sampled areas found.");
-  if (!(method == "ML" || method == "REML")) stop("method must be 'ML' or 'REML'.");
+  if (m == 0) Rcpp::stop("No sampled areas found.");
+  if (!(method == "ML" || method == "REML")) Rcpp::stop("method must be 'ML' or 'REML'.");
 
   // Check vardir > 0 for sampled areas
   if (arma::any(vardir <= 0)) {
-    stop("vardir must be strictly positive for sampled areas.");
+    Rcpp::stop("vardir must be strictly positive for sampled areas.");
   }
 
   // ================================================================
@@ -97,9 +97,14 @@ List eblup_core(
     QXtVi = Q * XtVi;
     Py = Vi % y - trans(XtVi) * (QXtVi * y);
 
-    mat XtViXtVi = XtVi * XtVi.t();
-    double trP = accu(Vi) - trace(Q * XtViXtVi);
-    double s = (-0.5) * trP + 0.5 * as_scalar(trans(Py) * Py);
+    double s;
+    if (is_ml) {
+      s = (-0.5) * accu(Vi) + 0.5 * as_scalar(trans(Py) * Py);
+    } else {
+      mat XtViXtVi = XtVi * XtVi.t();
+      double trP = accu(Vi) - trace(Q * XtViXtVi);
+      s = (-0.5) * trP + 0.5 * as_scalar(trans(Py) * Py);
+    }
 
     double Isigma2;
     if (is_ml) {
@@ -188,7 +193,8 @@ List eblup_core(
 
   vec mse_s(m);
   if (is_ml) {
-    double b = -trace(Q * XtViX) / std::max(SumAD2, 1e-30);
+    mat XtVi2X = trans(Xs.each_col() % square(Vi)) * Xs;
+    double b = -trace(Q * XtVi2X) / std::max(SumAD2, 1e-30);
     mse_s = g1 + g2 + 2.0 * g3 - b * Bd2;
   } else {
     mse_s = g1 + g2 + 2.0 * g3;

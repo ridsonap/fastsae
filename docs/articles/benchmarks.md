@@ -1,0 +1,89 @@
+# Performance & Scalability Benchmarks
+
+## Executive Summary
+
+Small Area Estimation often involves large administrative registries or
+extensive spatial networks with hundreds or thousands of domains.
+Traditional implementations in R often rely on interpreted loops, pure R
+Fisher-scoring routines, or large memory allocations for $`D \times D`$
+dense covariance matrices.
+
+**fastsae** re-architects core estimation algorithms in compiled C++
+using `RcppArmadillo` and native `OpenMP` multi-threading, delivering:
+
+- **Up to 364x faster** than `sae` and **12,300x faster** than `emdi`
+  for Fay-Herriot models at $`n = 1,000`$.
+- **Up to 80x faster** than `sae` for Spatial Fay-Herriot models at
+  $`n = 1,000`$.
+- **Up to 31x faster** than `sae` for Spatio-Temporal models at
+  $`n = 1,000`$.
+- **Massive RAM reduction**: Peak memory footprint stays under **25 MB**
+  where existing packages require hundreds of megabytes or several
+  gigabytes.
+
+------------------------------------------------------------------------
+
+## Benchmark Results Table
+
+The following benchmarks were conducted on simulated datasets across
+domain sizes ranging from $`n = 30`$ to $`n = 1,000`$ (with 5 auxiliary
+covariates):
+
+| Metric | `fastsae` | `sae` (Molina & Rao) | `emdi` (Kreutzmann et al.) |
+|:---|:--:|:--:|:--:|
+| **Mean Time (EBLUP FH)** | **0.0015 s** | 0.291 s | 9.64 s |
+| **Mean Time (Spatial FH)** | **0.165 s** | 12.60 s | 8.69 s |
+| **Mean Time (Spatio-Temporal FH)** | **12.5 s** | 353.0 s | \- |
+| **Peak Memory (EBLUP FH)** | **0.055 MB** | 16.3 MB | 824 MB |
+| **Peak Memory (Spatial FH)** | **5.15 MB** | 408 MB | 824 MB |
+| **Peak Memory (Spatio-Temporal FH)** | **0.289 MB** | 7,822 MB | \- |
+| **Speedup at n = 1,000 (FH)** | **Baseline** | **~364x slower** | **~12,300x slower** |
+
+------------------------------------------------------------------------
+
+## Interactive Benchmark Explorer
+
+Use the interactive controls below to compare execution time, RAM
+consumption, and iterations per second across sample sizes:
+
+Fay-Herriot (FH)
+
+Spatial FH (SFH)
+
+Spatio-Temporal (STFH)
+
+Execution Time
+
+Peak Memory
+
+Throughput (iter/s)
+
+Execution time (median, seconds) — FH · log scale
+
+Speedup Factor (fastsae vs competitors) — FH
+
+------------------------------------------------------------------------
+
+## Architectural Insights: Why is fastsae so Fast?
+
+1.  **Compiled C++ Linear Solvers**: Instead of interpreting nested
+    loops in R, `fastsae` implements Fisher-scoring parameter search and
+    Woodbury identity matrix inversions in Armadillo C++, directly
+    leveraging optimized BLAS/LAPACK routines.
+
+2.  **Zero-Copy Matrix Operations**: Memory allocations for large
+    intermediate structures ($`V`$, $`V^{-1}`$, $`P`$) are avoided or
+    reused across Fisher iterations rather than reallocated on the heap.
+
+3.  **OpenMP Multi-Threaded Bootstrap**: Bootstrap resampling runs
+    natively in parallel across CPU cores using
+    `#pragma omp parallel for`, avoiding the serialization overhead of R
+    worker processes
+    ([`parallel::makeCluster`](https://rdrr.io/r/parallel/makeCluster.html)
+    / `foreach`).
+
+4.  **Woodbury Identity for Panel Data**: In `eblup_stfh`, inversion of
+    the block $`(DT \times DT)`$ covariance matrix $`V`$ is reduced to
+    operations on individual $`D \times D`$ and $`T \times T`$ blocks
+    via Kronecker and Woodbury decomposition, transforming an
+    $`O((DT)^3)`$ bottleneck into scalable $`O(D^3 + T^3)`$ steps.

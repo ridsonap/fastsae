@@ -13,6 +13,8 @@ Description: Provides highly efficient implementations of small area estimation 
     Designed for large-scale applications where standard R implementations
     fall short.
 License: GPL (>= 3)
+URL: https://ridsonap.github.io/fastsae, https://github.com/ridsonap/fastsae
+BugReports: https://github.com/ridsonap/fastsae/issues
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -32,7 +34,10 @@ Suggests:
     MASS,
     parallel,
     sae,
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
+VignetteBuilder: knitr
 LinkingTo: 
     Rcpp,
     RcppArmadillo

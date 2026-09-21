@@ -22,7 +22,7 @@
 #' When there are unsampled domains, "pbmse"/"npbmse" bootstrap MSE is only defined for the
 #' sampled domains; unsampled domains automatically get a full-spatial synthetic (kriging)
 #' prediction and analytical MSE merged into the result regardless of `mse_method`.
-#' @param B Number of bootstrap replications when mse_methpd = "pbmse" or "npbmse".
+#' @param B Number of bootstrap replications when mse_method = "pbmse" or "npbmse".
 #' @param n_threads Number of threads used in parallel computation.
 #'   Values less than or equal to 0 use the default OpenMP configuration (all cores).
 #' @param seed Integer seed for bootstrap resampling.
@@ -103,7 +103,7 @@ eblup_sfh <- function(
 
 
   if (nrow(mf) != length(vardir)) {
-    stop("Length of 'vardir' must equal number of observations in data")
+    cli::cli_abort("Length of 'vardir' must equal number of observations in data.")
   }
 
   y <- stats::model.response(mf, "numeric")

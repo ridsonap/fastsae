@@ -221,7 +221,7 @@ List seblup_core(
   // Validasi input
   // ================================================================
   if (Wall.n_rows != Xall.n_rows || Wall.n_cols != Xall.n_rows) {
-    stop("'Wall' must be a square matrix with dimension equal to nrow(Xall).");
+    Rcpp::stop("'Wall' must be a square matrix with dimension equal to nrow(Xall).");
   }
 
   // ================================================================
@@ -260,16 +260,16 @@ List seblup_core(
 
   // safety checks
   if (m == 0) {
-    stop("All areas are unsampled -- cannot fit the model.");
+    Rcpp::stop("All areas are unsampled -- cannot fit the model.");
   }
   if ((int) vardir.n_elem != m) {
-    stop("Length of 'vardir' must equal nrow(X).");
+    Rcpp::stop("Length of 'vardir' must equal nrow(X).");
   }
   if ((int) y.n_elem != m) {
-    stop("Length of 'y' must equal nrow(X).");
+    Rcpp::stop("Length of 'y' must equal nrow(X).");
   }
   if (!(method == "ML" || method == "REML")) {
-    stop("method must be 'ML' or 'REML'.");
+    Rcpp::stop("method must be 'ML' or 'REML'.");
   }
 
   // ================================================================

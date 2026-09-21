@@ -23,6 +23,20 @@ fit_sae <- sae::mseFH(
   method = "REML"
 )
 
+fit_fast_ml <- eblup_fh(
+  y ~ x1 + x2 + x3,
+  vardir = "vardir",
+  method = "ML",
+  data = mysnona,
+  print_result = FALSE
+)
+
+fit_sae_ml <- sae::mseFH(
+  mysnona$y ~ mysnona$x1 + mysnona$x2 + mysnona$x3,
+  vardir = mysnona$vardir,
+  method = "ML"
+)
+
 tol <- 1e-5
 
 # ------------------------------------------------------------------
@@ -57,6 +71,12 @@ test_that("EBLUP agrees with sae::mseFH", {
     as.numeric(fit_sae$est$eblup),
     tolerance = tol
   )
+
+  expect_equal(
+    fit_fast_ml$df_eblup$eblup,
+    as.numeric(fit_sae_ml$est$eblup),
+    tolerance = tol
+  )
 })
 
 # ------------------------------------------------------------------
@@ -67,6 +87,12 @@ test_that("MSE agrees with sae::mseFH", {
   expect_equal(
     fit_fast$df_eblup$mse,
     fit_sae$mse,
+    tolerance = tol
+  )
+
+  expect_equal(
+    fit_fast_ml$df_eblup$mse,
+    fit_sae_ml$mse,
     tolerance = tol
   )
 })
@@ -81,6 +107,12 @@ test_that("random effect variance agrees with sae::mseFH", {
     fit_sae$est$fit$refvar,
     tolerance = tol
   )
+
+  expect_equal(
+    fit_fast_ml$random_effect_var,
+    fit_sae_ml$est$fit$refvar,
+    tolerance = tol
+  )
 })
 
 # ------------------------------------------------------------------
@@ -91,6 +123,12 @@ test_that("goodness statistics agree with sae::mseFH", {
   expect_equal(
     as.numeric(fit_fast$goodness),
     as.numeric(fit_sae$est$fit$goodness[-4]),
+    tolerance = tol
+  )
+
+  expect_equal(
+    as.numeric(fit_fast_ml$goodness),
+    as.numeric(fit_sae_ml$est$fit$goodness[-4]),
     tolerance = tol
   )
 })
@@ -109,6 +147,18 @@ test_that("beta estimates agree with sae::mseFH", {
   expect_equal(
     fit_fast$estcoef$stderr_beta,
     fit_sae$est$fit$estcoef$std.error,
+    tolerance = tol
+  )
+
+  expect_equal(
+    fit_fast_ml$estcoef$beta,
+    fit_sae_ml$est$fit$estcoef$beta,
+    tolerance = tol
+  )
+
+  expect_equal(
+    fit_fast_ml$estcoef$stderr_beta,
+    fit_sae_ml$est$fit$estcoef$std.error,
     tolerance = tol
   )
 })

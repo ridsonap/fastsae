@@ -162,7 +162,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 #' @noRd
 .autoplot_multi_comparison <- function(x, title = NULL, ...) {
   if (length(x) < 2) {
-    stop("Comparison plot requires at least two models")
+    cli::cli_abort("Comparison plot requires at least two models")
   }
 
   # Combine data from all models
@@ -216,7 +216,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 #' @noRd
 .autoplot_multi_mse <- function(x, title = NULL, ...) {
   if (length(x) < 1) {
-    stop("MSE plot requires at least one model")
+    cli::cli_abort("MSE plot requires at least one model")
   }
 
   # Combine MSE data from all models
@@ -276,7 +276,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 #' @noRd
 .autoplot_multi_scatter <- function(x, title = NULL, ...) {
   if (length(x) != 2) {
-    stop("Scatter plot for model comparison requires exactly two models")
+    cli::cli_abort("Scatter plot for model comparison requires exactly two models")
   }
 
   model_names <- names(x)
@@ -290,7 +290,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
   plot_data <- plot_data[stats::complete.cases(plot_data), ]
 
   if (nrow(plot_data) == 0) {
-    stop("No common domains found between the two models")
+    cli::cli_abort("No common domains found between the two models")
   }
 
   if (is.null(title)) {

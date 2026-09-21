@@ -61,3 +61,47 @@ ggsave(
   width = 8,
   height = 4
 )
+
+
+ggplot(combined_data, aes(x = n, y = Mem, color = Method)) +
+  geom_line(aes(alpha = Method), linewidth = 1) +
+  geom_point(aes(alpha = Method), size = 2.5) +
+  scale_alpha_manual(
+    NULL,
+    values = c(0.3, 1, 0.3),
+    guide = 'none'
+  ) +
+  scale_x_log10(breaks = c(30, 50, 100, 250, 500, 1000)) +
+  scale_y_log10(labels = label_number(suffix = "MB")) +
+  facet_wrap(~Algorithm) +
+  labs(
+    title = "Memory Usage Comparison (Log Scale)",
+    subtitle = "Lower is better",
+    x = "Number of Domains (n)",
+    y = "Memory usage (MB)",
+    color = "Package"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+
+ggsave(
+  'README_files/figure-gfm/benchmark_plots_mem.png',
+  scale = 0.9,
+  dpi = 300,
+  width = 8,
+  height = 4
+)
+
+
+combined_data |>
+  filter(Algorithm == "Spatio Temporal FH") |>
+  group_by(Method) |>
+  summarise(
+    median = mean(Median),
+    mem = mean(Mem)
+  )
+
+

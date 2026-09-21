@@ -172,7 +172,8 @@ static STFitArma fit_stfh_eblup_only(
     // C = Vu1^{-1} + Z1' A^{-1} Z1
     vec diagC(D);
     for (int d = 0; d < D; ++d) {
-      diagC(d) = dot(invAZ1.col(d), invAZ1.col(d));
+      const int first = d * Tt, last = first + Tt - 1;
+      diagC(d) = accu(invA.submat(first, first, last, last));
     }
     mat Cmat = invVu1 + diagmat(diagC);
     mat invC;
@@ -261,7 +262,7 @@ List pbmse_stfh(
   );
 
   if (!init_fit.containsElementNamed("estcoef") || Rf_isNull(init_fit["estcoef"])) {
-    stop("Initial fit failed");
+    Rcpp::stop("Initial fit failed");
   }
 
   // Extract estimates from initial fit
@@ -289,11 +290,11 @@ List pbmse_stfh(
   mat ImrW_init = eye<mat>(D, D) - rho1_est * proxmat;
   mat Omega1_init;
   if (!inv_sympd(Omega1_init, ImrW_init.t() * ImrW_init)) {
-    stop("Failed to compute Omega1");
+    Rcpp::stop("Failed to compute Omega1");
   }
   mat L_omega1;
   if (!chol(L_omega1, Omega1_init)) {
-    stop("Failed to compute Cholesky of Omega1");
+    Rcpp::stop("Failed to compute Cholesky of Omega1");
   }
 
   // ============================================================================

@@ -1,0 +1,114 @@
+---
+title: "Unit-Level Estimation with Battese-Harter-Fuller"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Unit-Level Estimation with Battese-Harter-Fuller}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Overview
+
+Unlike area-level models that aggregate data prior to modeling, **unit-level models** operate directly on individual survey unit records (e.g., households, farms, or persons) while linking them to population auxiliary aggregates (e.g., census means or satellite imagery).
+
+The **fastsae** package implements the nested error regression model of Battese, Harter, and Fuller (1988) via `eblup_bhf()`, providing fast estimation and parallel parametric bootstrap MSE.
+
+---
+
+## Model Formulation
+
+For individual unit $j$ ($j = 1, \dots, n_d$) in small area $d$ ($d = 1, \dots, D$):
+
+$$y_{dj} = x_{dj}^\top \beta + u_d + e_{dj}$$
+
+where:
+- $u_d \sim \text{i.i.d. } N(0, \sigma_u^2)$ is the area-specific random effect.
+- $e_{dj} \sim \text{i.i.d. } N(0, \sigma_e^2)$ is the unit-level error variance.
+- $u_d$ and $e_{dj}$ are mutually independent.
+
+The small area population mean $\bar{Y}_d$ is estimated by:
+
+$$\hat{\bar{Y}}_d^{\text{EBLUP}} = \bar{X}_d^\top \hat{\beta} + \gamma_d (\bar{y}_d - \bar{x}_d^\top \hat{\beta})$$
+
+where:
+- $\bar{X}_d$ is the known population mean vector of auxiliary variables for domain $d$.
+- $\bar{y}_d$ and $\bar{x}_d$ are the sample means for domain $d$.
+- $\gamma_d = \frac{\sigma_u^2}{\sigma_u^2 + \sigma_e^2 / n_d}$ is the shrinkage ratio.
+
+---
+
+## Step-by-Step Example
+
+### 1. Data Preparation
+
+We use the classic `cornsoybean` dataset, reporting corn crop hectares per segment in 12 Iowa counties:
+
+```{r data_prep}
+library(fastsae)
+data("cornsoybean")
+data("cornsoybeanmeans")
+
+# Align column names for population auxiliary means
+df_pop <- cornsoybeanmeans
+names(df_pop)[names(df_pop) == "MeanCornPixPerSeg"] <- "CornPix"
+names(df_pop)[names(df_pop) == "MeanSoyBeansPixPerSeg"] <- "SoyBeansPix"
+names(df_pop)[names(df_pop) == "CountyIndex"] <- "County"
+
+head(cornsoybean)
+head(df_pop)
+```
+
+### 2. Fit BHF Model with Bootstrap MSE
+
+We fit the model using `eblup_bhf()`. To estimate domain-level Mean Squared Error (MSE), set `mse = TRUE`:
+
+```{r fit_bhf}
+fit_bhf <- eblup_bhf(
+  formula     = CornHec ~ CornPix + SoyBeansPix,
+  unit_data   = cornsoybean,
+  Xpop        = df_pop,
+  domain_var  = "County",
+  popsize_var = "PopnSegments",
+  method      = "REML",
+  mse         = TRUE,
+  B           = 50,
+  seed        = 123,
+  print_result = FALSE
+)
+
+summary(fit_bhf)
+```
+
+### 3. Inspect Domain Estimates
+
+The resulting `df_eblup` data frame contains the domain estimates along with sample size, MSE, and Relative Standard Error (RSE):
+
+```{r eblup_table}
+head(fit_bhf$df_eblup)
+```
+
+### 4. Visualizing Results with `autoplot`
+
+For unit-level models, domain uncertainty and model comparisons can be displayed with `autoplot()`:
+
+```{r plot_bhf}
+# Plot MSE across counties
+autoplot(fit_bhf, type = "mse")
+
+# Plot EBLUP estimates with confidence intervals
+autoplot(fit_bhf, type = "comparison")
+```
+
+## References
+
+- Battese, G. E., Harter, R. M., & Fuller, W. A. (1988). An error-components model for prediction of county crop areas using survey and satellite data. *Journal of the American Statistical Association*, 83(401), 28–36.
+- Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.

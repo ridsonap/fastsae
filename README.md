@@ -26,6 +26,8 @@ with the gold-standard implementations in the **sae** package (Molina &
 Rao), ensuring that your statistical conclusions remain 100% faithful to
 the published literature while executing in a fraction of a second.
 
+Documentation : <https://ridsonap.github.io/fastsae/>
+
 ### Key Features
 
 - ⚡ **Blazing Fast**: Core Fisher-scoring algorithms and iterative
@@ -54,7 +56,7 @@ the published literature while executing in a fraction of a second.
 | **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects ($u_d \sim N(0, \sigma_u^2)$) | Analytical (Prasad-Rao) |
 | **Spatial Fay-Herriot** | `eblup_sfh()` | Simultaneous Autoregressive (SAR(1)) | Analytical, Parametric Bootstrap (`pbmse`), Non-Parametric Bootstrap (`npbmse`) |
 | **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | Spatial SAR(1) + Temporal AR(1) | Parametric Bootstrap (`pbmse`) |
-| **Battese-Harter-Fuller** (Unit-level) | `eblup_bhf()` | Random intercept nested in domains | Analytical (Prasad-Rao), Parametric Bootstrap |
+| **Battese-Harter-Fuller** (Unit-level) | `eblup_bhf()` | Random intercept nested in domains | Parametric Bootstrap (`pbmse`) |
 
 ------------------------------------------------------------------------
 
@@ -120,11 +122,21 @@ $n = 1,000$ (with 5 covariates):
 | **Peak Memory (EBLUP FH)** | **0.055 MB** | 16.3 MB | 824 MB |
 | **Peak Memory (Spatial FH)** | **5.15 MB** | 408 MB | 824 MB |
 | **Peak Memory (Spatio Temporal FH)** | **0.289 MB** | 7822 MB | \- |
-| **Speedup at n = 1,000** | **Baseline** | **~34x slower** | **~12,300x slower** |
+| **Speedup at n = 1,000** | **Baseline** | **~364x slower** | **~12,300x slower** |
 
-![](README_files/figure-gfm/benchmark_plots-1.png)
+<figure>
+<img src="man/figures/benchmark_plots-1.png"
+alt="Benchmark Execution Time Comparison" />
+<figcaption aria-hidden="true">Benchmark Execution Time
+Comparison</figcaption>
+</figure>
 
-![](README_files/figure-gfm/benchmark_plots_mem.png)
+<figure>
+<img src="man/figures/benchmark_plots_mem.png"
+alt="Benchmark Peak Memory Comparison" />
+<figcaption aria-hidden="true">Benchmark Peak Memory
+Comparison</figcaption>
+</figure>
 
 ------------------------------------------------------------------------
 
@@ -228,20 +240,30 @@ fit_bhf <- eblup_bhf(
   unit_data = cornsoybean,
   Xpop = df_pop,
   domain_var = "County",
-  popsize_var = "PopnSegments"
+  popsize_var = "PopnSegments",
+  mse = TRUE,
+  B = 50,
+  seed = 123
 )
 
 summary(fit_bhf)
+head(fit_bhf$df_eblup)
 ```
 
 ### 5. Diagnostics and Visualization (`autoplot`)
 
+`fastsae` provides convenient ggplot2-based diagnostic and comparison
+visualizations via `autoplot()`:
+
 ``` r
-# Plot EBLUP estimates with 95% confidence intervals across domains
+# 1. EBLUP estimates vs direct survey estimates with 45° reference line
 autoplot(fit_fh, type = "estimates")
 
-# Diagnostic residual plots
-autoplot(fit_fh, type = "residuals")
+# 2. Mean Squared Error (MSE) comparison across domains
+autoplot(fit_fh, type = "mse")
+
+# 3. Multi-model comparison across domains (e.g., FH vs Spatial FH)
+autoplot(list("FH" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
 ```
 
 ------------------------------------------------------------------------

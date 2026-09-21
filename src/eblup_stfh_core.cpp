@@ -173,15 +173,15 @@ List eblup_stfh_core(
     double sigma22_start = -1.0,
     double rho2_start = 0.5
 ) {
-  if (model != "S" && model != "ST") stop("Argument model must be \"S\" or \"ST\".");
+  if (model != "S" && model != "ST") Rcpp::stop("Argument model must be \"S\" or \"ST\".");
 
   const int M = D * Tt;
   const int p = Xall.n_cols;
-  if ((int) Xall.n_rows != M) stop("nrow(Xall) must equal D*T.");
-  if ((int) yall.n_elem != M) stop("length(yall) must equal D*T.");
-  if ((int) vardirall.n_elem != M) stop("length(vardirall) must equal D*T.");
+  if ((int) Xall.n_rows != M) Rcpp::stop("nrow(Xall) must equal D*T.");
+  if ((int) yall.n_elem != M) Rcpp::stop("length(yall) must equal D*T.");
+  if ((int) vardirall.n_elem != M) Rcpp::stop("length(vardirall) must equal D*T.");
   if ((int) proxmat.n_rows != D || (int) proxmat.n_cols != D)
-    stop("proxmat must be a square D x D matrix.");
+    Rcpp::stop("proxmat must be a square D x D matrix.");
 
   // =====================================================================
   // Check for NA values (unsampled areas)
@@ -189,7 +189,7 @@ List eblup_stfh_core(
   // =====================================================================
   bool adaNA = yall.has_nan();
   if (adaNA) {
-    stop("This version does not support unsampled areas (NA in response). "
+    Rcpp::stop("This version does not support unsampled areas (NA in response). "
          "Please use a complete panel or contact the maintainer for the unsampled-area feature.");
   }
 
@@ -201,8 +201,8 @@ List eblup_stfh_core(
   const double med_vardir = arma::median(vardir);
   if (sigma21_start < 0) sigma21_start = 0.5 * med_vardir;
   if (sigma22_start < 0) sigma22_start = 0.5 * med_vardir;
-  if (rho1_start <= -1 || rho1_start >= 1) stop("rho1_start must be in (-1,1).");
-  if (rho2_start <= -1 || rho2_start >= 1) stop("rho2_start must be in (-1,1).");
+  if (rho1_start <= -1 || rho1_start >= 1) Rcpp::stop("rho1_start must be in (-1,1).");
+  if (rho2_start <= -1 || rho2_start >= 1) Rcpp::stop("rho2_start must be in (-1,1).");
 
   const bool isST = (model == "ST");
   const int nparam = isST ? 4 : 3;

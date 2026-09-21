@@ -1,0 +1,168 @@
+---
+title: "Spatial and Spatio-Temporal Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Spatial and Spatio-Temporal Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Overview
+
+When small areas are geographic units (such as counties, regencies, or districts), spatial correlation frequently occurs: neighboring areas tend to have more similar outcomes than distant ones. Furthermore, when surveys are repeated over multiple years, temporal correlation between time periods is also present.
+
+**fastsae** provides specialized, high-performance implementations for both:
+1. **Spatial Fay-Herriot (`eblup_sfh`)**: Simultaneous Autoregressive SAR(1) random effects.
+2. **Spatio-Temporal Fay-Herriot (`eblup_stfh`)**: Combined spatial SAR(1) and temporal AR(1) random effects.
+
+---
+
+## 1. Spatial Fay-Herriot Model (`eblup_sfh`)
+
+### Model Formulation
+
+The Spatial Fay-Herriot model (Pratesi & Salvati, 2008) models area random effects using a Simultaneous Autoregressive (SAR(1)) process:
+
+$$y = X\beta + u + e$$
+
+$$u = \rho_1 W u + \epsilon_1 \implies u = (I - \rho_1 W)^{-1} \epsilon_1$$
+
+where:
+- $W$ is a known row-standardized spatial proximity matrix ($D \times D$).
+- $\rho_1 \in (-1, 1)$ is the spatial autoregressive parameter.
+- $\epsilon_1 \sim N(0, \sigma_{u1}^2 I_D)$ is independent innovation noise.
+- $e \sim N(0, V_e)$ is sampling error with diagonal matrix $V_e = \text{diag}(D_1, \dots, D_D)$.
+
+### Fitting the Model
+
+```{r sfh_fit}
+library(fastsae)
+data("mys")
+data("mys_proxmat")
+
+# Fit Spatial Fay-Herriot model with REML
+fit_sfh <- eblup_sfh(
+  formula = y ~ x1 + x2 + x3,
+  vardir  = ~vardir,
+  data    = mys,
+  W       = mys_proxmat,
+  method  = "REML",
+  print_result = FALSE
+)
+
+summary(fit_sfh)
+```
+
+### Unsampled Domains and Spatial Kriging
+
+A major advantage of `eblup_sfh` in **fastsae** is its automatic handling of unsampled domains (domains with `y = NA`). Instead of throwing an error or requiring manual subsetting, `eblup_sfh` automatically performs **full-spatial kriging**:
+
+```{r unsampled}
+# Count sampled vs unsampled domains
+table(is.na(mys$y))
+
+# Inspect estimates for unsampled domains
+head(fit_sfh$df_eblup[is.na(mys$y), ])
+```
+
+For unsampled areas, prediction borrows strength from both the regression synthetic component $x_d^\top \hat{\beta}$ and spatial proximity to neighboring sampled areas through $(I - \hat{\rho}_1 W)^{-1}$.
+
+### Multi-Threaded Bootstrap MSE
+
+In addition to analytical Prasad-Rao style MSE, `eblup_sfh` supports multi-threaded OpenMP bootstrap MSE estimation:
+
+- **Parametric Bootstrap (`mse_method = "pbmse"`)**
+- **Non-Parametric Bootstrap (`mse_method = "npbmse"`)**
+
+```{r sfh_pbmse}
+fit_sfh_pb <- eblup_sfh(
+  formula    = y ~ x1 + x2 + x3,
+  vardir     = ~vardir,
+  data       = mys,
+  W          = mys_proxmat,
+  mse_method = "pbmse",
+  B          = 50,
+  n_threads  = 2,
+  seed       = 123,
+  print_result = FALSE
+)
+
+head(fit_sfh_pb$df_eblup[, c("domain", "y", "eblup", "mse", "mse_pb", "mse_pbbc")])
+```
+
+---
+
+## 2. Spatio-Temporal Fay-Herriot Model (`eblup_stfh`)
+
+### Model Formulation
+
+The Spatio-Temporal model (Marhuenda, Molina, & Morales, 2013) combines spatial correlation and temporal autoregression across a balanced panel of $D$ areas observed over $T$ time periods:
+
+$$y_{dt} = x_{dt}^\top \beta + u_{1d} + u_{2dt} + e_{dt}$$
+
+where:
+- $u_1 = (u_{11}, \dots, u_{1D})^\top$ captures static spatial effects: $u_1 = \rho_1 W u_1 + \epsilon_1$.
+- $u_{2d} = (u_{2d1}, \dots, u_{2dT})^\top$ captures dynamic temporal effects for area $d$: $u_{2dt} = \rho_2 u_{2d,t-1} + \epsilon_{2dt}$.
+- $e_{dt} \sim \text{ind. } N(0, D_{dt})$ are sampling errors.
+
+### Fitting the Spatio-Temporal Model
+
+```{r stfh_fit}
+data("mys_panel")
+
+# Prepare balanced panel without missing values
+panel_data <- mys_panel[!is.na(mys_panel$y) & mys_panel$year >= 2024, ]
+W_sub <- mys_proxmat[-c(21, 25), -c(21, 25)]
+
+# Fit Spatio-Temporal model with bootstrap MSE
+fit_stfh <- eblup_stfh(
+  formula     = y ~ x1 + x2 + x3,
+  data        = panel_data,
+  vardir      = ~vardir,
+  domain      = ~area,
+  time        = ~year,
+  W           = W_sub,
+  model       = "ST",
+  compute_mse = TRUE,
+  B           = 25,
+  seed        = 42,
+  print_result = FALSE
+)
+
+summary(fit_stfh)
+```
+
+The estimated variance and correlation components include:
+- `sigma21`: Spatial random effect variance ($\sigma_{u1}^2$).
+- `rho1`: Spatial autocorrelation ($\rho_1$).
+- `sigma22`: Temporal random effect variance ($\sigma_{u2}^2$).
+- `rho2`: Temporal AR(1) autoregression coefficient ($\rho_2$).
+
+---
+
+## 3. Comparing Models with `autoplot`
+
+You can directly compare EBLUP estimates and uncertainty across different models using `autoplot()`:
+
+```{r compare_models}
+# Compare Fay-Herriot vs Spatial Fay-Herriot
+fit_fh <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(mys), print_result = FALSE)
+W_clean <- mys_proxmat[!is.na(mys$y), !is.na(mys$y)]
+fit_sfh_clean <- eblup_sfh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(mys), W = W_clean, print_result = FALSE)
+
+autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "comparison")
+```
+
+## References
+
+- Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models. *Computational Statistics & Data Analysis*, 58, 308–325.
+- Pratesi, M., & Salvati, N. (2008). Small area estimation for spatially correlated data: A Fay-Herriot with the spatial linear spline model. *Journal of Applied Statistics*, 35(7), 781–794.

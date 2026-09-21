@@ -1,0 +1,142 @@
+---
+title: "Getting Started with fastsae"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with fastsae}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Introduction
+
+Small Area Estimation (SAE) encompasses statistical techniques designed to produce reliable estimates for sub-populations or geographical domains where sample sizes are too small for direct survey estimators to achieve acceptable precision.
+
+The **fastsae** package provides high-performance C++ implementations (via `Rcpp` and `RcppArmadillo`) for standard and advanced SAE models. It offers:
+
+- **Ultra-fast computation**: Fisher-scoring and numerical solvers compiled in C++.
+- **Exact numerical equivalence**: Parameter estimates and variance components match gold-standard implementations in the `sae` package to machine precision.
+- **Modern S3 interface**: Seamless integration with standard R methods (`summary()`, `coef()`, `fitted()`, `residuals()`, `autoplot()`).
+
+## The Fay-Herriot Model
+
+The area-level model introduced by Fay and Herriot (1979) links direct survey estimators $y_d$ with auxiliary variables $x_d$:
+
+$$y_d = x_d^\top \beta + u_d + e_d, \quad d = 1, \dots, D$$
+
+where:
+- $u_d \sim \text{i.i.d. } N(0, \sigma_u^2)$ represents domain-specific random effects.
+- $e_d \sim \text{ind. } N(0, D_d)$ represents sampling errors with known sampling variance $D_d$ (`vardir`).
+
+The Empirical Best Linear Unbiased Predictor (EBLUP) is a weighted combination of the direct estimator and the regression-synthetic estimator:
+
+$$\hat{\theta}_d = \gamma_d y_d + (1 - \gamma_d) x_d^\top \hat{\beta}$$
+
+where $\gamma_d = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + D_d}$ is the shrinkage factor ($0 \le \gamma_d \le 1$).
+
+## Step-by-Step Example
+
+### 1. Load Package and Dataset
+
+We use the built-in `mys` dataset (mean years of schooling):
+
+```{r load}
+library(fastsae)
+library(ggplot2)
+
+data("mys")
+head(mys)
+```
+
+### 2. Fit Fay-Herriot Model (`eblup_fh`)
+
+To fit an area-level Fay-Herriot model using Restricted Maximum Likelihood (REML):
+
+```{r fit_fh}
+# Fit Fay-Herriot model
+fit_fh <- eblup_fh(
+  formula = y ~ x1 + x2 + x3,
+  vardir  = ~vardir,
+  data    = mys,
+  method  = "REML",
+  print_result = FALSE
+)
+```
+
+### 3. Model Summary and Coefficients
+
+The standard S3 `summary()` method provides comprehensive model diagnostics, variance components, and coefficient tests:
+
+```{r summary}
+summary(fit_fh)
+```
+
+You can extract fixed-effects coefficients using `coef()`:
+
+```{r coef}
+coef(fit_fh)
+```
+
+Fitted EBLUP estimates and residuals can be extracted using standard generics:
+
+```{r fitted_res}
+# Fitted values (EBLUP)
+head(fitted(fit_fh))
+
+# Residuals (direct estimate - EBLUP)
+head(residuals(fit_fh))
+```
+
+### 4. Diagnostic Plots (`autoplot`)
+
+`fastsae` extends `ggplot2::autoplot()` to provide convenient diagnostic and comparison plots.
+
+#### Direct Estimates vs EBLUP
+
+Comparing the direct estimates against EBLUP demonstrates shrinkage towards the regression synthetic line:
+
+```{r plot_estimates}
+autoplot(fit_fh, type = "estimates")
+```
+
+#### Mean Squared Error (MSE) Across Domains
+
+Inspect domain-level uncertainty with MSE plots:
+
+```{r plot_mse}
+autoplot(fit_fh, type = "mse")
+```
+
+## Exact Numerical Equivalence with `sae`
+
+`fastsae` produces results that are mathematically identical to `sae::eblupFH`:
+
+```{r equivalence, message=FALSE, warning=FALSE}
+if (requireNamespace("sae", quietly = TRUE)) {
+  mys_clean <- as.data.frame(na.omit(mys))
+  fit_fast <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_clean, print_result = FALSE)
+  fit_sae  <- sae::eblupFH(y ~ x1 + x2 + x3, vardir = vardir, data = mys_clean)
+
+  # Check EBLUP estimates
+  all.equal(fit_fast$df_eblup$eblup, as.vector(fit_sae$eblup))
+
+  # Check regression coefficients
+  all.equal(as.vector(coef(fit_fast)), as.vector(fit_sae$fit$estcoef$beta))
+
+  # Check random effect variance (sigma2_u)
+  all.equal(fit_fast$random_effect_var, fit_sae$fit$refvar)
+}
+```
+
+## References
+
+- Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. *Journal of the American Statistical Association*, 74(366), 269–277.
+- Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.
