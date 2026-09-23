@@ -4,7 +4,11 @@
 \alias{autoplot.fastsae_diagnose}
 \title{Autoplot Method for fastsae_diagnose Objects}
 \usage{
-\method{autoplot}{fastsae_diagnose}(object, type = c("all", "calibration", "rse", "residuals", "qq"), ...)
+\method{autoplot}{fastsae_diagnose}(
+  object,
+  type = c("all", "calibration", "rse", "residuals", "qq", "pit", "cpo"),
+  ...
+)
 }
 \arguments{
 \item{object}{An object of class \code{"fastsae_diagnose"} returned by \code{\link{diagnose}}.}

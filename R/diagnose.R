@@ -267,6 +267,67 @@ diagnose <- function(object,
   }
 
   # ----------------------------------------------------------------------------
+  # 5b. Bayesian Diagnostics (WAIC, DIC, CPO, PIT) if available
+  # ----------------------------------------------------------------------------
+  bayesian_metrics <- NULL
+  cpo_obj <- if (!is.null(object$fit) && !is.null(object$fit$cpo)) object$fit$cpo else NULL
+  cpo_vec <- rep(NA_real_, N_total)
+  pit_vec <- rep(NA_real_, N_total)
+
+  is_bayesian <- inherits(object, "fastsae_ebp_area") || any(c("WAIC", "DIC") %in% names(object$goodness))
+  if (is_bayesian) {
+    gd <- object$goodness
+    waic_val <- if (!is.null(gd) && "WAIC" %in% names(gd)) unname(gd["WAIC"]) else NA_real_
+    p_waic <- if (!is.null(gd) && "pWAIC" %in% names(gd)) unname(gd["pWAIC"]) else NA_real_
+    dic_val <- if (!is.null(gd) && "DIC" %in% names(gd)) unname(gd["DIC"]) else NA_real_
+    p_d <- if (!is.null(gd) && "pD" %in% names(gd)) unname(gd["pD"]) else NA_real_
+    log_mlik <- if (!is.null(gd) && "Marginal_LogLik" %in% names(gd)) unname(gd["Marginal_LogLik"]) else NA_real_
+
+    cpo_summary <- NULL
+    pit_test <- NULL
+
+    if (!is.null(cpo_obj)) {
+      if (!is.null(cpo_obj$cpo)) {
+        cpo_raw <- cpo_obj$cpo[seq_len(min(length(cpo_obj$cpo), N_total))]
+        cpo_vec[seq_along(cpo_raw)] <- cpo_raw
+      }
+      if (!is.null(cpo_obj$pit)) {
+        pit_raw <- cpo_obj$pit[seq_len(min(length(cpo_obj$pit), N_total))]
+        pit_vec[seq_along(pit_raw)] <- pit_raw
+      }
+
+      failures <- if (!is.null(cpo_obj$failure)) sum(cpo_obj$failure > 0, na.rm = TRUE) else 0
+
+      cpo_clean <- cpo_vec[!is.na(cpo_vec)]
+      cpo_summary <- list(
+        mean_cpo = if (length(cpo_clean) > 0) mean(cpo_clean) else NA_real_,
+        min_cpo = if (length(cpo_clean) > 0) min(cpo_clean) else NA_real_,
+        failures = failures
+      )
+
+      pit_clean <- pit_vec[!is.na(pit_vec) & pit_vec > 0 & pit_vec < 1]
+      if (length(pit_clean) >= 5) {
+        ks_res <- suppressWarnings(stats::ks.test(pit_clean, "punif", 0, 1))
+        pit_test <- list(
+          d_stat = unname(ks_res$statistic),
+          p_value = ks_res$p.value,
+          is_calibrated = (ks_res$p.value >= alpha_level)
+        )
+      }
+    }
+
+    bayesian_metrics <- list(
+      waic = waic_val,
+      pWAIC = p_waic,
+      dic = dic_val,
+      pD = p_d,
+      log_mlik = log_mlik,
+      cpo_summary = cpo_summary,
+      pit_test = pit_test
+    )
+  }
+
+  # ----------------------------------------------------------------------------
   # 6. Overall Evaluation Status
   # ----------------------------------------------------------------------------
   is_unbiased <- is.null(brown_res$wald_test) || brown_res$wald_test$is_unbiased
@@ -297,6 +358,10 @@ diagnose <- function(object,
     is_sampled = sampled_mask,
     stringsAsFactors = FALSE
   )
+  if (!is.null(cpo_obj)) {
+    df_diag$cpo <- cpo_vec
+    df_diag$pit <- pit_vec
+  }
 
   out <- list(
     model_info = list(
@@ -308,6 +373,7 @@ diagnose <- function(object,
     precision = precision_summary,
     brown_test = brown_res,
     spatial_test = spatial_res,
+    bayesian_metrics = bayesian_metrics,
     simulation_metrics = sim_metrics,
     df_diag = df_diag,
     status = status
@@ -408,6 +474,34 @@ print.fastsae_diagnose <- function(x, ...) {
         cli::cli_alert_success("95% CI Coverage Rate: {.val {round(sim$coverage_rate, 1)}%} (Nominal target met)")
       } else {
         cli::cli_alert_warning("95% CI Coverage Rate: {.val {round(sim$coverage_rate, 1)}%} (Below nominal 90%)")
+      }
+    }
+    cli::cli_end()
+  }
+
+  # 5. Bayesian Model Diagnostics (WAIC, DIC, CPO/PIT)
+  if (!is.null(x$bayesian_metrics)) {
+    bm <- x$bayesian_metrics
+    cli::cli_h2("5. Bayesian Information Criteria & Predictive Diagnostics")
+    cli::cli_ul()
+    if (!is.na(bm$waic) || !is.na(bm$dic)) {
+      cli::cli_alert_info("WAIC: {.val {round(bm$waic, 2)}} (p_eff: {round(bm$pWAIC, 2)}) | DIC: {.val {round(bm$dic, 2)}} (p_eff: {round(bm$pD, 2)})")
+    }
+    if (!is.na(bm$log_mlik)) {
+      cli::cli_alert_info("Marginal Log-Likelihood: {.val {round(bm$log_mlik, 2)}}")
+    }
+    if (!is.null(bm$pit_test)) {
+      if (bm$pit_test$is_calibrated) {
+        cli::cli_alert_success("PIT Calibration Test vs Uniform(0,1): D = {.val {round(bm$pit_test$d_stat, 3)}}, p-value = {.val {round(bm$pit_test$p_value, 4)}} [Well-calibrated predictive distribution]")
+      } else {
+        cli::cli_alert_warning("PIT Calibration Test vs Uniform(0,1): D = {.val {round(bm$pit_test$d_stat, 3)}}, p-value = {.val {round(bm$pit_test$p_value, 4)}} [Potential dispersion/skewness deviation]")
+      }
+    }
+    if (!is.null(bm$cpo_summary)) {
+      if (bm$cpo_summary$failures == 0) {
+        cli::cli_alert_success("Leave-One-Out CPO: No numerical approximation issues (min CPO = {.val {round(bm$cpo_summary$min_cpo, 4)}})")
+      } else {
+        cli::cli_alert_warning("Leave-One-Out CPO: {bm$cpo_summary$failures} observation(s) flagged with numerical caution.")
       }
     }
     cli::cli_end()

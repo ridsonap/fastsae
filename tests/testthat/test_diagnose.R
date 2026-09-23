@@ -6,7 +6,7 @@ test_that("diagnose works for eblup_fh objects", {
 
   expect_s3_class(d_fh, "fastsae_diagnose")
   expect_named(d_fh, c("model_info", "precision", "brown_test", "spatial_test",
-                       "simulation_metrics", "df_diag", "status"))
+                       "bayesian_metrics", "simulation_metrics", "df_diag", "status"))
 
   # Model info
   expect_equal(d_fh$model_info$N_total, nrow(mys))

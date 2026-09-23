@@ -178,6 +178,7 @@ sim_area_data <- function(D = 42,
     y_beta = round(y_beta, 5),
     y_nbinomial = y_nbinomial,
     y_gamma = round(y_gamma, 4),
+    truth_gaussian = round(eta, 4),
     x_coord = round(coords[, 1], 4),
     y_coord = round(coords[, 2], 4),
     stringsAsFactors = FALSE

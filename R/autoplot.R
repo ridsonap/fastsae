@@ -409,7 +409,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 #'
 #' @export
 autoplot.fastsae_diagnose <- function(object,
-                                      type = c("all", "calibration", "rse", "residuals", "qq"),
+                                      type = c("all", "calibration", "rse", "residuals", "qq", "pit", "cpo"),
                                       ...) {
   type <- match.arg(type)
   df <- object$df_diag
@@ -479,6 +479,49 @@ autoplot.fastsae_diagnose <- function(object,
       ) +
       theme_minimal(base_size = 11) +
       theme(plot.title = element_text(face = "bold"))
+    return(p)
+
+  } else if (type == "pit") {
+    # 5. PIT Histogram (Probability Integral Transform)
+    if (!"pit" %in% names(df) || all(is.na(df$pit))) {
+      cli::cli_abort("PIT (Probability Integral Transform) values not available in diagnostic object.")
+    }
+    pit_clean <- df$pit[!is.na(df$pit) & df$pit >= 0 & df$pit <= 1]
+    pit_df <- data.frame(pit = pit_clean)
+    p <- ggplot(pit_df, aes(x = .data$pit)) +
+      ggplot2::geom_histogram(aes(y = ggplot2::after_stat(density)), bins = 10, fill = "#457B9D", color = "white", alpha = 0.8) +
+      ggplot2::geom_hline(yintercept = 1, linetype = "dashed", color = "#D90429", linewidth = 0.9) +
+      labs(
+        title = "Bayesian Calibration: Probability Integral Transform (PIT)",
+        subtitle = "A well-calibrated predictive distribution adheres to Uniform(0,1) density = 1 (dashed red line)",
+        x = "PIT Value",
+        y = "Density"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(plot.title = element_text(face = "bold"))
+    return(p)
+
+  } else if (type == "cpo") {
+    # 6. CPO Index Plot
+    if (!"cpo" %in% names(df) || all(is.na(df$cpo))) {
+      cli::cli_abort("CPO (Conditional Predictive Ordinate) values not available in diagnostic object.")
+    }
+    df_cpo <- df[!is.na(df$cpo), , drop = FALSE]
+    df_cpo$domain_factor <- factor(df_cpo$domain, levels = df_cpo$domain)
+    p <- ggplot(df_cpo, aes(x = .data$domain_factor, y = .data$cpo)) +
+      ggplot2::geom_segment(aes(x = .data$domain_factor, xend = .data$domain_factor, y = 0, yend = .data$cpo), color = "#A8DADC") +
+      ggplot2::geom_point(color = "#2E86AB", size = 2.5) +
+      labs(
+        title = "Leave-One-Out Cross-Validation: CPO by Domain",
+        subtitle = "Lower CPO values identify potential area outliers / model fit deficiencies",
+        x = "Domain",
+        y = "CPO Value"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+        plot.title = element_text(face = "bold")
+      )
     return(p)
 
   } else {
