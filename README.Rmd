@@ -58,7 +58,7 @@ Documentation : <https://ridsonap.github.io/fastsae/>
 ## Supported Models
 
 | Model | Function | Random Effect Structure | MSE Estimation Methods |
-|:-----------------|:-----------------|:-----------------|:-----------------|
+|:---|:---|:---|:---|
 | **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects ($u_d \sim N(0, \sigma_u^2)$) | Analytical (Prasad-Rao) |
 | **Spatial Fay-Herriot** | `eblup_sfh()` | Simultaneous Autoregressive (SAR(1)) | Analytical, Parametric Bootstrap (`pbmse`), Non-Parametric Bootstrap (`npbmse`) |
 | **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | Spatial SAR(1) + Temporal AR(1) | Parametric Bootstrap (`pbmse`) |
@@ -106,7 +106,7 @@ all.equal(sfh_fast$random_effect_var, sfh_sae$fit$refvar)
 ## Comparison with Other Packages
 
 | Feature | `fastsae` | `sae` (Molina & Rao) | `emdi` (Kreutzmann et al.) |
-|:-----------------|:----------------:|:----------------:|:----------------:|
+|:---|:--:|:--:|:--:|
 | **Core Computation** | **C++ (RcppArmadillo)** | Pure R | R / lme4 / nlme |
 | **Multi-Threading** | **Native OpenMP** (`n_threads`) | Single-threaded | Optional foreach/parallel |
 | **Numerical Consistency** | **Reference baseline** | Baseline | Approximations |
@@ -121,7 +121,7 @@ Benchmark performed across area sizes ranging from $n = 30$ to
 $n = 1,000$ (with 5 covariates):
 
 | Metric | `fastsae` | `sae` | `emdi` |
-|:-----------------|:----------------:|:----------------:|:----------------:|
+|:---|:--:|:--:|:--:|
 | **Mean Time (EBLUP FH)** | **0.0015 s** | 0.291 s | 9.64 s |
 | **Mean Time (Spatial FH)** | **0.165 s** | 12.60 s | 8.69 s |
 | **Mean Time (Spatio Temporal FH)** | **12.5 s** | 353.0 s | \- |

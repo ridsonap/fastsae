@@ -35,9 +35,11 @@ Suggests:
     dplyr,
     emdi,
     foreach,
+    INLA,
     MASS,
     parallel,
     sae,
+    spdep,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
@@ -49,6 +51,7 @@ Depends:
     R (>= 4.1.0)
 Collate:
     utils.R
+    inla_utils.R
     RcppExports.R
     data.R
     methods.R
@@ -57,5 +60,10 @@ Collate:
     eblup_sfh.R
     eblup_stfh.R
     eblup_bhf.R
+    ebp_area.R
+    sim_spatial_weights.R
+    sim_area_data.R
+    sim_series_data.R
+    diagnose.R
 Config/roxygen2/version: 8.0.0
 Config/testthat/edition: 3

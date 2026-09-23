@@ -104,3 +104,76 @@
 #'
 #' @keywords datasets
 "cornsoybeanmeans"
+
+
+#' Multi-Distribution Synthetic Dataset for Small Area Estimation
+#'
+#' A synthetic dataset containing 42 domains with multiple response variables
+#' representing various probability distributions (Gaussian, Poisson, Binomial,
+#' Beta, Negative Binomial, and Gamma). Designed for testing and benchmarking
+#' generalized linear and spatial small area estimation models (EBP / INLA).
+#' It shares the 42-domain spatial structure of \code{\link{mys_proxmat}}.
+#'
+#' @usage data(sae_area_multi)
+#'
+#' @format A data frame with 42 rows and 14 variables:
+#' \describe{
+#'   \item{area}{Integer domain identifier (1 to 42).}
+#'   \item{x1}{Continuous explanatory covariate.}
+#'   \item{x2}{Uniform explanatory covariate.}
+#'   \item{y_gaussian}{Gaussian direct estimator response with unsampled domains as NA.}
+#'   \item{vardir}{Direct sampling variance for Gaussian Fay-Herriot model.}
+#'   \item{y_poisson}{Count response (Poisson) with unsampled domains as NA.}
+#'   \item{exposure}{Expected population count / exposure offset for Poisson model.}
+#'   \item{y_binomial}{Number of successes (Binomial) with unsampled domains as NA.}
+#'   \item{trials}{Sample size / number of trials for Binomial model.}
+#'   \item{y_beta}{Continuous proportion response in (0, 1) for Beta regression.}
+#'   \item{y_nbinomial}{Overdispersed count response for Negative Binomial model.}
+#'   \item{y_gamma}{Skewed positive continuous response for Gamma regression.}
+#'   \item{x_coord}{Centroid x coordinate.}
+#'   \item{y_coord}{Centroid y coordinate.}
+#' }
+#'
+#' @source Simulated using \code{\link{sim_area_data}} based on the spatial
+#'   proximity structure of \code{\link{mys_proxmat}}.
+#'
+#' @keywords datasets
+"sae_area_multi"
+
+
+#' Multi-Distribution Spatio-Temporal Panel Dataset for Small Area Estimation
+#'
+#' A synthetic panel dataset containing 42 domains observed over 5 time periods
+#' (2022 to 2026, total 210 observations). Features multiple response variables
+#' representing various probability distributions (Gaussian, Poisson, Binomial,
+#' Beta, Negative Binomial, and Gamma) driven by domain-level spatial autocorrelation
+#' and first-order autoregressive AR(1) temporal dynamics. It shares the 42-domain
+#' spatial structure of \code{\link{mys_proxmat}} and is formatted in domain-major order
+#' for direct use in \code{\link{eblup_stfh}}.
+#'
+#' @usage data(sae_panel_multi)
+#'
+#' @format A data frame with 210 rows and 15 variables in domain-major order:
+#' \describe{
+#'   \item{area}{Integer domain identifier (1 to 42).}
+#'   \item{year}{Year of observation (2022 to 2026).}
+#'   \item{x1}{Dynamic explanatory covariate with spatial & temporal variation.}
+#'   \item{x2}{Dynamic uniform explanatory covariate.}
+#'   \item{y_gaussian}{Gaussian direct estimator response with unsampled domains as NA.}
+#'   \item{vardir}{Direct sampling variance for Gaussian Fay-Herriot model.}
+#'   \item{y_poisson}{Count response (Poisson) with unsampled domains as NA.}
+#'   \item{exposure}{Expected population count / exposure offset for Poisson model.}
+#'   \item{y_binomial}{Number of successes (Binomial) with unsampled domains as NA.}
+#'   \item{trials}{Sample size / number of trials for Binomial model.}
+#'   \item{y_beta}{Continuous proportion response in (0, 1) for Beta regression.}
+#'   \item{y_nbinomial}{Overdispersed count response for Negative Binomial model.}
+#'   \item{y_gamma}{Skewed positive continuous response for Gamma regression.}
+#'   \item{x_coord}{Centroid x coordinate.}
+#'   \item{y_coord}{Centroid y coordinate.}
+#' }
+#'
+#' @source Simulated using \code{\link{sim_series_data}} based on the spatial
+#'   proximity structure of \code{\link{mys_proxmat}}.
+#'
+#' @keywords datasets
+"sae_panel_multi"

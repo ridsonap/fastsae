@@ -50,6 +50,105 @@ res <- eblup_bhf(
 
 
 
+# EBP Area-Level (INLA & Laplace) -----------------------------------------
+# 1. Non-spatial Fay-Herriot via INLA
+m_ebp0 <- ebp_area(
+  y ~ x1 + x2 + x3,
+  data = mys,
+  domain = ~area,
+  vardir = ~vardir,
+  family = "gaussian"
+)
+
+# 2. Spatial BYM2 Fay-Herriot via INLA
+m_ebp_bym2 <- ebp_area(
+  y ~ x1 + x2 + x3,
+  data = mys,
+  domain = ~area,
+  vardir = ~vardir,
+  W = mys_proxmat,
+  spatial = "bym2"
+)
+
+# 3. Model comparison visualization
+autoplot(list("FH-INLA (Non-spatial)" = m_ebp0, "SFH-INLA (BYM2)" = m_ebp_bym2), type = "comparison")
+
+# 4. Diagnostic evaluation of estimates
+diag_fh <- diagnose(m_ebp0)
+print(diag_fh)
+
+diag_sfh <- diagnose(m_ebp_bym2)
+print(diag_sfh)
+autoplot(diag_sfh, type = "calibration")
+
+
+# Simulation & Multi-Distribution Area Data -------------------------------
+# 1. Generate spatial proximity matrix (KNN, Grid, Ring)
+W_knn <- sim_spatial_weights(D = 40, type = "knn", k = 4, style = "B", seed = 123)
+W_grid <- sim_spatial_weights(D = 36, type = "grid", style = "W")
+
+# 2. Simulate area-level data with multi-distribution responses & spatial effects
+sim_res <- sim_area_data(D = 42, spatial_type = "knn", rho = 0.5, phi = 0.6, n_unsampled = 6, seed = 2026)
+print(sim_res)
+head(sim_res$data)
+
+# 3. Fit Poisson EBP with INLA BYM2 spatial model
+fit_pois <- ebp_area(
+  y_poisson ~ x1 + x2,
+  data = sim_res$data,
+  exposure = "exposure",
+  family = "poisson",
+  W = sim_res$W,
+  spatial = "bym2"
+)
+summary(fit_pois)
+
+# 4. Using built-in sae_area_multi with mys_proxmat
+data(sae_area_multi)
+data(mys_proxmat)
+fit_multi_bin <- ebp_area(
+  y_binomial ~ x1 + x2,
+  data = sae_area_multi,
+  trials = "trials",
+  family = "binomial",
+  W = mys_proxmat,
+  spatial = "bym2"
+)
+summary(fit_multi_bin)
+
+
+# Spatio-Temporal Series Simulation ---------------------------------------
+# 1. Simulate 30 domains over 4 years with SAR spatial and AR(1) temporal dynamics
+sim_panel <- sim_series_data(
+  D = 30,
+  T = 4,
+  time_start = 2021,
+  rho_s = 0.5,
+  rho_t = 0.6,
+  n_unsampled = 0,
+  prop_intermittent = 0,
+  seed = 123
+)
+print(sim_panel)
+head(sim_panel$data)
+
+# 2. Fit Spatio-Temporal Fay-Herriot Model (eblup_stfh)
+fit_stfh <- eblup_stfh(
+  y_gaussian ~ x1 + x2,
+  data = sim_panel$data,
+  domain = ~area,
+  time = ~year,
+  vardir = ~vardir,
+  W = sim_panel$W_std
+)
+summary(fit_stfh)
+
+# 3. Using built-in sae_panel_multi dataset
+data(sae_panel_multi)
+head(sae_panel_multi)
+
+
+
 # Plot -------------------------------------------------------------------------
 library(ggplot2)
 library(dplyr)

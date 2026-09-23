@@ -73,21 +73,26 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 
 #' @noRd
 .autoplot_single_comparison <- function(x, title = NULL, ...) {
-  df <- x$df_eblup
+  df <- x$df_ebp %||% x$df_eblup
+  est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
+  est_label <- if (est_col == "ebp") "EBP" else "EBLUP"
+
+  has_ci <- all(c("ci_lower", "ci_upper") %in% names(df)) && !all(is.na(df$ci_lower))
   has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
-  if (has_mse) {
-    df$ci_lower <- df$eblup - 1.96 * sqrt(df$mse)
-    df$ci_upper <- df$eblup + 1.96 * sqrt(df$mse)
+  if (!has_ci && has_mse) {
+    df$ci_lower <- df[[est_col]] - 1.96 * sqrt(df$mse)
+    df$ci_upper <- df[[est_col]] + 1.96 * sqrt(df$mse)
+    has_ci <- TRUE
   }
 
   if (is.null(title)) {
-    title <- "EBLUP Estimates with 95% Confidence Bands"
+    title <- paste(est_label, "Estimates with 95% Confidence / Credible Bands")
   }
 
-  p <- ggplot(df, aes(x = .data$domain, y = .data$eblup)) +
+  p <- ggplot(df, aes(x = .data$domain, y = .data[[est_col]])) +
     geom_point(color = "#2E86AB", size = 2)
 
-  if (has_mse) {
+  if (has_ci) {
     p <- p + geom_ribbon(aes(ymin = .data$ci_lower, ymax = .data$ci_upper, group = 1),
       fill = "#2E86AB", alpha = 0.2
     )
@@ -97,7 +102,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
     labs(
       title = title,
       x = "Domain",
-      y = "EBLUP Estimate"
+      y = paste(est_label, "Estimate")
     ) +
     theme_minimal(base_size = 11) +
     theme(
@@ -108,34 +113,36 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 
 #' @noRd
 .autoplot_estimates <- function(x, title = NULL, ...) {
-  df <- x$df_eblup
+  df <- x$df_ebp %||% x$df_eblup
 
   if (!"y" %in% names(df)) {
     cli::cli_abort(c(
-      "Plot type 'estimates' requires direct estimates 'y' in df_eblup.",
-      "i" = "This plot type is only applicable for area-level models (FH, SFH, STFH)."
+      "Plot type 'estimates' requires direct estimates 'y' in estimation table.",
+      "i" = "This plot type is only applicable for area-level models."
     ))
   }
 
   # Filter out NA values for direct estimates
   df <- df[!is.na(df$y), ]
+  est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
+  est_label <- if (est_col == "ebp") "EBP" else "EBLUP"
 
   if (is.null(title)) {
-    title <- "EBLUP Estimates vs Direct Estimates"
+    title <- paste(est_label, "Estimates vs Direct Estimates")
   }
 
   # Determine range for 45-degree line
-  min_val <- min(c(df$y, df$eblup), na.rm = TRUE)
-  max_val <- max(c(df$y, df$eblup), na.rm = TRUE)
+  min_val <- min(c(df$y, df[[est_col]]), na.rm = TRUE)
+  max_val <- max(c(df$y, df[[est_col]]), na.rm = TRUE)
 
-  ggplot(df, aes(x = .data$y, y = .data$eblup)) +
+  ggplot(df, aes(x = .data$y, y = .data[[est_col]])) +
     geom_point(color = "#2E86AB", size = 2.5, alpha = 0.7) +
     geom_abline(
       intercept = 0, slope = 1, linetype = "dashed",
       color = "#E94F37", linewidth = 1
     ) +
     geom_hline(
-      yintercept = mean(df$eblup, na.rm = TRUE),
+      yintercept = mean(df[[est_col]], na.rm = TRUE),
       linetype = "dotted", color = "gray50"
     ) +
     geom_vline(
@@ -146,7 +153,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
     labs(
       title = title,
       x = "Direct Estimate (y)",
-      y = "EBLUP Estimate"
+      y = paste(est_label, "Estimate")
     ) +
     theme_minimal(base_size = 11) +
     theme(
@@ -173,13 +180,15 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 
   # Combine data from all models
   plot_data <- lapply(names(x), function(name) {
-    df <- x[[name]]$df_eblup
+    df <- x[[name]]$df_ebp %||% x[[name]]$df_eblup
+    est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
+    has_ci <- all(c("ci_lower", "ci_upper") %in% names(df)) && !all(is.na(df$ci_lower))
     has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
-    ci_l <- if (has_mse) df$eblup - 1.96 * sqrt(df$mse) else df$eblup
-    ci_u <- if (has_mse) df$eblup + 1.96 * sqrt(df$mse) else df$eblup
+    ci_l <- if (has_ci) df$ci_lower else if (has_mse) df[[est_col]] - 1.96 * sqrt(df$mse) else df[[est_col]]
+    ci_u <- if (has_ci) df$ci_upper else if (has_mse) df[[est_col]] + 1.96 * sqrt(df$mse) else df[[est_col]]
     data.frame(
       domain = df$domain,
-      eblup = df$eblup,
+      estimate = df[[est_col]],
       ci_lower = ci_l,
       ci_upper = ci_u,
       model = name,
@@ -189,14 +198,14 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
   plot_data <- do.call(rbind, plot_data)
 
   if (is.null(title)) {
-    title <- "Comparison of EBLUP Estimates Across Models"
+    title <- "Comparison of Small Area Estimates Across Models"
   }
 
   # Check if domain names are unique or need model prefix
   plot_data$domain_label <- as.character(plot_data$domain)
 
   ggplot(plot_data, aes(
-    x = .data$domain_label, y = .data$eblup,
+    x = .data$domain_label, y = .data$estimate,
     color = .data$model, group = .data$model
   )) +
     geom_point(position = position_dodge(width = 0.5), size = 2) +
@@ -207,7 +216,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
     labs(
       title = title,
       x = "Domain",
-      y = "EBLUP Estimate",
+      y = "Small Area Estimate",
       color = "Model"
     ) +
     scale_color_brewer(palette = "Set1") +
@@ -227,7 +236,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 
   # Combine MSE data from all models
   plot_data <- lapply(names(x), function(name) {
-    df <- x[[name]]$df_eblup
+    df <- x[[name]]$df_ebp %||% x[[name]]$df_eblup
     data.frame(
       domain = as.character(df$domain),
       mse = df$mse,
@@ -242,7 +251,11 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
   }
 
   # Check if all models have same domains
-  same_domains <- all(sapply(x, function(m) identical(m$df_eblup$domain, x[[1]]$df_eblup$domain)))
+  same_domains <- all(sapply(x, function(m) {
+    df_m <- m$df_ebp %||% m$df_eblup
+    df_1 <- x[[1]]$df_ebp %||% x[[1]]$df_eblup
+    identical(df_m$domain, df_1$domain)
+  }))
 
   if (same_domains && length(x) > 1) {
     # Faceted plot for same domains
@@ -286,11 +299,19 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
   }
 
   model_names <- names(x)
-  df1 <- x[[1]]$df_eblup[, c("domain", "eblup")]
-  df2 <- x[[2]]$df_eblup[, c("domain", "eblup")]
+  df1_raw <- x[[1]]$df_ebp %||% x[[1]]$df_eblup
+  df2_raw <- x[[2]]$df_ebp %||% x[[2]]$df_eblup
 
-  names(df1) <- c("domain", paste0("eblup_", model_names[1]))
-  names(df2) <- c("domain", paste0("eblup_", model_names[2]))
+  col1_name <- if ("ebp" %in% names(df1_raw)) "ebp" else "eblup"
+  col2_name <- if ("ebp" %in% names(df2_raw)) "ebp" else "eblup"
+  label1 <- if (col1_name == "ebp") "EBP" else "EBLUP"
+  label2 <- if (col2_name == "ebp") "EBP" else "EBLUP"
+
+  df1 <- data.frame(domain = df1_raw$domain, est1 = df1_raw[[col1_name]])
+  df2 <- data.frame(domain = df2_raw$domain, est2 = df2_raw[[col2_name]])
+
+  names(df1) <- c("domain", paste0("est_", model_names[1]))
+  names(df2) <- c("domain", paste0("est_", model_names[2]))
 
   plot_data <- merge(df1, df2, by = "domain", all.x = TRUE, all.y = TRUE)
   plot_data <- plot_data[stats::complete.cases(plot_data), ]
@@ -323,8 +344,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
     expand_limits(x = c(min_val, max_val), y = c(min_val, max_val)) +
     labs(
       title = paste0(title, " (r = ", round(corr, 4), ")"),
-      x = paste("EBLUP -", model_names[1]),
-      y = paste("EBLUP -", model_names[2])
+      x = paste(label1, "-", model_names[1]),
+      y = paste(label2, "-", model_names[2])
     ) +
     theme_minimal(base_size = 11) +
     theme(
@@ -338,7 +359,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 
 #' @noRd
 .autoplot_mse <- function(x, title = NULL, ...) {
-  df <- x$df_eblup
+  df <- x$df_ebp %||% x$df_eblup
 
   if (!"mse" %in% names(df) || all(is.na(df$mse))) {
     cli::cli_abort(c(
@@ -365,4 +386,127 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
       axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
+}
+
+#' Autoplot Method for fastsae_diagnose Objects
+#'
+#' @description
+#' Generates diagnostic visual inspections for small area estimation models evaluated
+#' via \code{\link{diagnose}}.
+#'
+#' @param object An object of class \code{"fastsae_diagnose"} returned by \code{\link{diagnose}}.
+#' @param type Character string indicating the diagnostic plot type:
+#'   \itemize{
+#'     \item \code{"all"}: Combined multi-metric inspection (Calibration and RSE reduction).
+#'     \item \code{"calibration"}: Direct estimates vs SAE predictions with 1:1 identity line.
+#'     \item \code{"rse"}: RSE comparison between direct estimator and model-based predictions.
+#'     \item \code{"residuals"}: Standardized residuals versus fitted values.
+#'     \item \code{"qq"}: Normal Q-Q plot of standardized residuals.
+#'   }
+#' @param ... Additional arguments passed to \pkg{ggplot2} layers.
+#'
+#' @return A \code{ggplot} object.
+#'
+#' @export
+autoplot.fastsae_diagnose <- function(object,
+                                      type = c("all", "calibration", "rse", "residuals", "qq"),
+                                      ...) {
+  type <- match.arg(type)
+  df <- object$df_diag
+  df_sampled <- df[!is.na(df$direct_y), , drop = FALSE]
+
+  if (type == "calibration") {
+    # 1. Calibration Plot (Direct vs SAE Prediction)
+    p <- ggplot(df_sampled, aes(x = .data$sae_pred, y = .data$direct_y)) +
+      geom_point(color = "#2E86AB", size = 2.5, alpha = 0.8) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "#D90429", linewidth = 0.9) +
+      geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "#2B2D42", linetype = "solid", linewidth = 0.7) +
+      labs(
+        title = "Bias & Calibration Diagnostic (Brown et al., 2001)",
+        subtitle = "Points should fluctuate symmetrically around the red 1:1 line",
+        x = "SAE Prediction",
+        y = "Direct Estimate"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(plot.title = element_text(face = "bold"))
+    return(p)
+
+  } else if (type == "rse") {
+    # 2. RSE Reduction Plot
+    valid_rse <- df_sampled[!is.na(df_sampled$direct_rse) & !is.na(df_sampled$sae_rse), ]
+    p <- ggplot(valid_rse, aes(x = .data$direct_rse, y = .data$sae_rse)) +
+      geom_point(color = "#3A86FF", size = 2.5, alpha = 0.8) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "#E63946", linewidth = 0.9) +
+      geom_hline(yintercept = object$precision$rse_threshold, linetype = "dotted", color = "#6C757D") +
+      labs(
+        title = "Precision & Efficiency Gain (RSE Comparison)",
+        subtitle = paste0("Points below the red line demonstrate variance reduction (Threshold: ", object$precision$rse_threshold, "%)"),
+        x = "Direct Estimator RSE (%)",
+        y = "SAE Model RSE (%)"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(plot.title = element_text(face = "bold"))
+    return(p)
+
+  } else if (type == "residuals") {
+    # 3. Residuals vs Fitted
+    p <- ggplot(df_sampled, aes(x = .data$sae_pred, y = .data$std_residuals)) +
+      geom_point(color = "#1D3557", size = 2.5, alpha = 0.8) +
+      geom_hline(yintercept = 0, linetype = "dashed", color = "#E63946") +
+      geom_hline(yintercept = c(-2, 2), linetype = "dotted", color = "#6C757D") +
+      labs(
+        title = "Residual Diagnostic: Standardized Residuals vs Fitted",
+        subtitle = "Check for homoscedasticity and random scatter around zero",
+        x = "Fitted SAE Prediction",
+        y = "Standardized Residual"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(plot.title = element_text(face = "bold"))
+    return(p)
+
+  } else if (type == "qq") {
+    # 4. Normal Q-Q Plot
+    res_clean <- df_sampled$std_residuals[!is.na(df_sampled$std_residuals)]
+    qq_df <- data.frame(std_residuals = res_clean)
+    p <- ggplot(qq_df, aes(sample = .data$std_residuals)) +
+      ggplot2::stat_qq(color = "#457B9D", size = 2.5, alpha = 0.8) +
+      ggplot2::stat_qq_line(color = "#E63946", linetype = "dashed", linewidth = 0.8) +
+      labs(
+        title = "Normal Q-Q Plot of Standardized Residuals",
+        subtitle = "Points should adhere closely to the theoretical line",
+        x = "Theoretical Quantiles",
+        y = "Sample Quantiles"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(plot.title = element_text(face = "bold"))
+    return(p)
+
+  } else {
+    # 5. Combined Dual Inspection (Calibration & RSE side by side)
+    df_long <- data.frame(
+      Domain = as.character(df_sampled$domain),
+      Direct = df_sampled$direct_y,
+      SAE = df_sampled$sae_pred,
+      RSE_Direct = df_sampled$direct_rse,
+      RSE_SAE = df_sampled$sae_rse
+    )
+
+    p <- ggplot(df_sampled, aes(x = .data$sae_pred, y = .data$direct_y)) +
+      geom_point(aes(color = .data$sae_rse), size = 3, alpha = 0.85) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "#D90429", linewidth = 0.9) +
+      geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "#2B2D42", linewidth = 0.7) +
+      ggplot2::scale_color_gradient(low = "#2A9D8F", high = "#E76F51", name = "SAE RSE (%)") +
+      labs(
+        title = "Diagnostic Overview: Calibration & Estimation Precision",
+        subtitle = "Direct vs SAE with 1:1 line (dashed red); color represents SAE RSE",
+        x = "SAE Prediction",
+        y = "Direct Estimate"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "right"
+      )
+    return(p)
+  }
 }

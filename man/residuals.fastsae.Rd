@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-Vector of residuals (y - eblup) for sampled areas.
+Vector of residuals for sampled areas.
 }
 \description{
 Extract residuals from a fastsae object
