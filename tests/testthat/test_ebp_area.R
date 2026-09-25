@@ -228,3 +228,103 @@ test_that("autoplot works dynamically with ebp and eblup objects", {
   p_scatter <- autoplot(list("Non-Spatial" = fit_ebp0, "BYM2" = fit_ebp_sp), type = "scatter")
   expect_s3_class(p_scatter, "ggplot")
 })
+
+test_that("ebp_area works for Gamma response with known sampling variances", {
+  skip_if_not_installed("INLA")
+  data("mys", package = "fastsae")
+
+  set.seed(123)
+  mys_gamma <- mys
+  mys_gamma$y_pos <- exp(0.5 + 0.3 * mys$x1 + rnorm(nrow(mys), 0, 0.2))
+  mys_gamma$vardir_pos <- (0.15 * mys_gamma$y_pos)^2 # direct CV ~ 15%
+  mys_gamma$y_pos[c(3, 7)] <- NA
+
+  fit_gamma <- ebp_area(
+    y_pos ~ x1,
+    data = mys_gamma,
+    vardir = "vardir_pos",
+    family = "gamma",
+    spatial = "none",
+    print_result = FALSE
+  )
+
+  expect_s3_class(fit_gamma, "fastsae_ebp_area")
+  expect_true(all(c("vardir", "precision", "cv_dir") %in% names(fit_gamma$df_ebp)))
+  expect_true(all(fit_gamma$df_ebp$ebp > 0))
+  # Unsampled domains predicted
+  expect_false(any(is.na(fit_gamma$df_ebp$ebp[c(3, 7)])))
+  # Check CV direct is roughly 0.15 for sampled
+  sampled_idx <- which(!is.na(mys_gamma$y_pos))
+  expect_equal(round(fit_gamma$df_ebp$cv_dir[sampled_idx[1]], 2), 0.15)
+})
+
+test_that("ebp_area automatically handles Binomial response with proportions", {
+  skip_if_not_installed("INLA")
+  data("mys", package = "fastsae")
+
+  set.seed(42)
+  mys_bin <- mys
+  mys_bin$p_direct <- plogis(-0.2 + 0.4 * mys$x1)
+  mys_bin$n_samp <- sample(30:80, nrow(mys), replace = TRUE)
+  mys_bin$p_direct[c(2, 5)] <- NA
+
+  # Should issue an informative message about proportions conversion
+  expect_message(
+    fit_bin <- ebp_area(
+      p_direct ~ x1,
+      data = mys_bin,
+      family = "binomial",
+      trials = "n_samp",
+      print_result = FALSE
+    ),
+    "converting to integer counts"
+  )
+
+  expect_s3_class(fit_bin, "fastsae_ebp_area")
+  expect_true("estimated_total" %in% names(fit_bin$df_ebp))
+  expect_true(all(fit_bin$df_ebp$ebp >= 0 & fit_bin$df_ebp$ebp <= 1))
+  expect_false(any(is.na(fit_bin$df_ebp$ebp[c(2, 5)])))
+})
+
+test_that("ebp_area works for Leroux CAR (spatial = generic1)", {
+  skip_if_not_installed("INLA")
+  data("mys", package = "fastsae")
+  data("mys_proxmat", package = "fastsae")
+
+  fit_leroux <- ebp_area(
+    y ~ x1 + x2 + x3,
+    data = mys,
+    W = mys_proxmat,
+    vardir = "vardir",
+    family = "gaussian",
+    spatial = "generic1",
+    print_result = FALSE
+  )
+
+  expect_s3_class(fit_leroux, "fastsae_ebp_area")
+  expect_false(is.null(fit_leroux$rho))
+  expect_true(fit_leroux$rho >= 0 && fit_leroux$rho <= 1)
+  expect_false(any(is.na(fit_leroux$df_ebp$ebp)))
+})
+
+test_that("ebp_area works for Spatial Lag Model (spatial = slm)", {
+  skip_if_not_installed("INLA")
+  data("mys", package = "fastsae")
+  data("mys_proxmat", package = "fastsae")
+
+  fit_slm <- ebp_area(
+    y ~ x1 + x2 + x3,
+    data = mys,
+    W = mys_proxmat,
+    vardir = "vardir",
+    family = "gaussian",
+    spatial = "slm",
+    print_result = FALSE
+  )
+
+  expect_s3_class(fit_slm, "fastsae_ebp_area")
+  expect_false(is.null(fit_slm$rho))
+  expect_equal(nrow(fit_slm$estcoef), 4)
+  expect_true(all(c("beta", "std.error", "zvalue", "pvalue") %in% names(fit_slm$estcoef)))
+  expect_false(any(is.na(fit_slm$df_ebp$ebp)))
+})

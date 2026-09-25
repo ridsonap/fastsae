@@ -91,28 +91,47 @@
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
+  X_mat = NULL,
+  rho_range = NULL,
   call = NULL
 ) {
   n_domains <- length(domain)
 
   # 1. Fixed effects coefficients
-  fixed_summary <- as.data.frame(fit$summary.fixed)
-  estcoef <- data.frame(
-    beta = fixed_summary$mean,
-    std.error = fixed_summary$sd,
-    zvalue = fixed_summary$mean / ifelse(fixed_summary$sd > 0, fixed_summary$sd, NA_real_),
-    pvalue = 2 * stats::pnorm(abs(fixed_summary$mean / ifelse(fixed_summary$sd > 0, fixed_summary$sd, NA_real_)), lower.tail = FALSE),
-    ci_lower = fixed_summary[["0.025quant"]],
-    ci_upper = fixed_summary[["0.975quant"]],
-    row.names = rownames(fixed_summary)
-  )
+  if (spatial == "slm" && !is.null(X_mat)) {
+    p_cov <- ncol(X_mat)
+    colnames_X <- colnames(X_mat)
+    rf_df <- as.data.frame(fit$summary.random[[1]])
+    coef_rows <- rf_df[(n_domains + 1):(n_domains + p_cov), ]
+    estcoef <- data.frame(
+      beta = coef_rows$mean,
+      std.error = coef_rows$sd,
+      zvalue = coef_rows$mean / ifelse(coef_rows$sd > 0, coef_rows$sd, NA_real_),
+      pvalue = 2 * stats::pnorm(abs(coef_rows$mean / ifelse(coef_rows$sd > 0, coef_rows$sd, NA_real_)), lower.tail = FALSE),
+      ci_lower = coef_rows[["0.025quant"]],
+      ci_upper = coef_rows[["0.975quant"]],
+      row.names = colnames_X
+    )
+  } else {
+    fixed_summary <- as.data.frame(fit$summary.fixed)
+    estcoef <- data.frame(
+      beta = fixed_summary$mean,
+      std.error = fixed_summary$sd,
+      zvalue = fixed_summary$mean / ifelse(fixed_summary$sd > 0, fixed_summary$sd, NA_real_),
+      pvalue = 2 * stats::pnorm(abs(fixed_summary$mean / ifelse(fixed_summary$sd > 0, fixed_summary$sd, NA_real_)), lower.tail = FALSE),
+      ci_lower = fixed_summary[["0.025quant"]],
+      ci_upper = fixed_summary[["0.975quant"]],
+      row.names = rownames(fixed_summary)
+    )
+  }
 
   # 2. Hyperparameters
   hyper_summary <- if (!is.null(fit$summary.hyperpar)) as.data.frame(fit$summary.hyperpar) else NULL
   
-  # Extract variance component(s)
+  # Extract variance component(s) and spatial correlation parameters
   random_effect_var <- NULL
   phi <- NULL
+  rho <- NULL
   if (!is.null(hyper_summary) && nrow(hyper_summary) > 0) {
     # Look for domain precision
     prec_rows <- grep("Precision for", rownames(hyper_summary), value = TRUE)
@@ -122,10 +141,27 @@
         random_effect_var <- 1 / prec_est
       }
     }
-    # Look for Phi (spatial proportion in BYM2)
+    # Look for Phi (spatial proportion in BYM2), Beta (generic1 / Leroux), or Rho (slm)
     phi_rows <- grep("Phi for", rownames(hyper_summary), value = TRUE)
+    beta_rows <- grep("Beta for", rownames(hyper_summary), value = TRUE)
+    rho_rows <- grep("Rho for", rownames(hyper_summary), value = TRUE)
+
     if (length(phi_rows) > 0) {
       phi <- hyper_summary[phi_rows[1], "mean"]
+      rho <- phi
+    } else if (length(beta_rows) > 0) {
+      # In generic1 / Leroux CAR, Beta represents spatial autocorrelation parameter rho
+      phi <- hyper_summary[beta_rows[1], "mean"]
+      rho <- phi
+    } else if (length(rho_rows) > 0) {
+      # In SLM, Rho represents spatial autocorrelation
+      rho_raw <- hyper_summary[rho_rows[1], "mean"]
+      if (!is.null(rho_range)) {
+        rho <- rho_range[1] + rho_raw * (rho_range[2] - rho_range[1])
+      } else {
+        rho <- rho_raw
+      }
+      phi <- rho
     }
   }
 
@@ -135,11 +171,8 @@
     rf_df <- fit$summary.random[[1]]
     if ("mean" %in% names(rf_df)) {
       # In BYM2, INLA returns 2 * n_domains rows (first n is marginal effect, second is spatial)
-      if (spatial == "bym2" && nrow(rf_df) >= 2 * n_domains) {
-        rand_eff <- rf_df$mean[seq_len(n_domains)]
-      } else {
-        rand_eff <- rf_df$mean[seq_len(min(nrow(rf_df), n_domains))]
-      }
+      # In SLM, INLA returns n_domains + p rows (first n is spatial effect, rest are beta coefficients)
+      rand_eff <- rf_df$mean[seq_len(min(nrow(rf_df), n_domains))]
     }
   }
   if (is.null(rand_eff) || length(rand_eff) != n_domains) {
@@ -173,15 +206,27 @@
     stringsAsFactors = FALSE
   )
 
-  # If vardir provided (Gaussian FH)
+  # If vardir provided (Gaussian FH, Beta, or Gamma)
   if (!is.null(vardir)) {
     df_ebp$vardir <- vardir
+    if (family == "beta") {
+      phi_dir <- (y * (1 - y) / vardir) - 1
+      df_ebp$precision <- pmax(phi_dir, 1, na.rm = TRUE)
+    } else if (family == "gamma") {
+      s_dir <- (y^2) / vardir
+      df_ebp$precision <- s_dir
+      df_ebp$cv_dir <- sqrt(vardir) / y
+    }
   }
 
-  # If trials provided (Binomial)
+  # If trials provided (Binomial or Beta)
   if (!is.null(trials)) {
     df_ebp$trials <- trials
-    df_ebp$estimated_total <- ebp_est * trials
+    if (family == "binomial") {
+      df_ebp$estimated_total <- ebp_est * trials
+    } else if (family == "beta" && is.null(vardir)) {
+      df_ebp$precision <- pmax(trials - 1, 1, na.rm = TRUE)
+    }
   }
 
   # If exposure provided (Poisson / NegBinom)
@@ -208,6 +253,7 @@
     hyperpar = hyper_summary,
     random_effect_var = random_effect_var,
     phi = phi,
+    rho = rho,
     goodness = goodness,
     family = family,
     spatial = spatial,

@@ -20,6 +20,7 @@ ebp_area(
   scale_model = TRUE,
   prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
   prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+  prior_rho = NULL,
   print_result = TRUE,
   ...
 )
@@ -42,7 +43,10 @@ Options:
   \item \code{"binomial"}: Binary / proportion response. Requires \code{trials}.
   \item \code{"poisson"}: Count response / disease rate. Supports \code{exposure}.
   \item \code{"nbinomial"}: Negative Binomial for overdispersed counts.
-  \item \code{"beta"}: Continuous proportions strictly in (0, 1).
+  \item \code{"beta"}: Continuous proportions strictly in (0, 1). If \code{vardir}
+    is provided, area-specific precision is calculated via Janicki (2020) formula
+    \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
+    If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
   \item \code{"gamma"}: Skewed positive continuous response.
 }}
 
@@ -61,7 +65,7 @@ Options:
 match the total number of domains in \code{data}. Required when \code{spatial != "none"}.}
 
 \item{vardir}{Vector, column name, or formula specifying the sampling variances of the
-direct estimator (for \code{family = "gaussian"}).}
+direct estimator (for \code{family = "gaussian"} or \code{family = "beta"}).}
 
 \item{trials}{Vector, column name, or formula specifying sample sizes / total trials
 per area (for \code{family = "binomial"}).}

@@ -20,7 +20,10 @@
 #'     \item \code{"binomial"}: Binary / proportion response. Requires \code{trials}.
 #'     \item \code{"poisson"}: Count response / disease rate. Supports \code{exposure}.
 #'     \item \code{"nbinomial"}: Negative Binomial for overdispersed counts.
-#'     \item \code{"beta"}: Continuous proportions strictly in (0, 1).
+#'     \item \code{"beta"}: Continuous proportions strictly in (0, 1). If \code{vardir}
+#'       is provided, area-specific precision is calculated via Janicki (2020) formula
+#'       \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
+#'       If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
 #'     \item \code{"gamma"}: Skewed positive continuous response.
 #'   }
 #' @param spatial Character string specifying the spatial random effect structure:
@@ -36,7 +39,7 @@
 #'   \code{Matrix}, or \code{spdep} \code{nb} or \code{listw} object. Dimensions must
 #'   match the total number of domains in \code{data}. Required when \code{spatial != "none"}.
 #' @param vardir Vector, column name, or formula specifying the sampling variances of the
-#'   direct estimator (for \code{family = "gaussian"}).
+#'   direct estimator (for \code{family = "gaussian"} or \code{family = "beta"}).
 #' @param trials Vector, column name, or formula specifying sample sizes / total trials
 #'   per area (for \code{family = "binomial"}).
 #' @param exposure Vector, column name, or formula specifying expected counts or population
@@ -123,6 +126,7 @@ ebp_area <- function(
   scale_model = TRUE,
   prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
   prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+  prior_rho = NULL,
   print_result = TRUE,
   ...
 ) {
@@ -154,8 +158,31 @@ ebp_area <- function(
   trials_vec <- if (!is.null(trials)) .get_variable(data, trials) else NULL
   exposure_vec <- if (!is.null(exposure)) .get_variable(data, exposure) else NULL
 
-  if (family == "binomial" && is.null(trials_vec)) {
-    cli::cli_abort("For {.code family = 'binomial'}, {.arg trials} (sample sizes / total trials per area) must be specified.")
+  response_var <- all.vars(formula)[1]
+
+  if (family == "binomial") {
+    if (is.null(trials_vec)) {
+      cli::cli_abort("For {.code family = 'binomial'}, {.arg trials} (sample sizes / total trials per area) must be specified.")
+    }
+    # Check if response contains proportions (values in [0, 1] with non-integers)
+    y_non_na <- y[!is.na(y)]
+    if (length(y_non_na) > 0 && all(y_non_na >= 0 & y_non_na <= 1) && any(y_non_na %% 1 != 0)) {
+      cli::cli_alert_info("Response {.arg y} appears to be proportions; converting to integer counts: {.code round(y * trials)}.")
+      y_counts <- as.integer(round(y * trials_vec))
+      data[[response_var]] <- y_counts
+      y <- y_counts
+    } else {
+      y_counts <- ifelse(is.na(y), NA_integer_, as.integer(round(y)))
+      data[[response_var]] <- y_counts
+      y <- y_counts
+    }
+  }
+
+  if (family == "gamma") {
+    y_non_na <- y[!is.na(y)]
+    if (any(y_non_na <= 0, na.rm = TRUE)) {
+      cli::cli_abort("For {.code family = 'gamma'}, response {.arg y} must be strictly positive (> 0).")
+    }
   }
 
   # 3. Spatial weights handling
@@ -205,6 +232,7 @@ ebp_area <- function(
       scale_model = scale_model,
       prior_prec = prior_prec,
       prior_phi = prior_phi,
+      prior_rho = prior_rho,
       call = call_matched,
       ...
     )
@@ -237,6 +265,7 @@ ebp_area <- function(
   scale_model,
   prior_prec,
   prior_phi,
+  prior_rho,
   call,
   ...
 ) {
@@ -262,37 +291,95 @@ ebp_area <- function(
   terms_fixed <- attr(stats::terms(formula), "term.labels")
   fixed_str <- if (length(terms_fixed) > 0) paste(terms_fixed, collapse = " + ") else "1"
 
+  X_mat <- NULL
+  rho_range <- NULL
+
   # Spatial random effect specification
   if (spatial == "none") {
     rand_term <- "f(..domain_id.., model = 'iid', hyper = list(prec = prior_prec))"
+    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
   } else if (spatial == "bym2") {
     rand_term <- paste0(
       "f(..domain_id.., model = 'bym2', graph = W_obj$graph, scale.model = ",
       scale_model,
       ", hyper = list(prec = prior_prec, phi = prior_phi))"
     )
+    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
   } else if (spatial == "bym") {
     rand_term <- paste0(
       "f(..domain_id.., model = 'bym', graph = W_obj$graph, scale.model = ",
       scale_model,
       ", hyper = list(prec.unstruct = prior_prec, prec.spatial = prior_prec))"
     )
+    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
   } else if (spatial == "besag") {
     rand_term <- paste0(
       "f(..domain_id.., model = 'besag', graph = W_obj$graph, scale.model = ",
       scale_model,
       ", hyper = list(prec = prior_prec))"
     )
+    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
   } else if (spatial == "generic1") {
-    # Leroux model: Q = tau * (rho * (diag(degree) - adj) + (1 - rho) * I)
+    # Leroux model: Q = tau * ( (1 - rho) * I + rho * (diag(degree) - adj) )
+    # INLA generic1 uses Q = tau * ( I - beta / lambda_max * C )
+    # Setting C = I - R (where R = D - W) gives lambda_max(C) = 1,
+    # so Q = tau * ( I - beta * (I - R) ) = tau * ( (1 - beta) * I + beta * R )
+    # which is mathematically identical to the Leroux CAR precision with rho = beta in [0, 1).
     adj <- W_obj$graph
     R_mat <- diag(rowSums(adj)) - adj
-    rand_term <- "f(..domain_id.., model = 'generic1', Cmatrix = R_mat, hyper = list(prec = prior_prec))"
+    C_mat <- diag(nrow(adj)) - R_mat
+
+    hyper_generic1 <- list(prec = prior_prec)
+    if (!is.null(prior_rho)) {
+      hyper_generic1$beta <- prior_rho
+    } else if (!is.null(prior_phi) && !identical(prior_phi$prior, "pc")) {
+      hyper_generic1$beta <- prior_phi
+    }
+    rand_term <- "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, hyper = hyper_generic1)"
+    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
+  } else if (spatial == "slm") {
+    # Spatial Lag Model (Simultaneous Autoregressive)
+    W_mat <- W_obj$W_mat
+    rs <- rowSums(W_mat)
+    rs_inv <- ifelse(rs > 0, 1 / rs, 0)
+    W_std <- W_mat * rs_inv
+    W_sparse <- Matrix::Matrix(W_std, sparse = TRUE)
+    e <- eigen(W_std, only.values = TRUE)$values
+    re_e <- Re(e[abs(Im(e)) < 1e-5])
+    rho_min <- 1 / min(re_e)
+    rho_max <- 1 / max(re_e)
+    if (is.infinite(rho_min) || rho_min < -1) rho_min <- -0.999
+    if (is.infinite(rho_max) || rho_max > 1) rho_max <- 0.999
+    rho_range <- c(rho_min, rho_max)
+
+    terms_no_y <- stats::delete.response(stats::terms(formula))
+    mf_X <- stats::model.frame(terms_no_y, data = data, na.action = stats::na.pass)
+    X_mat <- stats::model.matrix(terms_no_y, data = mf_X)
+    p_cov <- ncol(X_mat)
+    Q_beta <- Matrix::Diagonal(p_cov, 1e-4)
+
+    args_slm <- list(
+      rho.min = rho_min,
+      rho.max = rho_max,
+      W = W_sparse,
+      X = X_mat,
+      Q.beta = Q_beta
+    )
+    hyper_slm <- list(prec = prior_prec)
+    if (!is.null(prior_rho)) {
+      hyper_slm$rho <- prior_rho
+    } else if (!is.null(prior_phi) && !identical(prior_phi$prior, "pc")) {
+      hyper_slm$rho <- prior_phi
+    } else {
+      hyper_slm$rho <- list(prior = "logitbeta", param = c(1, 1))
+    }
+
+    inla_formula_str <- paste(response_var, "~ -1 + f(..domain_id.., model = 'slm', args.slm = args_slm, hyper = hyper_slm)")
   } else {
     rand_term <- "f(..domain_id.., model = 'iid')"
+    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
   }
 
-  inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
   inla_formula <- stats::as.formula(inla_formula_str)
 
   # INLA controls
@@ -333,6 +420,46 @@ ebp_area <- function(
     )
   }
 
+  # Beta with area-specific sampling variances or sample sizes (Janicki 2020)
+  if (family == "beta") {
+    if (!is.null(vardir)) {
+      if (any(vardir[!is.na(y)] <= 0, na.rm = TRUE)) {
+        cli::cli_abort("{.arg vardir} must be strictly positive for sampled domains.")
+      }
+      # Parameter dispersi/presisi direct Janicki (2020)
+      phi_dir <- (y * (1 - y) / vardir) - 1
+      phi_dir[phi_dir < 1] <- 1
+      inla_args$scale <- phi_dir
+      inla_args$control.family <- list(
+        hyper = list(theta = list(initial = 0, fixed = TRUE))
+      )
+    } else if (!is.null(trials)) {
+      phi_trials <- trials - 1
+      phi_trials[phi_trials < 1] <- 1
+      inla_args$scale <- phi_trials
+      inla_args$control.family <- list(
+        hyper = list(theta = list(initial = 0, fixed = TRUE))
+      )
+    }
+  }
+
+  # Gamma with area-specific sampling variances or CV (Gamma SAE)
+  if (family == "gamma" && !is.null(vardir)) {
+    if (any(vardir[!is.na(y)] <= 0, na.rm = TRUE)) {
+      cli::cli_abort("{.arg vardir} must be strictly positive for sampled domains.")
+    }
+    # Direct precision scaling: s_i = y_i^2 / vardir_i = 1 / CV_i^2
+    # In INLA, Var(y) = mu^2 / (s * phi). Fixing phi = 1 gives Var(y) = mu^2 / s = vardir.
+    s_gamma <- rep(1, n_domains)
+    idx_valid <- which(!is.na(y) & !is.na(vardir) & vardir > 0)
+    s_gamma[idx_valid] <- (y[idx_valid]^2) / vardir[idx_valid]
+    s_gamma[s_gamma <= 0 | is.na(s_gamma)] <- 1
+    inla_args$scale <- s_gamma
+    inla_args$control.family <- list(
+      hyper = list(theta = list(initial = 0, fixed = TRUE))
+    )
+  }
+
   # Binomial with trials
   if (family == "binomial" && !is.null(trials)) {
     inla_args$Ntrials <- trials
@@ -365,6 +492,8 @@ ebp_area <- function(
     vardir = vardir,
     trials = trials,
     exposure = exposure,
+    X_mat = X_mat,
+    rho_range = rho_range,
     call = call
   )
 
