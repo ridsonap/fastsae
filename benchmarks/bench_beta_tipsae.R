@@ -32,11 +32,12 @@ cat("Starting Benchmark: fastsae (ebp_area) vs tipsae (fit_sae) [Beta Family]\n"
 cat(sprintf("Domain sizes to run: %s | Iterations: %d each\n", paste(D_values, collapse = ", "), iter_arg))
 cat("==============================================================================\n\n")
 
-out_dir <- "inst/exdata"
-if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+out_dirs <- c("inst/exdata", "inst/extdata")
+for (d in out_dirs) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+}
 
-file_primary <- file.path(out_dir, "beta_benchmark.rds")
-file_alias   <- file.path(out_dir, "benchmark_beta.rds")
+file_primary <- file.path("inst/exdata", "beta_benchmark.rds")
 
 # Load existing benchmark data if present
 df_existing <- NULL
@@ -44,8 +45,6 @@ if (file.exists(file_primary)) {
   df_existing <- readRDS(file_primary)
   cat(sprintf("Loaded existing benchmark data with %d rows across n = %s\n\n",
               nrow(df_existing), paste(unique(df_existing$n), collapse = ", ")))
-} else if (file.exists(file_alias)) {
-  df_existing <- readRDS(file_alias)
 }
 
 for (n_val in D_values) {
@@ -115,10 +114,11 @@ for (n_val in D_values) {
   class(df_combined) <- c("bench_mark", "tbl_df", "tbl", "data.frame")
   df_existing <- df_combined
   
-  # Save immediately to both filenames after each n completes
-  saveRDS(df_existing, file_primary)
-  saveRDS(df_existing, file_alias)
-  cat(sprintf("    [Saved] Updated %s and %s (Total rows: %d)\n\n", file_primary, file_alias, nrow(df_existing)))
+  # Save immediately to beta_benchmark.rds in both locations
+  for (d in out_dirs) {
+    saveRDS(df_existing, file.path(d, "beta_benchmark.rds"))
+  }
+  cat(sprintf("    [Saved] Updated beta_benchmark.rds in inst/exdata and inst/extdata (Total rows: %d)\n\n", nrow(df_existing)))
 }
 
 cat("==============================================================================\n")

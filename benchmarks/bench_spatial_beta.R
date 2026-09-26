@@ -42,9 +42,7 @@ for (d in out_dirs) {
 
 save_all_locations <- function(obj) {
   filenames <- c(
-    "spatial_beta_benchmark.rds",
-    "benchmark_spatial_beta.rds",
-    "sbeta_benchmark.rds"
+    "spatial_beta_benchmark.rds"
   )
   for (d in out_dirs) {
     for (f in filenames) {
