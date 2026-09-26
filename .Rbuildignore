@@ -25,3 +25,5 @@
 ^inst/exdata$
 ^Rplots\.pdf$
 ^.*\.docx$
+^benchmarks$
+

@@ -335,3 +335,49 @@ The test used the official `tipsae` panel dataset: **`emilia`** (38 health distr
 | **Mean Absolute Error (MAE)** | Baseline | **0.00304** | **Negligible numerical error** |
 | **Convergence Overhead** | Requires $\hat{R} < 1.05$ checks, warmup, and tuning | None (closed-form Laplace expansions) | Instant convergence |
 
+### Beta SAE Scalability Across Sample Sizes ($n = 30$ to $n = 1,000$)
+
+Empirical benchmark evaluating runtime and memory consumption across expanding domain sizes:
+
+| Number of Domains ($n$) | `fastsae` Median Time | `tipsae` Median Time | Speedup Factor | `fastsae` RAM | `tipsae` RAM | RAM Reduction |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **$n = 30$** | **1.24 s** | 2.36 s | **1.9x faster** | 109.7 MB | 500.0 MB | **4.6x less RAM** |
+| **$n = 50$** | **1.27 s** | 3.74 s | **2.9x faster** | 2.6 MB | 861.4 MB | **332x less RAM** |
+| **$n = 100$** | **1.29 s** | 8.32 s | **6.4x faster** | 3.8 MB | 1,780.8 MB | **466x less RAM** |
+| **$n = 250$** | **1.31 s** | 26.28 s | **20.0x faster** | 115.2 MB | 4,545.4 MB | **39.5x less RAM** |
+| **$n = 500$** | **1.41 s** | 64.21 s | **45.5x faster** | 121.3 MB | 9,142.5 MB | **75.4x less RAM** |
+| **$n = 1,000$** | **1.64 s** | 187.16 s | **114.2x faster** | 133.6 MB | 18,335.2 MB | **137.3x less RAM** |
+
+```{r plot_beta_benchmark, echo = FALSE, fig.width = 9, fig.height = 4.5, out.width = "100%", message = FALSE, warning = FALSE}
+library(ggplot2)
+fpath <- if (file.exists("../inst/exdata/beta_benchmark.rds")) "../inst/exdata/beta_benchmark.rds" else "inst/exdata/beta_benchmark.rds"
+if (file.exists(fpath)) {
+  beta_df <- readRDS(fpath)
+  
+  p1 <- ggplot(beta_df, aes(x = n, y = `Median (s)`, color = Method, group = Method)) +
+    geom_line(linewidth = 1.2) +
+    geom_point(size = 3) +
+    scale_color_manual(values = c("fastsae" = "#1D6A5C", "tipsae" = "#D95F02")) +
+    scale_x_log10(breaks = c(30, 50, 100, 250, 500, 1000)) +
+    scale_y_log10(labels = scales::label_number(suffix = " s")) +
+    labs(title = "Execution Time (Log Scale)", subtitle = "Lower is faster", x = "Domains (n)", y = "Median Time (s)") +
+    theme_minimal(base_size = 11) +
+    theme(legend.position = "bottom", panel.grid.minor = element_blank())
+
+  p2 <- ggplot(beta_df, aes(x = n, y = `Memory (MB)`, color = Method, group = Method)) +
+    geom_line(linewidth = 1.2) +
+    geom_point(size = 3) +
+    scale_color_manual(values = c("fastsae" = "#1D6A5C", "tipsae" = "#D95F02")) +
+    scale_x_log10(breaks = c(30, 50, 100, 250, 500, 1000)) +
+    scale_y_log10(labels = scales::label_number(suffix = " MB")) +
+    labs(title = "Memory Allocation (Log Scale)", subtitle = "Lower is better", x = "Domains (n)", y = "Memory (MB)") +
+    theme_minimal(base_size = 11) +
+    theme(legend.position = "bottom", panel.grid.minor = element_blank())
+
+  if (requireNamespace("patchwork", quietly = TRUE)) {
+    patchwork::wrap_plots(p1, p2, guides = "collect") & theme(legend.position = "bottom")
+  }
+}
+```
+
+

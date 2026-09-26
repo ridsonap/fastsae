@@ -626,6 +626,97 @@ checks, warmup, and tuning</td>
 </tr>
 </tbody>
 </table>
+<div class="section level3">
+<h3 id="beta-sae-scalability-across-sample-sizes-n-30-to-n-1000">Beta SAE Scalability Across Sample Sizes
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">n = 30</annotation></semantics></math>
+to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#beta-sae-scalability-across-sample-sizes-n-30-to-n-1000"></a>
+</h3>
+<p>Empirical benchmark evaluating runtime and memory consumption across
+expanding domain sizes:</p>
+<table style="width:100%;" class="table">
+<colgroup>
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+</colgroup>
+<thead><tr class="header">
+<th align="center">Number of Domains
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>)</th>
+<th align="center">
+<code>fastsae</code> Median Time</th>
+<th align="center">
+<code>tipsae</code> Median Time</th>
+<th align="center">Speedup Factor</th>
+<th align="center">
+<code>fastsae</code> RAM</th>
+<th align="center">
+<code>tipsae</code> RAM</th>
+<th align="center">RAM Reduction</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">n = 30</annotation></semantics></math></strong></td>
+<td align="center"><strong>1.24 s</strong></td>
+<td align="center">2.36 s</td>
+<td align="center"><strong>1.9x faster</strong></td>
+<td align="center">109.7 MB</td>
+<td align="center">500.0 MB</td>
+<td align="center"><strong>4.6x less RAM</strong></td>
+</tr>
+<tr class="even">
+<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">n = 50</annotation></semantics></math></strong></td>
+<td align="center"><strong>1.27 s</strong></td>
+<td align="center">3.74 s</td>
+<td align="center"><strong>2.9x faster</strong></td>
+<td align="center">2.6 MB</td>
+<td align="center">861.4 MB</td>
+<td align="center"><strong>332x less RAM</strong></td>
+</tr>
+<tr class="odd">
+<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">n = 100</annotation></semantics></math></strong></td>
+<td align="center"><strong>1.29 s</strong></td>
+<td align="center">8.32 s</td>
+<td align="center"><strong>6.4x faster</strong></td>
+<td align="center">3.8 MB</td>
+<td align="center">1,780.8 MB</td>
+<td align="center"><strong>466x less RAM</strong></td>
+</tr>
+<tr class="even">
+<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>250</mn></mrow><annotation encoding="application/x-tex">n = 250</annotation></semantics></math></strong></td>
+<td align="center"><strong>1.31 s</strong></td>
+<td align="center">26.28 s</td>
+<td align="center"><strong>20.0x faster</strong></td>
+<td align="center">115.2 MB</td>
+<td align="center">4,545.4 MB</td>
+<td align="center"><strong>39.5x less RAM</strong></td>
+</tr>
+<tr class="odd">
+<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">n = 500</annotation></semantics></math></strong></td>
+<td align="center"><strong>1.41 s</strong></td>
+<td align="center">64.21 s</td>
+<td align="center"><strong>45.5x faster</strong></td>
+<td align="center">121.3 MB</td>
+<td align="center">9,142.5 MB</td>
+<td align="center"><strong>75.4x less RAM</strong></td>
+</tr>
+<tr class="even">
+<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math></strong></td>
+<td align="center"><strong>1.64 s</strong></td>
+<td align="center">187.16 s</td>
+<td align="center"><strong>114.2x faster</strong></td>
+<td align="center">133.6 MB</td>
+<td align="center">18,335.2 MB</td>
+<td align="center"><strong>137.3x less RAM</strong></td>
+</tr>
+</tbody>
+</table>
+<p><img src="benchmarks_files/figure-html/plot_beta_benchmark-1.png" class="r-plt" alt="" width="100%"></p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

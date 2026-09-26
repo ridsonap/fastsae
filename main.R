@@ -232,16 +232,44 @@ ggsave(
   height = 4
 )
 
+# Beta SAE Benchmark Plot (fastsae vs tipsae) -----------------------------------
+beta_bench <- readRDS("inst/exdata/beta_benchmark.rds")
 
-combined_data |>
-  filter(Algorithm == "Spatio Temporal FH") |>
-  group_by(Method) |>
-  summarise(
-    median = mean(Median),
-    mem = mean(Mem)
-  )
+p_beta_time <- ggplot(beta_bench, aes(x = n, y = `Median (s)`, color = Method, group = Method)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("fastsae" = "#1D6A5C", "tipsae" = "#D95F02")) +
+  scale_x_log10(breaks = c(30, 50, 100, 250, 500, 1000)) +
+  scale_y_log10(labels = label_number(suffix = " s")) +
+  labs(
+    title = "Beta SAE: Execution Time (Log Scale)",
+    subtitle = "Lower is faster",
+    x = "Number of Domains (n)",
+    y = "Median Time (seconds)",
+    color = "Package"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
 
+p_beta_mem <- ggplot(beta_bench, aes(x = n, y = `Memory (MB)`, color = Method, group = Method)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("fastsae" = "#1D6A5C", "tipsae" = "#D95F02")) +
+  scale_x_log10(breaks = c(30, 50, 100, 250, 500, 1000)) +
+  scale_y_log10(labels = label_number(suffix = " MB")) +
+  labs(
+    title = "Beta SAE: Memory Usage (Log Scale)",
+    subtitle = "Lower is better",
+    x = "Number of Domains (n)",
+    y = "Memory Allocated (MB)",
+    color = "Package"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
 
-dim(mys_proxmat)
-?sae::eblupSFH()
+if (requireNamespace("patchwork", quietly = TRUE)) {
+  p_beta_comb <- p_beta_time + p_beta_mem + patchwork::plot_layout(guides = "collect") & theme(legend.position = "bottom")
+  ggsave('README_files/figure-gfm/benchmark_beta_combined.png', p_beta_comb, dpi = 300, width = 9, height = 4.5)
+}
+
 
