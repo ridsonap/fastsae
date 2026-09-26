@@ -337,22 +337,25 @@ The test used the official `tipsae` panel dataset: **`emilia`** (38 health distr
 
 ### Interactive Beta SAE Benchmark Explorer ($n = 30$ to $n = 1,000$)
 
-Use the interactive controls below to compare runtime, memory footprint, and speedup factors between `fastsae::ebp_area` and `tipsae::fit_sae`:
+Use the interactive controls below to compare runtime, memory footprint, and speedup factors between `fastsae::ebp_area` and `tipsae::fit_sae` across both **Standard Beta** and **Spatial Beta (Besag ICAR)** models:
 
 ```{=html}
 <div class="my-4 p-3 border rounded bg-light">
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="btn-group" role="group" aria-label="Beta Model selection">
+      <button type="button" class="btn btn-sm btn-primary active" id="btn-beta-algo-std" onclick="setBetaAlgo('STD')">Standard Beta</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-beta-algo-spatial" onclick="setBetaAlgo('SPATIAL')">Spatial Beta (ICAR)</button>
+    </div>
     <div class="btn-group" role="group" aria-label="Metric selection">
       <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
       <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Peak Memory</button>
       <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-ips" onclick="setBetaMetric('ips')">Throughput (iter/s)</button>
     </div>
-    <span class="text-muted small"><strong>Area-Level Beta SAE</strong>: INLA vs Stan MCMC</span>
   </div>
 
   <div class="card mb-3 shadow-sm">
     <div class="card-header fw-bold" id="beta-main-chart-title">
-      Execution time (median, seconds) — Beta SAE · log scale
+      Execution time (median, seconds) — Standard Beta · log scale
     </div>
     <div class="card-body" style="position: relative; height: 350px;">
       <canvas id="beta-benchmark-main-chart"></canvas>
@@ -361,7 +364,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 
   <div class="card shadow-sm">
     <div class="card-header fw-bold" id="beta-speedup-chart-title">
-      Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Beta SAE
+      Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Standard Beta
     </div>
     <div class="card-body" style="position: relative; height: 280px;">
       <canvas id="beta-benchmark-speedup-chart"></canvas>
@@ -371,22 +374,39 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 
 <script>
 (function() {
-  const BETA_RAW_DATA = [
-    { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
-    { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
-    { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
-    { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
-    { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
-    { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
-    { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
-    { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
-    { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
-    { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
-    { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
-    { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
-  ];
+  const BETA_DATA = {
+    STD: [
+      { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
+      { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
+      { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
+      { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
+      { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
+      { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
+      { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
+      { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
+      { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
+      { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
+      { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
+      { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
+    ],
+    SPATIAL: [
+      { Method: "fastsae", Median: 0.613834, Mem: 94.46, IPS: 1.6302, n: 30 },
+      { Method: "tipsae",  Median: 25.723298, Mem: 642.84, IPS: 0.0389, n: 30 },
+      { Method: "fastsae", Median: 0.620765, Mem: 3.36,   IPS: 1.6119, n: 50 },
+      { Method: "tipsae",  Median: 65.723465, Mem: 1096.35, IPS: 0.0154, n: 50 },
+      { Method: "fastsae", Median: 1.373156, Mem: 5.97,   IPS: 0.7385, n: 100 },
+      { Method: "tipsae",  Median: 100.019847, Mem: 2245.87, IPS: 0.00997, n: 100 },
+      { Method: "fastsae", Median: 1.315476, Mem: 109.56, IPS: 0.7505, n: 250 },
+      { Method: "tipsae",  Median: 155.898179, Mem: 5706.48, IPS: 0.00641, n: 250 },
+      { Method: "fastsae", Median: 1.434125, Mem: 49.65,  IPS: 0.6879, n: 500 },
+      { Method: "tipsae",  Median: 248.821402, Mem: 11466.90, IPS: 0.00401, n: 500 },
+      { Method: "fastsae", Median: 1.728121, Mem: 161.03, IPS: 0.4367, n: 1000 },
+      { Method: "tipsae",  Median: 404.341829, Mem: 23038.65, IPS: 0.00247, n: 1000 }
+    ]
+  };
 
   const BETA_N_LIST = [30, 50, 100, 250, 500, 1000];
+  let curBetaAlgo = "STD";
   let curBetaMetric = "time";
   let chartBetaMain, chartBetaSpeedup;
 
@@ -411,6 +431,20 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
     return m;
   }
 
+  window.setBetaAlgo = function(algo) {
+    curBetaAlgo = algo;
+    ["std", "spatial"].forEach(id => {
+      const btn = document.getElementById("btn-beta-algo-" + id);
+      if (btn) {
+        const isActive = (id === "std" && algo === "STD") || (id === "spatial" && algo === "SPATIAL");
+        btn.classList.toggle("btn-primary", isActive);
+        btn.classList.toggle("btn-outline-primary", !isActive);
+        btn.classList.toggle("active", isActive);
+      }
+    });
+    updateBetaCharts();
+  };
+
   window.setBetaMetric = function(m) {
     curBetaMetric = m;
     ["time", "mem", "ips"].forEach(id => {
@@ -426,32 +460,38 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 
   function updateBetaCharts() {
     if (!chartBetaMain || !chartBetaSpeedup) return;
+    const rawData = BETA_DATA[curBetaAlgo];
     const key = curBetaMetric === "time" ? "Median" : curBetaMetric === "mem" ? "Mem" : "IPS";
+    const algoLabel = curBetaAlgo === "STD" ? "Standard Beta" : "Spatial Beta (ICAR)";
 
     const fastsaeData = BETA_N_LIST.map(n => {
-      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      const r = rawData.find(x => x.n === n && x.Method === "fastsae");
       return r ? r[key] : null;
     });
     const tipsaeData = BETA_N_LIST.map(n => {
-      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      const r = rawData.find(x => x.n === n && x.Method === "tipsae");
       return r ? r[key] : null;
     });
 
     const speedupData = BETA_N_LIST.map(n => {
-      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
-      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      const f = rawData.find(x => x.n === n && x.Method === "fastsae");
+      const t = rawData.find(x => x.n === n && x.Method === "tipsae");
       return f && t ? (t.Median / f.Median) : null;
     });
 
     const memReductionData = BETA_N_LIST.map(n => {
-      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
-      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      const f = rawData.find(x => x.n === n && x.Method === "fastsae");
+      const t = rawData.find(x => x.n === n && x.Method === "tipsae");
       return f && t ? (t.Mem / f.Mem) : null;
     });
 
     const titleElem = document.getElementById("beta-main-chart-title");
     if (titleElem) {
-      titleElem.textContent = getBetaMetricTitle(curBetaMetric) + " — Beta SAE · log scale";
+      titleElem.textContent = getBetaMetricTitle(curBetaMetric) + " — " + algoLabel + " · log scale";
+    }
+    const speedupTitleElem = document.getElementById("beta-speedup-chart-title");
+    if (speedupTitleElem) {
+      speedupTitleElem.textContent = "Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — " + algoLabel;
     }
 
     chartBetaMain.data.datasets[0].data = fastsaeData;

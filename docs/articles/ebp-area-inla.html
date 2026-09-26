@@ -390,19 +390,19 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  18.22302  6.626459   8.634616  17.10217   34.35027</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   172.31335 78.436910  72.153084 155.44962  373.05694</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  18.22302  6.626453   8.634617  17.10216   34.35025</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   172.31323 78.436869  72.153081 155.44949  373.05676</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.06357</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   127.08197</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.06356</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   127.08184</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -976.34169 </span></span>
+<span><span class="co">#&gt;                                            -976.34168 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              56.02382 </span></span>
+<span><span class="co">#&gt;                                              56.02385 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -984.78988 </span></span>
+<span><span class="co">#&gt;                                            -984.78989 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              38.70814 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
@@ -432,19 +432,19 @@ standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_ebp</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"ebp"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                domain time      y        ebp          sd       rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554640 0.006127601 11.031500 0.04408727</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131565  7.453979 0.07068301</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343260 0.010214738 10.932735 0.07511424</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509826 0.006294793  9.669679 0.05342022</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112654 0.007870668 11.065726 0.05671270</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608740 0.012916481 13.442429 0.07314337</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554639 0.006127599 11.031498 0.04408727</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131566  7.453981 0.07068300</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343260 0.010214742 10.932738 0.07511423</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509826 0.006294794  9.669681 0.05342022</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112653 0.007870670 11.065729 0.05671270</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608741 0.012916485 13.442432 0.07314336</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06810567</span></span>
+<span><span class="co">#&gt; 1 0.06810566</span></span>
 <span><span class="co">#&gt; 2 0.09473235</span></span>
-<span><span class="co">#&gt; 3 0.11517439</span></span>
+<span><span class="co">#&gt; 3 0.11517440</span></span>
 <span><span class="co">#&gt; 4 0.07814090</span></span>
 <span><span class="co">#&gt; 5 0.08759940</span></span>
-<span><span class="co">#&gt; 6 0.12376160</span></span></code></pre></div>
+<span><span class="co">#&gt; 6 0.12376161</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -520,20 +520,24 @@ to
 </h3>
 <p>Use the interactive controls below to compare runtime, memory
 footprint, and speedup factors between <code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code>
-and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>:</p>
+and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> across both <strong>Standard
+Beta</strong> and <strong>Spatial Beta (Besag ICAR)</strong> models:</p>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><div class="my-4 p-3 border rounded bg-light">
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="btn-group" role="group" aria-label="Beta Model selection">
+      <button type="button" class="btn btn-sm btn-primary active" id="btn-beta-algo-std" onclick="setBetaAlgo('STD')">Standard Beta</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-beta-algo-spatial" onclick="setBetaAlgo('SPATIAL')">Spatial Beta (ICAR)</button>
+    </div>
     <div class="btn-group" role="group" aria-label="Metric selection">
       <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
       <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Peak Memory</button>
       <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-ips" onclick="setBetaMetric('ips')">Throughput (iter/s)</button>
     </div>
-    <span class="text-muted small"><strong>Area-Level Beta SAE</strong>: INLA vs Stan MCMC</span>
   </div>
 
   <div class="card mb-3 shadow-sm">
     <div class="card-header fw-bold" id="beta-main-chart-title">
-      Execution time (median, seconds) — Beta SAE · log scale
+      Execution time (median, seconds) — Standard Beta · log scale
     </div>
     <div class="card-body" style="position: relative; height: 350px;">
       <canvas id="beta-benchmark-main-chart"></canvas>
@@ -542,7 +546,7 @@ and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-
 
   <div class="card shadow-sm">
     <div class="card-header fw-bold" id="beta-speedup-chart-title">
-      Speedup Factor &amp; Efficiency Multiplier (fastsae vs tipsae) — Beta SAE
+      Speedup Factor &amp; Efficiency Multiplier (fastsae vs tipsae) — Standard Beta
     </div>
     <div class="card-body" style="position: relative; height: 280px;">
       <canvas id="beta-benchmark-speedup-chart"></canvas>
@@ -552,22 +556,39 @@ and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-
 
 <script>
 (function() {
-  const BETA_RAW_DATA = [
-    { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
-    { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
-    { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
-    { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
-    { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
-    { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
-    { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
-    { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
-    { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
-    { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
-    { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
-    { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
-  ];
+  const BETA_DATA = {
+    STD: [
+      { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
+      { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
+      { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
+      { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
+      { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
+      { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
+      { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
+      { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
+      { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
+      { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
+      { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
+      { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
+    ],
+    SPATIAL: [
+      { Method: "fastsae", Median: 0.613834, Mem: 94.46, IPS: 1.6302, n: 30 },
+      { Method: "tipsae",  Median: 25.723298, Mem: 642.84, IPS: 0.0389, n: 30 },
+      { Method: "fastsae", Median: 0.620765, Mem: 3.36,   IPS: 1.6119, n: 50 },
+      { Method: "tipsae",  Median: 65.723465, Mem: 1096.35, IPS: 0.0154, n: 50 },
+      { Method: "fastsae", Median: 1.373156, Mem: 5.97,   IPS: 0.7385, n: 100 },
+      { Method: "tipsae",  Median: 100.019847, Mem: 2245.87, IPS: 0.00997, n: 100 },
+      { Method: "fastsae", Median: 1.315476, Mem: 109.56, IPS: 0.7505, n: 250 },
+      { Method: "tipsae",  Median: 155.898179, Mem: 5706.48, IPS: 0.00641, n: 250 },
+      { Method: "fastsae", Median: 1.434125, Mem: 49.65,  IPS: 0.6879, n: 500 },
+      { Method: "tipsae",  Median: 248.821402, Mem: 11466.90, IPS: 0.00401, n: 500 },
+      { Method: "fastsae", Median: 1.728121, Mem: 161.03, IPS: 0.4367, n: 1000 },
+      { Method: "tipsae",  Median: 404.341829, Mem: 23038.65, IPS: 0.00247, n: 1000 }
+    ]
+  };
 
   const BETA_N_LIST = [30, 50, 100, 250, 500, 1000];
+  let curBetaAlgo = "STD";
   let curBetaMetric = "time";
   let chartBetaMain, chartBetaSpeedup;
 
@@ -592,6 +613,20 @@ and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-
     return m;
   }
 
+  window.setBetaAlgo = function(algo) {
+    curBetaAlgo = algo;
+    ["std", "spatial"].forEach(id => {
+      const btn = document.getElementById("btn-beta-algo-" + id);
+      if (btn) {
+        const isActive = (id === "std" && algo === "STD") || (id === "spatial" && algo === "SPATIAL");
+        btn.classList.toggle("btn-primary", isActive);
+        btn.classList.toggle("btn-outline-primary", !isActive);
+        btn.classList.toggle("active", isActive);
+      }
+    });
+    updateBetaCharts();
+  };
+
   window.setBetaMetric = function(m) {
     curBetaMetric = m;
     ["time", "mem", "ips"].forEach(id => {
@@ -607,32 +642,38 @@ and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-
 
   function updateBetaCharts() {
     if (!chartBetaMain || !chartBetaSpeedup) return;
+    const rawData = BETA_DATA[curBetaAlgo];
     const key = curBetaMetric === "time" ? "Median" : curBetaMetric === "mem" ? "Mem" : "IPS";
+    const algoLabel = curBetaAlgo === "STD" ? "Standard Beta" : "Spatial Beta (ICAR)";
 
     const fastsaeData = BETA_N_LIST.map(n => {
-      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      const r = rawData.find(x => x.n === n && x.Method === "fastsae");
       return r ? r[key] : null;
     });
     const tipsaeData = BETA_N_LIST.map(n => {
-      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      const r = rawData.find(x => x.n === n && x.Method === "tipsae");
       return r ? r[key] : null;
     });
 
     const speedupData = BETA_N_LIST.map(n => {
-      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
-      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      const f = rawData.find(x => x.n === n && x.Method === "fastsae");
+      const t = rawData.find(x => x.n === n && x.Method === "tipsae");
       return f && t ? (t.Median / f.Median) : null;
     });
 
     const memReductionData = BETA_N_LIST.map(n => {
-      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
-      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      const f = rawData.find(x => x.n === n && x.Method === "fastsae");
+      const t = rawData.find(x => x.n === n && x.Method === "tipsae");
       return f && t ? (t.Mem / f.Mem) : null;
     });
 
     const titleElem = document.getElementById("beta-main-chart-title");
     if (titleElem) {
-      titleElem.textContent = getBetaMetricTitle(curBetaMetric) + " — Beta SAE · log scale";
+      titleElem.textContent = getBetaMetricTitle(curBetaMetric) + " — " + algoLabel + " · log scale";
+    }
+    const speedupTitleElem = document.getElementById("beta-speedup-chart-title");
+    if (speedupTitleElem) {
+      speedupTitleElem.textContent = "Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — " + algoLabel;
     }
 
     chartBetaMain.data.datasets[0].data = fastsaeData;
@@ -851,8 +892,8 @@ Binomial distributions with population offsets:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01</span></span>
-<span><span class="co">#&gt; x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3182e-14  2.8563e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9735e-01  3.3472e-02 -8.8834e+00  6.4826e-19 -3.6363e-01</span></span>
+<span><span class="co">#&gt; x1           3.8369e-01  4.9804e-02  7.7040e+00  1.3188e-14  2.8563e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4865e-19 -3.6363e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4120</span></span>
 <span><span class="co">#&gt; x1            0.4820</span></span>
@@ -860,32 +901,32 @@ Binomial distributions with population offsets:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                   mean        sd 0.025quant   0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 17.0200912 4.6703845 9.50746150 16.4616234</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.4755968 0.2611258 0.05378159  0.4645555</span></span>
-<span><span class="co">#&gt;                             0.975quant       mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 27.7453424 15.4392428</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.9367003  0.2294485</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 17.0201738 4.6705072 9.50758974 16.4616139</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.4756037 0.2611343 0.05376987  0.4645684</span></span>
+<span><span class="co">#&gt;                             0.975quant      mode</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 27.7459501 15.439002</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.9367052  0.229405</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                             317.61486 </span></span>
+<span><span class="co">#&gt;                                             317.61485 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              31.75462 </span></span>
+<span><span class="co">#&gt;                                              31.75465 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.63795 </span></span>
+<span><span class="co">#&gt;                                             309.63788 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              17.13690 </span></span>
+<span><span class="co">#&gt;                                              17.13687 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                            -169.74606 </span></span>
+<span><span class="co">#&gt;                                            -169.74604 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBP Summary Statistics:</span></span>
 <span><span class="co">#&gt;       ebp          linear_pred            sd               mse           </span></span>
 <span><span class="co">#&gt;  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  </span></span>
 <span><span class="co">#&gt;  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665233  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665244  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  </span></span>
-<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5682996  </span></span>
+<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683096  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.790  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.156  </span></span>
