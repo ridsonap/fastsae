@@ -23,6 +23,7 @@
 ^.*\.tar\.gz$
 ^cran-comments\.md$
 ^inst/exdata$
+^inst/extdata$
 ^Rplots\.pdf$
 ^.*\.docx$
 ^benchmarks$
