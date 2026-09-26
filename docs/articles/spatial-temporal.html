@@ -100,7 +100,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
-    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
+    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
@@ -187,17 +189,17 @@ is sampling error with diagonal matrix
 <h3 id="fitting-the-model">Fitting the Model<a class="anchor" aria-label="anchor" href="#fitting-the-model"></a>
 </h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae">fastsae</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae/">fastsae</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mys"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mys_proxmat"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Fit Spatial Fay-Herriot model with REML</span></span>
 <span><span class="va">fit_sfh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_sfh.html">eblup_sfh</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
-<span>  vardir  <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
-<span>  data    <span class="op">=</span> <span class="va">mys</span>,</span>
-<span>  W       <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
-<span>  method  <span class="op">=</span> <span class="st">"REML"</span>,</span>
+<span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">mys</span>,</span>
+<span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"REML"</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -216,6 +218,7 @@ is sampling error with diagonal matrix
 <span><span class="co">#&gt;  parameter  estimate std.error</span></span>
 <span><span class="co">#&gt;   sigma2_u  1.493692  1.095052</span></span>
 <span><span class="co">#&gt;        rho -1.000000 10.836726</span></span>
+<span><span class="co">#&gt; rho (spatial): -1 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue pvalue</span></span>
@@ -229,13 +232,13 @@ is sampling error with diagonal matrix
 <span><span class="co">#&gt;     -65.02194     142.04389     150.83830 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBLUP Summary Statistics:</span></span>
-<span><span class="co">#&gt;      eblup             mse              rse        </span></span>
-<span><span class="co">#&gt;  Min.   :0.9736   Min.   :0.1936   Min.   : 9.512  </span></span>
-<span><span class="co">#&gt;  1st Qu.:4.1867   1st Qu.:0.5725   1st Qu.:13.224  </span></span>
-<span><span class="co">#&gt;  Median :4.9636   Median :0.8264   Median :19.840  </span></span>
-<span><span class="co">#&gt;  Mean   :5.0375   Mean   :1.0470   Mean   :21.974  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:6.1456   3rd Qu.:1.3772   3rd Qu.:30.137  </span></span>
-<span><span class="co">#&gt;  Max.   :8.7887   Max.   :2.3507   Max.   :45.188</span></span></code></pre></div>
+<span><span class="co">#&gt;       mse              rse        </span></span>
+<span><span class="co">#&gt;  Min.   :0.1936   Min.   : 9.512  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.5725   1st Qu.:13.224  </span></span>
+<span><span class="co">#&gt;  Median :0.8264   Median :19.840  </span></span>
+<span><span class="co">#&gt;  Mean   :1.0470   Mean   :21.974  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:1.3772   3rd Qu.:30.137  </span></span>
+<span><span class="co">#&gt;  Max.   :2.3507   Max.   :45.188</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="unsampled-domains-and-spatial-kriging">Unsampled Domains and Spatial Kriging<a class="anchor" aria-label="anchor" href="#unsampled-domains-and-spatial-kriging"></a>
@@ -281,14 +284,14 @@ estimation:</p>
 </ul>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_sfh_pb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_sfh.html">eblup_sfh</a></span><span class="op">(</span></span>
-<span>  formula    <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
-<span>  vardir     <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
-<span>  data       <span class="op">=</span> <span class="va">mys</span>,</span>
-<span>  W          <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
+<span>  formula <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
+<span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">mys</span>,</span>
+<span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
 <span>  mse_method <span class="op">=</span> <span class="st">"pbmse"</span>,</span>
-<span>  B          <span class="op">=</span> <span class="fl">50</span>,</span>
-<span>  n_threads  <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  seed       <span class="op">=</span> <span class="fl">123</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  n_threads <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">123</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> 10 unsampled domain(s) detected. Bootstrap MSE (pbmse) is computed for the 32 sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead.</span></span>
@@ -343,16 +346,16 @@ are sampling errors.</p>
 <span></span>
 <span><span class="co"># Fit Spatio-Temporal model with bootstrap MSE</span></span>
 <span><span class="va">fit_stfh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_stfh.html">eblup_stfh</a></span><span class="op">(</span></span>
-<span>  formula     <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
-<span>  data        <span class="op">=</span> <span class="va">panel_data</span>,</span>
-<span>  vardir      <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
-<span>  domain      <span class="op">=</span> <span class="op">~</span><span class="va">area</span>,</span>
-<span>  time        <span class="op">=</span> <span class="op">~</span><span class="va">year</span>,</span>
-<span>  W           <span class="op">=</span> <span class="va">W_sub</span>,</span>
-<span>  model       <span class="op">=</span> <span class="st">"ST"</span>,</span>
+<span>  formula <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">panel_data</span>,</span>
+<span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
+<span>  domain <span class="op">=</span> <span class="op">~</span><span class="va">area</span>,</span>
+<span>  time <span class="op">=</span> <span class="op">~</span><span class="va">year</span>,</span>
+<span>  W <span class="op">=</span> <span class="va">W_sub</span>,</span>
+<span>  model <span class="op">=</span> <span class="st">"ST"</span>,</span>
 <span>  compute_mse <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  B           <span class="op">=</span> <span class="fl">25</span>,</span>
-<span>  seed        <span class="op">=</span> <span class="fl">42</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">25</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">42</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -387,13 +390,13 @@ are sampling errors.</p>
 <span><span class="co">#&gt; -243.6043  503.2087  525.5086 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBLUP Summary Statistics:</span></span>
-<span><span class="co">#&gt;      eblup             mse              rse         </span></span>
-<span><span class="co">#&gt;  Min.   :-0.729   Min.   :0.1885   Min.   :  7.866  </span></span>
-<span><span class="co">#&gt;  1st Qu.: 4.661   1st Qu.:0.5410   1st Qu.: 12.858  </span></span>
-<span><span class="co">#&gt;  Median : 5.465   Median :0.7642   Median : 15.707  </span></span>
-<span><span class="co">#&gt;  Mean   : 5.424   Mean   :0.8911   Mean   : 20.922  </span></span>
-<span><span class="co">#&gt;  3rd Qu.: 6.244   3rd Qu.:1.0287   3rd Qu.: 19.913  </span></span>
-<span><span class="co">#&gt;  Max.   : 9.203   Max.   :3.2885   Max.   :276.605</span></span></code></pre></div>
+<span><span class="co">#&gt;       mse              rse         </span></span>
+<span><span class="co">#&gt;  Min.   :0.1885   Min.   :  7.866  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.5410   1st Qu.: 12.858  </span></span>
+<span><span class="co">#&gt;  Median :0.7642   Median : 15.707  </span></span>
+<span><span class="co">#&gt;  Mean   :0.8911   Mean   : 20.922  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:1.0287   3rd Qu.: 19.913  </span></span>
+<span><span class="co">#&gt;  Max.   :3.2885   Max.   :276.605</span></span></code></pre></div>
 <p>The estimated variance and correlation components include: -
 <code>sigma21</code>: Spatial random effect variance
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>σ</mi><mrow><mi>u</mi><mn>1</mn></mrow><mn>2</mn></msubsup><annotation encoding="application/x-tex">\sigma_{u1}^2</annotation></semantics></math>).
@@ -419,6 +422,24 @@ different models using <code><a href="https://ggplot2.tidyverse.org/reference/au
 <span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Standard FH"</span> <span class="op">=</span> <span class="va">fit_fh</span>, <span class="st">"Spatial FH"</span> <span class="op">=</span> <span class="va">fit_sfh_clean</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"comparison"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="spatial-temporal_files/figure-html/compare_models-1.png" class="r-plt" alt="" width="672"></p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="bayesian-spatio-temporal-modeling-ebp_area">4. Bayesian Spatio-Temporal Modeling (<code>ebp_area</code>)<a class="anchor" aria-label="anchor" href="#bayesian-spatio-temporal-modeling-ebp_area"></a>
+</h2>
+<p>In addition to frequentist C++ EBLUP implementations
+(<code>eblup_sfh</code> and <code>eblup_stfh</code>),
+<strong>fastsae</strong> provides <code><a href="../reference/ebp_area.html">ebp_area()</a></code> for Bayesian
+spatio-temporal modeling powered by <strong>INLA</strong>. This
+supports: - Bounded proportions via Beta regression (matching
+<code>tipsae</code>) - Discrete counts via Poisson and Negative Binomial
+regression - Binary aggregates via Binomial regression - Flexible
+space-time structures including domain-specific random walks, separable
+dynamic fields, and Knorr-Held Types I–IV.</p>
+<p>For full details and a case study on Italian poverty data, see the
+vignette <a href="ebp-area-inla.html">Bayesian Area-Level Small Area
+Estimation with INLA</a>.</p>
+<hr>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

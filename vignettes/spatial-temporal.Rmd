@@ -162,6 +162,20 @@ fit_sfh_clean <- eblup_sfh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(my
 autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "comparison")
 ```
 
+---
+
+## 4. Bayesian Spatio-Temporal Modeling (`ebp_area`)
+
+In addition to frequentist C++ EBLUP implementations (`eblup_sfh` and `eblup_stfh`), **fastsae** provides `ebp_area()` for Bayesian spatio-temporal modeling powered by **INLA**. This supports:
+- Bounded proportions via Beta regression (matching `tipsae`)
+- Discrete counts via Poisson and Negative Binomial regression
+- Binary aggregates via Binomial regression
+- Flexible space-time structures including domain-specific random walks, separable dynamic fields, and Knorr-Held Types I–IV.
+
+For full details and a case study on Italian poverty data, see the vignette [Bayesian Area-Level Small Area Estimation with INLA](ebp-area-inla.html).
+
+---
+
 ## References
 
 - Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models. *Computational Statistics & Data Analysis*, 58, 308–325.

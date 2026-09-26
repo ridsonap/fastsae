@@ -56,22 +56,53 @@
 #'   Penalized Complexity (PC) prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.
 #' @param prior_phi List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
 #'   in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.
+#' @param prior_rho Optional list specifying prior for spatial autocorrelation parameter (generic1/slm).
+#' @param time Vector, column name, or one-sided formula referencing the time period
+#'   identifier in \code{data} (e.g. \code{time = "year"} or \code{~year}). Required
+#'   when \code{temporal != "none"}.
+#' @param temporal Character string specifying the temporal random effect structure:
+#'   \itemize{
+#'     \item \code{"none"}: No temporal random effect (default cross-sectional model).
+#'     \item \code{"rw1"}: First-order random walk across time periods.
+#'     \item \code{"rw2"}: Second-order random walk across time periods.
+#'     \item \code{"ar1"}: First-order autoregressive process across time periods.
+#'     \item \code{"iid"}: Unstructured independent time effects.
+#'   }
+#' @param st_interaction Character string specifying the spatio-temporal structure:
+#'   \itemize{
+#'     \item \code{"none"}: Additive main spatial and temporal effects (default).
+#'     \item \code{"domain-specific"}: Domain-specific temporal random walk / AR(1) dynamics with
+#'       shared variance parameter (directly corresponds to the \pkg{tipsae} spatio-temporal model).
+#'     \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1) / RW
+#'       (corresponds to classical Spatio-Temporal Fay-Herriot models, Marhuenda et al. 2013).
+#'     \item \code{"type1"}: Knorr-Held (2000) Type I interaction (unstructured space \eqn{\times} unstructured time).
+#'     \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time).
+#'     \item \code{"type3"}: Knorr-Held Type III interaction (structured space \eqn{\times} unstructured time).
+#'     \item \code{"type4"}: Knorr-Held Type IV interaction (structured space \eqn{\times} structured time).
+#'   }
+#' @param prior_prec_time Optional list specifying the prior for temporal precision. Default is
+#'   a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.
+#' @param prior_rho_time Optional list specifying prior for temporal autocorrelation parameter in AR(1).
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Additional arguments passed to \code{INLA::inla()}.
 #'
 #' @returns An object of class \code{c("fastsae_ebp_area", "fastsae")} containing:
 #' \itemize{
 #'   \item \code{df_ebp}: Data frame with domain estimates, including \code{domain},
-#'     observed \code{y}, predicted \code{ebp}, linear predictor \code{linear_pred},
+#'     \code{time} (if specified), observed \code{y}, predicted \code{ebp}, linear predictor \code{linear_pred},
 #'     posterior standard error \code{sd}, \code{mse}, relative error \code{rse} (\%),
 #'     95\% credible interval (\code{ci_lower}, \code{ci_upper}), and \code{random_effect}.
 #'   \item \code{estcoef}: Data frame of estimated regression coefficients.
 #'   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
 #'   \item \code{random_effect_var}: Estimated area random effect variance.
-#'   \item \code{phi}: Estimated spatial variance proportion (for BYM2).
+#'   \item \code{random_effect_var_time}: Estimated temporal random effect variance (if temporal).
+#'   \item \code{phi}: Estimated spatial variance proportion (for BYM2) or spatial autocorrelation.
+#'   \item \code{rho_time}: Estimated temporal autocorrelation parameter (for AR1).
 #'   \item \code{goodness}: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
 #'   \item \code{family}: Response family used.
 #'   \item \code{spatial}: Spatial model type used.
+#'   \item \code{temporal}: Temporal model type used.
+#'   \item \code{st_interaction}: Spatio-temporal interaction type used.
 #'   \item \code{fit}: Raw fitted model object.
 #'   \item \code{call}: Matched function call.
 #' }
@@ -81,6 +112,10 @@
 #'   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
 #'   \item Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An intuitive Bayesian spatial model
 #'     for disease mapping that accounts for scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
+#'   \item Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models.
+#'     \emph{Computational Statistics & Data Analysis}, 58, 308-325.
+#'   \item De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools for Mapping Proportions and Indicators on the Unit Interval.
+#'     \emph{Journal of Statistical Software}, 108(1), 1-36.
 #'   \item Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
 #'     models by using integrated nested Laplace approximations. \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
 #' }
@@ -114,8 +149,11 @@ ebp_area <- function(
   formula,
   data,
   domain = NULL,
+  time = NULL,
   family = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"),
   spatial = c("none", "bym2", "bym", "besag", "generic1", "slm"),
+  temporal = c("none", "rw1", "rw2", "ar1", "iid"),
+  st_interaction = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"),
   W = NULL,
   vardir = NULL,
   trials = NULL,
@@ -127,12 +165,16 @@ ebp_area <- function(
   prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
   prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
   prior_rho = NULL,
+  prior_prec_time = NULL,
+  prior_rho_time = NULL,
   print_result = TRUE,
   ...
 ) {
   call_matched <- match.call()
   family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"))
   spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "bym", "besag", "generic1", "slm"))
+  temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
+  st_interaction <- match.arg(tolower(st_interaction), choices = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"))
   method <- match.arg(tolower(method), choices = c("inla", "laplace"))
   strategy <- match.arg(tolower(strategy), choices = c("simplified.laplace", "laplace", "gaussian"))
 
@@ -140,13 +182,32 @@ ebp_area <- function(
     cli::cli_abort("{.arg data} must be a data frame or tibble.")
   }
 
-  n_domains <- nrow(data)
+  n_obs <- nrow(data)
 
-  # 1. Extract domain identifiers
+  # 1. Extract domain & time identifiers
   if (is.null(domain)) {
-    domain_vec <- seq_len(n_domains)
+    if (is.null(time)) {
+      domain_vec <- seq_len(n_obs)
+    } else {
+      cli::cli_abort("When {.arg time} is specified, {.arg domain} must also be specified to identify domains across time periods.")
+    }
   } else {
     domain_vec <- .get_variable(data, domain)
+  }
+
+  unique_domains <- unique(domain_vec)
+  n_unique_domains <- length(unique_domains)
+
+  time_vec <- if (!is.null(time)) .get_variable(data, time) else NULL
+  if (temporal != "none" && is.null(time_vec)) {
+    cli::cli_abort("When {.code temporal != 'none'}, {.arg time} (time/period column) must be specified.")
+  }
+
+  unique_times <- if (!is.null(time_vec)) sort(unique(time_vec)) else NULL
+  n_unique_times <- if (!is.null(unique_times)) length(unique_times) else 0
+
+  if (temporal != "none" && n_unique_times < 2) {
+    cli::cli_abort("Temporal modeling requires at least 2 distinct time periods in {.arg time}.")
   }
 
   # 2. Model frame & Response validation
@@ -188,13 +249,13 @@ ebp_area <- function(
   # 3. Spatial weights handling
   W_obj <- NULL
   if (spatial != "none") {
-    W_obj <- .convert_spatial_weights(W, n_domains = n_domains, spatial = spatial)
+    W_obj <- .convert_spatial_weights(W, n_domains = n_unique_domains, spatial = spatial, domain_names = unique_domains)
   }
 
   # --------------------------------------------------------------------------
   # Route estimation: Frequentist Laplace (lme4) vs Bayesian INLA
   # --------------------------------------------------------------------------
-  if (method == "laplace" && spatial == "none" && family %in% c("binomial", "poisson")) {
+  if (method == "laplace" && spatial == "none" && temporal == "none" && family %in% c("binomial", "poisson")) {
     out <- .fit_glmm_laplace(
       formula = formula,
       data = data,
@@ -208,8 +269,8 @@ ebp_area <- function(
     if (method == "laplace") {
       if (family == "gaussian") {
         cli::cli_alert_info("For Gaussian area-level models with known sampling variance, utilizing INLA's full Laplace approximation strategy.")
-      } else if (spatial != "none") {
-        cli::cli_alert_info("Spatial models require INLA; utilizing INLA's full Laplace approximation strategy.")
+      } else if (spatial != "none" || temporal != "none") {
+        cli::cli_alert_info("Spatial and temporal models require INLA; utilizing INLA's full Laplace approximation strategy.")
       }
       strategy <- "laplace"
     }
@@ -221,8 +282,11 @@ ebp_area <- function(
       data = data,
       y = y,
       domain = domain_vec,
+      time = time_vec,
       family = family,
       spatial = spatial,
+      temporal = temporal,
+      st_interaction = st_interaction,
       W_obj = W_obj,
       vardir = vardir_vec,
       trials = trials_vec,
@@ -233,6 +297,8 @@ ebp_area <- function(
       prior_prec = prior_prec,
       prior_phi = prior_phi,
       prior_rho = prior_rho,
+      prior_prec_time = prior_prec_time,
+      prior_rho_time = prior_rho_time,
       call = call_matched,
       ...
     )
@@ -254,26 +320,45 @@ ebp_area <- function(
   data,
   y,
   domain,
+  time = NULL,
   family,
-  spatial,
-  W_obj,
-  vardir,
-  trials,
-  exposure,
-  strategy,
-  link,
-  scale_model,
-  prior_prec,
-  prior_phi,
-  prior_rho,
-  call,
+  spatial = "none",
+  temporal = "none",
+  st_interaction = "none",
+  W_obj = NULL,
+  vardir = NULL,
+  trials = NULL,
+  exposure = NULL,
+  strategy = "simplified.laplace",
+  link = NULL,
+  scale_model = TRUE,
+  prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
+  prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+  prior_rho = NULL,
+  prior_prec_time = NULL,
+  prior_rho_time = NULL,
+  call = NULL,
   ...
 ) {
-  n_domains <- nrow(data)
+  n_obs <- nrow(data)
 
-  # Create an internal domain index 1:n_domains for INLA
+  unique_domains <- unique(domain)
+  n_domains <- length(unique_domains)
+  domain_id <- as.integer(factor(domain, levels = unique_domains))
+
   inla_data <- data
-  inla_data$..domain_id.. <- seq_len(n_domains)
+  inla_data$..domain_id.. <- domain_id
+  inla_data$..obs_id.. <- seq_len(n_obs)
+
+  unique_times <- NULL
+  n_times <- 1
+  time_id <- NULL
+  if (!is.null(time)) {
+    unique_times <- sort(unique(time))
+    n_times <- length(unique_times)
+    time_id <- as.integer(factor(time, levels = unique_times))
+    inla_data$..time_id.. <- time_id
+  }
 
   # Map family name to INLA family
   inla_family <- switch(family,
@@ -294,51 +379,60 @@ ebp_area <- function(
   X_mat <- NULL
   rho_range <- NULL
 
-  # Spatial random effect specification
+  # Setup temporal prior hyperparameters
+  if (is.null(prior_prec_time)) {
+    prior_prec_time <- list(prior = "pc.prec", param = c(1, 0.01))
+  }
+  hyper_time <- list(prec = prior_prec_time)
+  if (temporal == "ar1" && !is.null(prior_rho_time)) {
+    hyper_time$rho <- prior_rho_time
+  }
+
+  rand_terms <- c()
+
+  # 1. Spatial random effect specification
   if (spatial == "none") {
-    rand_term <- "f(..domain_id.., model = 'iid', hyper = list(prec = prior_prec))"
-    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
+    if (temporal == "none" || st_interaction %in% c("none", "domain-specific", "type1", "type2")) {
+      rand_terms <- c(rand_terms, "f(..domain_id.., model = 'iid', hyper = list(prec = prior_prec))")
+    }
   } else if (spatial == "bym2") {
-    rand_term <- paste0(
-      "f(..domain_id.., model = 'bym2', graph = W_obj$graph, scale.model = ",
-      scale_model,
-      ", hyper = list(prec = prior_prec, phi = prior_phi))"
-    )
-    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
+    if (st_interaction != "separable") {
+      rand_terms <- c(rand_terms, paste0(
+        "f(..domain_id.., model = 'bym2', graph = W_obj$graph, scale.model = ",
+        scale_model,
+        ", hyper = list(prec = prior_prec, phi = prior_phi))"
+      ))
+    }
   } else if (spatial == "bym") {
-    rand_term <- paste0(
-      "f(..domain_id.., model = 'bym', graph = W_obj$graph, scale.model = ",
-      scale_model,
-      ", hyper = list(prec.unstruct = prior_prec, prec.spatial = prior_prec))"
-    )
-    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
+    if (st_interaction != "separable") {
+      rand_terms <- c(rand_terms, paste0(
+        "f(..domain_id.., model = 'bym', graph = W_obj$graph, scale.model = ",
+        scale_model,
+        ", hyper = list(prec.unstruct = prior_prec, prec.spatial = prior_prec))"
+      ))
+    }
   } else if (spatial == "besag") {
-    rand_term <- paste0(
-      "f(..domain_id.., model = 'besag', graph = W_obj$graph, scale.model = ",
-      scale_model,
-      ", hyper = list(prec = prior_prec))"
-    )
-    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
+    if (st_interaction != "separable") {
+      rand_terms <- c(rand_terms, paste0(
+        "f(..domain_id.., model = 'besag', graph = W_obj$graph, scale.model = ",
+        scale_model,
+        ", hyper = list(prec = prior_prec))"
+      ))
+    }
   } else if (spatial == "generic1") {
-    # Leroux model: Q = tau * ( (1 - rho) * I + rho * (diag(degree) - adj) )
-    # INLA generic1 uses Q = tau * ( I - beta / lambda_max * C )
-    # Setting C = I - R (where R = D - W) gives lambda_max(C) = 1,
-    # so Q = tau * ( I - beta * (I - R) ) = tau * ( (1 - beta) * I + beta * R )
-    # which is mathematically identical to the Leroux CAR precision with rho = beta in [0, 1).
     adj <- W_obj$graph
     R_mat <- diag(rowSums(adj)) - adj
     C_mat <- diag(nrow(adj)) - R_mat
-
     hyper_generic1 <- list(prec = prior_prec)
     if (!is.null(prior_rho)) {
       hyper_generic1$beta <- prior_rho
     } else if (!is.null(prior_phi) && !identical(prior_phi$prior, "pc")) {
       hyper_generic1$beta <- prior_phi
     }
-    rand_term <- "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, hyper = hyper_generic1)"
-    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
+    if (st_interaction != "separable") {
+      rand_terms <- c(rand_terms, "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, hyper = hyper_generic1)")
+    }
   } else if (spatial == "slm") {
-    # Spatial Lag Model (Simultaneous Autoregressive)
     W_mat <- W_obj$W_mat
     rs <- rowSums(W_mat)
     rs_inv <- ifelse(rs > 0, 1 / rs, 0)
@@ -374,10 +468,92 @@ ebp_area <- function(
       hyper_slm$rho <- list(prior = "logitbeta", param = c(1, 1))
     }
 
-    inla_formula_str <- paste(response_var, "~ -1 + f(..domain_id.., model = 'slm', args.slm = args_slm, hyper = hyper_slm)")
+    rand_terms <- c(rand_terms, "f(..domain_id.., model = 'slm', args.slm = args_slm, hyper = hyper_slm)")
+  }
+
+  # 2. Temporal & Space-Time random effect specification
+  if (temporal != "none") {
+    scale_model_time <- if (temporal %in% c("rw1", "rw2")) paste0(", scale.model = ", scale_model) else ""
+
+    if (st_interaction == "none") {
+      # Additive temporal main effect
+      rand_terms <- c(rand_terms, paste0(
+        "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
+      ))
+    } else if (st_interaction == "domain-specific") {
+      # Domain-specific temporal dynamics (directly corresponds to tipsae)
+      rand_terms <- c(rand_terms, paste0(
+        "f(..time_id.., model = '", temporal, "', group = ..domain_id.., control.group = list(model = 'iid')",
+        scale_model_time, ", hyper = hyper_time)"
+      ))
+    } else if (st_interaction == "separable") {
+      # Dynamic spatial field evolving over time
+      if (spatial == "bym2") {
+        rand_terms <- c(rand_terms, paste0(
+          "f(..domain_id.., model = 'bym2', graph = W_obj$graph, group = ..time_id.., control.group = list(model = '",
+          temporal, "'), scale.model = ", scale_model, ", hyper = list(prec = prior_prec, phi = prior_phi))"
+        ))
+      } else if (spatial == "besag") {
+        rand_terms <- c(rand_terms, paste0(
+          "f(..domain_id.., model = 'besag', graph = W_obj$graph, group = ..time_id.., control.group = list(model = '",
+          temporal, "'), scale.model = ", scale_model, ", hyper = list(prec = prior_prec))"
+        ))
+      } else if (spatial == "bym") {
+        rand_terms <- c(rand_terms, paste0(
+          "f(..domain_id.., model = 'bym', graph = W_obj$graph, group = ..time_id.., control.group = list(model = '",
+          temporal, "'), scale.model = ", scale_model, ", hyper = list(prec.unstruct = prior_prec, prec.spatial = prior_prec))"
+        ))
+      } else if (spatial == "generic1") {
+        rand_terms <- c(rand_terms, paste0(
+          "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, group = ..time_id.., control.group = list(model = '",
+          temporal, "'), hyper = hyper_generic1)"
+        ))
+      } else {
+        rand_terms <- c(rand_terms, paste0(
+          "f(..domain_id.., model = 'iid', group = ..time_id.., control.group = list(model = '",
+          temporal, "'), hyper = list(prec = prior_prec))"
+        ))
+      }
+    } else if (st_interaction == "type1") {
+      rand_terms <- c(rand_terms, paste0(
+        "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
+      ))
+      rand_terms <- c(rand_terms, "f(..obs_id.., model = 'iid', hyper = list(prec = prior_prec))")
+    } else if (st_interaction == "type2") {
+      rand_terms <- c(rand_terms, paste0(
+        "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
+      ))
+      rand_terms <- c(rand_terms, paste0(
+        "f(..time_id.., model = '", temporal, "', group = ..domain_id.., control.group = list(model = 'iid')",
+        scale_model_time, ", hyper = hyper_time)"
+      ))
+    } else if (st_interaction == "type3") {
+      rand_terms <- c(rand_terms, paste0(
+        "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
+      ))
+      if (spatial != "none") {
+        rand_terms <- c(rand_terms, paste0(
+          "f(..domain_id.., model = '", spatial, "', graph = W_obj$graph, group = ..time_id.., control.group = list(model = 'iid'), scale.model = ",
+          scale_model, ", hyper = list(prec = prior_prec))"
+        ))
+      }
+    } else if (st_interaction == "type4") {
+      rand_terms <- c(rand_terms, paste0(
+        "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
+      ))
+      if (spatial != "none") {
+        rand_terms <- c(rand_terms, paste0(
+          "f(..domain_id.., model = '", spatial, "', graph = W_obj$graph, group = ..time_id.., control.group = list(model = '",
+          temporal, "'), scale.model = ", scale_model, ", hyper = list(prec = prior_prec))"
+        ))
+      }
+    }
+  }
+
+  if (spatial == "slm") {
+    inla_formula_str <- paste(response_var, "~ -1 +", paste(rand_terms, collapse = " + "))
   } else {
-    rand_term <- "f(..domain_id.., model = 'iid')"
-    inla_formula_str <- paste(response_var, "~", fixed_str, "+", rand_term)
+    inla_formula_str <- paste(response_var, "~", fixed_str, "+", paste(rand_terms, collapse = " + "))
   }
 
   inla_formula <- stats::as.formula(inla_formula_str)
@@ -413,7 +589,6 @@ ebp_area <- function(
     if (any(vardir[!is.na(y)] <= 0, na.rm = TRUE)) {
       cli::cli_abort("{.arg vardir} must be strictly positive for sampled domains.")
     }
-    # Fix Gaussian observation precision at scale
     inla_args$scale <- 1 / vardir
     inla_args$control.family <- list(
       hyper = list(prec = list(initial = 0, fixed = TRUE))
@@ -426,7 +601,6 @@ ebp_area <- function(
       if (any(vardir[!is.na(y)] <= 0, na.rm = TRUE)) {
         cli::cli_abort("{.arg vardir} must be strictly positive for sampled domains.")
       }
-      # Parameter dispersi/presisi direct Janicki (2020)
       phi_dir <- (y * (1 - y) / vardir) - 1
       phi_dir[phi_dir < 1] <- 1
       inla_args$scale <- phi_dir
@@ -448,9 +622,7 @@ ebp_area <- function(
     if (any(vardir[!is.na(y)] <= 0, na.rm = TRUE)) {
       cli::cli_abort("{.arg vardir} must be strictly positive for sampled domains.")
     }
-    # Direct precision scaling: s_i = y_i^2 / vardir_i = 1 / CV_i^2
-    # In INLA, Var(y) = mu^2 / (s * phi). Fixing phi = 1 gives Var(y) = mu^2 / s = vardir.
-    s_gamma <- rep(1, n_domains)
+    s_gamma <- rep(1, n_obs)
     idx_valid <- which(!is.na(y) & !is.na(vardir) & vardir > 0)
     s_gamma[idx_valid] <- (y[idx_valid]^2) / vardir[idx_valid]
     s_gamma[s_gamma <= 0 | is.na(s_gamma)] <- 1
@@ -487,13 +659,20 @@ ebp_area <- function(
     data = data,
     y = y,
     domain = domain,
+    time = time,
     family = family,
     spatial = spatial,
+    temporal = temporal,
+    st_interaction = st_interaction,
     vardir = vardir,
     trials = trials,
     exposure = exposure,
     X_mat = X_mat,
     rho_range = rho_range,
+    domain_id = domain_id,
+    time_id = time_id,
+    unique_domains = unique_domains,
+    unique_times = unique_times,
     call = call
   )
 

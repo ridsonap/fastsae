@@ -136,6 +136,14 @@ if (requireNamespace("sae", quietly = TRUE)) {
 }
 ```
 
+## Next Steps
+
+Explore advanced modeling capabilities in **fastsae**:
+- **Spatial & Spatio-Temporal Models (EBLUP)**: [spatial-temporal.html](spatial-temporal.html) (SAR and AR(1) dynamics).
+- **Bayesian Area-Level SAE with INLA (`ebp_area`)**: [ebp-area-inla.html](ebp-area-inla.html) (Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma, Binomial, and spatio-temporal interactions).
+- **Model Diagnostics and Residual Analysis (`diagnose`)**: [model-diagnostics.html](model-diagnostics.html) (Calibration tests, RSE reduction, and Moran's I).
+- **Unit-Level Estimation**: [unit-level-bhf.html](unit-level-bhf.html) (Battese-Harter-Fuller model).
+
 ## References
 
 - Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. *Journal of the American Statistical Association*, 74(366), 269–277.

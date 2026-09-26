@@ -85,8 +85,12 @@ navbar:
       menu:
         - text: "Getting Started with fastsae"
           href: articles/getting-started.html
-        - text: "Spatial & Spatio-Temporal Models"
+        - text: "Spatial & Spatio-Temporal Models (EBLUP)"
           href: articles/spatial-temporal.html
+        - text: "Bayesian Area-Level Models (INLA)"
+          href: articles/ebp-area-inla.html
+        - text: "Model Diagnostics & Calibration"
+          href: articles/model-diagnostics.html
         - text: "Unit-Level Estimation (BHF)"
           href: articles/unit-level-bhf.html
         - text: "--------------------"
@@ -104,20 +108,25 @@ navbar:
       aria-label: GitHub
 
 reference:
-  - title: "Area-Level Models"
-    desc: "Fay-Herriot family of models for area-level small area estimation"
+  - title: "Classical Area-Level Models (EBLUP)"
+    desc: "High-performance C++ implementation of Fay-Herriot models"
     contents:
       - eblup_fh
       - eblup_sfh
       - eblup_stfh
+  - title: "Bayesian Area-Level Models (INLA / EBP)"
+    desc: "Hierarchical Bayesian Small Area Estimation using INLA across 6 distributions with spatial and spatio-temporal effects"
+    contents:
+      - ebp_area
   - title: "Unit-Level Models"
     desc: "Battese-Harter-Fuller model for unit-level survey data"
     contents:
       - eblup_bhf
-      - pbmse_unit
   - title: "Model Diagnostics & Visualization"
-    desc: "S3 methods and ggplot2-based diagnostic plots"
+    desc: "Universal diagnostic framework and ggplot2 visualization methods"
     contents:
+      - diagnose
+      - autoplot.fastsae_diagnose
       - autoplot.fastsae
       - autoplot.list
       - summary.fastsae
@@ -126,11 +135,19 @@ reference:
       - residuals.fastsae
       - print.fastsae
       - print.summary.fastsae
-  - title: "Example Datasets"
-    desc: "Built-in survey datasets and spatial proximity matrices"
+  - title: "Simulation & Synthetic Data Generation"
+    desc: "Utilities to simulate area-level cross-sectional, panel, and spatial weight matrices"
+    contents:
+      - sim_area_data
+      - sim_series_data
+      - sim_spatial_weights
+  - title: "Example & Synthetic Datasets"
+    desc: "Built-in empirical and synthetic survey datasets"
     contents:
       - mys
       - mys_panel
       - mys_proxmat
       - cornsoybean
       - cornsoybeanmeans
+      - sim_area
+      - sim_panel

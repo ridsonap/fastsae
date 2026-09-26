@@ -6,8 +6,8 @@ Rcpp::compileAttributes()
 devtools::document()
 devtools::check()
 devtools::test()
-
 load_all()
+
 
 
 
@@ -103,12 +103,12 @@ fit_pois <- ebp_area(
 )
 summary(fit_pois)
 
-# 4. Using built-in sae_area_multi with mys_proxmat
-data(sae_area_multi)
+# 4. Using built-in sim_area with mys_proxmat
+data(sim_area)
 data(mys_proxmat)
 fit_multi_bin <- ebp_area(
   y_binomial ~ x1 + x2,
-  data = sae_area_multi,
+  data = sim_area,
   trials = "trials",
   family = "binomial",
   W = mys_proxmat,
@@ -119,7 +119,7 @@ summary(fit_multi_bin)
 
 # Spatio-Temporal Series Simulation ---------------------------------------
 # 1. Simulate 30 domains over 4 years with SAR spatial and AR(1) temporal dynamics
-sim_panel <- sim_series_data(
+sim_panel_gen <- sim_series_data(
   D = 30,
   T = 4,
   time_start = 2021,
@@ -129,23 +129,23 @@ sim_panel <- sim_series_data(
   prop_intermittent = 0,
   seed = 123
 )
-print(sim_panel)
-head(sim_panel$data)
+print(sim_panel_gen)
+head(sim_panel_gen$data)
 
 # 2. Fit Spatio-Temporal Fay-Herriot Model (eblup_stfh)
 fit_stfh <- eblup_stfh(
   y_gaussian ~ x1 + x2,
-  data = sim_panel$data,
+  data = sim_panel_gen$data,
   domain = ~area,
   time = ~year,
   vardir = ~vardir,
-  W = sim_panel$W_std
+  W = sim_panel_gen$W_std
 )
 summary(fit_stfh)
 
-# 3. Using built-in sae_panel_multi dataset
-data(sae_panel_multi)
-head(sae_panel_multi)
+# 3. Using built-in sim_panel dataset
+data(sim_panel)
+head(sim_panel)
 
 
 

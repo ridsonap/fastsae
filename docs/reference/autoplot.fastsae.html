@@ -83,7 +83,9 @@ autoplot from ggplot2."><meta property="og:image" content="https://ridsonap.gith
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
-    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
+    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
@@ -155,17 +157,73 @@ models fitted with <span class="pkg">fastsae</span>. This extends the generic
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae">fastsae</a></span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae/">fastsae</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Single model plot</span></span></span>
 <span class="r-in"><span><span class="va">fit_fh</span> <span class="op">&lt;-</span> <span class="fu"><a href="eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_fh(formula = y ~ x1 + x2 + x3, vardir = "vardir", data = mys)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 6 iterations)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Fay-Herriot (Area-level)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: eblup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.608103 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   beta  std.error     zvalue pvalue</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1077510  0.7697687  4.0372527 0.0001</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.0019323  0.0098886 -0.1954019 0.8451</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.0555184  0.0614129  0.9040187 0.3660</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.0335344  0.0580013  0.5781663 0.5632</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y    eblup    vardir random_effect       mse       rse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.612738 0.6618838    2.94266461 0.5616180  9.844182</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.782316 0.8374691    2.54539588 0.6784873 12.144869</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.187060 0.8822257    0.96692722 0.7190378 16.347620</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.201545 0.6581716   -1.31646412 0.5619314 17.841554</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.323679 1.2788021   -0.03796677 0.9370273 15.307573</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.048590 0.3878004   -0.81904048 0.3548310 14.713194</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_fh</span>, type <span class="op">=</span> <span class="st">"estimates"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="autoplot.fastsae-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compare two models</span></span></span>
 <span class="r-in"><span><span class="va">fit_sfh</span> <span class="op">&lt;-</span> <span class="fu"><a href="eblup_sfh.html">eblup_sfh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>, W <span class="op">=</span> <span class="va">mys_proxmat</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = "vardir", data = mys, W =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> mys_proxmat)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 8 iterations)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatial Fay-Herriot (Area-level SAR)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: REML</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 1.493692 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial autocorrelation (rho): -1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue pvalue</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.03659649  0.62669962  4.84537788 0.0000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.00085935  0.00824230 -0.10426151 0.9170</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.04983809  0.05273618  0.94504545 0.3446</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.03929798  0.05006522  0.78493574 0.4325</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y    vardir    eblup random_effect       mse       rse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 0.6618838 7.282308   2.605985416 0.4797992  9.511756</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 0.8374691 6.423856   2.212974942 0.6156692 12.214562</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 0.8822257 5.023421   0.892393688 0.5519476 14.789360</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 0.6581716 4.324716  -1.127251956 0.4811841 16.039766</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 1.2788021 6.344991  -0.002629647 0.7315241 13.479795</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 0.3878004 4.087497  -0.704885769 0.3403445 14.272560</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Fay-Herriot"</span> <span class="op">=</span> <span class="va">fit_fh</span>, <span class="st">"Spatial FH"</span> <span class="op">=</span> <span class="va">fit_sfh</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"comparison"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-plt img"><img src="autoplot.fastsae-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

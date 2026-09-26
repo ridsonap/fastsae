@@ -14,12 +14,12 @@ Source:
 
 Al Farizal P R, Ubaidillah A (2026). *fastsae: Fast Implementation of
 Small Area Estimation Methods*. R package version 0.1.0,
-<https://ridsonap.github.io/fastsae>.
+<https://ridsonap.github.io/fastsae/>.
 
 @Manual{,\
   title = {fastsae: Fast Implementation of Small Area Estimation Methods},\
   author = {Ridson {Al Farizal P} and Azka Ubaidillah},\
   year = {2026},\
   note = {R package version 0.1.0},\
-  url = {https://ridsonap.github.io/fastsae},\
+  url = {https://ridsonap.github.io/fastsae/},\
 }

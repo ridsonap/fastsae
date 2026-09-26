@@ -83,7 +83,9 @@ proposed by Battese, Harter, and Fuller (1988), which combines survey data
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
-    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
+    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
@@ -128,22 +130,10 @@ proposed by Battese, Harter, and Fuller (1988), which combines survey data
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REML"</span>, <span class="st">"ML"</span><span class="op">)</span>,</span>
 <span>  popnmean_xpop <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  mse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  compute_mse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  n_threads <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  seed <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">pbmse_unit</span><span class="op">(</span></span>
-<span>  <span class="va">formula</span>,</span>
-<span>  <span class="va">unit_data</span>,</span>
-<span>  <span class="va">Xpop</span>,</span>
-<span>  <span class="va">domain_var</span>,</span>
-<span>  <span class="va">popsize_var</span>,</span>
-<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REML"</span>, <span class="st">"ML"</span><span class="op">)</span>,</span>
-<span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  n_threads <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  seed <span class="op">=</span> <span class="op">-</span><span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -180,10 +170,10 @@ proposed by Battese, Harter, and Fuller (1988), which combines survey data
 
 
 <dt id="arg-b">B<a class="anchor" aria-label="anchor" href="#arg-b"></a></dt>
-<dd><p>Number of bootstrap replicates for MSE (if mse = TRUE).</p></dd>
+<dd><p>Number of bootstrap replicates for MSE (if compute_mse = TRUE).</p></dd>
 
 
-<dt id="arg-mse">mse<a class="anchor" aria-label="anchor" href="#arg-mse"></a></dt>
+<dt id="arg-compute-mse">compute_mse<a class="anchor" aria-label="anchor" href="#arg-compute-mse"></a></dt>
 <dd><p>If TRUE, compute bootstrap MSE.</p></dd>
 
 

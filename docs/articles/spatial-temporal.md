@@ -40,17 +40,17 @@ matrix $`V_e = \text{diag}(D_1, \dots, D_D)`$.
 ### Fitting the Model
 
 \
-[`library`](https://rdrr.io/r/base/library.html)`(`[`fastsae`](https://ridsonap.github.io/fastsae)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`fastsae`](https://ridsonap.github.io/fastsae/)`)`\
 [`data`](https://rdrr.io/r/utils/data.html)`(``"mys"``)`\
 [`data`](https://rdrr.io/r/utils/data.html)`(``"mys_proxmat"``)`\
 \
 `# Fit Spatial Fay-Herriot model with REML`\
 `fit_sfh`` ``<-`` `[`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)`(`\
 `  formula ``=`` ``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``,`\
-`  vardir  ``=`` ``~``vardir``,`\
-`  data    ``=`` ``mys``,`\
-`  W       ``=`` ``mys_proxmat``,`\
-`  method  ``=`` ``"REML"``,`\
+`  vardir ``=`` ``~``vardir``,`\
+`  data ``=`` ``mys``,`\
+`  W ``=`` ``mys_proxmat``,`\
+`  method ``=`` ``"REML"``,`\
 `  print_result ``=`` ``FALSE`\
 `)`\
 \
@@ -69,6 +69,7 @@ matrix $`V_e = \text{diag}(D_1, \dots, D_D)`$.
 `#>  parameter  estimate std.error`\
 `#>   sigma2_u  1.493692  1.095052`\
 `#>        rho -1.000000 10.836726`\
+`#> rho (spatial): -1 `\
 `#> `\
 `#> Coefficients:`\
 `#>                    beta   std.error      zvalue pvalue`\
@@ -82,13 +83,13 @@ matrix $`V_e = \text{diag}(D_1, \dots, D_D)`$.
 `#>     -65.02194     142.04389     150.83830 `\
 `#> `\
 `#> EBLUP Summary Statistics:`\
-`#>      eblup             mse              rse        `\
-`#>  Min.   :0.9736   Min.   :0.1936   Min.   : 9.512  `\
-`#>  1st Qu.:4.1867   1st Qu.:0.5725   1st Qu.:13.224  `\
-`#>  Median :4.9636   Median :0.8264   Median :19.840  `\
-`#>  Mean   :5.0375   Mean   :1.0470   Mean   :21.974  `\
-`#>  3rd Qu.:6.1456   3rd Qu.:1.3772   3rd Qu.:30.137  `\
-`#>  Max.   :8.7887   Max.   :2.3507   Max.   :45.188`
+`#>       mse              rse        `\
+`#>  Min.   :0.1936   Min.   : 9.512  `\
+`#>  1st Qu.:0.5725   1st Qu.:13.224  `\
+`#>  Median :0.8264   Median :19.840  `\
+`#>  Mean   :1.0470   Mean   :21.974  `\
+`#>  3rd Qu.:1.3772   3rd Qu.:30.137  `\
+`#>  Max.   :2.3507   Max.   :45.188`
 
 ### Unsampled Domains and Spatial Kriging
 
@@ -129,14 +130,14 @@ multi-threaded OpenMP bootstrap MSE estimation:
 
 \
 `fit_sfh_pb`` ``<-`` `[`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)`(`\
-`  formula    ``=`` ``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``,`\
-`  vardir     ``=`` ``~``vardir``,`\
-`  data       ``=`` ``mys``,`\
-`  W          ``=`` ``mys_proxmat``,`\
+`  formula ``=`` ``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``,`\
+`  vardir ``=`` ``~``vardir``,`\
+`  data ``=`` ``mys``,`\
+`  W ``=`` ``mys_proxmat``,`\
 `  mse_method ``=`` ``"pbmse"``,`\
-`  B          ``=`` ``50``,`\
-`  n_threads  ``=`` ``2``,`\
-`  seed       ``=`` ``123``,`\
+`  B ``=`` ``50``,`\
+`  n_threads ``=`` ``2``,`\
+`  seed ``=`` ``123``,`\
 `  print_result ``=`` ``FALSE`\
 `)`\
 `#> ``ℹ`` 10 unsampled domain(s) detected. Bootstrap MSE (pbmse) is computed for the 32 sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead.`\
@@ -182,16 +183,16 @@ $`e_{dt} \sim \text{ind. } N(0, D_{dt})`$ are sampling errors.
 \
 `# Fit Spatio-Temporal model with bootstrap MSE`\
 `fit_stfh`` ``<-`` `[`eblup_stfh`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)`(`\
-`  formula     ``=`` ``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``,`\
-`  data        ``=`` ``panel_data``,`\
-`  vardir      ``=`` ``~``vardir``,`\
-`  domain      ``=`` ``~``area``,`\
-`  time        ``=`` ``~``year``,`\
-`  W           ``=`` ``W_sub``,`\
-`  model       ``=`` ``"ST"``,`\
+`  formula ``=`` ``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``,`\
+`  data ``=`` ``panel_data``,`\
+`  vardir ``=`` ``~``vardir``,`\
+`  domain ``=`` ``~``area``,`\
+`  time ``=`` ``~``year``,`\
+`  W ``=`` ``W_sub``,`\
+`  model ``=`` ``"ST"``,`\
 `  compute_mse ``=`` ``TRUE``,`\
-`  B           ``=`` ``25``,`\
-`  seed        ``=`` ``42``,`\
+`  B ``=`` ``25``,`\
+`  seed ``=`` ``42``,`\
 `  print_result ``=`` ``FALSE`\
 `)`\
 \
@@ -226,13 +227,13 @@ $`e_{dt} \sim \text{ind. } N(0, D_{dt})`$ are sampling errors.
 `#> -243.6043  503.2087  525.5086 `\
 `#> `\
 `#> EBLUP Summary Statistics:`\
-`#>      eblup             mse              rse         `\
-`#>  Min.   :-0.729   Min.   :0.1885   Min.   :  7.866  `\
-`#>  1st Qu.: 4.661   1st Qu.:0.5410   1st Qu.: 12.858  `\
-`#>  Median : 5.465   Median :0.7642   Median : 15.707  `\
-`#>  Mean   : 5.424   Mean   :0.8911   Mean   : 20.922  `\
-`#>  3rd Qu.: 6.244   3rd Qu.:1.0287   3rd Qu.: 19.913  `\
-`#>  Max.   : 9.203   Max.   :3.2885   Max.   :276.605`
+`#>       mse              rse         `\
+`#>  Min.   :0.1885   Min.   :  7.866  `\
+`#>  1st Qu.:0.5410   1st Qu.: 12.858  `\
+`#>  Median :0.7642   Median : 15.707  `\
+`#>  Mean   :0.8911   Mean   : 20.922  `\
+`#>  3rd Qu.:1.0287   3rd Qu.: 19.913  `\
+`#>  Max.   :3.2885   Max.   :276.605`
 
 The estimated variance and correlation components include: - `sigma21`:
 Spatial random effect variance ($`\sigma_{u1}^2`$). - `rho1`: Spatial
@@ -257,6 +258,26 @@ different models using
 [`autoplot`](https://ggplot2.tidyverse.org/reference/autoplot.html)`(`[`list`](https://rdrr.io/r/base/list.html)`(``"Standard FH"`` ``=`` ``fit_fh``, ``"Spatial FH"`` ``=`` ``fit_sfh_clean``)``, type ``=`` ``"comparison"``)`
 
 ![](spatial-temporal_files/figure-html/compare_models-1.png)
+
+------------------------------------------------------------------------
+
+## 4. Bayesian Spatio-Temporal Modeling (`ebp_area`)
+
+In addition to frequentist C++ EBLUP implementations (`eblup_sfh` and
+`eblup_stfh`), **fastsae** provides
+[`ebp_area()`](https://ridsonap.github.io/fastsae/reference/ebp_area.md)
+for Bayesian spatio-temporal modeling powered by **INLA**. This
+supports: - Bounded proportions via Beta regression (matching
+`tipsae`) - Discrete counts via Poisson and Negative Binomial
+regression - Binary aggregates via Binomial regression - Flexible
+space-time structures including domain-specific random walks, separable
+dynamic fields, and Knorr-Held Types I–IV.
+
+For full details and a case study on Italian poverty data, see the
+vignette [Bayesian Area-Level Small Area Estimation with
+INLA](https://ridsonap.github.io/fastsae/articles/ebp-area-inla.md).
+
+------------------------------------------------------------------------
 
 ## References
 

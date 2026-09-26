@@ -8,8 +8,12 @@ ebp_area(
   formula,
   data,
   domain = NULL,
+  time = NULL,
   family = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"),
   spatial = c("none", "bym2", "bym", "besag", "generic1", "slm"),
+  temporal = c("none", "rw1", "rw2", "ar1", "iid"),
+  st_interaction = c("none", "domain-specific", "separable", "type1", "type2", "type3",
+    "type4"),
   W = NULL,
   vardir = NULL,
   trials = NULL,
@@ -21,6 +25,8 @@ ebp_area(
   prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
   prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
   prior_rho = NULL,
+  prior_prec_time = NULL,
+  prior_rho_time = NULL,
   print_result = TRUE,
   ...
 )
@@ -33,6 +39,10 @@ ebp_area(
 
 \item{domain}{Vector, column name, or one-sided formula referencing the area/domain
 identifier in \code{data}. If \code{NULL}, domains are numbered consecutively.}
+
+\item{time}{Vector, column name, or one-sided formula referencing the time period
+identifier in \code{data} (e.g. \code{time = "year"} or \code{~year}). Required
+when \code{temporal != "none"}.}
 
 \item{family}{Character string specifying the response distribution / likelihood.
 Options:
@@ -58,6 +68,28 @@ Options:
   \item \code{"bym"}: Classic Besag-York-Mollié (1991) model.
   \item \code{"besag"}: Intrinsic Conditional Autoregressive (ICAR) model.
   \item \code{"generic1"}: Leroux spatial autoregressive model.
+}}
+
+\item{temporal}{Character string specifying the temporal random effect structure:
+\itemize{
+  \item \code{"none"}: No temporal random effect (default cross-sectional model).
+  \item \code{"rw1"}: First-order random walk across time periods.
+  \item \code{"rw2"}: Second-order random walk across time periods.
+  \item \code{"ar1"}: First-order autoregressive process across time periods.
+  \item \code{"iid"}: Unstructured independent time effects.
+}}
+
+\item{st_interaction}{Character string specifying the spatio-temporal structure:
+\itemize{
+  \item \code{"none"}: Additive main spatial and temporal effects (default).
+  \item \code{"domain-specific"}: Domain-specific temporal random walk / AR(1) dynamics with
+    shared variance parameter (directly corresponds to the \pkg{tipsae} spatio-temporal model).
+  \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1) / RW
+    (corresponds to classical Spatio-Temporal Fay-Herriot models, Marhuenda et al. 2013).
+  \item \code{"type1"}: Knorr-Held (2000) Type I interaction (unstructured space \eqn{\times} unstructured time).
+  \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time).
+  \item \code{"type3"}: Knorr-Held Type III interaction (structured space \eqn{\times} unstructured time).
+  \item \code{"type4"}: Knorr-Held Type IV interaction (structured space \eqn{\times} structured time).
 }}
 
 \item{W}{Proximity or spatial adjacency matrix. Can be a square \code{matrix},
@@ -91,6 +123,13 @@ Penalized Complexity (PC) prior: \code{list(prior = "pc.prec", param = c(1, 0.01
 \item{prior_phi}{List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
 in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.}
 
+\item{prior_rho}{Optional list specifying prior for spatial autocorrelation parameter (generic1/slm).}
+
+\item{prior_prec_time}{Optional list specifying the prior for temporal precision. Default is
+a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.}
+
+\item{prior_rho_time}{Optional list specifying prior for temporal autocorrelation parameter in AR(1).}
+
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 
 \item{...}{Additional arguments passed to \code{INLA::inla()}.}
@@ -99,16 +138,20 @@ in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.}
 An object of class \code{c("fastsae_ebp_area", "fastsae")} containing:
 \itemize{
   \item \code{df_ebp}: Data frame with domain estimates, including \code{domain},
-    observed \code{y}, predicted \code{ebp}, linear predictor \code{linear_pred},
+    \code{time} (if specified), observed \code{y}, predicted \code{ebp}, linear predictor \code{linear_pred},
     posterior standard error \code{sd}, \code{mse}, relative error \code{rse} (\%),
     95\% credible interval (\code{ci_lower}, \code{ci_upper}), and \code{random_effect}.
   \item \code{estcoef}: Data frame of estimated regression coefficients.
   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
   \item \code{random_effect_var}: Estimated area random effect variance.
-  \item \code{phi}: Estimated spatial variance proportion (for BYM2).
+  \item \code{random_effect_var_time}: Estimated temporal random effect variance (if temporal).
+  \item \code{phi}: Estimated spatial variance proportion (for BYM2) or spatial autocorrelation.
+  \item \code{rho_time}: Estimated temporal autocorrelation parameter (for AR1).
   \item \code{goodness}: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
   \item \code{family}: Response family used.
   \item \code{spatial}: Spatial model type used.
+  \item \code{temporal}: Temporal model type used.
+  \item \code{st_interaction}: Spatio-temporal interaction type used.
   \item \code{fit}: Raw fitted model object.
   \item \code{call}: Matched function call.
 }
@@ -149,6 +192,10 @@ if (requireNamespace("INLA", quietly = TRUE)) {
   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
   \item Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An intuitive Bayesian spatial model
     for disease mapping that accounts for scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
+  \item Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models.
+    \emph{Computational Statistics & Data Analysis}, 58, 308-325.
+  \item De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools for Mapping Proportions and Indicators on the Unit Interval.
+    \emph{Journal of Statistical Software}, 108(1), 1-36.
   \item Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
     models by using integrated nested Laplace approximations. \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
 }

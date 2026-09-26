@@ -15,7 +15,7 @@ const getPreferredTheme = () => {
     return storedTheme
   }
 
-  return 'light'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 const setTheme = theme => {

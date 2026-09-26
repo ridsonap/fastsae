@@ -100,7 +100,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
-    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
+    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
@@ -534,7 +536,96 @@ blocks via Kronecker and Woodbury decomposition, transforming an
 bottleneck into scalable
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>D</mi><mn>3</mn></msup><mo>+</mo><msup><mi>T</mi><mn>3</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">O(D^3 + T^3)</annotation></semantics></math>
 steps.</p></li>
+<li><p><strong>Integrated Nested Laplace Approximations (INLA)</strong>:
+For complex hierarchical generalized and spatio-temporal models
+(<code>ebp_area</code>), <code>fastsae</code> utilizes INLA to compute
+analytical posterior margins directly from sparse Gaussian Markov Random
+Fields, bypassing Monte Carlo sampling entirely.</p></li>
 </ol>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="bayesian-spatio-temporal-benchmark-fastsae-inla-vs-tipsae-stan-mcmc">Bayesian Spatio-Temporal Benchmark: <code>fastsae</code> (INLA) vs
+<code>tipsae</code> (Stan MCMC)<a class="anchor" aria-label="anchor" href="#bayesian-spatio-temporal-benchmark-fastsae-inla-vs-tipsae-stan-mcmc"></a>
+</h2>
+<p>To assess Bayesian small area estimation performance,
+<code><a href="../reference/ebp_area.html">fastsae::ebp_area()</a></code> was benchmarked against
+<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae()</a></code>, the state-of-the-art Stan MCMC package
+for spatio-temporal Beta small area models.</p>
+<p>The test used the official <code>tipsae</code> panel dataset:
+<strong><code>emilia</code></strong> (38 health districts in
+Emilia-Romagna over 5 years,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mn>190</mn></mrow><annotation encoding="application/x-tex">N = 190</annotation></semantics></math>
+domains
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+years) with spatial polygon contiguity matrix
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>
+from <strong><code>emilia_shp</code></strong>.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Metric</th>
+<th align="left">
+<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Stan MCMC)</th>
+<th align="left">
+<code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (INLA)</th>
+<th align="left">Advantage</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Model Specification</strong></td>
+<td align="left">Besag ICAR + Domain RW(1)</td>
+<td align="left">
+<code>spatial = "besag"</code>,
+<code>temporal = "rw1"</code>,
+<code>st_interaction = "domain-specific"</code>
+</td>
+<td align="left"><strong>Exact structural equivalence</strong></td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Computational Engine</strong></td>
+<td align="left">Hamiltonian Monte Carlo (NUTS Stan)</td>
+<td align="left">Integrated Nested Laplace Approximation</td>
+<td align="left">Analytical &amp; deterministic</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Execution Time</strong></td>
+<td align="left">
+<strong>15.8 s</strong> (1 chain, 200 iter) / ~120 s (4
+chains)</td>
+<td align="left">
+<strong>1.93 s</strong>
+(<code>simplified.laplace</code>)</td>
+<td align="left"><strong>~9x to 50x+ faster</strong></td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Pearson Correlation
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>)</strong></td>
+<td align="left">Baseline</td>
+<td align="left"><strong>0.9893</strong></td>
+<td align="left"><strong>Near-identical point estimates</strong></td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Mean Absolute Error (MAE)</strong></td>
+<td align="left">Baseline</td>
+<td align="left"><strong>0.00304</strong></td>
+<td align="left"><strong>Negligible numerical error</strong></td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Convergence Overhead</strong></td>
+<td align="left">Requires
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>R</mi><mo accent="true">̂</mo></mover><mo>&lt;</mo><mn>1.05</mn></mrow><annotation encoding="application/x-tex">\hat{R} &lt; 1.05</annotation></semantics></math>
+checks, warmup, and tuning</td>
+<td align="left">None (closed-form Laplace expansions)</td>
+<td align="left">Instant convergence</td>
+</tr>
+</tbody>
+</table>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

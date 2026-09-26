@@ -50,7 +50,7 @@ We use the classic `cornsoybean` dataset, reporting corn crop hectares
 per segment in 12 Iowa counties:
 
 \
-[`library`](https://rdrr.io/r/base/library.html)`(`[`fastsae`](https://ridsonap.github.io/fastsae)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`fastsae`](https://ridsonap.github.io/fastsae/)`)`\
 [`data`](https://rdrr.io/r/utils/data.html)`(``"cornsoybean"``)`\
 [`data`](https://rdrr.io/r/utils/data.html)`(``"cornsoybeanmeans"``)`\
 \
@@ -81,19 +81,20 @@ per segment in 12 Iowa counties:
 
 We fit the model using
 [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md).
-To estimate domain-level Mean Squared Error (MSE), set `mse = TRUE`:
+To estimate domain-level Mean Squared Error (MSE), set
+`compute_mse = TRUE`:
 
 \
 `fit_bhf`` ``<-`` `[`eblup_bhf`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)`(`\
-`  formula     ``=`` ``CornHec`` ``~`` ``CornPix`` ``+`` ``SoyBeansPix``,`\
-`  unit_data   ``=`` ``cornsoybean``,`\
-`  Xpop        ``=`` ``df_pop``,`\
-`  domain_var  ``=`` ``"County"``,`\
+`  formula ``=`` ``CornHec`` ``~`` ``CornPix`` ``+`` ``SoyBeansPix``,`\
+`  unit_data ``=`` ``cornsoybean``,`\
+`  Xpop ``=`` ``df_pop``,`\
+`  domain_var ``=`` ``"County"``,`\
 `  popsize_var ``=`` ``"PopnSegments"``,`\
-`  method      ``=`` ``"REML"``,`\
-`  mse         ``=`` ``TRUE``,`\
-`  B           ``=`` ``50``,`\
-`  seed        ``=`` ``123``,`\
+`  method ``=`` ``"REML"``,`\
+`  compute_mse ``=`` ``TRUE``,`\
+`  B ``=`` ``50``,`\
+`  seed ``=`` ``123``,`\
 `  print_result ``=`` ``FALSE`\
 `)`\
 `#> boundary (singular) fit: see help('isSingular')`\
@@ -108,9 +109,9 @@ To estimate domain-level Mean Squared Error (MSE), set `mse = TRUE`:
 `#> Call :`\
 `#> eblup_bhf(formula = CornHec ~ CornPix + SoyBeansPix, unit_data = cornsoybean,`\
 `#> Xpop = df_pop, domain_var = "County", popsize_var = "PopnSegments", method =`\
-`#> "REML", B = 50, mse = TRUE, seed = 123, print_result = FALSE)`\
+`#> "REML", B = 50, compute_mse = TRUE, seed = 123, print_result = FALSE)`\
 `#> `\
-`#> ``✔`` Convergence: Yes (in  iterations)`\
+`#> ``✔`` Convergence: Yes (in - iterations)`\
 `#> ``Model``: Battese-Harter-Fuller (Unit-level)`\
 `#> `\
 `#> Variance Components:`\
@@ -123,13 +124,13 @@ To estimate domain-level Mean Squared Error (MSE), set `mse = TRUE`:
 `#> SoyBeansPix -0.030364  0.067576 -0.449327 0.6532`\
 `#> `\
 `#> EBLUP Summary Statistics:`\
-`#>      eblup            mse             rse       `\
-`#>  Min.   :109.0   Min.   :24.89   Min.   :4.039  `\
-`#>  1st Qu.:112.9   1st Qu.:36.74   1st Qu.:4.838  `\
-`#>  Median :119.5   Median :46.45   Median :5.816  `\
-`#>  Mean   :119.9   Mean   :49.96   Mean   :5.839  `\
-`#>  3rd Qu.:123.7   3rd Qu.:62.20   3rd Qu.:6.849  `\
-`#>  Max.   :137.3   Max.   :81.65   Max.   :7.921`
+`#>       mse             rse       `\
+`#>  Min.   :24.89   Min.   :4.039  `\
+`#>  1st Qu.:36.74   1st Qu.:4.838  `\
+`#>  Median :46.45   Median :5.816  `\
+`#>  Mean   :49.96   Mean   :5.839  `\
+`#>  3rd Qu.:62.20   3rd Qu.:6.849  `\
+`#>  Max.   :81.65   Max.   :7.921`
 
 ### 3. Inspect Domain Estimates
 

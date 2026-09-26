@@ -1,0 +1,159 @@
+---
+title: "Model Diagnostics and Residual Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Model Diagnostics and Residual Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  eval = TRUE
+)
+```
+
+## Introduction
+
+In Small Area Estimation (SAE), model-based estimators borrow strength across domains and time to improve estimation precision over direct survey estimators. However, introducing model assumptions carries the risk of model misspecification, bias, and inappropriate shrinkage.
+
+To address these challenges, **fastsae** provides a unified diagnostic framework centered on the `diagnose()` function and its dedicated S3 `autoplot()` visualization method. It evaluates both **frequentist C++ EBLUP** models (`eblup_fh`, `eblup_sfh`, `eblup_stfh`, `eblup_bhf`) and **Bayesian INLA EBP** models (`ebp_area`).
+
+---
+
+## Core Diagnostic Criteria
+
+The diagnostic workflow evaluates four fundamental dimensions of SAE model quality:
+
+1. **Precision Gain & RSE Reduction**:
+   Quantifies the improvement in Relative Standard Error ($\text{RSE} = \frac{\sqrt{\text{MSE}}}{\hat{\theta}} \times 100\%$) compared to direct survey estimates. Evaluates whether areas satisfy the official statistics reliability threshold (typically $\text{RSE} < 25\%$ or $20\%$).
+2. **External Calibration & Bias Diagnostic (Brown et al., 2001)**:
+   Tests whether model predictions are statistically unbiased predictors of direct estimates using the regression:
+   $$y_d = \alpha + \beta \hat{\theta}_d + e_d$$
+   Under unbiasedness, the joint hypothesis $H_0: \alpha = 0, \beta = 1$ should not be rejected.
+3. **Goodness-of-Fit Statistic**:
+   Computes the Chi-square diagnostic statistic $W$:
+   $$W = \sum_{d=1}^D \frac{(y_d - \hat{\theta}_d)^2}{V_d + \text{MSE}(\hat{\theta}_d)}$$
+   which approximately follows a $\chi^2(D)$ distribution under the null hypothesis of proper model specification.
+4. **Residual Spatial Autocorrelation (Moran's I)**:
+   Verifies whether spatial autocorrelation has been fully captured by the model random effects. Significant residual spatial clustering indicates that unmodeled spatial patterns remain.
+
+---
+
+## Practical Example: Diagnosing a Fay-Herriot Model
+
+We demonstrate the diagnostic workflow using the built-in `mys` dataset (Mean Years of Schooling in 42 regencies):
+
+### 1. Fit Model and Run `diagnose()`
+
+```{r diag_fit, message = FALSE, warning = FALSE}
+library(fastsae)
+library(ggplot2)
+
+data("mys")
+data("mys_proxmat")
+
+# Fit Area-Level Fay-Herriot model
+fit_fh <- eblup_fh(
+  formula = y ~ x1 + x2 + x3,
+  vardir = ~vardir,
+  data = na.omit(mys),
+  method = "REML",
+  print_result = FALSE
+)
+
+# Run comprehensive diagnostic checks
+diag_fh <- diagnose(fit_fh, W = mys_proxmat[!is.na(mys$y), !is.na(mys$y)])
+print(diag_fh)
+```
+
+### 2. Inspect Diagnostic Components
+
+The resulting `fastsae_diagnose` object provides structured access to each diagnostic domain:
+
+```{r diag_precision}
+# Efficiency gains
+diag_fh$precision
+
+# Calibration test results
+diag_fh$brown_test
+
+# Moran's I spatial test on residuals
+diag_fh$spatial_test
+```
+
+---
+
+## Visual Diagnostics with `autoplot()`
+
+`fastsae` implements dedicated ggplot2 visualization types for `fastsae_diagnose` objects:
+
+### 1. Calibration Plot (`type = "calibration"`)
+
+Plots direct survey estimates against model predictions along with the 1:1 identity line and the fitted calibration regression:
+
+```{r plot_calib}
+autoplot(diag_fh, type = "calibration")
+```
+
+### 2. Precision Comparison (`type = "rse"`)
+
+Visualizes the domain-by-domain reduction in Relative Standard Error:
+
+```{r plot_rse}
+autoplot(diag_fh, type = "rse")
+```
+
+### 3. Residual Diagnostics (`type = "residuals"` & `type = "qq"`)
+
+Inspect standardized residuals against fitted values to detect heteroscedasticity, non-linearities, or outliers:
+
+```{r plot_res}
+autoplot(diag_fh, type = "residuals")
+autoplot(diag_fh, type = "qq")
+```
+
+### 4. Combined Diagnostic Dashboard (`type = "all"`)
+
+Generates a unified diagnostic view summarizing calibration and precision gains:
+
+```{r plot_all}
+autoplot(diag_fh, type = "all")
+```
+
+---
+
+## Diagnosing Bayesian Spatio-Temporal Models
+
+The exact same `diagnose()` function applies directly to Bayesian models fitted with `ebp_area()`:
+
+```{r diag_ebp, message = FALSE, warning = FALSE}
+data("sim_area", package = "fastsae")
+
+# Fit Spatial EBP model with BYM2 prior
+fit_ebp <- ebp_area(
+  formula = y_gaussian ~ x1 + x2,
+  data = sim_area,
+  vardir = "vardir",
+  spatial = "bym2",
+  W = mys_proxmat,
+  print_result = FALSE
+)
+
+# Diagnose Bayesian model
+diag_ebp <- diagnose(fit_ebp)
+diag_ebp$precision
+diag_ebp$status
+```
+
+---
+
+## References
+
+- Brown, G., Chambers, R., Heady, P., & Heasman, D. (2001). Evaluation criteria for small area estimation methods. *Statistics in Transition*, 5(2), 185–200.
+- Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. *Journal of the American Statistical Association*, 74(366), 269–277.
+- Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.

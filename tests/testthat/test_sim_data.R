@@ -112,20 +112,20 @@ test_that("ebp_area fits successfully on simulated data across families", {
   expect_equal(nrow(fit_beta$df_ebp), 35)
 })
 
-test_that("built-in sae_area_multi dataset loads and integrates with mys_proxmat", {
-  data("sae_area_multi", package = "fastsae")
+test_that("built-in sim_area dataset loads and integrates with mys_proxmat", {
+  data("sim_area", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  expect_equal(nrow(sae_area_multi), 42)
-  expect_equal(sae_area_multi$area, 1:42)
-  expect_true("y_gaussian" %in% names(sae_area_multi))
-  expect_true("y_poisson" %in% names(sae_area_multi))
-  expect_true("y_binomial" %in% names(sae_area_multi))
-  expect_true("y_beta" %in% names(sae_area_multi))
+  expect_equal(nrow(sim_area), 42)
+  expect_equal(sim_area$area, 1:42)
+  expect_true("y_gaussian" %in% names(sim_area))
+  expect_true("y_poisson" %in% names(sim_area))
+  expect_true("y_binomial" %in% names(sim_area))
+  expect_true("y_beta" %in% names(sim_area))
 
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
   # Test spatial fit with mys_proxmat
-  fit_multi_spatial <- ebp_area(y_poisson ~ x1 + x2, data = sae_area_multi,
+  fit_multi_spatial <- ebp_area(y_poisson ~ x1 + x2, data = sim_area,
                                 exposure = "exposure", family = "poisson",
                                 spatial = "bym2", W = mys_proxmat)
   expect_s3_class(fit_multi_spatial, "fastsae")

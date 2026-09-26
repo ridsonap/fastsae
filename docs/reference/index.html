@@ -79,7 +79,9 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
-    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
+    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
@@ -106,9 +108,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="area-level-models">Area-Level Models<a class="anchor" aria-label="anchor" href="#area-level-models"></a></h2>
+      <h2 id="classical-area-level-models-eblup-">Classical Area-Level Models (EBLUP)<a class="anchor" aria-label="anchor" href="#classical-area-level-models-eblup-"></a></h2>
 
-      <div class="section-desc"><p>Fay-Herriot family of models for area-level small area estimation</p></div>
+      <div class="section-desc"><p>High-performance C++ implementation of Fay-Herriot models</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -120,21 +122,37 @@
           <code><a href="eblup_fh.html">eblup_fh()</a></code>
 
         </dt>
-        <dd>EBLUPs based on a Fay-Herriot Model.</dd>
+        <dd>Empirical Best Linear Unbiased Prediction based on a Fay-Herriot Model.</dd>
 
         <dt>
 
           <code><a href="eblup_sfh.html">eblup_sfh()</a></code>
 
         </dt>
-        <dd>EBLUPs based on a Spatial Fay-Herriot Model.</dd>
+        <dd>Empirical Best Linear Unbiased Prediction based on a Spatial Fay-Herriot Model.</dd>
 
         <dt>
 
           <code><a href="eblup_stfh.html">eblup_stfh()</a></code>
 
         </dt>
-        <dd>EBLUPs based on a Spatio-Temporal Fay-Herriot Model.</dd>
+        <dd>Empirical Best Linear Unbiased Prediction based on a Spatio-Temporal Fay-Herriot Model.</dd>
+      </dl></div><div class="section level2">
+      <h2 id="bayesian-area-level-models-inla-ebp-">Bayesian Area-Level Models (INLA / EBP)<a class="anchor" aria-label="anchor" href="#bayesian-area-level-models-inla-ebp-"></a></h2>
+
+      <div class="section-desc"><p>Hierarchical Bayesian Small Area Estimation using INLA across 6 distributions with spatial and spatio-temporal effects</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="ebp_area.html">ebp_area()</a></code>
+
+        </dt>
+        <dd>Empirical Best Prediction for Area-Level Small Area Estimation</dd>
       </dl></div><div class="section level2">
       <h2 id="unit-level-models">Unit-Level Models<a class="anchor" aria-label="anchor" href="#unit-level-models"></a></h2>
 
@@ -147,14 +165,14 @@
 
       <dl><dt>
 
-          <code><a href="eblup_bhf.html">eblup_bhf()</a></code> <code><a href="eblup_bhf.html">pbmse_unit()</a></code>
+          <code><a href="eblup_bhf.html">eblup_bhf()</a></code>
 
         </dt>
         <dd>Empirical Best Linear Unbiased Prediction (EBLUP) for the Battese-Harter-Fuller Model</dd>
       </dl></div><div class="section level2">
       <h2 id="model-diagnostics-visualization">Model Diagnostics &amp; Visualization<a class="anchor" aria-label="anchor" href="#model-diagnostics-visualization"></a></h2>
 
-      <div class="section-desc"><p>S3 methods and ggplot2-based diagnostic plots</p></div>
+      <div class="section-desc"><p>Universal diagnostic framework and ggplot2 visualization methods</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -162,6 +180,20 @@
 
 
       <dl><dt>
+
+          <code><a href="diagnose.html">diagnose()</a></code>
+
+        </dt>
+        <dd>Diagnostic Evaluation of Small Area Estimation Models</dd>
+
+        <dt>
+
+          <code><a href="autoplot.fastsae_diagnose.html">autoplot(<i>&lt;fastsae_diagnose&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Autoplot Method for fastsae_diagnose Objects</dd>
+
+        <dt>
 
           <code><a href="autoplot.fastsae.html">autoplot(<i>&lt;fastsae&gt;</i>)</a></code> <code><a href="autoplot.fastsae.html">autoplot(<i>&lt;list&gt;</i>)</a></code>
 
@@ -187,7 +219,7 @@
           <code><a href="fitted.fastsae.html">fitted(<i>&lt;fastsae&gt;</i>)</a></code>
 
         </dt>
-        <dd>Extract fitted values (EBLUP) from a fastsae object</dd>
+        <dd>Extract fitted values (EBLUP or EBP) from a fastsae object</dd>
 
         <dt>
 
@@ -210,9 +242,39 @@
         </dt>
         <dd>Print summary of a fastsae object</dd>
       </dl></div><div class="section level2">
-      <h2 id="example-datasets">Example Datasets<a class="anchor" aria-label="anchor" href="#example-datasets"></a></h2>
+      <h2 id="simulation-synthetic-data-generation">Simulation &amp; Synthetic Data Generation<a class="anchor" aria-label="anchor" href="#simulation-synthetic-data-generation"></a></h2>
 
-      <div class="section-desc"><p>Built-in survey datasets and spatial proximity matrices</p></div>
+      <div class="section-desc"><p>Utilities to simulate area-level cross-sectional, panel, and spatial weight matrices</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="sim_area_data.html">sim_area_data()</a></code>
+
+        </dt>
+        <dd>Simulate Multi-Distribution Small Area Data with Spatial Autocorrelation</dd>
+
+        <dt>
+
+          <code><a href="sim_series_data.html">sim_series_data()</a></code>
+
+        </dt>
+        <dd>Simulate Spatio-Temporal Multi-Distribution Small Area Data</dd>
+
+        <dt>
+
+          <code><a href="sim_spatial_weights.html">sim_spatial_weights()</a></code>
+
+        </dt>
+        <dd>Simulate Spatial Proximity and Adjacency Matrices</dd>
+      </dl></div><div class="section level2">
+      <h2 id="example-synthetic-datasets">Example &amp; Synthetic Datasets<a class="anchor" aria-label="anchor" href="#example-synthetic-datasets"></a></h2>
+
+      <div class="section-desc"><p>Built-in empirical and synthetic survey datasets</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -231,7 +293,7 @@
           <code><a href="mys_panel.html">mys_panel</a></code>
 
         </dt>
-        <dd>mys: mean years of schooling people with disabilities disabilities 2016 - 2026.</dd>
+        <dd>mys_panel: mean years of schooling people with disabilities 2016 - 2026.</dd>
 
         <dt>
 
@@ -253,6 +315,20 @@
 
         </dt>
         <dd>Corn and Soybean Mean Number of Pixels per Segment for 12 Iowa Counties</dd>
+
+        <dt>
+
+          <code><a href="sim_area.html">sim_area</a></code>
+
+        </dt>
+        <dd>Multi-Distribution Synthetic Area-Level Dataset</dd>
+
+        <dt>
+
+          <code><a href="sim_panel.html">sim_panel</a></code>
+
+        </dt>
+        <dd>Multi-Distribution Spatio-Temporal Panel Dataset</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

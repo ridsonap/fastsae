@@ -1,4 +1,4 @@
-# EBLUPs based on a Fay-Herriot Model.
+# Empirical Best Linear Unbiased Prediction based on a Fay-Herriot Model.
 
 This function gives the Empirical Best Linear Unbiased Prediction
 (EBLUP) or Empirical Best (EB) predictor under normality based on a
@@ -10,6 +10,7 @@ Fay-Herriot model.
 eblup_fh(
   formula,
   vardir,
+  domain = NULL,
   data,
   method = c("REML", "ML"),
   maxiter = 100,
@@ -29,6 +30,11 @@ eblup_fh(
 
   vector or column names from data that contain variance sampling from
   the direct estimator.
+
+- domain:
+
+  vector, column name or one-sided formula referencing a domain names
+  column in `data`. If NULL, the domains are numbered consecutively.
 
 - data:
 
@@ -56,7 +62,19 @@ The function returns a list with the following objects: `estcoef` a data
 frame with the estimated model coefficients, `random_effect_var`
 estimated random effect variance, `goodness` vector containing several
 goodness-of-fit measures, `df_eblup` a data frame that contains y,
-eblup, vardir, mse, and rse.
+eblup, random_effect, vardir, mse, and rse.\
+
+- `y` variable response\
+
+- `eblup` estimated results for each area\
+
+- `random_effect` random effect for each area\
+
+- `vardir` variance sampling from the direct estimator for each area\
+
+- `mse` Mean Square Error\
+
+- `rse` Relative Standart Error (%)\
 
 ## Details
 
@@ -98,13 +116,13 @@ m1 <- eblup_fh(
 #> x3           0.0335344  0.0580013  0.5781663 0.5632
 #> 
 #> EBLUP Estimates (First 6 domains):
-#>   domain        y    eblup    vardir       mse       rse
-#> 1      1 8.359527 7.612738 0.6618838 0.5616180  9.844182
-#> 2      2 7.599650 6.782316 0.8374691 0.6784873 12.144869
-#> 3      3 5.514137 5.187060 0.8822257 0.7190378 16.347620
-#> 4      4 3.869326 4.201545 0.6581716 0.5619314 17.841554
-#> 5      5 6.305063 6.323679 1.2788021 0.9370273 15.307573
-#> 6      6 3.926807 4.048590 0.3878004 0.3548310 14.713194
+#>   domain        y    eblup    vardir random_effect       mse       rse
+#> 1      1 8.359527 7.612738 0.6618838    2.94266461 0.5616180  9.844182
+#> 2      2 7.599650 6.782316 0.8374691    2.54539588 0.6784873 12.144869
+#> 3      3 5.514137 5.187060 0.8822257    0.96692722 0.7190378 16.347620
+#> 4      4 3.869326 4.201545 0.6581716   -1.31646412 0.5619314 17.841554
+#> 5      5 6.305063 6.323679 1.2788021   -0.03796677 0.9370273 15.307573
+#> 6      6 3.926807 4.048590 0.3878004   -0.81904048 0.3548310 14.713194
 #> ... and 36 more rows.
 #> 
 ```

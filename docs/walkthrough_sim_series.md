@@ -24,8 +24,8 @@ Fungsi ini mensimulasikan panel data berdimensi $D \times T$ yang memadukan auto
   - `prop_intermittent`: Observasi yang hilang berkala pada tahun-tahun tertentu.
 * **Objek Kembalian**: Berkelas `fastsae_sim_series` yang dilengkapi dengan `print()` method yang informatif, menyimpan data frame `$data`, matriks spasial `$W` & `$W_std`, serta *ground-truth* efek acak `$u_spatial` dan `$u_temporal`.
 
-### B. Dataset Bawaan: `sae_panel_multi`
-File: [`data/sae_panel_multi.rda`](file:///Volumes/work/_MainR/fastsae-inla/data/sae_panel_multi.rda) dan dokumentasi di [`R/data.R`](file:///Volumes/work/_MainR/fastsae-inla/R/data.R)
+### B. Dataset Bawaan: `sim_panel`
+File: [`data/sim_panel.rda`](file:///Volumes/work/_MainR/fastsae-inla/data/sim_panel.rda) dan dokumentasi di [`R/data.R`](file:///Volumes/work/_MainR/fastsae-inla/R/data.R)
 * Dataset panel 42 domain $\times$ 5 periode tahun (2022-2026, total 210 baris observasi).
 * Kompatibel langsung dengan matriks spasial bawaan [`mys_proxmat`](file:///Volumes/work/_MainR/fastsae-inla/data/mys_proxmat.rda).
 
@@ -37,7 +37,7 @@ File: [`data/sae_panel_multi.rda`](file:///Volumes/work/_MainR/fastsae-inla/data
 library(fastsae)
 
 # 1. Bangkitkan panel 30 domain sepanjang 4 tahun
-sim_panel <- sim_series_data(
+sim_panel_gen <- sim_series_data(
   D = 30,
   T = 4,
   time_start = 2021,
@@ -47,23 +47,23 @@ sim_panel <- sim_series_data(
   prop_intermittent = 0,
   seed = 123
 )
-print(sim_panel)
-head(sim_panel$data)
+print(sim_panel_gen)
+head(sim_panel_gen$data)
 
 # 2. Estimasi Model Spatio-Temporal Fay-Herriot (eblup_stfh)
 fit_stfh <- eblup_stfh(
   y_gaussian ~ x1 + x2,
-  data = sim_panel$data,
+  data = sim_panel_gen$data,
   domain = ~area,
   time = ~year,
   vardir = ~vardir,
-  W = sim_panel$W_std
+  W = sim_panel_gen$W_std
 )
 summary(fit_stfh)
 
-# 3. Menggunakan dataset bawaan sae_panel_multi
-data(sae_panel_multi)
-head(sae_panel_multi)
+# 3. Menggunakan dataset bawaan sim_panel
+data(sim_panel)
+head(sim_panel)
 ```
 
 ---
@@ -74,4 +74,4 @@ Seluruh 35 pengujian pada [`tests/testthat/test_sim_series.R`](file:///Volumes/w
 - Validasi dimensi $(D \cdot T)$, urutan domain-major vs time-major.
 - Validasi sifat batasan nilai sebaran (Beta $\in (0, 1)$, Poisson $\ge 0$, Binomial $\le$ trials).
 - Validasi domain tak tersampel persisten dan intermittent.
-- Validasi fitting model `eblup_stfh()` pada data panel hasil generate dan dataset bawaan `sae_panel_multi`.
+- Validasi fitting model `eblup_stfh()` pada data panel hasil generate dan dataset bawaan `sim_panel`.

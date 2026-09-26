@@ -23,10 +23,10 @@ Membangkitkan dataset simulasi *area-level* dengan kovariat bersama dan autokore
 * **Penanganan Domain Tak Tersampel (`n_unsampled`)**: Secara otomatis menandai nilai respon sebagai `NA` sementara variabel pendukung tetap tersedia (sesuai kerangka sensus riil).
 * Mengembalikan objek kelas `fastsae_sim_data` dengan fungsi `print()` informatif, memuat komponen `$data`, `$W`, `$W_std`, `$coords`, serta *ground-truth* efek acak `$u_spatial` dan `$u_iid`.
 
-### C. Dataset Bawaan: `sae_area_multi`
-File: [`data/sae_area_multi.rda`](file:///Volumes/work/_MainR/fastsae-inla/data/sae_area_multi.rda) dan dokumentasi di [`R/data.R`](file:///Volumes/work/_MainR/fastsae-inla/R/data.R)
+### C. Dataset Bawaan: `sim_area`
+File: [`data/sim_area.rda`](file:///Volumes/work/_MainR/fastsae-inla/data/sim_area.rda) dan dokumentasi di [`R/data.R`](file:///Volumes/work/_MainR/fastsae-inla/R/data.R)
 * Dataset 42 domain yang kompatibel 100% dengan matriks spasial bawaan [`mys_proxmat`](file:///Volumes/work/_MainR/fastsae-inla/data/mys_proxmat.rda).
-* Pengguna dapat langsung memuat via `data(sae_area_multi)` tanpa konfigurasi tambahan.
+* Pengguna dapat langsung memuat via `data(sim_area)` tanpa konfigurasi tambahan.
 
 ---
 
@@ -54,13 +54,13 @@ fit_pois <- ebp_spatial(
 )
 summary(fit_pois)
 
-# 4. Menggunakan dataset bawaan sae_area_multi dan mys_proxmat
-data(sae_area_multi)
+# 4. Menggunakan dataset bawaan sim_area dan mys_proxmat
+data(sim_area)
 data(mys_proxmat)
 
 fit_bin <- ebp_spatial(
   y_binomial ~ x1 + x2,
-  data = sae_area_multi,
+  data = sim_area,
   trials = "trials",
   family = "binomial",
   W = mys_proxmat

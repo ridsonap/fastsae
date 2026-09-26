@@ -100,7 +100,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
-    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
+    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
@@ -202,7 +204,7 @@ is the shrinkage factor
 <p>We use the built-in <code>mys</code> dataset (mean years of
 schooling):</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae">fastsae</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae/">fastsae</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mys"</span><span class="op">)</span></span>
@@ -226,9 +228,9 @@ Likelihood (REML):</p>
 <code class="sourceCode R"><span><span class="co"># Fit Fay-Herriot model</span></span>
 <span><span class="va">fit_fh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
-<span>  vardir  <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
-<span>  data    <span class="op">=</span> <span class="va">mys</span>,</span>
-<span>  method  <span class="op">=</span> <span class="st">"REML"</span>,</span>
+<span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">mys</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"REML"</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -264,13 +266,13 @@ model diagnostics, variance components, and coefficient tests:</p>
 <span><span class="co">#&gt;     -65.14251     140.28502     147.61370 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBLUP Summary Statistics:</span></span>
-<span><span class="co">#&gt;      eblup             mse              rse        </span></span>
-<span><span class="co">#&gt;  Min.   :0.8506   Min.   :0.2037   Min.   : 9.844  </span></span>
-<span><span class="co">#&gt;  1st Qu.:4.1973   1st Qu.:0.6886   1st Qu.:14.889  </span></span>
-<span><span class="co">#&gt;  Median :5.0196   Median :1.0156   Median :22.157  </span></span>
-<span><span class="co">#&gt;  Mean   :5.0746   Mean   :1.5434   Mean   :26.275  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:6.1360   3rd Qu.:2.4886   3rd Qu.:35.020  </span></span>
-<span><span class="co">#&gt;  Max.   :9.0220   Max.   :3.7074   Max.   :53.065</span></span></code></pre></div>
+<span><span class="co">#&gt;       mse              rse        </span></span>
+<span><span class="co">#&gt;  Min.   :0.2037   Min.   : 9.844  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.6886   1st Qu.:14.889  </span></span>
+<span><span class="co">#&gt;  Median :1.0156   Median :22.157  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5434   Mean   :26.275  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:2.4886   3rd Qu.:35.020  </span></span>
+<span><span class="co">#&gt;  Max.   :3.7074   Max.   :53.065</span></span></code></pre></div>
 <p>You can extract fixed-effects coefficients using
 <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -321,7 +323,7 @@ identical to <code><a href="https://rdrr.io/pkg/sae/man/eblupFH.html" class="ext
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"sae"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">mys_clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">mys</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">fit_fast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_clean</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span>  <span class="va">fit_sae</span>  <span class="op">&lt;-</span> <span class="fu">sae</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/sae/man/eblupFH.html" class="external-link">eblupFH</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_clean</span><span class="op">)</span></span>
+<span>  <span class="va">fit_sae</span> <span class="op">&lt;-</span> <span class="fu">sae</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/sae/man/eblupFH.html" class="external-link">eblupFH</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_clean</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="co"># Check EBLUP estimates</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">fit_sae</span><span class="op">$</span><span class="va">eblup</span><span class="op">)</span><span class="op">)</span></span>
@@ -333,6 +335,20 @@ identical to <code><a href="https://rdrr.io/pkg/sae/man/eblupFH.html" class="ext
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">$</span><span class="va">random_effect_var</span>, <span class="va">fit_sae</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">refvar</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="next-steps">Next Steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p>Explore advanced modeling capabilities in <strong>fastsae</strong>: -
+<strong>Spatial &amp; Spatio-Temporal Models (EBLUP)</strong>: <a href="spatial-temporal.html">spatial-temporal.html</a> (SAR and AR(1)
+dynamics). - <strong>Bayesian Area-Level SAE with INLA
+(<code>ebp_area</code>)</strong>: <a href="ebp-area-inla.html">ebp-area-inla.html</a> (Non-Gaussian families:
+Beta, Poisson, Negative Binomial, Gamma, Binomial, and spatio-temporal
+interactions). - <strong>Model Diagnostics and Residual Analysis
+(<code>diagnose</code>)</strong>: <a href="model-diagnostics.html">model-diagnostics.html</a> (Calibration
+tests, RSE reduction, and Moran’s I). - <strong>Unit-Level
+Estimation</strong>: <a href="unit-level-bhf.html">unit-level-bhf.html</a>
+(Battese-Harter-Fuller model).</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

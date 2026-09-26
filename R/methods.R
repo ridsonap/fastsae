@@ -42,16 +42,28 @@ print.fastsae <- function(x, ...) {
 
   cli::cli_text("{.strong Model}: {model_type}")
 
+  if (!is.null(x$temporal) && x$temporal != "none") {
+    cli::cli_text("{.strong Temporal}: {toupper(x$temporal)}")
+    if (!is.null(x$st_interaction) && x$st_interaction != "none") {
+      cli::cli_text("{.strong Spatio-Temporal Structure}: {toupper(x$st_interaction)}")
+    }
+  }
+
   if (!is.null(x$method)) {
     cli::cli_text("{.strong Method}: {x$method}")
   }
 
-
   if (!is.null(x$random_effect_var)) {
     cat("Random effect variance (sigma2_u):", round(x$random_effect_var, 6), "\n")
   }
+  if (!is.null(x$random_effect_var_time)) {
+    cat("Temporal effect variance (sigma2_t):", round(x$random_effect_var_time, 6), "\n")
+  }
   if (!is.null(x$rho)) {
     cat("Spatial autocorrelation (rho):", round(x$rho, 4), "\n")
+  }
+  if (!is.null(x$rho_time)) {
+    cat("Temporal autocorrelation (rho_t):", round(x$rho_time, 4), "\n")
   }
   if (!is.null(x$phi)) {
     cat("Spatial mixing fraction (phi):", round(x$phi, 4), "\n")
@@ -94,13 +106,17 @@ summary.fastsae <- function(object, ...) {
     method = object$method,
     family = object$family,
     spatial = object$spatial,
+    temporal = object$temporal,
+    st_interaction = object$st_interaction,
     convergence = object$convergence,
     n_iter = object$n_iter,
     coefficients = object$estcoef,
     estvarcomp = object$estvarcomp,
     hyperpar = object$hyperpar,
     random_effect_var = object$random_effect_var,
+    random_effect_var_time = object$random_effect_var_time,
     rho = object$rho,
+    rho_time = object$rho_time,
     phi = object$phi,
     goodness = object$goodness,
     df_eblup = object$df_eblup,
@@ -148,6 +164,13 @@ print.summary.fastsae <- function(x, ...) {
 
   cli::cli_text("{.strong Model}: {model_type}")
 
+  if (!is.null(x$temporal) && x$temporal != "none") {
+    cli::cli_text("{.strong Temporal}: {toupper(x$temporal)}")
+    if (!is.null(x$st_interaction) && x$st_interaction != "none") {
+      cli::cli_text("{.strong Spatio-Temporal Structure}: {toupper(x$st_interaction)}")
+    }
+  }
+
   if (!is.null(x$method)) {
     cli::cli_text("{.strong Method}: {x$method}")
   }
@@ -159,8 +182,14 @@ print.summary.fastsae <- function(x, ...) {
     cat("\nVariance Components:\n")
     cat("sigma2_u:", round(x$random_effect_var, 6), "\n")
   }
+  if (!is.null(x$random_effect_var_time)) {
+    cat("sigma2_t (temporal):", round(x$random_effect_var_time, 6), "\n")
+  }
   if (!is.null(x$rho)) {
     cat("rho (spatial):", round(x$rho, 4), "\n")
+  }
+  if (!is.null(x$rho_time)) {
+    cat("rho_t (temporal):", round(x$rho_time, 4), "\n")
   }
   if (!is.null(x$phi)) {
     cat("phi (spatial fraction):", round(x$phi, 4), "\n")

@@ -49,13 +49,12 @@ Documentation : <https://ridsonap.github.io/fastsae/>
 
 ------------------------------------------------------------------------
 
-## Supported Models
-
-| Model | Function | Random Effect Structure | MSE Estimation Methods |
+| Model | Function | Random Effect Structure | MSE / Uncertainty Estimation |
 |:---|:---|:---|:---|
 | **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects ($u_d \sim N(0, \sigma_u^2)$) | Analytical (Prasad-Rao) |
 | **Spatial Fay-Herriot** | `eblup_sfh()` | Simultaneous Autoregressive (SAR(1)) | Analytical, Parametric Bootstrap (`pbmse`), Non-Parametric Bootstrap (`npbmse`) |
 | **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | Spatial SAR(1) + Temporal AR(1) | Parametric Bootstrap (`pbmse`) |
+| **Bayesian Area-Level (INLA)** | `ebp_area()` | Area IID, Spatial (BYM2, Besag, SLM), Temporal (RW1, RW2, AR1), Spatio-Temporal interactions across 6 distributions | Analytical Bayesian posterior S.D., MSE, and 95% Credible Intervals |
 | **Battese-Harter-Fuller** (Unit-level) | `eblup_bhf()` | Random intercept nested in domains | Parametric Bootstrap (`pbmse`) |
 
 ------------------------------------------------------------------------
@@ -127,6 +126,20 @@ $n = 1,000$ (with 5 covariates):
 ![](README_files/figure-gfm/benchmark_plots-1.png)
 
 ![](README_files/figure-gfm/benchmark_plots_mem.png)
+
+### Bayesian Spatio-Temporal SAE Benchmark: `fastsae` (INLA) vs `tipsae` (Stan MCMC)
+
+In addition to frequentist C++ EBLUP models, `fastsae::ebp_area()` offers Bayesian Hierarchical SAE powered by **Integrated Nested Laplace Approximations (INLA)** across 6 distribution families (`gaussian`, `binomial`, `poisson`, `nbinomial`, `beta`, `gamma`) with spatial and spatio-temporal dynamics.
+
+Empirical comparison on the official `tipsae` Italian poverty panel dataset (`emilia`, 38 districts over 5 years, $N = 190$):
+
+| Metric | `tipsae::fit_sae` (Stan MCMC) | `fastsae::ebp_area` (INLA) | Advantage |
+|:---|:---:|:---:|:---:|
+| **Model Structure** | Besag ICAR + Domain RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` | **Exact structural equivalence** |
+| **Engine** | Full MCMC via Stan | Deterministic INLA | Analytical posterior approximations |
+| **Runtime** | **15.8 s** (1 chain, 200 iter) / ~120 s (4 chains) | **1.93 s** (`simplified.laplace`) | **~9x to 50x+ faster** |
+| **Pearson Correlation ($r$)** | Baseline | **0.9893** | **Near-perfect agreement** |
+| **Mean Absolute Error (MAE)** | Baseline | **0.00304** | **Extremely high fidelity** |
 
 ------------------------------------------------------------------------
 
@@ -256,17 +269,80 @@ autoplot(fit_fh, type = "mse")
 autoplot(list("FH" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
 ```
 
+### 6. Bayesian Area-Level SAE with INLA (`ebp_area`)
+
+`ebp_area()` implements Bayesian Empirical Best Prediction for continuous, count, rate, and bounded proportion data across 6 distribution families (`gaussian`, `binomial`, `poisson`, `nbinomial`, `beta`, `gamma`), supporting spatial models (`bym2`, `besag`, `slm`) and temporal/spatio-temporal dynamics (`rw1`, `ar1`, domain-specific, separable):
+
+``` r
+# Fit Spatio-Temporal Beta SAE model (e.g. Italian poverty rates)
+library(spdep)
+data("emilia", package = "tipsae")
+data("emilia_shp", package = "tipsae")
+
+# Construct spatial adjacency matrix
+W_emilia <- nb2mat(poly2nb(emilia_shp), style = "B", zero.policy = TRUE)
+rownames(W_emilia) <- colnames(W_emilia) <- emilia_shp$NAME_DISTRICT
+
+fit_beta_st <- ebp_area(
+  formula = hcr ~ x,
+  data = emilia,
+  domain = "id",
+  time = "year",
+  vardir = "vars",
+  family = "beta",
+  spatial = "besag",
+  temporal = "rw1",
+  st_interaction = "domain-specific",
+  W = W_emilia
+)
+
+summary(fit_beta_st)
+head(fit_beta_st$df_ebp)
+```
+
+### 7. Universal Model Diagnostics & Residual Analysis (`diagnose`)
+
+The `diagnose()` function conducts rigorous evaluation across both EBLUP and INLA EBP models, assessing estimation precision gains (RSE reduction), external calibration (Brown et al., 2001), goodness-of-fit, and spatial autocorrelation (Moran's I):
+
+``` r
+# Run diagnostic checks on a fitted model
+diag_res <- diagnose(fit_fh, W = mys_proxmat)
+print(diag_res)
+
+# Generate multi-panel diagnostic dashboard
+autoplot(diag_res, type = "all")
+```
+
+### 8. Synthetic Data & Spatial Matrix Simulation
+
+Quickly generate synthetic cross-sectional and longitudinal small area datasets with known spatial autocorrelation topologies for benchmarking and simulation experiments:
+
+``` r
+# 1. Simulate 50-domain cross-sectional data across 6 distribution families
+sim_data <- sim_area_data(D = 50, spatial_type = "knn", rho = 0.6, seed = 42)
+
+# 2. Simulate 50-domain 5-year panel dataset with spatial and temporal dynamics
+sim_panel_data <- sim_series_data(D = 50, T = 5, trend = "random_walk", seed = 42)
+
+# 3. Simulate spatial proximity / adjacency weights
+W_sim <- sim_spatial_weights(D = 50, type = "knn", style = "B")
+```
+
 ------------------------------------------------------------------------
 
 ## References
 
-- Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small
-  places: An application of James-Stein procedures to Census data.
-  *Journal of the American Statistical Association*, 74(366), 269–277.
 - Battese, G. E., Harter, R. M., & Fuller, W. A. (1988). An
   error-components model for prediction of county crop areas using
   survey and satellite data. *Journal of the American Statistical
   Association*, 83(401), 28–36.
+- Brown, G., Chambers, R., Heady, P., & Heasman, D. (2001). Evaluation
+  criteria for small area estimation methods. *Statistics in Transition*, 5(2), 185–200.
+- De Nicolò, S., & Gardini, A. (2022). tipsae: Mapping proportions and rates
+  using spatio-temporal Beta small area models. *Journal of Statistical Software*.
+- Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small
+  places: An application of James-Stein procedures to Census data.
+  *Journal of the American Statistical Association*, 74(366), 269–277.
 - Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation
   with spatio-temporal Fay-Herriot models. *Computational Statistics &
   Data Analysis*, 58, 308–325.
@@ -275,3 +351,9 @@ autoplot(list("FH" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
   *Journal of Applied Statistics*, 35(7), 781–794.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
   John Wiley & Sons.
+- Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference
+  for latent Gaussian models by using integrated nested Laplace approximations.
+  *Journal of the Royal Statistical Society: Series B*, 71(2), 319–392.
+- Simpson, D., Rue, H., Riebler, A., Martins, T. G., & Sørbye, S. H. (2017).
+  Penalising model component complexity: A principled, practical approach to
+  constructing priors. *Statistical Science*, 32(1), 1–28.

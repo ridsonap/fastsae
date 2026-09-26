@@ -21,4 +21,4 @@ residuals(object, ...)
 
 ## Value
 
-Vector of residuals (y - eblup) for sampled areas.
+Vector of residuals for sampled areas.

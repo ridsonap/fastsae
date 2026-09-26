@@ -16,22 +16,10 @@ eblup_bhf(
   method = c("REML", "ML"),
   popnmean_xpop = NULL,
   B = 100,
-  mse = FALSE,
+  compute_mse = FALSE,
   n_threads = 1,
   seed = -1,
   print_result = TRUE
-)
-
-pbmse_unit(
-  formula,
-  unit_data,
-  Xpop,
-  domain_var,
-  popsize_var,
-  method = c("REML", "ML"),
-  B = 100,
-  n_threads = 1,
-  seed = -1
 )
 ```
 
@@ -67,9 +55,9 @@ pbmse_unit(
 
 - B:
 
-  Number of bootstrap replicates for MSE (if mse = TRUE).
+  Number of bootstrap replicates for MSE (if compute_mse = TRUE).
 
-- mse:
+- compute_mse:
 
   If TRUE, compute bootstrap MSE.
 

@@ -1,6 +1,7 @@
 # Example proximity matrix
 
-A sample proximity matrix for SAE demo.
+A 42 by 42 row-standardized spatial proximity matrix for the 42 areas in
+`mys`.
 
 ## Usage
 
@@ -10,4 +11,9 @@ mys_proxmat
 
 ## Format
 
-A matrix with n rows and n columns
+A square numeric matrix with 42 rows and 42 columns with values between
+0 and 1.
+
+## Source
+
+Simulated based on contiguous administrative boundaries.

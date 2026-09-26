@@ -106,7 +106,7 @@
 "cornsoybeanmeans"
 
 
-#' Multi-Distribution Synthetic Dataset for Small Area Estimation
+#' Multi-Distribution Synthetic Area-Level Dataset
 #'
 #' A synthetic dataset containing 42 domains with multiple response variables
 #' representing various probability distributions (Gaussian, Poisson, Binomial,
@@ -114,7 +114,8 @@
 #' generalized linear and spatial small area estimation models (EBP / INLA).
 #' It shares the 42-domain spatial structure of \code{\link{mys_proxmat}}.
 #'
-#' @usage data(sae_area_multi)
+#' @usage data(sim_area)
+#' @aliases sae_area_multi
 #'
 #' @format A data frame with 42 rows and 14 variables:
 #' \describe{
@@ -138,10 +139,13 @@
 #'   proximity structure of \code{\link{mys_proxmat}}.
 #'
 #' @keywords datasets
-"sae_area_multi"
+#' @examples
+#' data(sim_area)
+#' head(sim_area)
+"sim_area"
 
 
-#' Multi-Distribution Spatio-Temporal Panel Dataset for Small Area Estimation
+#' Multi-Distribution Spatio-Temporal Panel Dataset
 #'
 #' A synthetic panel dataset containing 42 domains observed over 5 time periods
 #' (2022 to 2026, total 210 observations). Features multiple response variables
@@ -151,7 +155,8 @@
 #' spatial structure of \code{\link{mys_proxmat}} and is formatted in domain-major order
 #' for direct use in \code{\link{eblup_stfh}}.
 #'
-#' @usage data(sae_panel_multi)
+#' @usage data(sim_panel)
+#' @aliases sae_panel_multi
 #'
 #' @format A data frame with 210 rows and 15 variables in domain-major order:
 #' \describe{
@@ -176,4 +181,7 @@
 #'   proximity structure of \code{\link{mys_proxmat}}.
 #'
 #' @keywords datasets
-"sae_panel_multi"
+#' @examples
+#' data(sim_panel)
+#' head(sim_panel)
+"sim_panel"

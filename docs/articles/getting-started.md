@@ -55,7 +55,7 @@ the shrinkage factor ($`0 \le \gamma_d \le 1`$).
 We use the built-in `mys` dataset (mean years of schooling):
 
 \
-[`library`](https://rdrr.io/r/base/library.html)`(`[`fastsae`](https://ridsonap.github.io/fastsae)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`fastsae`](https://ridsonap.github.io/fastsae/)`)`\
 [`library`](https://rdrr.io/r/base/library.html)`(`[`ggplot2`](https://ggplot2.tidyverse.org)`)`\
 \
 [`data`](https://rdrr.io/r/utils/data.html)`(``"mys"``)`\
@@ -79,9 +79,9 @@ Likelihood (REML):
 `# Fit Fay-Herriot model`\
 `fit_fh`` ``<-`` `[`eblup_fh`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)`(`\
 `  formula ``=`` ``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``,`\
-`  vardir  ``=`` ``~``vardir``,`\
-`  data    ``=`` ``mys``,`\
-`  method  ``=`` ``"REML"``,`\
+`  vardir ``=`` ``~``vardir``,`\
+`  data ``=`` ``mys``,`\
+`  method ``=`` ``"REML"``,`\
 `  print_result ``=`` ``FALSE`\
 `)`
 
@@ -118,13 +118,13 @@ and coefficient tests:
 `#>     -65.14251     140.28502     147.61370 `\
 `#> `\
 `#> EBLUP Summary Statistics:`\
-`#>      eblup             mse              rse        `\
-`#>  Min.   :0.8506   Min.   :0.2037   Min.   : 9.844  `\
-`#>  1st Qu.:4.1973   1st Qu.:0.6886   1st Qu.:14.889  `\
-`#>  Median :5.0196   Median :1.0156   Median :22.157  `\
-`#>  Mean   :5.0746   Mean   :1.5434   Mean   :26.275  `\
-`#>  3rd Qu.:6.1360   3rd Qu.:2.4886   3rd Qu.:35.020  `\
-`#>  Max.   :9.0220   Max.   :3.7074   Max.   :53.065`
+`#>       mse              rse        `\
+`#>  Min.   :0.2037   Min.   : 9.844  `\
+`#>  1st Qu.:0.6886   1st Qu.:14.889  `\
+`#>  Median :1.0156   Median :22.157  `\
+`#>  Mean   :1.5434   Mean   :26.275  `\
+`#>  3rd Qu.:2.4886   3rd Qu.:35.020  `\
+`#>  Max.   :3.7074   Max.   :53.065`
 
 You can extract fixed-effects coefficients using
 [`coef()`](https://rdrr.io/r/stats/coef.html):
@@ -180,7 +180,7 @@ Inspect domain-level uncertainty with MSE plots:
 `if`` ``(`[`requireNamespace`](https://rdrr.io/r/base/ns-load.html)`(``"sae"``, quietly ``=`` ``TRUE``)``)`` ``{`\
 `  ``mys_clean`` ``<-`` `[`as.data.frame`](https://rdrr.io/r/base/as.data.frame.html)`(`[`na.omit`](https://rdrr.io/r/stats/na.fail.html)`(``mys``)``)`\
 `  ``fit_fast`` ``<-`` `[`eblup_fh`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)`(``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``, vardir ``=`` ``~``vardir``, data ``=`` ``mys_clean``, print_result ``=`` ``FALSE``)`\
-`  ``fit_sae``  ``<-`` ``sae``::`[`eblupFH`](https://rdrr.io/pkg/sae/man/eblupFH.html)`(``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``, vardir ``=`` ``vardir``, data ``=`` ``mys_clean``)`\
+`  ``fit_sae`` ``<-`` ``sae``::`[`eblupFH`](https://rdrr.io/pkg/sae/man/eblupFH.html)`(``y`` ``~`` ``x1`` ``+`` ``x2`` ``+`` ``x3``, vardir ``=`` ``vardir``, data ``=`` ``mys_clean``)`\
 \
 `  ``# Check EBLUP estimates`\
 `  `[`all.equal`](https://rdrr.io/r/base/all.equal.html)`(``fit_fast``$``df_eblup``$``eblup``, `[`as.vector`](https://rdrr.io/r/base/vector.html)`(``fit_sae``$``eblup``)``)`\
@@ -192,6 +192,23 @@ Inspect domain-level uncertainty with MSE plots:
 `  `[`all.equal`](https://rdrr.io/r/base/all.equal.html)`(``fit_fast``$``random_effect_var``, ``fit_sae``$``fit``$``refvar``)`\
 `}`\
 `#> [1] TRUE`
+
+## Next Steps
+
+Explore advanced modeling capabilities in **fastsae**: - **Spatial &
+Spatio-Temporal Models (EBLUP)**:
+[spatial-temporal.html](https://ridsonap.github.io/fastsae/articles/spatial-temporal.md)
+(SAR and AR(1) dynamics). - **Bayesian Area-Level SAE with INLA
+(`ebp_area`)**:
+[ebp-area-inla.html](https://ridsonap.github.io/fastsae/articles/ebp-area-inla.md)
+(Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma,
+Binomial, and spatio-temporal interactions). - **Model Diagnostics and
+Residual Analysis (`diagnose`)**:
+[model-diagnostics.html](https://ridsonap.github.io/fastsae/articles/model-diagnostics.md)
+(Calibration tests, RSE reduction, and Moran’s I). - **Unit-Level
+Estimation**:
+[unit-level-bhf.html](https://ridsonap.github.io/fastsae/articles/unit-level-bhf.md)
+(Battese-Harter-Fuller model).
 
 ## References
 

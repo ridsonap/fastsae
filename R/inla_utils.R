@@ -17,13 +17,14 @@
 #' Convert and validate spatial proximity / weight matrix for INLA models
 #'
 #' @param W Matrix, Matrix object, `spdep` `nb`, or `listw` object.
-#' @param n_domains Expected number of domains.
+#' @param n_domains Expected number of unique domains.
 #' @param spatial Spatial model type ("bym2", "bym", "besag", "generic1", "slm", "none").
+#' @param domain_names Optional vector of unique domain names for alignment.
 #'
 #' @return A list with `graph` (symmetric adjacency matrix or inla graph object)
 #'   and `W_mat` (numeric matrix for SLM/Leroux).
 #' @noRd
-.convert_spatial_weights <- function(W, n_domains, spatial = "bym2") {
+.convert_spatial_weights <- function(W, n_domains, spatial = "bym2", domain_names = NULL) {
   if (is.null(W)) {
     cli::cli_abort("Spatial weight/proximity matrix {.arg W} must be provided when {.code spatial != 'none'}.")
   }
@@ -47,6 +48,14 @@
     return(list(graph = W, W_mat = NULL))
   } else {
     cli::cli_abort("Unsupported spatial object type for {.arg W}. Expected matrix, Matrix, nb, or listw.")
+  }
+
+  # If domain_names provided and W has row/colnames, reorder W to match domain order
+  if (!is.null(domain_names) && !is.null(rownames(W_mat))) {
+    dom_chr <- as.character(domain_names)
+    if (all(dom_chr %in% rownames(W_mat))) {
+      W_mat <- W_mat[dom_chr, dom_chr, drop = FALSE]
+    }
   }
 
   # Validate dimensions
@@ -86,16 +95,25 @@
   data,
   y,
   domain,
+  time = NULL,
   family,
   spatial,
+  temporal = "none",
+  st_interaction = "none",
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
   X_mat = NULL,
   rho_range = NULL,
+  domain_id = NULL,
+  time_id = NULL,
+  unique_domains = NULL,
+  unique_times = NULL,
   call = NULL
 ) {
-  n_domains <- length(domain)
+  n_obs <- length(y)
+  n_domains <- if (!is.null(unique_domains)) length(unique_domains) else length(unique(domain))
+  n_times <- if (!is.null(unique_times)) length(unique_times) else (if (!is.null(time)) length(unique(time)) else 1)
 
   # 1. Fixed effects coefficients
   if (spatial == "slm" && !is.null(X_mat)) {
@@ -127,24 +145,42 @@
 
   # 2. Hyperparameters
   hyper_summary <- if (!is.null(fit$summary.hyperpar)) as.data.frame(fit$summary.hyperpar) else NULL
-  
-  # Extract variance component(s) and spatial correlation parameters
+
+  # Extract variance component(s) and spatial/temporal correlation parameters
   random_effect_var <- NULL
+  random_effect_var_time <- NULL
   phi <- NULL
   rho <- NULL
+  rho_time <- NULL
+
   if (!is.null(hyper_summary) && nrow(hyper_summary) > 0) {
-    # Look for domain precision
-    prec_rows <- grep("Precision for", rownames(hyper_summary), value = TRUE)
+    # Spatial / Area random effect precision
+    prec_rows <- grep("Precision for (\\.\\.domain_id\\.\\.|domain)", rownames(hyper_summary), value = TRUE)
+    if (length(prec_rows) == 0 && spatial == "none" && temporal == "none") {
+      # Fallback for simple IID
+      prec_rows <- grep("Precision for", rownames(hyper_summary), value = TRUE)
+    }
     if (length(prec_rows) > 0) {
       prec_est <- hyper_summary[prec_rows[1], "mean"]
       if (!is.na(prec_est) && prec_est > 0) {
         random_effect_var <- 1 / prec_est
       }
     }
+
+    # Temporal precision
+    prec_time_rows <- grep("Precision for (\\.\\.time_id\\.\\.|time)", rownames(hyper_summary), value = TRUE)
+    if (length(prec_time_rows) > 0) {
+      prec_time_est <- hyper_summary[prec_time_rows[1], "mean"]
+      if (!is.na(prec_time_est) && prec_time_est > 0) {
+        random_effect_var_time <- 1 / prec_time_est
+      }
+    }
+
     # Look for Phi (spatial proportion in BYM2), Beta (generic1 / Leroux), or Rho (slm)
     phi_rows <- grep("Phi for", rownames(hyper_summary), value = TRUE)
     beta_rows <- grep("Beta for", rownames(hyper_summary), value = TRUE)
-    rho_rows <- grep("Rho for", rownames(hyper_summary), value = TRUE)
+    rho_rows <- grep("Rho for (\\.\\.domain_id\\.\\.|domain)", rownames(hyper_summary), value = TRUE)
+    rho_time_rows <- grep("Rho for (\\.\\.time_id\\.\\.|time)", rownames(hyper_summary), value = TRUE)
 
     if (length(phi_rows) > 0) {
       phi <- hyper_summary[phi_rows[1], "mean"]
@@ -163,25 +199,81 @@
       }
       phi <- rho
     }
-  }
 
-  # 3. Random effects per domain
-  rand_eff <- NULL
-  if (!is.null(fit$summary.random) && length(fit$summary.random) > 0) {
-    rf_df <- fit$summary.random[[1]]
-    if ("mean" %in% names(rf_df)) {
-      # In BYM2, INLA returns 2 * n_domains rows (first n is marginal effect, second is spatial)
-      # In SLM, INLA returns n_domains + p rows (first n is spatial effect, rest are beta coefficients)
-      rand_eff <- rf_df$mean[seq_len(min(nrow(rf_df), n_domains))]
+    if (length(rho_time_rows) > 0) {
+      rho_time <- hyper_summary[rho_time_rows[1], "mean"]
     }
   }
-  if (is.null(rand_eff) || length(rand_eff) != n_domains) {
-    rand_eff <- rep(NA_real_, n_domains)
+
+  # 3. Random effects extraction per observation
+  rand_eff <- NULL
+  rand_eff_spatial <- NULL
+  rand_eff_temporal <- NULL
+
+  if (!is.null(fit$summary.random) && length(fit$summary.random) > 0) {
+    rand_names <- names(fit$summary.random)
+
+    # Spatial random effect
+    if ("..domain_id.." %in% rand_names) {
+      rf_df_spat <- fit$summary.random[["..domain_id.."]]
+      if ("mean" %in% names(rf_df_spat)) {
+        spat_vals <- rf_df_spat$mean[seq_len(n_domains)]
+        if (!is.null(domain_id)) {
+          rand_eff_spatial <- spat_vals[domain_id]
+        } else if (length(spat_vals) == n_obs) {
+          rand_eff_spatial <- spat_vals
+        }
+      }
+    }
+
+    # Temporal random effect
+    if ("..time_id.." %in% rand_names) {
+      rf_df_time <- fit$summary.random[["..time_id.."]]
+      if ("mean" %in% names(rf_df_time)) {
+        if (st_interaction == "domain-specific" || length(rf_df_time$mean) == n_domains * n_times) {
+          # Domain-specific temporal dynamics (indexed by (time, domain) or group)
+          # In INLA, group = domain_id with time_id creates n_times * n_domains rows
+          # INLA group ordering: for each domain, all time periods
+          if (!is.null(domain_id) && !is.null(time_id)) {
+            # INLA groups time_id by domain_id: index is (domain_id - 1) * n_times + time_id
+            group_idx <- (domain_id - 1) * n_times + time_id
+            rand_eff_temporal <- rf_df_time$mean[group_idx]
+          }
+        } else {
+          # Main temporal trend (length n_times)
+          time_vals <- rf_df_time$mean[seq_len(n_times)]
+          if (!is.null(time_id)) {
+            rand_eff_temporal <- time_vals[time_id]
+          }
+        }
+      }
+    }
+
+    # Total random effect
+    if (!is.null(rand_eff_spatial) && !is.null(rand_eff_temporal)) {
+      rand_eff <- rand_eff_spatial + rand_eff_temporal
+    } else if (!is.null(rand_eff_spatial)) {
+      rand_eff <- rand_eff_spatial
+    } else if (!is.null(rand_eff_temporal)) {
+      rand_eff <- rand_eff_temporal
+    } else {
+      # Fallback to first random effect
+      rf_first <- fit$summary.random[[1]]$mean
+      if (length(rf_first) >= n_obs) {
+        rand_eff <- rf_first[seq_len(n_obs)]
+      } else if (!is.null(domain_id) && length(rf_first) >= n_domains) {
+        rand_eff <- rf_first[domain_id]
+      }
+    }
+  }
+
+  if (is.null(rand_eff) || length(rand_eff) != n_obs) {
+    rand_eff <- rep(NA_real_, n_obs)
   }
 
   # 4. Fitted values (Predictions on original response scale)
-  fitted_summary <- as.data.frame(fit$summary.fitted.values[seq_len(n_domains), , drop = FALSE])
-  linpred_summary <- as.data.frame(fit$summary.linear.predictor[seq_len(n_domains), , drop = FALSE])
+  fitted_summary <- as.data.frame(fit$summary.fitted.values[seq_len(n_obs), , drop = FALSE])
+  linpred_summary <- as.data.frame(fit$summary.linear.predictor[seq_len(n_obs), , drop = FALSE])
 
   ebp_est <- fitted_summary$mean
   ebp_sd  <- fitted_summary$sd
@@ -192,19 +284,38 @@
   linpred  <- linpred_summary$mean
 
   # Assemble df_ebp
-  df_ebp <- data.frame(
-    domain = domain,
-    y = y,
-    ebp = ebp_est,
-    linear_pred = linpred,
-    sd = ebp_sd,
-    mse = ebp_mse,
-    rse = ebp_rse,
-    ci_lower = ci_lower,
-    ci_upper = ci_upper,
-    random_effect = rand_eff,
-    stringsAsFactors = FALSE
-  )
+  if (!is.null(time)) {
+    df_ebp <- data.frame(
+      domain = domain,
+      time = time,
+      y = y,
+      ebp = ebp_est,
+      linear_pred = linpred,
+      sd = ebp_sd,
+      mse = ebp_mse,
+      rse = ebp_rse,
+      ci_lower = ci_lower,
+      ci_upper = ci_upper,
+      random_effect = rand_eff,
+      stringsAsFactors = FALSE
+    )
+    if (!is.null(rand_eff_spatial)) df_ebp$random_effect_spatial <- rand_eff_spatial
+    if (!is.null(rand_eff_temporal)) df_ebp$random_effect_temporal <- rand_eff_temporal
+  } else {
+    df_ebp <- data.frame(
+      domain = domain,
+      y = y,
+      ebp = ebp_est,
+      linear_pred = linpred,
+      sd = ebp_sd,
+      mse = ebp_mse,
+      rse = ebp_rse,
+      ci_lower = ci_lower,
+      ci_upper = ci_upper,
+      random_effect = rand_eff,
+      stringsAsFactors = FALSE
+    )
+  }
 
   # If vardir provided (Gaussian FH, Beta, or Gamma)
   if (!is.null(vardir)) {
@@ -245,6 +356,18 @@
     Marginal_LogLik = if (!is.null(fit$mlik)) fit$mlik[1, 1] else NA_real_
   )
 
+  # Format model description
+  model_label <- paste0("EBP-", toupper(family))
+  if (temporal != "none" || spatial != "none") {
+    comps <- c()
+    if (spatial != "none") comps <- c(comps, toupper(spatial))
+    if (temporal != "none") comps <- c(comps, toupper(temporal))
+    if (st_interaction != "none") comps <- c(comps, paste0("ST:", toupper(st_interaction)))
+    model_label <- paste0(model_label, " (", paste(comps, collapse = " + "), ")")
+  } else {
+    model_label <- paste0(model_label, " (Non-spatial)")
+  }
+
   out <- list(
     df_ebp = df_ebp,
     ebp = df_ebp, # backward compatibility with fastsae conventions
@@ -252,13 +375,17 @@
     estcoef = estcoef,
     hyperpar = hyper_summary,
     random_effect_var = random_effect_var,
+    random_effect_var_time = random_effect_var_time,
     phi = phi,
     rho = rho,
+    rho_time = rho_time,
     goodness = goodness,
     family = family,
     spatial = spatial,
+    temporal = temporal,
+    st_interaction = st_interaction,
     level = "area",
-    model = paste0("EBP-", toupper(family), if (spatial != "none") paste0(" (", toupper(spatial), ")") else " (Non-spatial)"),
+    model = model_label,
     convergence = TRUE,
     fit = fit,
     call = call
@@ -267,3 +394,4 @@
   class(out) <- c("fastsae_ebp_area", "fastsae")
   return(out)
 }
+

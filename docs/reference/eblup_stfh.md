@@ -1,13 +1,12 @@
-# EBLUPs based on a Spatio-Temporal Fay-Herriot Model.
+# Empirical Best Linear Unbiased Prediction based on a Spatio-Temporal Fay-Herriot Model.
 
 This function gives the Spatio-Temporal Empirical Best Linear Unbiased
 Prediction (EBLUP) under normality based on a spatio-temporal
 Fay-Herriot model. It reimplements the same Fisher-scoring algorithm as
 `eblupSTFH()` (package sae, Marhuenda, Molina & Morales 2013), but the
-estimation loop runs in compiled C++/Armadillo (`.eblup_stfh_core`),
-making it substantially faster and more memory-efficient than the
-original R implementation – especially for a large number of
-domains/time periods.
+estimation loop runs in compiled C++/Armadillo, making it substantially
+faster and more memory-efficient than the original R implementation –
+especially for a large number of domains/time periods.
 
 ## Usage
 
@@ -56,7 +55,7 @@ eblup_stfh(
 - domain:
 
   vector, column name or one-sided formula referencing a domain names
-  column in `data`.
+  column in `data`. If NULL, the domains are numbered consecutively.
 
 - time:
 
@@ -172,7 +171,7 @@ library(fastsae)
 library(dplyr)
 
 mys_panel_nona <- mys_panel |>
-    filter(!is.na(y) & year >= 2024)
+  filter(!is.na(y) & year >= 2024)
 
 # Basic EBLUP without MSE
 m1 <- eblup_stfh(

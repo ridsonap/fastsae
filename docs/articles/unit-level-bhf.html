@@ -100,7 +100,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
-    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
+    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
@@ -204,7 +206,7 @@ is the shrinkage ratio.</p>
 <p>We use the classic <code>cornsoybean</code> dataset, reporting corn
 crop hectares per segment in 12 Iowa counties:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae">fastsae</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae/">fastsae</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"cornsoybean"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"cornsoybeanmeans"</span><span class="op">)</span></span>
 <span></span>
@@ -235,18 +237,19 @@ crop hectares per segment in 12 Iowa counties:</p>
 <h3 id="fit-bhf-model-with-bootstrap-mse">2. Fit BHF Model with Bootstrap MSE<a class="anchor" aria-label="anchor" href="#fit-bhf-model-with-bootstrap-mse"></a>
 </h3>
 <p>We fit the model using <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code>. To estimate
-domain-level Mean Squared Error (MSE), set <code>mse = TRUE</code>:</p>
+domain-level Mean Squared Error (MSE), set
+<code>compute_mse = TRUE</code>:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_bhf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_bhf.html">eblup_bhf</a></span><span class="op">(</span></span>
-<span>  formula     <span class="op">=</span> <span class="va">CornHec</span> <span class="op">~</span> <span class="va">CornPix</span> <span class="op">+</span> <span class="va">SoyBeansPix</span>,</span>
-<span>  unit_data   <span class="op">=</span> <span class="va">cornsoybean</span>,</span>
-<span>  Xpop        <span class="op">=</span> <span class="va">df_pop</span>,</span>
-<span>  domain_var  <span class="op">=</span> <span class="st">"County"</span>,</span>
+<span>  formula <span class="op">=</span> <span class="va">CornHec</span> <span class="op">~</span> <span class="va">CornPix</span> <span class="op">+</span> <span class="va">SoyBeansPix</span>,</span>
+<span>  unit_data <span class="op">=</span> <span class="va">cornsoybean</span>,</span>
+<span>  Xpop <span class="op">=</span> <span class="va">df_pop</span>,</span>
+<span>  domain_var <span class="op">=</span> <span class="st">"County"</span>,</span>
 <span>  popsize_var <span class="op">=</span> <span class="st">"PopnSegments"</span>,</span>
-<span>  method      <span class="op">=</span> <span class="st">"REML"</span>,</span>
-<span>  mse         <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  B           <span class="op">=</span> <span class="fl">50</span>,</span>
-<span>  seed        <span class="op">=</span> <span class="fl">123</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"REML"</span>,</span>
+<span>  compute_mse <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">123</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; boundary (singular) fit: see help('isSingular')</span></span>
@@ -261,9 +264,9 @@ domain-level Mean Squared Error (MSE), set <code>mse = TRUE</code>:</p>
 <span><span class="co">#&gt; Call :</span></span>
 <span><span class="co">#&gt; eblup_bhf(formula = CornHec ~ CornPix + SoyBeansPix, unit_data = cornsoybean,</span></span>
 <span><span class="co">#&gt; Xpop = df_pop, domain_var = "County", popsize_var = "PopnSegments", method =</span></span>
-<span><span class="co">#&gt; "REML", B = 50, mse = TRUE, seed = 123, print_result = FALSE)</span></span>
+<span><span class="co">#&gt; "REML", B = 50, compute_mse = TRUE, seed = 123, print_result = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in  iterations)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in - iterations)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model</span>: Battese-Harter-Fuller (Unit-level)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
@@ -276,13 +279,13 @@ domain-level Mean Squared Error (MSE), set <code>mse = TRUE</code>:</p>
 <span><span class="co">#&gt; SoyBeansPix -0.030364  0.067576 -0.449327 0.6532</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBLUP Summary Statistics:</span></span>
-<span><span class="co">#&gt;      eblup            mse             rse       </span></span>
-<span><span class="co">#&gt;  Min.   :109.0   Min.   :24.89   Min.   :4.039  </span></span>
-<span><span class="co">#&gt;  1st Qu.:112.9   1st Qu.:36.74   1st Qu.:4.838  </span></span>
-<span><span class="co">#&gt;  Median :119.5   Median :46.45   Median :5.816  </span></span>
-<span><span class="co">#&gt;  Mean   :119.9   Mean   :49.96   Mean   :5.839  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:123.7   3rd Qu.:62.20   3rd Qu.:6.849  </span></span>
-<span><span class="co">#&gt;  Max.   :137.3   Max.   :81.65   Max.   :7.921</span></span></code></pre></div>
+<span><span class="co">#&gt;       mse             rse       </span></span>
+<span><span class="co">#&gt;  Min.   :24.89   Min.   :4.039  </span></span>
+<span><span class="co">#&gt;  1st Qu.:36.74   1st Qu.:4.838  </span></span>
+<span><span class="co">#&gt;  Median :46.45   Median :5.816  </span></span>
+<span><span class="co">#&gt;  Mean   :49.96   Mean   :5.839  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:62.20   3rd Qu.:6.849  </span></span>
+<span><span class="co">#&gt;  Max.   :81.65   Max.   :7.921</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="inspect-domain-estimates">3. Inspect Domain Estimates<a class="anchor" aria-label="anchor" href="#inspect-domain-estimates"></a>

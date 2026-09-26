@@ -1,6 +1,6 @@
-# Extract fitted values (EBLUP) from a fastsae object
+# Extract fitted values (EBLUP or EBP) from a fastsae object
 
-Extract fitted values (EBLUP) from a fastsae object
+Extract fitted values (EBLUP or EBP) from a fastsae object
 
 ## Usage
 
@@ -21,4 +21,4 @@ fitted(object, ...)
 
 ## Value
 
-Vector of fitted EBLUP estimates.
+Vector of fitted estimates.

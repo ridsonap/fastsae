@@ -17,3 +17,11 @@ Rplots.pdf
 
 # macOS
 .DS_Store
+
+# LaTeX temporary files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc

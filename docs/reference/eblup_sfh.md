@@ -1,4 +1,4 @@
-# EBLUPs based on a Spatial Fay-Herriot Model.
+# Empirical Best Linear Unbiased Prediction based on a Spatial Fay-Herriot Model.
 
 This function gives the Spatial Empirical Best Linear Unbiased
 Prediction (EBLUP) or Empirical Best (EB) predictor under normality
@@ -10,12 +10,13 @@ based on a Fay-Herriot model.
 eblup_sfh(
   formula,
   vardir,
+  domain = NULL,
   data,
   method = c("REML", "ML"),
   mse_method = c("analytical", "pbmse", "npbmse"),
   W = NULL,
   B = 100,
-  n_threads = 0,
+  n_threads = 1,
   seed = -1,
   maxiter = 100,
   precision = 1e-04,
@@ -35,6 +36,11 @@ eblup_sfh(
 
   vector or column names from data that contain variance sampling from
   the direct estimator for each area.
+
+- domain:
+
+  vector, column name or one-sided formula referencing a domain names
+  column in `data`. If NULL, the domains are numbered consecutively.
 
 - data:
 
@@ -66,13 +72,13 @@ eblup_sfh(
 
 - B:
 
-  Number of bootstrap replications when mse_methpd = "pbmse" or
+  Number of bootstrap replications when mse_method = "pbmse" or
   "npbmse".
 
 - n_threads:
 
-  Number of threads used in parallel computation. Values less than or
-  equal to 0 use the default OpenMP configuration (all cores).
+  Number of threads used in parallel computation (default 1). Values
+  less than or equal to 0 use all available cores.
 
 - seed:
 
@@ -190,8 +196,6 @@ m2 <- eblup_sfh(
   W = mys_proxmat
 )
 #> ℹ 10 unsampled domain(s) detected. Bootstrap MSE (pbmse) is computed for the 32 sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead.
-#> Warning: Round 2: 0 out of 1 replicates valid (all failed to converge).
-#> Warning: Round 3: 0 out of 1 replicates valid (all failed to converge).
 #> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
@@ -220,12 +224,12 @@ m2 <- eblup_sfh(
 #> 5      5 6.305063 1.2788021 6.344991  -0.002629647 0.7315241 13.479795
 #> 6      6 3.926807 0.3878004 4.087497  -0.704885769 0.3403445 14.272560
 #>      mse_pb  mse_pbbc
-#> 1 0.4466807 0.5784605
-#> 2 0.6055004 0.7154712
-#> 3 0.5016504 0.7692414
-#> 4 0.5926419 0.6226320
-#> 5 1.0909349 0.9577653
-#> 6 0.4453984 0.3822884
+#> 1 0.5249267 0.5478423
+#> 2 0.6548961 0.6589172
+#> 3 0.6786196 0.6981591
+#> 4 0.4839694 0.5513615
+#> 5 0.6318688 0.8754840
+#> 6 0.2709669 0.3564423
 #> ... and 36 more rows.
 #> 
 ```

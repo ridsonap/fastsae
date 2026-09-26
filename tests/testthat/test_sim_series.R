@@ -80,21 +80,21 @@ test_that("sim_series_data integrates directly with eblup_stfh", {
   expect_true(!is.null(fit_stfh$estvarcomp))
 })
 
-test_that("built-in sae_panel_multi dataset loads and integrates with eblup_stfh", {
-  data("sae_panel_multi", package = "fastsae")
+test_that("built-in sim_panel dataset loads and integrates with eblup_stfh", {
+  data("sim_panel", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  expect_equal(nrow(sae_panel_multi), 42 * 5)
-  expect_true("area" %in% names(sae_panel_multi))
-  expect_true("year" %in% names(sae_panel_multi))
-  expect_true("y_gaussian" %in% names(sae_panel_multi))
-  expect_true("y_poisson" %in% names(sae_panel_multi))
-  expect_true("y_binomial" %in% names(sae_panel_multi))
-  expect_true("y_beta" %in% names(sae_panel_multi))
+  expect_equal(nrow(sim_panel), 42 * 5)
+  expect_true("area" %in% names(sim_panel))
+  expect_true("year" %in% names(sim_panel))
+  expect_true("y_gaussian" %in% names(sim_panel))
+  expect_true("y_poisson" %in% names(sim_panel))
+  expect_true("y_binomial" %in% names(sim_panel))
+  expect_true("y_beta" %in% names(sim_panel))
 
-  # Test eblup_stfh fit on complete domains of sae_panel_multi
-  na_areas <- unique(sae_panel_multi$area[is.na(sae_panel_multi$y_gaussian)])
-  df_complete <- sae_panel_multi[!sae_panel_multi$area %in% na_areas, ]
+  # Test eblup_stfh fit on complete domains of sim_panel
+  na_areas <- unique(sim_panel$area[is.na(sim_panel$y_gaussian)])
+  df_complete <- sim_panel[!sim_panel$area %in% na_areas, ]
   W_complete <- mys_proxmat[!1:42 %in% na_areas, !1:42 %in% na_areas]
   rs <- rowSums(W_complete)
   rs[rs == 0] <- 1

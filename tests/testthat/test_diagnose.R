@@ -48,15 +48,15 @@ test_that("diagnose works for eblup_sfh with spatial autocorrelation test", {
 test_that("diagnose works for ebp_area and handles simulation truth", {
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
 
-  data("sae_area_multi", package = "fastsae")
+  data("sim_area", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  fit_ebp <- ebp_area(y_gaussian ~ x1 + x2, data = sae_area_multi,
+  fit_ebp <- ebp_area(y_gaussian ~ x1 + x2, data = sim_area,
                       vardir = "vardir", spatial = "bym2", W = mys_proxmat,
                       print_result = FALSE)
 
   # Supply dummy ground truth for simulation verification
-  mock_truth <- fit_ebp$df_ebp$ebp * runif(nrow(sae_area_multi), 0.98, 1.02)
+  mock_truth <- fit_ebp$df_ebp$ebp * runif(nrow(sim_area), 0.98, 1.02)
   d_ebp <- diagnose(fit_ebp, truth = mock_truth)
 
   expect_s3_class(d_ebp, "fastsae_diagnose")
