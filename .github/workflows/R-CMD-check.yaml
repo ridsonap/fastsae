@@ -39,6 +39,7 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+          extra-repositories: 'https://inla.r-inla-download.org/R/stable'
 
       - name: Setup macOS compiler flags
         if: runner.os == 'macOS'

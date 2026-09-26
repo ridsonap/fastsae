@@ -21,10 +21,12 @@ URL: https://ridsonap.github.io/fastsae/, https://github.com/ridsonap/fastsae
 BugReports: https://github.com/ridsonap/fastsae/issues
 Encoding: UTF-8
 LazyData: true
+Additional_repositories: https://inla.r-inla-download.org/R/stable
 Imports:
     cli,
     ggplot2,
     lme4,
+    Matrix,
     methods,
     Rcpp,
     rlang,
@@ -40,6 +42,7 @@ Suggests:
     parallel,
     sae,
     spdep,
+    tipsae,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)

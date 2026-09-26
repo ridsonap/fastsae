@@ -2,6 +2,8 @@
 # Shared utility functions for fastsae package
 # ============================================================================
 
+utils::globalVariables(c("density", ".data"))
+
 #' Extract variable from data frame or use as-is
 #'
 #' @description This helper function accepts a variable as a vector, column name,

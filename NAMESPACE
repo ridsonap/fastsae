@@ -34,3 +34,5 @@ importFrom(ggplot2, ggplot, aes, geom_point, geom_line, geom_ribbon,
            geom_vline, position_dodge, expand_limits, geom_abline,
            scale_fill_brewer, autoplot, geom_smooth, scale_color_gradient)
 importFrom(methods, is)
+importFrom(Matrix, Matrix, Diagonal)
+

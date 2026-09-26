@@ -165,35 +165,35 @@ fit_ebp <- ebp_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2"
 #> 
 #> ✔ Convergence: Yes (in - iterations)
 #> Model: EBP-GAUSSIAN (BYM2)
-#> Random effect variance (sigma2_u): 1.67818 
+#> Random effect variance (sigma2_u): 1.678099 
 #> Spatial autocorrelation (rho): 0.4817 
 #> Spatial mixing fraction (phi): 0.4817 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  2.9992e+00  6.7347e-01  4.4534e+00  8.4540e-06  1.6908e+00
-#> x1          -3.6460e-03  8.0763e-03 -4.5145e-01  6.5167e-01 -1.9692e-02
-#> x2           8.6081e-02  2.7817e-02  3.0945e+00  1.9714e-03  3.1302e-02
+#> (Intercept)  2.9992e+00  6.7347e-01  4.4534e+00  8.4530e-06  1.6909e+00
+#> x1          -3.6462e-03  8.0767e-03 -4.5145e-01  6.5167e-01 -1.9693e-02
+#> x2           8.6081e-02  2.7818e-02  3.0944e+00  1.9722e-03  3.1299e-02
 #>             ci_upper
-#> (Intercept)   4.3413
+#> (Intercept)   4.3414
 #> x1            0.0121
 #> x2            0.1409
 #> 
 #> EBP Estimates (First 6 domains):
 #>   domain        y      ebp linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.336690    7.336690 0.7395890 0.5469918 10.08069 5.902456
-#> 2      2 7.599650 6.514772    6.514772 0.7988088 0.6380954 12.26150 4.970472
-#> 3      3 5.514137 5.150644    5.150644 0.7839291 0.6145448 15.22002 3.623135
-#> 4      4 3.869326 4.362904    4.362904 0.7078393 0.5010365 16.22404 2.964367
-#> 5      5 6.305063 6.362982    6.362982 0.8812264 0.7765600 13.84927 4.631184
-#> 6      6 3.926807 4.146996    4.146996 0.5685517 0.3232511 13.70996 3.028276
+#> 1      1 8.359527 7.336780    7.336780 0.7395937 0.5469989 10.08063 5.902527
+#> 2      2 7.599650 6.514862    6.514862 0.7988168 0.6381082 12.26145 4.970537
+#> 3      3 5.514137 5.150678    5.150678 0.7839422 0.6145653 15.22018 3.623141
+#> 4      4 3.869326 4.362864    4.362864 0.7078484 0.5010493 16.22440 2.964312
+#> 5      5 6.305063 6.362979    6.362979 0.8812459 0.7765943 13.84958 4.631143
+#> 6      6 3.926807 4.146976    4.146976 0.5685571 0.3232572 13.71016 3.028247
 #>   ci_upper random_effect    vardir
-#> 1 8.801829     2.7203864 0.6618838
-#> 2 8.102268     2.2875864 0.8374691
-#> 3 6.699668     0.7224512 0.8822257
-#> 4 5.741303    -1.3269878 0.6581716
-#> 5 8.092238    -0.0818095 1.2788021
-#> 6 5.258507    -0.9977394 0.3878004
+#> 1 8.801916    2.72047787 0.6618838
+#> 2 8.102362    2.28767323 0.8374691
+#> 3 6.699725    0.72247148 0.8822257
+#> 4 5.741283   -1.32704186 0.6581716
+#> 5 8.092273   -0.08181514 1.2788021
+#> 6 5.258498   -0.99777047 0.3878004
 #> ... and 36 more rows.
 #> 
 diag_ebp <- diagnose(fit_ebp)
@@ -210,12 +210,12 @@ print(diag_ebp)
 #> ── 2. Brown et al. (2001) Calibration Tests ──
 #> 
 #> ✔ Bias Regression Test (H0: alpha = 0, beta = 1): F = 2.994, p-value = 0.0652 [Statistically Unbiased]
-#> Estimated parameters: alpha = -0.8043, beta = 1.1793
+#> Estimated parameters: alpha = -0.8042, beta = 1.1793
 #> ! Goodness-of-Fit Statistic W (Chi-Square): W = 7.34 (df = 32), p-value = 1 [Deviation from Survey Variance]
 #> 
 #> ── 3. Residual Spatial Autocorrelation ──
 #> 
-#> ✔ Moran's I on Residuals: I = -0.0383 (Expected: -0.0323, p-value = 0.4379) [No Residual Spatial Autocorrelation]
+#> ✔ Moran's I on Residuals: I = -0.0382 (Expected: -0.0323, p-value = 0.4379) [No Residual Spatial Autocorrelation]
 #> 
 #> ── 5. Bayesian Information Criteria & Predictive Diagnostics ──
 #> 
