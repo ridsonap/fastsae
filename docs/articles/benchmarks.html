@@ -860,7 +860,98 @@ and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-
     initBetaCharts();
   }
 })();
-</script>
+</script><div class="section level4">
+<h4 id="comparison-of-area-estimates-mse-n-1000">Comparison of Area Estimates &amp; MSE
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#comparison-of-area-estimates-mse-n-1000"></a>
+</h4>
+<p>The table below shows the first 10 domain point estimates and
+corresponding MSE from <code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> and
+<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> across
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>
+areas (overall correlation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.9993</mn></mrow><annotation encoding="application/x-tex">r = 0.9993</annotation></semantics></math>):</p>
+<table class="table">
+<thead><tr class="header">
+<th align="left">area</th>
+<th align="left">estimasi fastsae</th>
+<th align="left">mse fastsae</th>
+<th align="left">estimasi tipsae</th>
+<th align="left">mse tipsae</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">0.54531</td>
+<td align="left">0.00019</td>
+<td align="left">0.53319</td>
+<td align="left">0.00009</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">0.62443</td>
+<td align="left">0.00026</td>
+<td align="left">0.59912</td>
+<td align="left">0.00012</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">0.52038</td>
+<td align="left">0.00042</td>
+<td align="left">0.51852</td>
+<td align="left">0.00020</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">0.57258</td>
+<td align="left">0.00029</td>
+<td align="left">0.55830</td>
+<td align="left">0.00013</td>
+</tr>
+<tr class="odd">
+<td align="left">5</td>
+<td align="left">0.58710</td>
+<td align="left">0.00041</td>
+<td align="left">0.57171</td>
+<td align="left">0.00020</td>
+</tr>
+<tr class="even">
+<td align="left">6</td>
+<td align="left">0.64299</td>
+<td align="left">0.00030</td>
+<td align="left">0.61513</td>
+<td align="left">0.00013</td>
+</tr>
+<tr class="odd">
+<td align="left">7</td>
+<td align="left">0.25747</td>
+<td align="left">0.00044</td>
+<td align="left">0.29868</td>
+<td align="left">0.00017</td>
+</tr>
+<tr class="even">
+<td align="left">8</td>
+<td align="left">0.36546</td>
+<td align="left">0.00040</td>
+<td align="left">0.39219</td>
+<td align="left">0.00016</td>
+</tr>
+<tr class="odd">
+<td align="left">9</td>
+<td align="left">0.48903</td>
+<td align="left">0.00022</td>
+<td align="left">0.48951</td>
+<td align="left">0.00011</td>
+</tr>
+<tr class="even">
+<td align="left">10</td>
+<td align="left">0.62417</td>
+<td align="left">0.00040</td>
+<td align="left">0.59155</td>
+<td align="left">0.00017</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

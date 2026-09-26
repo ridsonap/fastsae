@@ -137,3 +137,24 @@ Throughput (iter/s)
 Execution time (median, seconds) — Beta SAE · log scale
 
 Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Beta SAE
+
+#### Comparison of Area Estimates & MSE ($`n = 1,000`$)
+
+The table below shows the first 10 domain point estimates and
+corresponding MSE from
+[`fastsae::ebp_area`](https://ridsonap.github.io/fastsae/reference/ebp_area.md)
+and [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)
+across $`n = 1,000`$ areas (overall correlation $`r = 0.9993`$):
+
+| area | estimasi fastsae | mse fastsae | estimasi tipsae | mse tipsae |
+|:-----|:-----------------|:------------|:----------------|:-----------|
+| 1    | 0.54531          | 0.00019     | 0.53319         | 0.00009    |
+| 2    | 0.62443          | 0.00026     | 0.59912         | 0.00012    |
+| 3    | 0.52038          | 0.00042     | 0.51852         | 0.00020    |
+| 4    | 0.57258          | 0.00029     | 0.55830         | 0.00013    |
+| 5    | 0.58710          | 0.00041     | 0.57171         | 0.00020    |
+| 6    | 0.64299          | 0.00030     | 0.61513         | 0.00013    |
+| 7    | 0.25747          | 0.00044     | 0.29868         | 0.00017    |
+| 8    | 0.36546          | 0.00040     | 0.39219         | 0.00016    |
+| 9    | 0.48903          | 0.00022     | 0.48951         | 0.00011    |
+| 10   | 0.62417          | 0.00040     | 0.59155         | 0.00017    |
