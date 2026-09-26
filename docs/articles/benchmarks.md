@@ -119,18 +119,21 @@ $`\times`$ years) with spatial polygon contiguity matrix $`W`$ from
 | **Mean Absolute Error (MAE)** | Baseline | **0.00304** | **Negligible numerical error** |
 | **Convergence Overhead** | Requires $`\hat{R} < 1.05`$ checks, warmup, and tuning | None (closed-form Laplace expansions) | Instant convergence |
 
-### Beta SAE Scalability Across Sample Sizes ($`n = 30`$ to $`n = 1,000`$)
+### Interactive Beta SAE Benchmark Explorer ($`n = 30`$ to $`n = 1,000`$)
 
-Empirical benchmark evaluating runtime and memory consumption across
-expanding domain sizes:
+Use the interactive controls below to compare runtime, memory footprint,
+and speedup factors between
+[`fastsae::ebp_area`](https://ridsonap.github.io/fastsae/reference/ebp_area.md)
+and [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html):
 
-| Number of Domains ($`n`$) | `fastsae` Median Time | `tipsae` Median Time | Speedup Factor | `fastsae` RAM | `tipsae` RAM | RAM Reduction |
-|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| **$`n = 30`$** | **1.24 s** | 2.36 s | **1.9x faster** | 109.7 MB | 500.0 MB | **4.6x less RAM** |
-| **$`n = 50`$** | **1.27 s** | 3.74 s | **2.9x faster** | 2.6 MB | 861.4 MB | **332x less RAM** |
-| **$`n = 100`$** | **1.29 s** | 8.32 s | **6.4x faster** | 3.8 MB | 1,780.8 MB | **466x less RAM** |
-| **$`n = 250`$** | **1.31 s** | 26.28 s | **20.0x faster** | 115.2 MB | 4,545.4 MB | **39.5x less RAM** |
-| **$`n = 500`$** | **1.41 s** | 64.21 s | **45.5x faster** | 121.3 MB | 9,142.5 MB | **75.4x less RAM** |
-| **$`n = 1,000`$** | **1.64 s** | 187.16 s | **114.2x faster** | 133.6 MB | 18,335.2 MB | **137.3x less RAM** |
+Execution Time
 
-![](benchmarks_files/figure-html/plot_beta_benchmark-1.png)
+Peak Memory
+
+Throughput (iter/s)
+
+**Area-Level Beta SAE**: INLA vs Stan MCMC
+
+Execution time (median, seconds) — Beta SAE · log scale
+
+Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Beta SAE

@@ -165,35 +165,35 @@ fit_ebp <- ebp_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2"
 #> 
 #> ✔ Convergence: Yes (in - iterations)
 #> Model: EBP-GAUSSIAN (BYM2)
-#> Random effect variance (sigma2_u): 1.678114 
+#> Random effect variance (sigma2_u): 1.677973 
 #> Spatial autocorrelation (rho): 0.4817 
 #> Spatial mixing fraction (phi): 0.4817 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  2.9992e+00  6.7350e-01  4.4532e+00  8.4603e-06  1.6908e+00
-#> x1          -3.6462e-03  8.0768e-03 -4.5145e-01  6.5167e-01 -1.9693e-02
-#> x2           8.6081e-02  2.7819e-02  3.0943e+00  1.9725e-03  3.1299e-02
+#> (Intercept)  2.9993e+00  6.7363e-01  4.4525e+00  8.4865e-06  1.6907e+00
+#> x1          -3.6469e-03  8.0784e-03 -4.5145e-01  6.5167e-01 -1.9697e-02
+#> x2           8.6081e-02  2.7824e-02  3.0938e+00  1.9761e-03  3.1289e-02
 #>             ci_upper
-#> (Intercept)   4.3414
+#> (Intercept)   4.3418
 #> x1            0.0121
 #> x2            0.1409
 #> 
 #> EBP Estimates (First 6 domains):
 #>   domain        y      ebp linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.336805    7.336805 0.7396031 0.5470127 10.08072 5.902533
-#> 2      2 7.599650 6.514888    6.514888 0.7988265 0.6381239 12.26155 4.970545
-#> 3      3 5.514137 5.150687    5.150687 0.7839472 0.6145732 15.22024 3.623143
-#> 4      4 3.869326 4.362852    4.362852 0.7078526 0.5010553 16.22454 2.964291
-#> 5      5 6.305063 6.362978    6.362978 0.8812520 0.7766050 13.84968 4.631129
-#> 6      6 3.926807 4.146971    4.146971 0.5685591 0.3232594 13.71023 3.028237
+#> 1      1 8.359527 7.337177    7.337177 0.7396521 0.5470852 10.08088 5.902778
+#> 2      2 7.599650 6.515266    6.515266 0.7988874 0.6382211 12.26178 4.970781
+#> 3      3 5.514137 5.150827    5.150827 0.7840063 0.6146659 15.22098 3.623168
+#> 4      4 3.869326 4.362686    4.362686 0.7078964 0.5011173 16.22616 2.964041
+#> 5      5 6.305063 6.362965    6.362965 0.8813349 0.7767513 13.85101 4.630951
+#> 6      6 3.926807 4.146889    4.146889 0.5685830 0.3232866 13.71107 3.028108
 #>   ci_upper random_effect    vardir
-#> 1 8.801958    2.72050595 0.6618838
-#> 2 8.102407    2.28769990 0.8374691
-#> 3 6.699746    0.72247768 0.8822257
-#> 4 5.741278   -1.32705848 0.6581716
-#> 5 8.092284   -0.08181688 1.2788021
-#> 6 5.258496   -0.99778000 0.3878004
+#> 1 8.802385    2.72089068 0.6618838
+#> 2 8.102867    2.28806520 0.8374691
+#> 3 6.700001    0.72256265 0.8822257
+#> 4 5.741198   -1.32728601 0.6581716
+#> 5 8.092435   -0.08184072 1.2788021
+#> 6 5.258460   -0.99791050 0.3878004
 #> ... and 36 more rows.
 #> 
 diag_ebp <- diagnose(fit_ebp)
@@ -205,7 +205,7 @@ print(diag_ebp)
 #> 
 #> ! Domains with RSE < 25%: 61.9% (Caution: low precision)
 #> ✔ Average RSE reduction: Direct "29.49%" -> SAE "22.92%" (Gain: 6.57%)
-#> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.55, max: 5.98)
+#> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.55, max: 5.97)
 #> 
 #> ── 2. Brown et al. (2001) Calibration Tests ──
 #> 
@@ -215,12 +215,12 @@ print(diag_ebp)
 #> 
 #> ── 3. Residual Spatial Autocorrelation ──
 #> 
-#> ✔ Moran's I on Residuals: I = -0.0382 (Expected: -0.0323, p-value = 0.4379) [No Residual Spatial Autocorrelation]
+#> ✔ Moran's I on Residuals: I = -0.0382 (Expected: -0.0323, p-value = 0.438) [No Residual Spatial Autocorrelation]
 #> 
 #> ── 5. Bayesian Information Criteria & Predictive Diagnostics ──
 #> 
-#> ℹ WAIC: 117.41 (p_eff: 13.98) | DIC: 118.44 (p_eff: 19.95)
-#> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.084, p-value = 0.9646 [Well-calibrated predictive distribution]
+#> ℹ WAIC: 117.4 (p_eff: 13.98) | DIC: 118.44 (p_eff: 19.95)
+#> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.084, p-value = 0.9647 [Well-calibrated predictive distribution]
 #> ✔ Leave-One-Out CPO: No numerical approximation issues (min CPO = 0.0087)
 #> ────────────────────────────────────────────────────────────────────────────────
 #> ! Final Assessment: CAUTION: Model goodness-of-fit indicates notable deviation from survey variance.

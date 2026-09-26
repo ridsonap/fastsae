@@ -383,30 +383,30 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00</span></span>
-<span><span class="co">#&gt; x            4.0612e-01  6.4372e-02  6.3090e+00  2.8083e-10  2.7947e-01</span></span>
+<span><span class="co">#&gt; x            4.0613e-01  6.4372e-02  6.3090e+00  2.8082e-10  2.7947e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)  -2.2218</span></span>
 <span><span class="co">#&gt; x             0.5321</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  18.22294  6.626296    8.63464  17.10216   34.34968</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   172.31251 78.435421   72.15310 155.44935  373.05163</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  18.22305  6.626538   8.634441  17.10221    34.3504</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   172.31339 78.436026  72.153220 155.45009   373.0541</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.06367</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   127.08248</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.06364</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   127.08302</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -976.34162 </span></span>
+<span><span class="co">#&gt;                                            -976.34164 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              56.02376 </span></span>
+<span><span class="co">#&gt;                                              56.02363 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -984.78978 </span></span>
+<span><span class="co">#&gt;                                            -984.78969 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              38.70812 </span></span>
+<span><span class="co">#&gt;                                              38.70811 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                             439.32542 </span></span>
+<span><span class="co">#&gt;                                             439.32543 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBP Summary Statistics:</span></span>
 <span><span class="co">#&gt;       ebp           linear_pred           sd                mse           </span></span>
@@ -432,19 +432,19 @@ standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_ebp</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"ebp"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                domain time      y        ebp          sd       rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554643 0.006127591 11.031477 0.04408732</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131562  7.453975 0.07068302</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343259 0.010214729 10.932726 0.07511424</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509827 0.006294788  9.669669 0.05342025</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112655 0.007870661 11.065715 0.05671273</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608734 0.012916464 13.442420 0.07314332</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554647 0.006127604 11.031491 0.04408733</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131558  7.453969 0.07068303</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343258 0.010214715 10.932712 0.07511427</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509829 0.006294783  9.669660 0.05342026</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112656 0.007870652 11.065700 0.05671275</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608725 0.012916443 13.442411 0.07314332</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06810568</span></span>
-<span><span class="co">#&gt; 2 0.09473235</span></span>
-<span><span class="co">#&gt; 3 0.11517436</span></span>
-<span><span class="co">#&gt; 4 0.07814090</span></span>
-<span><span class="co">#&gt; 5 0.08759940</span></span>
-<span><span class="co">#&gt; 6 0.12376149</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 0.06810573</span></span>
+<span><span class="co">#&gt; 2 0.09473234</span></span>
+<span><span class="co">#&gt; 3 0.11517433</span></span>
+<span><span class="co">#&gt; 4 0.07814089</span></span>
+<span><span class="co">#&gt; 5 0.08759939</span></span>
+<span><span class="co">#&gt; 6 0.12376141</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -513,97 +513,240 @@ estimated analytically via INLA.</p>
 </tbody>
 </table>
 <div class="section level3">
-<h3 id="scalability-comparison-across-sample-sizes-n-30-to-n-1000">Scalability Comparison Across Sample Sizes
+<h3 id="interactive-scalability-explorer-n-30-to-n-1000">Interactive Scalability Explorer
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">n = 30</annotation></semantics></math>
 to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#scalability-comparison-across-sample-sizes-n-30-to-n-1000"></a>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#interactive-scalability-explorer-n-30-to-n-1000"></a>
 </h3>
-<p>To evaluate how computation time and memory scale with the number of
-domains, Area-Level Beta SAE models were benchmarked across
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>30</mn><mo>,</mo><mn>50</mn><mo>,</mo><mn>100</mn><mo>,</mo><mn>250</mn><mo>,</mo><mn>500</mn><mo>,</mo><mn>1000</mn></mrow><annotation encoding="application/x-tex">n = 30, 50, 100, 250, 500, 1000</annotation></semantics></math>:</p>
-<table style="width:100%;" class="table">
-<colgroup>
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-</colgroup>
-<thead><tr class="header">
-<th align="center">Number of Domains
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>)</th>
-<th align="center">
-<code>fastsae</code> Median Time</th>
-<th align="center">
-<code>tipsae</code> Median Time</th>
-<th align="center">Speedup Factor</th>
-<th align="center">
-<code>fastsae</code> RAM</th>
-<th align="center">
-<code>tipsae</code> RAM</th>
-<th align="center">RAM Reduction</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">n = 30</annotation></semantics></math></strong></td>
-<td align="center"><strong>1.24 s</strong></td>
-<td align="center">2.36 s</td>
-<td align="center"><strong>1.9x faster</strong></td>
-<td align="center">109.7 MB</td>
-<td align="center">500.0 MB</td>
-<td align="center"><strong>4.6x less RAM</strong></td>
-</tr>
-<tr class="even">
-<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">n = 50</annotation></semantics></math></strong></td>
-<td align="center"><strong>1.27 s</strong></td>
-<td align="center">3.74 s</td>
-<td align="center"><strong>2.9x faster</strong></td>
-<td align="center">2.6 MB</td>
-<td align="center">861.4 MB</td>
-<td align="center"><strong>332x less RAM</strong></td>
-</tr>
-<tr class="odd">
-<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">n = 100</annotation></semantics></math></strong></td>
-<td align="center"><strong>1.29 s</strong></td>
-<td align="center">8.32 s</td>
-<td align="center"><strong>6.4x faster</strong></td>
-<td align="center">3.8 MB</td>
-<td align="center">1,780.8 MB</td>
-<td align="center"><strong>466x less RAM</strong></td>
-</tr>
-<tr class="even">
-<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>250</mn></mrow><annotation encoding="application/x-tex">n = 250</annotation></semantics></math></strong></td>
-<td align="center"><strong>1.31 s</strong></td>
-<td align="center">26.28 s</td>
-<td align="center"><strong>20.0x faster</strong></td>
-<td align="center">115.2 MB</td>
-<td align="center">4,545.4 MB</td>
-<td align="center"><strong>39.5x less RAM</strong></td>
-</tr>
-<tr class="odd">
-<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">n = 500</annotation></semantics></math></strong></td>
-<td align="center"><strong>1.41 s</strong></td>
-<td align="center">64.21 s</td>
-<td align="center"><strong>45.5x faster</strong></td>
-<td align="center">121.3 MB</td>
-<td align="center">9,142.5 MB</td>
-<td align="center"><strong>75.4x less RAM</strong></td>
-</tr>
-<tr class="even">
-<td align="center"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math></strong></td>
-<td align="center"><strong>1.64 s</strong></td>
-<td align="center">187.16 s</td>
-<td align="center"><strong>114.2x faster</strong></td>
-<td align="center">133.6 MB</td>
-<td align="center">18,335.2 MB</td>
-<td align="center"><strong>137.3x less RAM</strong></td>
-</tr>
-</tbody>
-</table>
-<p><img src="ebp-area-inla_files/figure-html/plot_beta_scaling-1.png" class="r-plt" alt="" width="100%"></p>
-<hr>
+<p>Use the interactive controls below to compare runtime, memory
+footprint, and speedup factors between <code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code>
+and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>:</p>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><div class="my-4 p-3 border rounded bg-light">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div class="btn-group" role="group" aria-label="Metric selection">
+      <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Peak Memory</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-ips" onclick="setBetaMetric('ips')">Throughput (iter/s)</button>
+    </div>
+    <span class="text-muted small"><strong>Area-Level Beta SAE</strong>: INLA vs Stan MCMC</span>
+  </div>
+
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-bold" id="beta-main-chart-title">
+      Execution time (median, seconds) — Beta SAE · log scale
+    </div>
+    <div class="card-body" style="position: relative; height: 350px;">
+      <canvas id="beta-benchmark-main-chart"></canvas>
+</div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold" id="beta-speedup-chart-title">
+      Speedup Factor &amp; Efficiency Multiplier (fastsae vs tipsae) — Beta SAE
+    </div>
+    <div class="card-body" style="position: relative; height: 280px;">
+      <canvas id="beta-benchmark-speedup-chart"></canvas>
+</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const BETA_RAW_DATA = [
+    { Method: "fastsae", Median: 1.240210, Mem: 109.73, IPS: 0.802, n: 30 },
+    { Method: "tipsae",  Median: 2.363948, Mem: 499.97, IPS: 0.411, n: 30 },
+    { Method: "fastsae", Median: 1.272352, Mem: 2.59,   IPS: 0.781, n: 50 },
+    { Method: "tipsae",  Median: 3.735552, Mem: 861.39, IPS: 0.263, n: 50 },
+    { Method: "fastsae", Median: 1.293354, Mem: 3.82,   IPS: 0.763, n: 100 },
+    { Method: "tipsae",  Median: 8.321655, Mem: 1780.80, IPS: 0.119, n: 100 },
+    { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
+    { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
+    { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
+    { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
+    { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
+    { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
+  ];
+
+  const BETA_N_LIST = [30, 50, 100, 250, 500, 1000];
+  let curBetaMetric = "time";
+  let chartBetaMain, chartBetaSpeedup;
+
+  function fmtBetaVal(v, m) {
+    if (v === null || v === undefined) return "N/A";
+    if (m === "time") {
+      if (v < 1) return (v * 1000).toFixed(1) + " ms";
+      return v.toFixed(2) + " s";
+    }
+    if (m === "mem") {
+      if (v >= 1000) return (v / 1024).toFixed(2) + " GB (" + v.toFixed(0) + " MB)";
+      return v.toFixed(1) + " MB";
+    }
+    if (m === "ips") return v.toFixed(3) + " it/s";
+    return v;
+  }
+
+  function getBetaMetricTitle(m) {
+    if (m === "time") return "Execution time (median, seconds)";
+    if (m === "mem") return "Memory usage (MB)";
+    if (m === "ips") return "Throughput (iterations per second)";
+    return m;
+  }
+
+  window.setBetaMetric = function(m) {
+    curBetaMetric = m;
+    ["time", "mem", "ips"].forEach(id => {
+      const btn = document.getElementById("btn-beta-metric-" + id);
+      if (btn) {
+        btn.classList.toggle("btn-success", id === m);
+        btn.classList.toggle("btn-outline-success", id !== m);
+        btn.classList.toggle("active", id === m);
+      }
+    });
+    updateBetaCharts();
+  };
+
+  function updateBetaCharts() {
+    if (!chartBetaMain || !chartBetaSpeedup) return;
+    const key = curBetaMetric === "time" ? "Median" : curBetaMetric === "mem" ? "Mem" : "IPS";
+
+    const fastsaeData = BETA_N_LIST.map(n => {
+      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      return r ? r[key] : null;
+    });
+    const tipsaeData = BETA_N_LIST.map(n => {
+      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      return r ? r[key] : null;
+    });
+
+    const speedupData = BETA_N_LIST.map(n => {
+      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      return f && t ? (t.Median / f.Median) : null;
+    });
+
+    const memReductionData = BETA_N_LIST.map(n => {
+      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      return f && t ? (t.Mem / f.Mem) : null;
+    });
+
+    const titleElem = document.getElementById("beta-main-chart-title");
+    if (titleElem) {
+      titleElem.textContent = getBetaMetricTitle(curBetaMetric) + " — Beta SAE · log scale";
+    }
+
+    chartBetaMain.data.datasets[0].data = fastsaeData;
+    chartBetaMain.data.datasets[1].data = tipsaeData;
+    chartBetaMain.options.scales.y.title.text = getBetaMetricTitle(curBetaMetric);
+    chartBetaMain.update();
+
+    chartBetaSpeedup.data.datasets[0].data = speedupData;
+    chartBetaSpeedup.data.datasets[1].data = memReductionData;
+    chartBetaSpeedup.update();
+  }
+
+  function initBetaCharts() {
+    const ctx1 = document.getElementById("beta-benchmark-main-chart");
+    const ctx2 = document.getElementById("beta-benchmark-speedup-chart");
+    if (!ctx1 || !ctx2) return;
+    if (typeof Chart === "undefined") {
+      setTimeout(initBetaCharts, 200);
+      return;
+    }
+
+    chartBetaMain = new Chart(ctx1.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: BETA_N_LIST.map(String),
+        datasets: [
+          {
+            label: "fastsae (INLA)",
+            data: [],
+            borderColor: "#1D6A5C",
+            backgroundColor: "rgba(29, 106, 92, 0.15)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          },
+          {
+            label: "tipsae (Stan MCMC)",
+            data: [],
+            borderColor: "#D95F02",
+            backgroundColor: "rgba(217, 95, 2, 0.15)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: { type: "logarithmic", title: { display: true, text: "" } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + fmtBetaVal(ctx.raw, curBetaMetric)
+            }
+          }
+        }
+      }
+    });
+
+    chartBetaSpeedup = new Chart(ctx2.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: BETA_N_LIST.map(String),
+        datasets: [
+          {
+            label: "Speedup Factor (x faster)",
+            data: [],
+            backgroundColor: "#1D6A5C",
+            borderRadius: 4
+          },
+          {
+            label: "Memory Reduction (x less RAM)",
+            data: [],
+            backgroundColor: "#2B83BA",
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: {
+            type: "logarithmic",
+            title: { display: true, text: "Efficiency Multiplier (x advantage, log scale)" }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + (ctx.raw ? ctx.raw.toFixed(1) + "x" : "N/A")
+            }
+          }
+        }
+      }
+    });
+
+    updateBetaCharts();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initBetaCharts);
+  } else {
+    initBetaCharts();
+  }
+})();
+</script><hr>
 </div>
 </div>
 <div class="section level2">
@@ -638,20 +781,20 @@ Binomial distributions with population offsets:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01</span></span>
-<span><span class="co">#&gt; x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3183e-14  2.8563e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9735e-01  3.3472e-02 -8.8834e+00  6.4828e-19 -3.6363e-01</span></span>
+<span><span class="co">#&gt; x1           3.8369e-01  4.9803e-02  7.7041e+00  1.3182e-14  2.8563e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9735e-01  3.3472e-02 -8.8834e+00  6.4823e-19 -3.6363e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4120</span></span>
 <span><span class="co">#&gt; x1            0.4820</span></span>
 <span><span class="co">#&gt; x2           -0.2317</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 17.020090 4.6703968 9.50745642 16.461616 27.7453849</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.475598 0.2611355 0.05377481  0.464555  0.9367127</span></span>
-<span><span class="co">#&gt;                                   mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 15.4392205</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.2293849</span></span>
+<span><span class="co">#&gt;                                   mean        sd 0.025quant   0.5quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 17.0200831 4.6703746 9.50744831 16.4616232</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.4755955 0.2611231 0.05378442  0.4645534</span></span>
+<span><span class="co">#&gt;                             0.975quant       mode</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 27.7452903 15.4392626</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.9366979  0.2294639</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
@@ -659,20 +802,20 @@ Binomial distributions with population offsets:</p>
 <span><span class="co">#&gt;                                                    pD </span></span>
 <span><span class="co">#&gt;                                              31.75462 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.63795 </span></span>
+<span><span class="co">#&gt;                                             309.63796 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              17.13690 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                            -169.74605 </span></span>
+<span><span class="co">#&gt;                                            -169.74606 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBP Summary Statistics:</span></span>
 <span><span class="co">#&gt;       ebp          linear_pred            sd               mse           </span></span>
 <span><span class="co">#&gt;  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  </span></span>
 <span><span class="co">#&gt;  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665234  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665232  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  </span></span>
-<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683005  </span></span>
+<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5682987  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.790  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.156  </span></span>

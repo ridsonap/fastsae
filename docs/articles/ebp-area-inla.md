@@ -155,30 +155,30 @@ and known sampling variances `vars`:
 `#> Coefficients:`\
 `#>                    beta   std.error      zvalue      pvalue    ci_lower`\
 `#> (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00`\
-`#> x            4.0612e-01  6.4372e-02  6.3090e+00  2.8083e-10  2.7947e-01`\
+`#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8082e-10  2.7947e-01`\
 `#>             ci_upper`\
 `#> (Intercept)  -2.2218`\
 `#> x             0.5321`\
 `#> `\
 `#> Hyperparameters:`\
 `#>                                  mean        sd 0.025quant  0.5quant 0.975quant`\
-`#> Precision for ..domain_id..  18.22294  6.626296    8.63464  17.10216   34.34968`\
-`#> Precision for ..time_id..   172.31251 78.435421   72.15310 155.44935  373.05163`\
+`#> Precision for ..domain_id..  18.22305  6.626538   8.634441  17.10221    34.3504`\
+`#> Precision for ..time_id..   172.31339 78.436026  72.153220 155.45009   373.0541`\
 `#>                                  mode`\
-`#> Precision for ..domain_id..  15.06367`\
-`#> Precision for ..time_id..   127.08248`\
+`#> Precision for ..domain_id..  15.06364`\
+`#> Precision for ..time_id..   127.08302`\
 `#> `\
 `#> Goodness of Fit:`\
 `#>                                                   DIC `\
-`#>                                            -976.34162 `\
+`#>                                            -976.34164 `\
 `#>                                                    pD `\
-`#>                                              56.02376 `\
+`#>                                              56.02363 `\
 `#>                                                  WAIC `\
-`#>                                            -984.78978 `\
+`#>                                            -984.78969 `\
 `#>                                                 pWAIC `\
-`#>                                              38.70812 `\
+`#>                                              38.70811 `\
 `#> Marginal_LogLik.log marginal-likelihood (integration) `\
-`#>                                             439.32542 `\
+`#>                                             439.32543 `\
 `#> `\
 `#> EBP Summary Statistics:`\
 `#>       ebp           linear_pred           sd                mse           `\
@@ -204,19 +204,19 @@ standard errors, and 95% Credible Intervals:
 \
 [`head`](https://rdrr.io/r/utils/head.html)`(``fit_beta_st``$``df_ebp``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"domain"``, ``"time"``, ``"y"``, ``"ebp"``, ``"sd"``, ``"rse"``, ``"ci_lower"``, ``"ci_upper"``)``]``)`\
 `#>                domain time      y        ebp          sd       rse   ci_lower`\
-`#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554643 0.006127591 11.031477 0.04408732`\
-`#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131562  7.453975 0.07068302`\
-`#> 3               IMOLA 2014 0.1033 0.09343259 0.010214729 10.932726 0.07511424`\
-`#> 4         PIANURA EST 2014 0.0633 0.06509827 0.006294788  9.669669 0.05342025`\
-`#> 5       PIANURA OVEST 2014 0.0625 0.07112655 0.007870661 11.065715 0.05671273`\
-`#> 6      PORRETTA TERME 2014 0.1276 0.09608734 0.012916464 13.442420 0.07314332`\
+`#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554647 0.006127604 11.031491 0.04408733`\
+`#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131558  7.453969 0.07068303`\
+`#> 3               IMOLA 2014 0.1033 0.09343258 0.010214715 10.932712 0.07511427`\
+`#> 4         PIANURA EST 2014 0.0633 0.06509829 0.006294783  9.669660 0.05342026`\
+`#> 5       PIANURA OVEST 2014 0.0625 0.07112656 0.007870652 11.065700 0.05671275`\
+`#> 6      PORRETTA TERME 2014 0.1276 0.09608725 0.012916443 13.442411 0.07314332`\
 `#>     ci_upper`\
-`#> 1 0.06810568`\
-`#> 2 0.09473235`\
-`#> 3 0.11517436`\
-`#> 4 0.07814090`\
-`#> 5 0.08759940`\
-`#> 6 0.12376149`
+`#> 1 0.06810573`\
+`#> 2 0.09473234`\
+`#> 3 0.11517433`\
+`#> 4 0.07814089`\
+`#> 5 0.08759939`\
+`#> 6 0.12376141`
 
 ------------------------------------------------------------------------
 
@@ -235,22 +235,24 @@ the identical structural model is estimated analytically via INLA.
 | **Pearson Correlation ($`r`$)** | Baseline | **0.9893** | Near-identical estimates |
 | **Mean Absolute Error (MAE)** | Baseline | **0.00304** | Negligible numerical discrepancy |
 
-### Scalability Comparison Across Sample Sizes ($`n = 30`$ to $`n = 1,000`$)
+### Interactive Scalability Explorer ($`n = 30`$ to $`n = 1,000`$)
 
-To evaluate how computation time and memory scale with the number of
-domains, Area-Level Beta SAE models were benchmarked across
-$`n = 30, 50, 100, 250, 500, 1000`$:
+Use the interactive controls below to compare runtime, memory footprint,
+and speedup factors between
+[`fastsae::ebp_area`](https://ridsonap.github.io/fastsae/reference/ebp_area.md)
+and [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html):
 
-| Number of Domains ($`n`$) | `fastsae` Median Time | `tipsae` Median Time | Speedup Factor | `fastsae` RAM | `tipsae` RAM | RAM Reduction |
-|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| **$`n = 30`$** | **1.24 s** | 2.36 s | **1.9x faster** | 109.7 MB | 500.0 MB | **4.6x less RAM** |
-| **$`n = 50`$** | **1.27 s** | 3.74 s | **2.9x faster** | 2.6 MB | 861.4 MB | **332x less RAM** |
-| **$`n = 100`$** | **1.29 s** | 8.32 s | **6.4x faster** | 3.8 MB | 1,780.8 MB | **466x less RAM** |
-| **$`n = 250`$** | **1.31 s** | 26.28 s | **20.0x faster** | 115.2 MB | 4,545.4 MB | **39.5x less RAM** |
-| **$`n = 500`$** | **1.41 s** | 64.21 s | **45.5x faster** | 121.3 MB | 9,142.5 MB | **75.4x less RAM** |
-| **$`n = 1,000`$** | **1.64 s** | 187.16 s | **114.2x faster** | 133.6 MB | 18,335.2 MB | **137.3x less RAM** |
+Execution Time
 
-![](ebp-area-inla_files/figure-html/plot_beta_scaling-1.png)
+Peak Memory
+
+Throughput (iter/s)
+
+**Area-Level Beta SAE**: INLA vs Stan MCMC
+
+Execution time (median, seconds) — Beta SAE · log scale
+
+Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Beta SAE
 
 ------------------------------------------------------------------------
 
@@ -287,20 +289,20 @@ population offsets:
 `#> Coefficients:`\
 `#>                    beta   std.error      zvalue      pvalue    ci_lower`\
 `#> (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01`\
-`#> x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3183e-14  2.8563e-01`\
-`#> x2          -2.9735e-01  3.3472e-02 -8.8834e+00  6.4828e-19 -3.6363e-01`\
+`#> x1           3.8369e-01  4.9803e-02  7.7041e+00  1.3182e-14  2.8563e-01`\
+`#> x2          -2.9735e-01  3.3472e-02 -8.8834e+00  6.4823e-19 -3.6363e-01`\
 `#>             ci_upper`\
 `#> (Intercept)   0.4120`\
 `#> x1            0.4820`\
 `#> x2           -0.2317`\
 `#> `\
 `#> Hyperparameters:`\
-`#>                                  mean        sd 0.025quant  0.5quant 0.975quant`\
-`#> Precision for ..domain_id.. 17.020090 4.6703968 9.50745642 16.461616 27.7453849`\
-`#> Phi for ..domain_id..        0.475598 0.2611355 0.05377481  0.464555  0.9367127`\
-`#>                                   mode`\
-`#> Precision for ..domain_id.. 15.4392205`\
-`#> Phi for ..domain_id..        0.2293849`\
+`#>                                   mean        sd 0.025quant   0.5quant`\
+`#> Precision for ..domain_id.. 17.0200831 4.6703746 9.50744831 16.4616232`\
+`#> Phi for ..domain_id..        0.4755955 0.2611231 0.05378442  0.4645534`\
+`#>                             0.975quant       mode`\
+`#> Precision for ..domain_id.. 27.7452903 15.4392626`\
+`#> Phi for ..domain_id..        0.9366979  0.2294639`\
 `#> `\
 `#> Goodness of Fit:`\
 `#>                                                   DIC `\
@@ -308,20 +310,20 @@ population offsets:
 `#>                                                    pD `\
 `#>                                              31.75462 `\
 `#>                                                  WAIC `\
-`#>                                             309.63795 `\
+`#>                                             309.63796 `\
 `#>                                                 pWAIC `\
 `#>                                              17.13690 `\
 `#> Marginal_LogLik.log marginal-likelihood (integration) `\
-`#>                                            -169.74605 `\
+`#>                                            -169.74606 `\
 `#> `\
 `#> EBP Summary Statistics:`\
 `#>       ebp          linear_pred            sd               mse           `\
 `#>  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  `\
 `#>  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  `\
 `#>  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  `\
-`#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665234  `\
+`#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665232  `\
 `#>  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  `\
-`#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683005  `\
+`#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5682987  `\
 `#>       rse        `\
 `#>  Min.   : 2.790  `\
 `#>  1st Qu.: 5.156  `\

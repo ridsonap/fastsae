@@ -335,49 +335,237 @@ The test used the official `tipsae` panel dataset: **`emilia`** (38 health distr
 | **Mean Absolute Error (MAE)** | Baseline | **0.00304** | **Negligible numerical error** |
 | **Convergence Overhead** | Requires $\hat{R} < 1.05$ checks, warmup, and tuning | None (closed-form Laplace expansions) | Instant convergence |
 
-### Beta SAE Scalability Across Sample Sizes ($n = 30$ to $n = 1,000$)
+### Interactive Beta SAE Benchmark Explorer ($n = 30$ to $n = 1,000$)
 
-Empirical benchmark evaluating runtime and memory consumption across expanding domain sizes:
+Use the interactive controls below to compare runtime, memory footprint, and speedup factors between `fastsae::ebp_area` and `tipsae::fit_sae`:
 
-| Number of Domains ($n$) | `fastsae` Median Time | `tipsae` Median Time | Speedup Factor | `fastsae` RAM | `tipsae` RAM | RAM Reduction |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **$n = 30$** | **1.24 s** | 2.36 s | **1.9x faster** | 109.7 MB | 500.0 MB | **4.6x less RAM** |
-| **$n = 50$** | **1.27 s** | 3.74 s | **2.9x faster** | 2.6 MB | 861.4 MB | **332x less RAM** |
-| **$n = 100$** | **1.29 s** | 8.32 s | **6.4x faster** | 3.8 MB | 1,780.8 MB | **466x less RAM** |
-| **$n = 250$** | **1.31 s** | 26.28 s | **20.0x faster** | 115.2 MB | 4,545.4 MB | **39.5x less RAM** |
-| **$n = 500$** | **1.41 s** | 64.21 s | **45.5x faster** | 121.3 MB | 9,142.5 MB | **75.4x less RAM** |
-| **$n = 1,000$** | **1.64 s** | 187.16 s | **114.2x faster** | 133.6 MB | 18,335.2 MB | **137.3x less RAM** |
+```{=html}
+<div class="my-4 p-3 border rounded bg-light">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div class="btn-group" role="group" aria-label="Metric selection">
+      <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Peak Memory</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-ips" onclick="setBetaMetric('ips')">Throughput (iter/s)</button>
+    </div>
+    <span class="text-muted small"><strong>Area-Level Beta SAE</strong>: INLA vs Stan MCMC</span>
+  </div>
 
-```{r plot_beta_benchmark, echo = FALSE, fig.width = 9, fig.height = 4.5, out.width = "100%", message = FALSE, warning = FALSE}
-library(ggplot2)
-fpath <- if (file.exists("../inst/exdata/beta_benchmark.rds")) "../inst/exdata/beta_benchmark.rds" else "inst/exdata/beta_benchmark.rds"
-if (file.exists(fpath)) {
-  beta_df <- readRDS(fpath)
-  
-  p1 <- ggplot(beta_df, aes(x = n, y = `Median (s)`, color = Method, group = Method)) +
-    geom_line(linewidth = 1.2) +
-    geom_point(size = 3) +
-    scale_color_manual(values = c("fastsae" = "#1D6A5C", "tipsae" = "#D95F02")) +
-    scale_x_log10(breaks = c(30, 50, 100, 250, 500, 1000)) +
-    scale_y_log10(labels = scales::label_number(suffix = " s")) +
-    labs(title = "Execution Time (Log Scale)", subtitle = "Lower is faster", x = "Domains (n)", y = "Median Time (s)") +
-    theme_minimal(base_size = 11) +
-    theme(legend.position = "bottom", panel.grid.minor = element_blank())
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-bold" id="beta-main-chart-title">
+      Execution time (median, seconds) — Beta SAE · log scale
+    </div>
+    <div class="card-body" style="position: relative; height: 350px;">
+      <canvas id="beta-benchmark-main-chart"></canvas>
+    </div>
+  </div>
 
-  p2 <- ggplot(beta_df, aes(x = n, y = `Memory (MB)`, color = Method, group = Method)) +
-    geom_line(linewidth = 1.2) +
-    geom_point(size = 3) +
-    scale_color_manual(values = c("fastsae" = "#1D6A5C", "tipsae" = "#D95F02")) +
-    scale_x_log10(breaks = c(30, 50, 100, 250, 500, 1000)) +
-    scale_y_log10(labels = scales::label_number(suffix = " MB")) +
-    labs(title = "Memory Allocation (Log Scale)", subtitle = "Lower is better", x = "Domains (n)", y = "Memory (MB)") +
-    theme_minimal(base_size = 11) +
-    theme(legend.position = "bottom", panel.grid.minor = element_blank())
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold" id="beta-speedup-chart-title">
+      Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Beta SAE
+    </div>
+    <div class="card-body" style="position: relative; height: 280px;">
+      <canvas id="beta-benchmark-speedup-chart"></canvas>
+    </div>
+  </div>
+</div>
 
-  if (requireNamespace("patchwork", quietly = TRUE)) {
-    patchwork::wrap_plots(p1, p2, guides = "collect") & theme(legend.position = "bottom")
+<script>
+(function() {
+  const BETA_RAW_DATA = [
+    { Method: "fastsae", Median: 1.240210, Mem: 109.73, IPS: 0.802, n: 30 },
+    { Method: "tipsae",  Median: 2.363948, Mem: 499.97, IPS: 0.411, n: 30 },
+    { Method: "fastsae", Median: 1.272352, Mem: 2.59,   IPS: 0.781, n: 50 },
+    { Method: "tipsae",  Median: 3.735552, Mem: 861.39, IPS: 0.263, n: 50 },
+    { Method: "fastsae", Median: 1.293354, Mem: 3.82,   IPS: 0.763, n: 100 },
+    { Method: "tipsae",  Median: 8.321655, Mem: 1780.80, IPS: 0.119, n: 100 },
+    { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
+    { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
+    { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
+    { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
+    { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
+    { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
+  ];
+
+  const BETA_N_LIST = [30, 50, 100, 250, 500, 1000];
+  let curBetaMetric = "time";
+  let chartBetaMain, chartBetaSpeedup;
+
+  function fmtBetaVal(v, m) {
+    if (v === null || v === undefined) return "N/A";
+    if (m === "time") {
+      if (v < 1) return (v * 1000).toFixed(1) + " ms";
+      return v.toFixed(2) + " s";
+    }
+    if (m === "mem") {
+      if (v >= 1000) return (v / 1024).toFixed(2) + " GB (" + v.toFixed(0) + " MB)";
+      return v.toFixed(1) + " MB";
+    }
+    if (m === "ips") return v.toFixed(3) + " it/s";
+    return v;
   }
-}
+
+  function getBetaMetricTitle(m) {
+    if (m === "time") return "Execution time (median, seconds)";
+    if (m === "mem") return "Memory usage (MB)";
+    if (m === "ips") return "Throughput (iterations per second)";
+    return m;
+  }
+
+  window.setBetaMetric = function(m) {
+    curBetaMetric = m;
+    ["time", "mem", "ips"].forEach(id => {
+      const btn = document.getElementById("btn-beta-metric-" + id);
+      if (btn) {
+        btn.classList.toggle("btn-success", id === m);
+        btn.classList.toggle("btn-outline-success", id !== m);
+        btn.classList.toggle("active", id === m);
+      }
+    });
+    updateBetaCharts();
+  };
+
+  function updateBetaCharts() {
+    if (!chartBetaMain || !chartBetaSpeedup) return;
+    const key = curBetaMetric === "time" ? "Median" : curBetaMetric === "mem" ? "Mem" : "IPS";
+
+    const fastsaeData = BETA_N_LIST.map(n => {
+      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      return r ? r[key] : null;
+    });
+    const tipsaeData = BETA_N_LIST.map(n => {
+      const r = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      return r ? r[key] : null;
+    });
+
+    const speedupData = BETA_N_LIST.map(n => {
+      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      return f && t ? (t.Median / f.Median) : null;
+    });
+
+    const memReductionData = BETA_N_LIST.map(n => {
+      const f = BETA_RAW_DATA.find(x => x.n === n && x.Method === "fastsae");
+      const t = BETA_RAW_DATA.find(x => x.n === n && x.Method === "tipsae");
+      return f && t ? (t.Mem / f.Mem) : null;
+    });
+
+    const titleElem = document.getElementById("beta-main-chart-title");
+    if (titleElem) {
+      titleElem.textContent = getBetaMetricTitle(curBetaMetric) + " — Beta SAE · log scale";
+    }
+
+    chartBetaMain.data.datasets[0].data = fastsaeData;
+    chartBetaMain.data.datasets[1].data = tipsaeData;
+    chartBetaMain.options.scales.y.title.text = getBetaMetricTitle(curBetaMetric);
+    chartBetaMain.update();
+
+    chartBetaSpeedup.data.datasets[0].data = speedupData;
+    chartBetaSpeedup.data.datasets[1].data = memReductionData;
+    chartBetaSpeedup.update();
+  }
+
+  function initBetaCharts() {
+    const ctx1 = document.getElementById("beta-benchmark-main-chart");
+    const ctx2 = document.getElementById("beta-benchmark-speedup-chart");
+    if (!ctx1 || !ctx2) return;
+    if (typeof Chart === "undefined") {
+      setTimeout(initBetaCharts, 200);
+      return;
+    }
+
+    chartBetaMain = new Chart(ctx1.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: BETA_N_LIST.map(String),
+        datasets: [
+          {
+            label: "fastsae (INLA)",
+            data: [],
+            borderColor: "#1D6A5C",
+            backgroundColor: "rgba(29, 106, 92, 0.15)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          },
+          {
+            label: "tipsae (Stan MCMC)",
+            data: [],
+            borderColor: "#D95F02",
+            backgroundColor: "rgba(217, 95, 2, 0.15)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: { type: "logarithmic", title: { display: true, text: "" } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + fmtBetaVal(ctx.raw, curBetaMetric)
+            }
+          }
+        }
+      }
+    });
+
+    chartBetaSpeedup = new Chart(ctx2.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: BETA_N_LIST.map(String),
+        datasets: [
+          {
+            label: "Speedup Factor (x faster)",
+            data: [],
+            backgroundColor: "#1D6A5C",
+            borderRadius: 4
+          },
+          {
+            label: "Memory Reduction (x less RAM)",
+            data: [],
+            backgroundColor: "#2B83BA",
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: {
+            type: "logarithmic",
+            title: { display: true, text: "Efficiency Multiplier (x advantage, log scale)" }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + (ctx.raw ? ctx.raw.toFixed(1) + "x" : "N/A")
+            }
+          }
+        }
+      }
+    });
+
+    updateBetaCharts();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initBetaCharts);
+  } else {
+    initBetaCharts();
+  }
+})();
+</script>
 ```
 
 

@@ -133,16 +133,7 @@ In addition to frequentist C++ EBLUP models, `fastsae::ebp_area()` offers Bayesi
 
 #### 1. Scalability Across Sample Sizes ($n = 30$ to $n = 1,000$)
 
-Benchmark of Area-Level Beta Small Area Estimation models (`fastsae::ebp_area` vs `tipsae::fit_sae`):
-
-| Number of Domains ($n$) | `fastsae` Median Time | `tipsae` Median Time | Speedup Factor | `fastsae` RAM | `tipsae` RAM | RAM Reduction |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **$n = 30$** | **1.24 s** | 2.36 s | **1.9x faster** | 109.7 MB | 500.0 MB | **4.6x less RAM** |
-| **$n = 50$** | **1.27 s** | 3.74 s | **2.9x faster** | 2.6 MB | 861.4 MB | **332x less RAM** |
-| **$n = 100$** | **1.29 s** | 8.32 s | **6.4x faster** | 3.8 MB | 1,780.8 MB | **466x less RAM** |
-| **$n = 250$** | **1.31 s** | 26.28 s | **20.0x faster** | 115.2 MB | 4,545.4 MB | **39.5x less RAM** |
-| **$n = 500$** | **1.41 s** | 64.21 s | **45.5x faster** | 121.3 MB | 9,142.5 MB | **75.4x less RAM** |
-| **$n = 1,000$** | **1.64 s** | 187.16 s | **114.2x faster** | 133.6 MB | 18,335.2 MB | **137.3x less RAM** |
+Benchmark of Area-Level Beta Small Area Estimation models (`fastsae::ebp_area` vs `tipsae::fit_sae`) evaluating runtime scalability and memory footprint from $n = 30$ to $n = 1,000$ domains (explore the interactive dashboard in the [documentation website](https://ridsonap.github.io/fastsae/articles/benchmarks.html)):
 
 ![](README_files/figure-gfm/benchmark_beta_combined.png)
 
