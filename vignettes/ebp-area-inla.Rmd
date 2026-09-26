@@ -179,12 +179,12 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 <script>
 (function() {
   const BETA_RAW_DATA = [
-    { Method: "fastsae", Median: 1.240210, Mem: 109.73, IPS: 0.802, n: 30 },
-    { Method: "tipsae",  Median: 2.363948, Mem: 499.97, IPS: 0.411, n: 30 },
-    { Method: "fastsae", Median: 1.272352, Mem: 2.59,   IPS: 0.781, n: 50 },
-    { Method: "tipsae",  Median: 3.735552, Mem: 861.39, IPS: 0.263, n: 50 },
-    { Method: "fastsae", Median: 1.293354, Mem: 3.82,   IPS: 0.763, n: 100 },
-    { Method: "tipsae",  Median: 8.321655, Mem: 1780.80, IPS: 0.119, n: 100 },
+    { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
+    { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
+    { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
+    { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
+    { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
+    { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
     { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
     { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
     { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },

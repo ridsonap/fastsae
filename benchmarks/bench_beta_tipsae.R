@@ -81,6 +81,7 @@ for (n_val in D_values) {
     ),
     check = FALSE,
     iterations = current_iter,
+    filter_gc = FALSE,
     memory = TRUE,
     time_unit = "s"
   )
@@ -106,6 +107,9 @@ for (n_val in D_values) {
   } else {
     df_combined <- as.data.frame(df_n)
   }
+  
+  # Ensure sorted by n
+  df_combined <- df_combined[order(df_combined$n), ]
   
   df_combined <- tibble::as_tibble(df_combined)
   class(df_combined) <- c("bench_mark", "tbl_df", "tbl", "data.frame")

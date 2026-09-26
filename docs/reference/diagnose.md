@@ -165,35 +165,35 @@ fit_ebp <- ebp_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2"
 #> 
 #> ✔ Convergence: Yes (in - iterations)
 #> Model: EBP-GAUSSIAN (BYM2)
-#> Random effect variance (sigma2_u): 1.677973 
+#> Random effect variance (sigma2_u): 1.678173 
 #> Spatial autocorrelation (rho): 0.4817 
 #> Spatial mixing fraction (phi): 0.4817 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  2.9993e+00  6.7363e-01  4.4525e+00  8.4865e-06  1.6907e+00
-#> x1          -3.6469e-03  8.0784e-03 -4.5145e-01  6.5167e-01 -1.9697e-02
-#> x2           8.6081e-02  2.7824e-02  3.0938e+00  1.9761e-03  3.1289e-02
+#> (Intercept)  2.9992e+00  6.7346e-01  4.4534e+00  8.4521e-06  1.6908e+00
+#> x1          -3.6460e-03  8.0763e-03 -4.5145e-01  6.5167e-01 -1.9692e-02
+#> x2           8.6081e-02  2.7817e-02  3.0945e+00  1.9713e-03  3.1302e-02
 #>             ci_upper
-#> (Intercept)   4.3418
+#> (Intercept)   4.3413
 #> x1            0.0121
 #> x2            0.1409
 #> 
 #> EBP Estimates (First 6 domains):
 #>   domain        y      ebp linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.337177    7.337177 0.7396521 0.5470852 10.08088 5.902778
-#> 2      2 7.599650 6.515266    6.515266 0.7988874 0.6382211 12.26178 4.970781
-#> 3      3 5.514137 5.150827    5.150827 0.7840063 0.6146659 15.22098 3.623168
-#> 4      4 3.869326 4.362686    4.362686 0.7078964 0.5011173 16.22616 2.964041
-#> 5      5 6.305063 6.362965    6.362965 0.8813349 0.7767513 13.85101 4.630951
-#> 6      6 3.926807 4.146889    4.146889 0.5685830 0.3232866 13.71107 3.028108
+#> 1      1 8.359527 7.336680    7.336680 0.7395874 0.5469895 10.08068 5.902449
+#> 2      2 7.599650 6.514761    6.514761 0.7988069 0.6380924 12.26149 4.970465
+#> 3      3 5.514137 5.150640    5.150640 0.7839273 0.6145420 15.22000 3.623134
+#> 4      4 3.869326 4.362909    4.362909 0.7078380 0.5010346 16.22399 2.964374
+#> 5      5 6.305063 6.362983    6.362983 0.8812240 0.7765558 13.84923 4.631189
+#> 6      6 3.926807 4.146999    4.146999 0.5685510 0.3232503 13.70994 3.028280
 #>   ci_upper random_effect    vardir
-#> 1 8.802385    2.72089068 0.6618838
-#> 2 8.102867    2.28806520 0.8374691
-#> 3 6.700001    0.72256265 0.8822257
-#> 4 5.741198   -1.32728601 0.6581716
-#> 5 8.092435   -0.08184072 1.2788021
-#> 6 5.258460   -0.99791050 0.3878004
+#> 1 8.801816    2.72037498 0.6618838
+#> 2 8.102254    2.28757558 0.8374691
+#> 3 6.699661    0.72244873 0.8822257
+#> 4 5.741306   -1.32698106 0.6581716
+#> 5 8.092233   -0.08180879 1.2788021
+#> 6 5.258508   -0.99773557 0.3878004
 #> ... and 36 more rows.
 #> 
 diag_ebp <- diagnose(fit_ebp)
@@ -205,22 +205,22 @@ print(diag_ebp)
 #> 
 #> ! Domains with RSE < 25%: 61.9% (Caution: low precision)
 #> ✔ Average RSE reduction: Direct "29.49%" -> SAE "22.92%" (Gain: 6.57%)
-#> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.55, max: 5.97)
+#> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.55, max: 5.98)
 #> 
 #> ── 2. Brown et al. (2001) Calibration Tests ──
 #> 
-#> ✔ Bias Regression Test (H0: alpha = 0, beta = 1): F = 2.995, p-value = 0.0652 [Statistically Unbiased]
-#> Estimated parameters: alpha = -0.8042, beta = 1.1793
+#> ✔ Bias Regression Test (H0: alpha = 0, beta = 1): F = 2.994, p-value = 0.0652 [Statistically Unbiased]
+#> Estimated parameters: alpha = -0.8043, beta = 1.1793
 #> ! Goodness-of-Fit Statistic W (Chi-Square): W = 7.34 (df = 32), p-value = 1 [Deviation from Survey Variance]
 #> 
 #> ── 3. Residual Spatial Autocorrelation ──
 #> 
-#> ✔ Moran's I on Residuals: I = -0.0382 (Expected: -0.0323, p-value = 0.438) [No Residual Spatial Autocorrelation]
+#> ✔ Moran's I on Residuals: I = -0.0383 (Expected: -0.0323, p-value = 0.4379) [No Residual Spatial Autocorrelation]
 #> 
 #> ── 5. Bayesian Information Criteria & Predictive Diagnostics ──
 #> 
-#> ℹ WAIC: 117.4 (p_eff: 13.98) | DIC: 118.44 (p_eff: 19.95)
-#> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.084, p-value = 0.9647 [Well-calibrated predictive distribution]
+#> ℹ WAIC: 117.41 (p_eff: 13.98) | DIC: 118.44 (p_eff: 19.95)
+#> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.084, p-value = 0.9646 [Well-calibrated predictive distribution]
 #> ✔ Leave-One-Out CPO: No numerical approximation issues (min CPO = 0.0087)
 #> ────────────────────────────────────────────────────────────────────────────────
 #> ! Final Assessment: CAUTION: Model goodness-of-fit indicates notable deviation from survey variance.
