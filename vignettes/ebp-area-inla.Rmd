@@ -417,16 +417,16 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 
 #### Inferential Equivalence & Validation Metrics ($n = 1,000$)
 
-To establish that the 114x computational acceleration achieved by `fastsae::ebp_area` preserves full inferential validity relative to Stan MCMC (`tipsae::fit_sae`), summary concordance and error metrics were evaluated across all $n = 1,000$ domains:
+To establish that the substantial computational accelerations achieved by `fastsae::ebp_area` preserve full inferential validity relative to Stan MCMC (`tipsae::fit_sae`), summary concordance and error metrics were evaluated across $n = 1,000$ domains/units for Standard Beta, Spatial Beta (Besag ICAR), and Spatio-Temporal Beta models:
 
-| Dimension | Metric | Value (5 Digits) | Statistical Implication |
-| :--- | :--- | :---: | :--- |
-| **Point Estimates (EBP)** | **Pearson Correlation ($r$)** | **0.99934** | Near-perfect linear agreement between INLA and MCMC |
-| | **Spearman Rank Correlation ($\rho$)** | **0.99921** | Identical domain priority ordering |
-| | **Mean Absolute Error (MAE)** | **0.01969** | Average estimation discrepancy < 0.02 |
-| | **Root Mean Squared Difference (RMSD)** | **0.02369** | Negligible $L_2$ deviation across domains |
-| **Uncertainty / MSE** | **MSE Pearson Correlation ($r_{\text{MSE}}$)** | **0.96315** | Consistent area-level precision ordering |
-| | **Mean Absolute Difference (MSE)** | **0.00018** | Virtually identical error variances |
+| Dimension | Metric | Beta | Spatial Beta | Spatio-Temporal Beta | Statistical Implication |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **Point Estimates (EBP)** | **Pearson Correlation ($r$)** | **0.99934** | **0.99891** | **0.99614** | Near-perfect linear agreement between INLA and MCMC |
+| | **Spearman Rank Correlation ($\rho$)** | **0.99921** | **0.99875** | **0.99517** | Consistent domain priority and rank ordering |
+| | **Mean Absolute Error (MAE)** | **0.01969** | **0.01456** | **0.01200** | Average estimation discrepancy $< 0.02$ |
+| | **Root Mean Squared Difference (RMSD)** | **0.02369** | **0.01713** | **0.01458** | Negligible $L_2$ deviation across domains |
+| **Uncertainty / MSE** | **MSE Pearson Correlation ($r_{\text{MSE}}$)** | **0.96315** | **0.89254** | **0.67957** | Preserved area-level precision ordering |
+| | **Mean Absolute Difference (MSE)** | **0.00018** | **0.00012** | **0.00025** | Virtually identical error variances |
 
 ------------------------------------------------------------------------
 

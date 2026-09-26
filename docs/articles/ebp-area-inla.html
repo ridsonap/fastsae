@@ -383,28 +383,28 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00</span></span>
-<span><span class="co">#&gt; x            4.0612e-01  6.4372e-02  6.3090e+00  2.8084e-10  2.7947e-01</span></span>
+<span><span class="co">#&gt; x            4.0613e-01  6.4372e-02  6.3090e+00  2.8083e-10  2.7947e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)  -2.2218</span></span>
 <span><span class="co">#&gt; x             0.5321</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  18.22302  6.626453   8.634617  17.10216   34.35025</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   172.31323 78.436869  72.153081 155.44949  373.05676</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  18.22304  6.626462   8.634528  17.10222    34.3502</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   172.31299 78.435293  72.154386 155.44971   373.0522</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.06356</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   127.08184</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.06367</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   127.08261</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -976.34168 </span></span>
+<span><span class="co">#&gt;                                            -976.34163 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              56.02385 </span></span>
+<span><span class="co">#&gt;                                              56.02378 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -984.78989 </span></span>
+<span><span class="co">#&gt;                                            -984.78976 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              38.70814 </span></span>
+<span><span class="co">#&gt;                                              38.70815 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
 <span><span class="co">#&gt;                                             439.32543 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -414,7 +414,7 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt;  1st Qu.:0.08271   1st Qu.:-2.413   1st Qu.:0.007702   1st Qu.:5.932e-05  </span></span>
 <span><span class="co">#&gt;  Median :0.09635   Median :-2.244   Median :0.009371   Median :8.781e-05  </span></span>
 <span><span class="co">#&gt;  Mean   :0.09802   Mean   :-2.251   Mean   :0.009566   Mean   :9.767e-05  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:0.11011   3rd Qu.:-2.095   3rd Qu.:0.011051   3rd Qu.:1.221e-04  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:0.11010   3rd Qu.:-2.095   3rd Qu.:0.011051   3rd Qu.:1.221e-04  </span></span>
 <span><span class="co">#&gt;  Max.   :0.15657   Max.   :-1.687   Max.   :0.016768   Max.   :2.812e-04  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 6.370  </span></span>
@@ -432,19 +432,19 @@ standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_ebp</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"ebp"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                domain time      y        ebp          sd       rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554639 0.006127599 11.031498 0.04408727</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131566  7.453981 0.07068300</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343260 0.010214742 10.932738 0.07511423</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509826 0.006294794  9.669681 0.05342022</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112653 0.007870670 11.065729 0.05671270</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608741 0.012916485 13.442432 0.07314336</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554644 0.006127612 11.031512 0.04408728</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131564  7.453979 0.07068300</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343262 0.010214734 10.932728 0.07511427</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509828 0.006294793  9.669676 0.05342023</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112655 0.007870662 11.065716 0.05671272</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608728 0.012916463 13.442428 0.07314332</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06810566</span></span>
-<span><span class="co">#&gt; 2 0.09473235</span></span>
-<span><span class="co">#&gt; 3 0.11517440</span></span>
+<span><span class="co">#&gt; 1 0.06810571</span></span>
+<span><span class="co">#&gt; 2 0.09473234</span></span>
+<span><span class="co">#&gt; 3 0.11517441</span></span>
 <span><span class="co">#&gt; 4 0.07814090</span></span>
 <span><span class="co">#&gt; 5 0.08759940</span></span>
-<span><span class="co">#&gt; 6 0.12376161</span></span></code></pre></div>
+<span><span class="co">#&gt; 6 0.12376149</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -791,23 +791,28 @@ Beta</strong> and <strong>Spatial Beta (Besag ICAR)</strong> models:</p>
 <h4 id="inferential-equivalence-validation-metrics-n-1000">Inferential Equivalence &amp; Validation Metrics
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#inferential-equivalence-validation-metrics-n-1000"></a>
 </h4>
-<p>To establish that the 114x computational acceleration achieved by
-<code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> preserves full inferential validity
-relative to Stan MCMC (<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>), summary
-concordance and error metrics were evaluated across all
+<p>To establish that the substantial computational accelerations
+achieved by <code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> preserve full inferential
+validity relative to Stan MCMC (<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>), summary
+concordance and error metrics were evaluated across
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>
-domains:</p>
+domains/units for Standard Beta, Spatial Beta (Besag ICAR), and
+Spatio-Temporal Beta models:</p>
 <table class="table">
 <colgroup>
-<col width="23%">
-<col width="23%">
-<col width="29%">
-<col width="23%">
+<col width="14%">
+<col width="14%">
+<col width="18%">
+<col width="18%">
+<col width="18%">
+<col width="14%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Dimension</th>
 <th align="left">Metric</th>
-<th align="center">Value (5 Digits)</th>
+<th align="center">Beta</th>
+<th align="center">Spatial Beta</th>
+<th align="center">Spatio-Temporal Beta</th>
 <th align="left">Statistical Implication</th>
 </tr></thead>
 <tbody>
@@ -816,6 +821,8 @@ domains:</p>
 <td align="left"><strong>Pearson Correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>)</strong></td>
 <td align="center"><strong>0.99934</strong></td>
+<td align="center"><strong>0.99891</strong></td>
+<td align="center"><strong>0.99614</strong></td>
 <td align="left">Near-perfect linear agreement between INLA and
 MCMC</td>
 </tr>
@@ -824,19 +831,27 @@ MCMC</td>
 <td align="left"><strong>Spearman Rank Correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>)</strong></td>
 <td align="center"><strong>0.99921</strong></td>
-<td align="left">Identical domain priority ordering</td>
+<td align="center"><strong>0.99875</strong></td>
+<td align="center"><strong>0.99517</strong></td>
+<td align="left">Consistent domain priority and rank ordering</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left"><strong>Mean Absolute Error (MAE)</strong></td>
 <td align="center"><strong>0.01969</strong></td>
-<td align="left">Average estimation discrepancy &lt; 0.02</td>
+<td align="center"><strong>0.01456</strong></td>
+<td align="center"><strong>0.01200</strong></td>
+<td align="left">Average estimation discrepancy
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.02</mn></mrow><annotation encoding="application/x-tex">&lt; 0.02</annotation></semantics></math>
+</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left"><strong>Root Mean Squared Difference
 (RMSD)</strong></td>
 <td align="center"><strong>0.02369</strong></td>
+<td align="center"><strong>0.01713</strong></td>
+<td align="center"><strong>0.01458</strong></td>
 <td align="left">Negligible
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>L</mi><mn>2</mn></msub><annotation encoding="application/x-tex">L_2</annotation></semantics></math>
 deviation across domains</td>
@@ -846,12 +861,16 @@ deviation across domains</td>
 <td align="left"><strong>MSE Pearson Correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>r</mi><mtext mathvariant="normal">MSE</mtext></msub><annotation encoding="application/x-tex">r_{\text{MSE}}</annotation></semantics></math>)</strong></td>
 <td align="center"><strong>0.96315</strong></td>
-<td align="left">Consistent area-level precision ordering</td>
+<td align="center"><strong>0.89254</strong></td>
+<td align="center"><strong>0.67957</strong></td>
+<td align="left">Preserved area-level precision ordering</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left"><strong>Mean Absolute Difference (MSE)</strong></td>
 <td align="center"><strong>0.00018</strong></td>
+<td align="center"><strong>0.00012</strong></td>
+<td align="center"><strong>0.00025</strong></td>
 <td align="left">Virtually identical error variances</td>
 </tr>
 </tbody>
@@ -892,8 +911,8 @@ Binomial distributions with population offsets:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01</span></span>
-<span><span class="co">#&gt; x1           3.8369e-01  4.9804e-02  7.7040e+00  1.3188e-14  2.8563e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4865e-19 -3.6363e-01</span></span>
+<span><span class="co">#&gt; x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3185e-14  2.8563e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4842e-19 -3.6363e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4120</span></span>
 <span><span class="co">#&gt; x1            0.4820</span></span>
@@ -901,32 +920,32 @@ Binomial distributions with population offsets:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                   mean        sd 0.025quant   0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 17.0201738 4.6705072 9.50758974 16.4616139</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.4756037 0.2611343 0.05376987  0.4645684</span></span>
-<span><span class="co">#&gt;                             0.975quant      mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 27.7459501 15.439002</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.9367052  0.229405</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 17.0200986 4.6704264 9.50749820 16.4615950</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.4755946 0.2611327 0.05377996  0.4645481</span></span>
+<span><span class="co">#&gt;                             0.975quant       mode</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 27.7455431 15.4391239</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.9367126  0.2293964</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                             317.61485 </span></span>
+<span><span class="co">#&gt;                                             317.61486 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              31.75465 </span></span>
+<span><span class="co">#&gt;                                              31.75463 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.63788 </span></span>
+<span><span class="co">#&gt;                                             309.63793 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              17.13687 </span></span>
+<span><span class="co">#&gt;                                              17.13689 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                            -169.74604 </span></span>
+<span><span class="co">#&gt;                                            -169.74605 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBP Summary Statistics:</span></span>
 <span><span class="co">#&gt;       ebp          linear_pred            sd               mse           </span></span>
 <span><span class="co">#&gt;  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  </span></span>
 <span><span class="co">#&gt;  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665244  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665238  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  </span></span>
-<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683096  </span></span>
+<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683038  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.790  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.156  </span></span>

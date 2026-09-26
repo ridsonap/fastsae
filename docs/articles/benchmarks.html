@@ -905,23 +905,28 @@ Beta</strong> and <strong>Spatial Beta (Besag ICAR)</strong> models:</p>
 <h4 id="inferential-equivalence-validation-metrics-n-1000">Inferential Equivalence &amp; Validation Metrics
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#inferential-equivalence-validation-metrics-n-1000"></a>
 </h4>
-<p>To establish that the 114x computational acceleration achieved by
-<code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> preserves full inferential validity
-relative to Stan MCMC (<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>), summary
-concordance and error metrics were evaluated across all
+<p>To establish that the substantial computational accelerations
+achieved by <code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> preserve full inferential
+validity relative to Stan MCMC (<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>), summary
+concordance and error metrics were evaluated across
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>
-domains:</p>
+domains/units for Standard Beta, Spatial Beta (Besag ICAR), and
+Spatio-Temporal Beta models:</p>
 <table class="table">
 <colgroup>
-<col width="23%">
-<col width="23%">
-<col width="29%">
-<col width="23%">
+<col width="14%">
+<col width="14%">
+<col width="18%">
+<col width="18%">
+<col width="18%">
+<col width="14%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Dimension</th>
 <th align="left">Metric</th>
-<th align="center">Value (5 Digits)</th>
+<th align="center">Beta</th>
+<th align="center">Spatial Beta</th>
+<th align="center">Spatio-Temporal Beta</th>
 <th align="left">Statistical Implication</th>
 </tr></thead>
 <tbody>
@@ -930,6 +935,8 @@ domains:</p>
 <td align="left"><strong>Pearson Correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>)</strong></td>
 <td align="center"><strong>0.99934</strong></td>
+<td align="center"><strong>0.99891</strong></td>
+<td align="center"><strong>0.99614</strong></td>
 <td align="left">Near-perfect linear agreement between INLA and
 MCMC</td>
 </tr>
@@ -938,19 +945,27 @@ MCMC</td>
 <td align="left"><strong>Spearman Rank Correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>)</strong></td>
 <td align="center"><strong>0.99921</strong></td>
-<td align="left">Identical domain priority ordering</td>
+<td align="center"><strong>0.99875</strong></td>
+<td align="center"><strong>0.99517</strong></td>
+<td align="left">Consistent domain priority and rank ordering</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left"><strong>Mean Absolute Error (MAE)</strong></td>
 <td align="center"><strong>0.01969</strong></td>
-<td align="left">Average estimation discrepancy &lt; 0.02</td>
+<td align="center"><strong>0.01456</strong></td>
+<td align="center"><strong>0.01200</strong></td>
+<td align="left">Average estimation discrepancy
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.02</mn></mrow><annotation encoding="application/x-tex">&lt; 0.02</annotation></semantics></math>
+</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left"><strong>Root Mean Squared Difference
 (RMSD)</strong></td>
 <td align="center"><strong>0.02369</strong></td>
+<td align="center"><strong>0.01713</strong></td>
+<td align="center"><strong>0.01458</strong></td>
 <td align="left">Negligible
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>L</mi><mn>2</mn></msub><annotation encoding="application/x-tex">L_2</annotation></semantics></math>
 deviation across domains</td>
@@ -960,12 +975,16 @@ deviation across domains</td>
 <td align="left"><strong>MSE Pearson Correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>r</mi><mtext mathvariant="normal">MSE</mtext></msub><annotation encoding="application/x-tex">r_{\text{MSE}}</annotation></semantics></math>)</strong></td>
 <td align="center"><strong>0.96315</strong></td>
-<td align="left">Consistent area-level precision ordering</td>
+<td align="center"><strong>0.89254</strong></td>
+<td align="center"><strong>0.67957</strong></td>
+<td align="left">Preserved area-level precision ordering</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left"><strong>Mean Absolute Difference (MSE)</strong></td>
 <td align="center"><strong>0.00018</strong></td>
+<td align="center"><strong>0.00012</strong></td>
+<td align="center"><strong>0.00025</strong></td>
 <td align="left">Virtually identical error variances</td>
 </tr>
 </tbody>
