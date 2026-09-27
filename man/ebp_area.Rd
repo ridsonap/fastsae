@@ -19,7 +19,7 @@ ebp_area(
   trials = NULL,
   exposure = NULL,
   method = c("inla", "laplace"),
-  strategy = c("simplified.laplace", "laplace", "gaussian"),
+  strategy = c("laplace", "simplified.laplace", "gaussian"),
   link = NULL,
   scale_model = TRUE,
   prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
@@ -108,8 +108,8 @@ exposure offsets (for \code{family = "poisson"} or \code{"nbinomial"}).}
 \item{method}{Estimation method: \code{"inla"} (Bayesian INLA, default) or
 \code{"laplace"} (Frequentist GLMM with Laplace approximation via \code{lme4}).}
 
-\item{strategy}{INLA approximation strategy: \code{"simplified.laplace"} (fast default),
-\code{"laplace"} (full Laplace approximation), or \code{"gaussian"}.}
+\item{strategy}{INLA approximation strategy: \code{"laplace"} (default, full Laplace approximation for highest accuracy),
+\code{"simplified.laplace"} (faster Taylor approximation), or \code{"gaussian"}.}
 
 \item{link}{Optional character string for link function. If \code{NULL}, default canonical
 link is used (identity for Gaussian, logit for Binomial/Beta, log for Poisson/NegBinom/Gamma).}

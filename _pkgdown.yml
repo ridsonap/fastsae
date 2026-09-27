@@ -137,6 +137,13 @@ reference:
       - residuals.fastsae
       - print.fastsae
       - print.summary.fastsae
+  - title: "Benchmarking & Calibration"
+    desc: "Calibrate small area estimates to aggregate targets via Ratio, Difference, Optimal, and Logit methods (Rao & Molina, 2015)"
+    contents:
+      - benchmark
+      - autoplot.fastsae_benchmark
+      - print.fastsae_benchmark
+      - summary.fastsae_benchmark
   - title: "Simulation & Synthetic Data Generation"
     desc: "Utilities to simulate area-level cross-sectional, panel, and spatial weight matrices"
     contents:

@@ -152,6 +152,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
     <div class="btn-group" role="group" aria-label="Beta Model selection">
       <button type="button" class="btn btn-sm btn-primary active" id="btn-beta-algo-std" onclick="setBetaAlgo('STD')">Standard Beta</button>
       <button type="button" class="btn btn-sm btn-outline-primary" id="btn-beta-algo-spatial" onclick="setBetaAlgo('SPATIAL')">Spatial Beta (ICAR)</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-beta-algo-st" onclick="setBetaAlgo('ST')">Spatio-Temporal Beta</button>
     </div>
     <div class="btn-group" role="group" aria-label="Metric selection">
       <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
@@ -209,6 +210,14 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
       { Method: "tipsae",  Median: 248.821402, Mem: 11466.90, IPS: 0.00401, n: 500 },
       { Method: "fastsae", Median: 1.728121, Mem: 161.03, IPS: 0.4367, n: 1000 },
       { Method: "tipsae",  Median: 404.341829, Mem: 23038.65, IPS: 0.00247, n: 1000 }
+    ],
+    ST: [
+      { Method: "fastsae", Median: 1.442055, Mem: 102.73, IPS: 0.6877, n: 30 },
+      { Method: "tipsae",  Median: 540.573372, Mem: 2947.08, IPS: 0.00185, n: 30 },
+      { Method: "fastsae", Median: 1.667670, Mem: 109.01, IPS: 0.5885, n: 50 },
+      { Method: "tipsae",  Median: 908.173062, Mem: 4880.13, IPS: 0.00108, n: 50 },
+      { Method: "fastsae", Median: 2.626624, Mem: 125.42, IPS: 0.3494, n: 100 },
+      { Method: "tipsae",  Median: 1840.630400, Mem: 9712.29, IPS: 0.000533, n: 100 }
     ]
   };
 
@@ -240,10 +249,12 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 
   window.setBetaAlgo = function(algo) {
     curBetaAlgo = algo;
-    ["std", "spatial"].forEach(id => {
+    ["std", "spatial", "st"].forEach(id => {
       const btn = document.getElementById("btn-beta-algo-" + id);
       if (btn) {
-        const isActive = (id === "std" && algo === "STD") || (id === "spatial" && algo === "SPATIAL");
+        const isActive = (id === "std" && algo === "STD") ||
+                         (id === "spatial" && algo === "SPATIAL") ||
+                         (id === "st" && algo === "ST");
         btn.classList.toggle("btn-primary", isActive);
         btn.classList.toggle("btn-outline-primary", !isActive);
         btn.classList.toggle("active", isActive);
@@ -269,24 +280,28 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
     if (!chartBetaMain || !chartBetaSpeedup) return;
     const rawData = BETA_DATA[curBetaAlgo];
     const key = curBetaMetric === "time" ? "Median" : curBetaMetric === "mem" ? "Mem" : "IPS";
-    const algoLabel = curBetaAlgo === "STD" ? "Standard Beta" : "Spatial Beta (ICAR)";
+    const algoLabel = curBetaAlgo === "STD" ? "Standard Beta" :
+                      curBetaAlgo === "SPATIAL" ? "Spatial Beta (ICAR)" :
+                      "Spatio-Temporal Beta (Besag + RW1)";
 
-    const fastsaeData = BETA_N_LIST.map(n => {
+    const activeNList = curBetaAlgo === "ST" ? [30, 50, 100] : BETA_N_LIST;
+
+    const fastsaeData = activeNList.map(n => {
       const r = rawData.find(x => x.n === n && x.Method === "fastsae");
       return r ? r[key] : null;
     });
-    const tipsaeData = BETA_N_LIST.map(n => {
+    const tipsaeData = activeNList.map(n => {
       const r = rawData.find(x => x.n === n && x.Method === "tipsae");
       return r ? r[key] : null;
     });
 
-    const speedupData = BETA_N_LIST.map(n => {
+    const speedupData = activeNList.map(n => {
       const f = rawData.find(x => x.n === n && x.Method === "fastsae");
       const t = rawData.find(x => x.n === n && x.Method === "tipsae");
       return f && t ? (t.Median / f.Median) : null;
     });
 
-    const memReductionData = BETA_N_LIST.map(n => {
+    const memReductionData = activeNList.map(n => {
       const f = rawData.find(x => x.n === n && x.Method === "fastsae");
       const t = rawData.find(x => x.n === n && x.Method === "tipsae");
       return f && t ? (t.Mem / f.Mem) : null;
@@ -301,11 +316,13 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
       speedupTitleElem.textContent = "Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — " + algoLabel;
     }
 
+    chartBetaMain.data.labels = activeNList.map(String);
     chartBetaMain.data.datasets[0].data = fastsaeData;
     chartBetaMain.data.datasets[1].data = tipsaeData;
     chartBetaMain.options.scales.y.title.text = getBetaMetricTitle(curBetaMetric);
     chartBetaMain.update();
 
+    chartBetaSpeedup.data.labels = activeNList.map(String);
     chartBetaSpeedup.data.datasets[0].data = speedupData;
     chartBetaSpeedup.data.datasets[1].data = memReductionData;
     chartBetaSpeedup.update();

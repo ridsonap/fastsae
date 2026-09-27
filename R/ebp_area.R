@@ -46,8 +46,8 @@
 #'   exposure offsets (for \code{family = "poisson"} or \code{"nbinomial"}).
 #' @param method Estimation method: \code{"inla"} (Bayesian INLA, default) or
 #'   \code{"laplace"} (Frequentist GLMM with Laplace approximation via \code{lme4}).
-#' @param strategy INLA approximation strategy: \code{"simplified.laplace"} (fast default),
-#'   \code{"laplace"} (full Laplace approximation), or \code{"gaussian"}.
+#' @param strategy INLA approximation strategy: \code{"laplace"} (default, full Laplace approximation for highest accuracy),
+#'   \code{"simplified.laplace"} (faster Taylor approximation), or \code{"gaussian"}.
 #' @param link Optional character string for link function. If \code{NULL}, default canonical
 #'   link is used (identity for Gaussian, logit for Binomial/Beta, log for Poisson/NegBinom/Gamma).
 #' @param scale_model Logical. If \code{TRUE} (default), scales the spatial graph so the
@@ -159,7 +159,7 @@ ebp_area <- function(
   trials = NULL,
   exposure = NULL,
   method = c("inla", "laplace"),
-  strategy = c("simplified.laplace", "laplace", "gaussian"),
+  strategy = c("laplace", "simplified.laplace", "gaussian"),
   link = NULL,
   scale_model = TRUE,
   prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
@@ -176,7 +176,7 @@ ebp_area <- function(
   temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
   st_interaction <- match.arg(tolower(st_interaction), choices = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"))
   method <- match.arg(tolower(method), choices = c("inla", "laplace"))
-  strategy <- match.arg(tolower(strategy), choices = c("simplified.laplace", "laplace", "gaussian"))
+  strategy <- match.arg(tolower(strategy), choices = c("laplace", "simplified.laplace", "gaussian"))
 
   if (!is.data.frame(data)) {
     cli::cli_abort("{.arg data} must be a data frame or tibble.")
@@ -329,7 +329,7 @@ ebp_area <- function(
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
-  strategy = "simplified.laplace",
+  strategy = "laplace",
   link = NULL,
   scale_model = TRUE,
   prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
