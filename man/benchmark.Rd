@@ -5,6 +5,10 @@
 \alias{benchmark_sae}
 \alias{benchmark.fastsae}
 \alias{benchmark.default}
+\alias{print.fastsae_benchmark}
+\alias{summary.fastsae_benchmark}
+\alias{autoplot.fastsae_benchmark}
+\alias{plot.fastsae_benchmark}
 \title{Benchmark Small Area Estimation Predictions to Aggregate Targets}
 \usage{
 benchmark(object, ...)
@@ -13,23 +17,35 @@ benchmark_sae(object, ...)
 
 \method{benchmark}{fastsae}(
   object,
-  target,
+  target = NULL,
   weight = NULL,
   method = c("ratio", "difference", "optimal", "logit"),
   group = NULL,
   type = c("mean", "total"),
+  national_target = NULL,
+  outer_target = NULL,
   ...
 )
 
 \method{benchmark}{default}(
   object,
-  target,
+  target = NULL,
   weight = NULL,
   method = c("ratio", "difference", "optimal", "logit"),
   group = NULL,
   type = c("mean", "total"),
+  national_target = NULL,
+  outer_target = NULL,
   ...
 )
+
+\method{print}{fastsae_benchmark}(x, all_groups = FALSE, ...)
+
+\method{summary}{fastsae_benchmark}(object, ...)
+
+\method{autoplot}{fastsae_benchmark}(x, ...)
+
+\method{plot}{fastsae_benchmark}(x, y = NULL, ...)
 }
 \arguments{
 \item{object}{A fitted \code{fastsae} model object (e.g., from \code{ebp_area},
@@ -37,37 +53,36 @@ benchmark_sae(object, ...)
 
 \item{...}{Additional arguments passed to methods.}
 
-\item{target}{Numeric value or named vector specifying the aggregate benchmark
-target \eqn{T_g}. If \code{group} is specified, \code{target} can be a single
-numeric (if identical target applies to all groups), a named numeric vector
-matching group levels, or a data frame with columns \code{group} and \code{target}.}
+\item{target}{Numeric value, named vector, or data frame specifying the benchmark
+target(s) \eqn{T_g}. If \code{group} is specified, \code{target} can be:
+\itemize{
+  \item A single scalar numeric (constant target for all groups).
+  \item A named numeric vector matching group identifiers.
+  \item A data frame with columns \code{group} and \code{target}.
+  \item \code{NULL} if \code{national_target} is provided in two-stage hierarchical mode
+    (initial provincial targets are automatically derived from model aggregates).
+}}
 
 \item{weight}{Optional numeric vector or character string naming the domain
 benchmark weight column in \code{object$data} (e.g., population sizes \eqn{N_d}
-or population shares \eqn{N_d / \sum N_j}). If \code{NULL}, attempts to detect
-population/weight columns automatically, or defaults to equal weights.}
+or population shares \eqn{N_d / \sum N_j}). Defaults to equal weights across domains if \code{NULL}.}
 
 \item{method}{Character string specifying the benchmarking calibration method:
-\itemize{
-  \item \code{"ratio"}: Proportional / multiplicative adjustment (\eqn{\hat{\theta}_d^{\text{BM}} = \hat{\theta}_d \times (T_g / \sum_j w_j \hat{\theta}_j)}).
-    Preserves non-negativity and area proportions (You and Rao, 2002; Rao and Molina, 2015).
-  \item \code{"difference"}: Uniform additive adjustment (\eqn{\hat{\theta}_d^{\text{BM}} = \hat{\theta}_d + (T_g - \sum_j w_j \hat{\theta}_j) / \sum_j w_j}).
-    Preserves absolute differences between domain estimates.
-  \item \code{"optimal"}: Variance-weighted quadratic loss benchmarking (Datta et al., 2011;
-    Steorts et al., 2014; Rao and Molina, 2015, Section 10.3). Adjusts domains proportional
-    to their uncertainty (\eqn{\text{MSE}_d / w_d}), so domains with higher estimation error
-    absorb larger adjustments while highly precise domains remain stable.
-  \item \code{"logit"}: Logit-scale additive shift for bounded indicators \eqn{\theta_d \in (0, 1)}
-    (Berg and Fuller, 2014). Guarantees that benchmarked rates strictly remain in the unit interval
-    via 1D root-finding.
-}}
+\code{"ratio"} (default), \code{"difference"}, \code{"optimal"}, or \code{"logit"}.}
 
 \item{group}{Optional vector or character string naming the grouping/stratum column
-(e.g., province or region) for multi-level hierarchical benchmarking.}
+(e.g., province or region) for multi-level hierarchical calibration.}
 
 \item{type}{Character string: \code{"mean"} (default, benchmark target represents
 weighted average/rate, \eqn{\sum_{d \in g} w_d \hat{\theta}_d = T_g} with normalized weights)
 or \code{"total"} (benchmark target represents population total, \eqn{\sum_{d \in g} w_d \hat{\theta}_d = T_g}).}
+
+\item{national_target}{Optional numeric scalar defining the overarching national target
+(Level 0) for Two-Stage Hierarchical Benchmarking. When provided alongside \code{group},
+first calibrates/harmonizes group (provincial) targets to match \code{national_target},
+then calibrates small areas to the harmonized provincial targets.}
+
+\item{outer_target}{Alias for \code{national_target}.}
 }
 \value{
 An object of class \code{c("fastsae_benchmark", "data.frame")} containing:
@@ -78,19 +93,37 @@ An object of class \code{c("fastsae_benchmark", "data.frame")} containing:
   \item \code{original}: Model-based prediction before benchmarking (\eqn{\hat{\theta}_d}).
   \item \code{benchmarked}: Calibrated estimate satisfying the benchmark constraint (\eqn{\hat{\theta}_d^{\text{BM}}}).
   \item \code{adjustment}: Absolute adjustment (\eqn{\hat{\theta}_d^{\text{BM}} - \hat{\theta}_d}).
-  \item \code{rel_adjustment}: Relative adjustment percentage (\%).
-  \item \code{target}: Corresponding benchmark target \eqn{T_g}.
+  \item \code{rel_adjustment_pct}: Relative adjustment percentage (\%).
+  \item \code{target}: Corresponding group benchmark target \eqn{T_g^*}.
+  \item \code{national_target}: Overarching national target (if two-stage hierarchical).
 }
 }
 \description{
 Calibrates small area model predictions (from \code{ebp_area}, \code{eblup_fh},
 \code{eblup_sfh}, \code{eblup_stfh}, or \code{eblup_bhf}) so that their weighted
-aggregate matches a known or direct benchmark at an overarching level (e.g. provincial
+aggregate matches known benchmark targets at higher administrative levels (e.g. provincial
 or national totals/means), as required in official statistics production.
 
-Supports Ratio (multiplicative), Difference (additive), Optimal (quadratic loss / MSE-weighted),
-and Logit (bounded rate) benchmarking methods based on established SAE literature
-(Rao and Molina, 2015; Datta et al., 2011; Steorts et al., 2014; Berg and Fuller, 2014).
+Supports:
+\itemize{
+  \item \strong{Single-Stage Benchmarking}: Calibrates small areas directly to an aggregate target
+    (either globally or within sub-regions/provinces via \code{group}).
+  \item \strong{Two-Stage Hierarchical Benchmarking} (Rao and Molina, 2015, Sec 10.4; Steorts et al., 2014):
+    Calibrates small areas (e.g. 500 Kabupaten/Kota) within overarching groups (e.g. 34 Provinces)
+    while \emph{simultaneously} harmonizing the provincial aggregates to match an overarching National Target
+    (\code{national_target}). Guarantees simultaneous mathematical consistency across all administrative tiers:
+    \eqn{\sum_{d \in \text{Prov}_g} \tilde{w}_{dg} \hat{\theta}_{dg}^{\text{BM}} = T_g^*} and
+    \eqn{\sum_g \tilde{W}_g T_g^* = T_{\text{nat}}}.
+}
+
+Methods implemented:
+\itemize{
+  \item \code{"ratio"}: Proportional / multiplicative adjustment. Preserves area proportions and non-negativity (You and Rao, 2002; Rao and Molina, 2015).
+  \item \code{"difference"}: Uniform additive adjustment (Rao and Molina, 2015, Section 10.3).
+  \item \code{"optimal"}: Variance-weighted quadratic loss benchmarking (Datta et al., 2011; Steorts et al., 2014).
+    Domains with higher MSE absorb larger adjustments while precise domains remain minimally perturbed.
+  \item \code{"logit"}: Logit-scale additive shift for bounded indicators \eqn{\theta_d \in (0, 1)} (Berg and Fuller, 2014).
+}
 }
 \examples{
 library(fastsae)
@@ -99,33 +132,34 @@ data(mys)
 # 1. Fit Fay-Herriot model
 fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 
-# 2. Ratio benchmarking to state/national average target (e.g. target = 6.5)
+# 2. Ratio benchmarking to overall target (e.g. target = 6.5)
 bm_ratio <- benchmark(fit_fh, target = 6.5, method = "ratio")
 head(bm_ratio)
 
-# 3. Optimal (MSE-weighted) benchmarking
-bm_opt <- benchmark(fit_fh, target = 6.5, method = "optimal")
-head(bm_opt)
-
-# 4. Logit benchmarking for bounded rates (proportions in [0, 1])
-mys$prop <- mys$y / 100
-mys$var_prop <- mys$vardir / 10000
-fit_beta <- ebp_area(prop ~ x1, vardir = "var_prop", data = mys, family = "beta")
-bm_logit <- benchmark(fit_beta, target = 0.065, method = "logit")
-head(bm_logit)
+# 3. Two-Stage Hierarchical Calibration (e.g. Regency -> Province -> National)
+# Suppose we assign domains to 3 provinces with an overarching national target of 6.2:
+mys$province <- rep(c("Prov_A", "Prov_B", "Prov_C"), length.out = nrow(mys))
+bm_hier <- benchmark(
+  fit_fh,
+  group = "province",
+  weight = mys$n,
+  national_target = 6.2,
+  method = "ratio"
+)
+print(bm_hier)
 }
 \references{
 \enumerate{
   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.).
-    John Wiley & Sons. Chapter 10: "Benchmarking and Other Issues", pp. 297-315.
+    John Wiley & Sons. Chapter 10: "Benchmarking and Other Practical Issues", pp. 297-315.
   \item You, Y., and Rao, J. N. K. (2002). A pseudo-empirical best linear unbiased
     prediction approach to small area estimation using survey weights.
     \emph{The Canadian Journal of Statistics}, 30(3), 431-439.
-  \item Datta, G. S., Ghosh, M., Steorts, R., and Maples, J. (2011). Bayesian
-    benchmarking with applications to small area estimation. \emph{Test}, 20(3), 574-588.
   \item Steorts, R. C., Hall, P., and Ghosh, M. (2014). General benchmarking under
     quadratic loss with applications to small area estimation.
     \emph{Journal of Survey Statistics and Methodology}, 2(2), 173-193.
+  \item Datta, G. S., Ghosh, M., Steorts, R., and Maples, J. (2011). Bayesian
+    benchmarking with applications to small area estimation. \emph{Test}, 20(3), 574-588.
   \item Berg, E., and Fuller, W. A. (2014). Small area prediction of proportions
     with a constrained multinomial logit model. \emph{Journal of Survey Statistics and Methodology}, 2(3), 256-283.
 }

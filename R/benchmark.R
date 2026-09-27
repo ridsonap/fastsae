@@ -7,42 +7,56 @@
 #' @description
 #' Calibrates small area model predictions (from \code{ebp_area}, \code{eblup_fh},
 #' \code{eblup_sfh}, \code{eblup_stfh}, or \code{eblup_bhf}) so that their weighted
-#' aggregate matches a known or direct benchmark at an overarching level (e.g. provincial
+#' aggregate matches known benchmark targets at higher administrative levels (e.g. provincial
 #' or national totals/means), as required in official statistics production.
 #'
-#' Supports Ratio (multiplicative), Difference (additive), Optimal (quadratic loss / MSE-weighted),
-#' and Logit (bounded rate) benchmarking methods based on established SAE literature
-#' (Rao and Molina, 2015; Datta et al., 2011; Steorts et al., 2014; Berg and Fuller, 2014).
+#' Supports:
+#' \itemize{
+#'   \item \strong{Single-Stage Benchmarking}: Calibrates small areas directly to an aggregate target
+#'     (either globally or within sub-regions/provinces via \code{group}).
+#'   \item \strong{Two-Stage Hierarchical Benchmarking} (Rao and Molina, 2015, Sec 10.4; Steorts et al., 2014):
+#'     Calibrates small areas (e.g. 500 Kabupaten/Kota) within overarching groups (e.g. 34 Provinces)
+#'     while \emph{simultaneously} harmonizing the provincial aggregates to match an overarching National Target
+#'     (\code{national_target}). Guarantees simultaneous mathematical consistency across all administrative tiers:
+#'     \eqn{\sum_{d \in \text{Prov}_g} \tilde{w}_{dg} \hat{\theta}_{dg}^{\text{BM}} = T_g^*} and
+#'     \eqn{\sum_g \tilde{W}_g T_g^* = T_{\text{nat}}}.
+#' }
+#'
+#' Methods implemented:
+#' \itemize{
+#'   \item \code{"ratio"}: Proportional / multiplicative adjustment. Preserves area proportions and non-negativity (You and Rao, 2002; Rao and Molina, 2015).
+#'   \item \code{"difference"}: Uniform additive adjustment (Rao and Molina, 2015, Section 10.3).
+#'   \item \code{"optimal"}: Variance-weighted quadratic loss benchmarking (Datta et al., 2011; Steorts et al., 2014).
+#'     Domains with higher MSE absorb larger adjustments while precise domains remain minimally perturbed.
+#'   \item \code{"logit"}: Logit-scale additive shift for bounded indicators \eqn{\theta_d \in (0, 1)} (Berg and Fuller, 2014).
+#' }
 #'
 #' @param object A fitted \code{fastsae} model object (e.g., from \code{ebp_area},
 #'   \code{eblup_fh}, etc.) or a numeric vector of model predictions.
-#' @param target Numeric value or named vector specifying the aggregate benchmark
-#'   target \eqn{T_g}. If \code{group} is specified, \code{target} can be a single
-#'   numeric (if identical target applies to all groups), a named numeric vector
-#'   matching group levels, or a data frame with columns \code{group} and \code{target}.
+#' @param target Numeric value, named vector, or data frame specifying the benchmark
+#'   target(s) \eqn{T_g}. If \code{group} is specified, \code{target} can be:
+#'   \itemize{
+#'     \item A single scalar numeric (constant target for all groups).
+#'     \item A named numeric vector matching group identifiers.
+#'     \item A data frame with columns \code{group} and \code{target}.
+#'     \item \code{NULL} if \code{national_target} is provided in two-stage hierarchical mode
+#'       (initial provincial targets are automatically derived from model aggregates).
+#'   }
 #' @param weight Optional numeric vector or character string naming the domain
 #'   benchmark weight column in \code{object$data} (e.g., population sizes \eqn{N_d}
-#'   or population shares \eqn{N_d / \sum N_j}). If \code{NULL}, attempts to detect
-#'   population/weight columns automatically, or defaults to equal weights.
+#'   or population shares \eqn{N_d / \sum N_j}). Defaults to equal weights across domains if \code{NULL}.
 #' @param method Character string specifying the benchmarking calibration method:
-#'   \itemize{
-#'     \item \code{"ratio"}: Proportional / multiplicative adjustment (\eqn{\hat{\theta}_d^{\text{BM}} = \hat{\theta}_d \times (T_g / \sum_j w_j \hat{\theta}_j)}).
-#'       Preserves non-negativity and area proportions (You and Rao, 2002; Rao and Molina, 2015).
-#'     \item \code{"difference"}: Uniform additive adjustment (\eqn{\hat{\theta}_d^{\text{BM}} = \hat{\theta}_d + (T_g - \sum_j w_j \hat{\theta}_j) / \sum_j w_j}).
-#'       Preserves absolute differences between domain estimates.
-#'     \item \code{"optimal"}: Variance-weighted quadratic loss benchmarking (Datta et al., 2011;
-#'       Steorts et al., 2014; Rao and Molina, 2015, Section 10.3). Adjusts domains proportional
-#'       to their uncertainty (\eqn{\text{MSE}_d / w_d}), so domains with higher estimation error
-#'       absorb larger adjustments while highly precise domains remain stable.
-#'     \item \code{"logit"}: Logit-scale additive shift for bounded indicators \eqn{\theta_d \in (0, 1)}
-#'       (Berg and Fuller, 2014). Guarantees that benchmarked rates strictly remain in the unit interval
-#'       via 1D root-finding.
-#'   }
+#'   \code{"ratio"} (default), \code{"difference"}, \code{"optimal"}, or \code{"logit"}.
 #' @param group Optional vector or character string naming the grouping/stratum column
-#'   (e.g., province or region) for multi-level hierarchical benchmarking.
+#'   (e.g., province or region) for multi-level hierarchical calibration.
 #' @param type Character string: \code{"mean"} (default, benchmark target represents
 #'   weighted average/rate, \eqn{\sum_{d \in g} w_d \hat{\theta}_d = T_g} with normalized weights)
 #'   or \code{"total"} (benchmark target represents population total, \eqn{\sum_{d \in g} w_d \hat{\theta}_d = T_g}).
+#' @param national_target Optional numeric scalar defining the overarching national target
+#'   (Level 0) for Two-Stage Hierarchical Benchmarking. When provided alongside \code{group},
+#'   first calibrates/harmonizes group (provincial) targets to match \code{national_target},
+#'   then calibrates small areas to the harmonized provincial targets.
+#' @param outer_target Alias for \code{national_target}.
 #' @param ... Additional arguments passed to methods.
 #'
 #' @return An object of class \code{c("fastsae_benchmark", "data.frame")} containing:
@@ -53,22 +67,23 @@
 #'   \item \code{original}: Model-based prediction before benchmarking (\eqn{\hat{\theta}_d}).
 #'   \item \code{benchmarked}: Calibrated estimate satisfying the benchmark constraint (\eqn{\hat{\theta}_d^{\text{BM}}}).
 #'   \item \code{adjustment}: Absolute adjustment (\eqn{\hat{\theta}_d^{\text{BM}} - \hat{\theta}_d}).
-#'   \item \code{rel_adjustment}: Relative adjustment percentage (\%).
-#'   \item \code{target}: Corresponding benchmark target \eqn{T_g}.
+#'   \item \code{rel_adjustment_pct}: Relative adjustment percentage (\%).
+#'   \item \code{target}: Corresponding group benchmark target \eqn{T_g^*}.
+#'   \item \code{national_target}: Overarching national target (if two-stage hierarchical).
 #' }
 #'
 #' @references
 #' \enumerate{
 #'   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.).
-#'     John Wiley & Sons. Chapter 10: "Benchmarking and Other Issues", pp. 297-315.
+#'     John Wiley & Sons. Chapter 10: "Benchmarking and Other Practical Issues", pp. 297-315.
 #'   \item You, Y., and Rao, J. N. K. (2002). A pseudo-empirical best linear unbiased
 #'     prediction approach to small area estimation using survey weights.
 #'     \emph{The Canadian Journal of Statistics}, 30(3), 431-439.
-#'   \item Datta, G. S., Ghosh, M., Steorts, R., and Maples, J. (2011). Bayesian
-#'     benchmarking with applications to small area estimation. \emph{Test}, 20(3), 574-588.
 #'   \item Steorts, R. C., Hall, P., and Ghosh, M. (2014). General benchmarking under
 #'     quadratic loss with applications to small area estimation.
 #'     \emph{Journal of Survey Statistics and Methodology}, 2(2), 173-193.
+#'   \item Datta, G. S., Ghosh, M., Steorts, R., and Maples, J. (2011). Bayesian
+#'     benchmarking with applications to small area estimation. \emph{Test}, 20(3), 574-588.
 #'   \item Berg, E., and Fuller, W. A. (2014). Small area prediction of proportions
 #'     with a constrained multinomial logit model. \emph{Journal of Survey Statistics and Methodology}, 2(3), 256-283.
 #' }
@@ -81,20 +96,21 @@
 #' # 1. Fit Fay-Herriot model
 #' fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #'
-#' # 2. Ratio benchmarking to state/national average target (e.g. target = 6.5)
+#' # 2. Ratio benchmarking to overall target (e.g. target = 6.5)
 #' bm_ratio <- benchmark(fit_fh, target = 6.5, method = "ratio")
 #' head(bm_ratio)
 #'
-#' # 3. Optimal (MSE-weighted) benchmarking
-#' bm_opt <- benchmark(fit_fh, target = 6.5, method = "optimal")
-#' head(bm_opt)
-#'
-#' # 4. Logit benchmarking for bounded rates (proportions in [0, 1])
-#' mys$prop <- mys$y / 100
-#' mys$var_prop <- mys$vardir / 10000
-#' fit_beta <- ebp_area(prop ~ x1, vardir = "var_prop", data = mys, family = "beta")
-#' bm_logit <- benchmark(fit_beta, target = 0.065, method = "logit")
-#' head(bm_logit)
+#' # 3. Two-Stage Hierarchical Calibration (e.g. Regency -> Province -> National)
+#' # Suppose we assign domains to 3 provinces with an overarching national target of 6.2:
+#' mys$province <- rep(c("Prov_A", "Prov_B", "Prov_C"), length.out = nrow(mys))
+#' bm_hier <- benchmark(
+#'   fit_fh,
+#'   group = "province",
+#'   weight = mys$n,
+#'   national_target = 6.2,
+#'   method = "ratio"
+#' )
+#' print(bm_hier)
 benchmark <- function(object, ...) {
   UseMethod("benchmark")
 }
@@ -109,15 +125,18 @@ benchmark_sae <- function(object, ...) {
 #' @export
 benchmark.fastsae <- function(
   object,
-  target,
+  target = NULL,
   weight = NULL,
   method = c("ratio", "difference", "optimal", "logit"),
   group = NULL,
   type = c("mean", "total"),
+  national_target = NULL,
+  outer_target = NULL,
   ...
 ) {
   method <- match.arg(method)
   type <- match.arg(type)
+  nat_target <- outer_target %||% national_target
 
   # 1. Extract estimates and domain identifiers
   df_est <- object$df_ebp %||% object$df_eblup
@@ -179,6 +198,7 @@ benchmark.fastsae <- function(
     method = method,
     group = group_vec,
     type = type,
+    national_target = nat_target,
     mse = mse_vec,
     call = match.call(),
     model_family = object$family %||% "gaussian"
@@ -189,15 +209,18 @@ benchmark.fastsae <- function(
 #' @export
 benchmark.default <- function(
   object,
-  target,
+  target = NULL,
   weight = NULL,
   method = c("ratio", "difference", "optimal", "logit"),
   group = NULL,
   type = c("mean", "total"),
+  national_target = NULL,
+  outer_target = NULL,
   ...
 ) {
   method <- match.arg(method)
   type <- match.arg(type)
+  nat_target <- outer_target %||% national_target
 
   if (!is.numeric(object)) {
     cli::cli_abort("{.arg object} must be a numeric vector of predictions or a {.cls fastsae} object.")
@@ -225,6 +248,7 @@ benchmark.default <- function(
     method = method,
     group = group_vec,
     type = type,
+    national_target = nat_target,
     mse = NULL,
     call = match.call(),
     model_family = "generic"
@@ -236,11 +260,12 @@ benchmark.default <- function(
 .benchmark_worker <- function(
   domain,
   y_hat,
-  target,
+  target = NULL,
   weight,
   method,
   group = NULL,
   type = "mean",
+  national_target = NULL,
   mse = NULL,
   call = NULL,
   model_family = "gaussian"
@@ -251,7 +276,7 @@ benchmark.default <- function(
     cli::cli_abort("Benchmark {.arg weight} must be strictly positive for all domains.")
   }
 
-  # Build data frame
+  # Build working data frame
   df_work <- data.frame(
     domain = domain,
     y_hat = y_hat,
@@ -268,47 +293,133 @@ benchmark.default <- function(
   unique_groups <- unique(df_work$group)
   n_groups <- length(unique_groups)
 
-  # Validate and parse target per group
-  target_map <- numeric(n_groups)
-  names(target_map) <- unique_groups
+  # Check if Two-Stage Hierarchical Calibration is activated
+  is_hierarchical <- !is.null(national_target) && n_groups > 1
 
-  if (is.data.frame(target)) {
-    if (!all(c("group", "target") %in% names(target))) {
-      cli::cli_abort("Target data frame must contain columns {.val group} and {.val target}.")
-    }
-    for (g in unique_groups) {
-      val <- target$target[target$group == g]
-      if (length(val) == 0) {
-        cli::cli_abort("Target value for group {.val {g}} not found in target data frame.")
-      }
-      target_map[g] <- as.numeric(val[1])
-    }
-  } else if (is.numeric(target)) {
-    if (length(target) == 1 && n_groups == 1) {
-      target_map[1] <- as.numeric(target)
-    } else if (length(target) == 1 && n_groups > 1) {
-      # Same target for each group (e.g. constant mean rate)
-      target_map[] <- as.numeric(target)
-    } else if (!is.null(names(target))) {
-      for (g in unique_groups) {
-        if (!g %in% names(target)) {
-          cli::cli_abort("Named target vector does not contain group {.val {g}}.")
-        }
-        target_map[g] <- as.numeric(target[g])
-      }
-    } else if (length(target) == n_groups) {
-      target_map[] <- as.numeric(target)
+  # Compute group totals and initial weighted estimates
+  group_weights <- numeric(n_groups)
+  names(group_weights) <- unique_groups
+  group_orig <- numeric(n_groups)
+  names(group_orig) <- unique_groups
+  group_mse <- numeric(n_groups)
+  names(group_mse) <- unique_groups
+
+  for (g in unique_groups) {
+    idx_g <- which(df_work$group == g)
+    w_g <- df_work$weight[idx_g]
+    W_g <- sum(w_g)
+    group_weights[g] <- W_g
+    w_norm <- w_g / W_g
+    group_orig[g] <- sum(w_norm * df_work$y_hat[idx_g])
+    if (!all(is.na(df_work$mse[idx_g]))) {
+      # Variance of group weighted estimate
+      group_mse[g] <- sum((w_norm^2) * pmax(df_work$mse[idx_g], 1e-8, na.rm = TRUE), na.rm = TRUE)
     } else {
-      cli::cli_abort("Length of {.arg target} ({length(target)}) does not match number of groups ({n_groups}).")
+      group_mse[g] <- NA_real_
     }
-  } else {
-    cli::cli_abort("{.arg target} must be a numeric value, named numeric vector, or data frame.")
   }
 
+  target_map <- numeric(n_groups)
+  names(target_map) <- unique_groups
+  has_initial_targets <- FALSE
+  initial_target_map <- numeric(n_groups)
+  names(initial_target_map) <- unique_groups
+
+  if (!is.null(target)) {
+    has_initial_targets <- TRUE
+    if (is.data.frame(target)) {
+      if (!all(c("group", "target") %in% names(target))) {
+        cli::cli_abort("Target data frame must contain columns {.val group} and {.val target}.")
+      }
+      for (g in unique_groups) {
+        val <- target$target[target$group == g]
+        if (length(val) == 0) {
+          cli::cli_abort("Target value for group {.val {g}} not found in target data frame.")
+        }
+        target_map[g] <- as.numeric(val[1])
+      }
+    } else if (is.numeric(target)) {
+      if (length(target) == 1 && n_groups == 1) {
+        target_map[1] <- as.numeric(target)
+      } else if (length(target) == 1 && n_groups > 1 && !is_hierarchical) {
+        target_map[] <- as.numeric(target)
+      } else if (!is.null(names(target))) {
+        for (g in unique_groups) {
+          if (!g %in% names(target)) {
+            cli::cli_abort("Named target vector does not contain group {.val {g}}.")
+          }
+          target_map[g] <- as.numeric(target[g])
+        }
+      } else if (length(target) == n_groups) {
+        target_map[] <- as.numeric(target)
+      } else {
+        cli::cli_abort("Length of {.arg target} ({length(target)}) does not match number of groups ({n_groups}).")
+      }
+    } else {
+      cli::cli_abort("{.arg target} must be a numeric value, named numeric vector, or data frame.")
+    }
+    initial_target_map <- target_map
+  } else if (is_hierarchical) {
+    # If target is NULL, use group_orig as starting base for stage 1 calibration
+    target_map <- group_orig
+    initial_target_map <- group_orig
+  } else if (!is.null(national_target) && n_groups == 1) {
+    # Single group fallback
+    target_map[1] <- as.numeric(national_target)
+    initial_target_map[1] <- as.numeric(national_target)
+  } else {
+    cli::cli_abort("Please provide either {.arg target} or {.arg national_target}.")
+  }
+
+  # --- STAGE 1: Hierarchical Group Harmonization to National Target ---
+  stage1_df <- NULL
+  if (is_hierarchical) {
+    total_national_weight <- sum(group_weights)
+    W_share <- group_weights / total_national_weight
+
+    # Current aggregate of group targets at national level
+    nat_current_agg <- if (type == "mean") sum(W_share * target_map) else sum(target_map)
+    diff_nat <- national_target - nat_current_agg
+
+    if (abs(diff_nat) > 1e-7) {
+      if (method == "ratio") {
+        ratio_nat <- national_target / nat_current_agg
+        target_map <- target_map * ratio_nat
+      } else if (method == "difference") {
+        adj_per_group <- if (type == "mean") diff_nat else diff_nat / n_groups
+        target_map <- target_map + adj_per_group
+      } else if (method == "optimal") {
+        inv_prec_g <- pmax(group_mse, 1e-8)
+        if (any(is.na(inv_prec_g))) inv_prec_g <- rep(1, n_groups)
+        lambda_g <- diff_nat / sum(inv_prec_g)
+        target_map <- target_map + (inv_prec_g / (if (type == "mean") W_share else 1)) * lambda_g
+      } else if (method == "logit") {
+        logit_t <- stats::qlogis(target_map)
+        f_nat <- function(a) {
+          sum(W_share * stats::plogis(logit_t + a)) - national_target
+        }
+        sol_nat <- stats::uniroot(f_nat, interval = c(-50, 50), tol = 1e-9)
+        target_map <- stats::plogis(logit_t + sol_nat$root)
+      }
+    }
+
+    stage1_df <- data.frame(
+      group = unique_groups,
+      n_domains = vapply(unique_groups, function(g) sum(df_work$group == g), integer(1)),
+      weight_total = group_weights,
+      weight_share_pct = round(W_share * 100, 3),
+      original_group_estimate = group_orig,
+      initial_target = if (has_initial_targets) initial_target_map else NA_real_,
+      calibrated_target = target_map,
+      adjustment = target_map - (if (has_initial_targets) initial_target_map else group_orig),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  # --- STAGE 2: Small Area Level Calibration within Each Group ---
   df_work$target <- target_map[df_work$group]
   df_work$y_bm <- NA_real_
 
-  # Compute benchmarking calibration per group
   for (g in unique_groups) {
     idx_g <- which(df_work$group == g)
     y_g <- df_work$y_hat[idx_g]
@@ -330,22 +441,17 @@ benchmark.default <- function(
     } else if (method == "difference") {
       # Difference / Additive Benchmarking (Rao and Molina, 2015, Sec 10.3)
       diff_val <- T_g - agg_initial
-      # Uniform addition across domains: diff_val / sum(w_calc)
       df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
 
     } else if (method == "optimal") {
       # Optimal Quadratic Loss / Variance-Weighted Benchmarking (Datta et al., 2011; Steorts et al., 2014)
-      # Minimizes sum_d (y_bm_d - y_d)^2 / (MSE_d / w_d^2) subject to sum w_d y_bm_d = T_g
       mse_g <- df_work$mse[idx_g]
       diff_val <- T_g - agg_initial
 
       if (any(is.na(mse_g)) || all(mse_g <= 0)) {
-        # Fallback to difference benchmarking if MSE is not available
         cli::cli_warn("MSE not available or non-positive for group {.val {g}}; falling back to difference benchmarking.")
         df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
       } else {
-        # Optimal formula: y_bm = y + (MSE / w) * [diff_val / sum(MSE)]
-        # When w_calc is used: c_d = mse_g / (w_calc^2), so adjustment is c_d * w_calc * (diff_val / sum(c_j * w_calc^2))
         inv_prec <- pmax(mse_g, 1e-8)
         denom <- sum(inv_prec)
         lambda <- diff_val / denom
@@ -365,20 +471,15 @@ benchmark.default <- function(
       }
 
       logit_y <- stats::qlogis(y_g)
-
       f_obj <- function(alpha) {
         sum(w_calc * stats::plogis(logit_y + alpha)) - T_g
       }
 
-      # Solve for alpha using uniroot
-      # Find bracket:
       low_b <- -20
       upp_b <- 20
       f_low <- f_obj(low_b)
       f_upp <- f_obj(upp_b)
-
       if (f_low * f_upp > 0) {
-        # Expand bracket
         low_b <- -50
         upp_b <- 50
       }
@@ -404,6 +505,9 @@ benchmark.default <- function(
   res_df$rel_adjustment_pct <- ifelse(abs(df_work$y_hat) > .Machine$double.eps,
                                       (res_df$adjustment / df_work$y_hat) * 100, NA_real_)
   res_df$target <- df_work$target
+  if (is_hierarchical) {
+    res_df$national_target <- rep(national_target, nrow(res_df))
+  }
 
   # Calculate verification aggregation
   verification <- list()
@@ -421,24 +525,41 @@ benchmark.default <- function(
     )
   }
 
+  national_verification <- NULL
+  if (is_hierarchical) {
+    w_nat_calc <- if (type == "mean") df_work$weight / sum(df_work$weight) else df_work$weight
+    nat_orig_sum <- sum(w_nat_calc * df_work$y_hat)
+    nat_bm_sum <- sum(w_nat_calc * df_work$y_bm)
+    national_verification <- list(
+      target = national_target,
+      original_sum = nat_orig_sum,
+      benchmarked_sum = nat_bm_sum,
+      discrepancy = abs(nat_bm_sum - national_target)
+    )
+  }
+
   attr(res_df, "method") <- method
   attr(res_df, "type") <- type
+  attr(res_df, "hierarchical") <- is_hierarchical
+  attr(res_df, "stage1_summary") <- stage1_df
   attr(res_df, "verification") <- verification
+  attr(res_df, "national_verification") <- national_verification
   attr(res_df, "call") <- call
 
   class(res_df) <- c("fastsae_benchmark", "data.frame")
   return(res_df)
 }
 
-#' Print a fastsae_benchmark object
-#'
-#' @param x An object of class \code{fastsae_benchmark}.
-#' @param ... Additional arguments.
-#'
-#' @return The original object invisibly.
+#' @rdname benchmark
 #' @export
-print.fastsae_benchmark <- function(x, ...) {
-  cat("=== fastsae Small Area Benchmark Calibration ===\n")
+print.fastsae_benchmark <- function(x, all_groups = FALSE, ...) {
+  is_hierarchical <- isTRUE(attr(x, "hierarchical"))
+
+  if (is_hierarchical) {
+    cat("=== fastsae Two-Stage Hierarchical Benchmark Calibration ===\n")
+  } else {
+    cat("=== fastsae Small Area Benchmark Calibration ===\n")
+  }
 
   method_name <- switch(attr(x, "method") %||% "ratio",
     "ratio"      = "Ratio (Multiplicative Adjustment)",
@@ -453,21 +574,37 @@ print.fastsae_benchmark <- function(x, ...) {
   cat("Target Type:", type_str, "\n")
   cat("Total Domains:", nrow(x), "\n")
 
+  # National Level verification
+  nat_verif <- attr(x, "national_verification")
+  if (!is.null(nat_verif)) {
+    disc_ok <- nat_verif$discrepancy < 1e-5
+    status_icon <- if (disc_ok) "[CONSISTENT]" else "[APPROX]"
+    cat(sprintf("\nLevel 0 (National Target): Target = %.5f | Calibrated Aggregate = %.5f %s\n",
+                nat_verif$target, nat_verif$benchmarked_sum, status_icon))
+  }
+
   # Print verification
   verif <- attr(x, "verification")
   if (!is.null(verif) && length(verif) > 0) {
-    cat("\n-- Aggregate Consistency Check --\n")
-    for (g in names(verif)) {
+    n_grps <- length(verif)
+    cat(sprintf("\nLevel 1 (Group Consistency): %d group%s\n", n_grps, if (n_grps > 1) "s" else ""))
+
+    show_grps <- if (n_grps > 8 && !isTRUE(all_groups)) utils::head(names(verif), 6) else names(verif)
+    for (g in show_grps) {
       v <- verif[[g]]
       g_label <- if (g == "All") "Target" else paste0("Group '", g, "'")
       disc_ok <- v$discrepancy < 1e-5
       status_icon <- if (disc_ok) "[CONSISTENT]" else "[APPROX]"
-      cat(sprintf("%s: Target = %.5f | Original = %.5f -> Calibrated = %.5f %s\n",
+      cat(sprintf("  %s: Target = %.5f | Original = %.5f -> Calibrated = %.5f %s\n",
                   g_label, v$target, v$original_sum, v$benchmarked_sum, status_icon))
+    }
+    if (n_grps > length(show_grps)) {
+      cat(sprintf("  ... and %d more groups (all verified consistent within < 1e-5; pass all_groups = TRUE to print all)\n",
+                  n_grps - length(show_grps)))
     }
   }
 
-  cat("\nFirst 6 benchmarked domains:\n")
+  cat("\nFirst 6 benchmarked domains (Level 2):\n")
   print(utils::head(as.data.frame(x), 6), ...)
   if (nrow(x) > 6) {
     cat("... and", nrow(x) - 6, "more domains.\n")
@@ -477,16 +614,21 @@ print.fastsae_benchmark <- function(x, ...) {
   invisible(x)
 }
 
-#' Summary of a fastsae_benchmark object
-#'
-#' @param object An object of class \code{fastsae_benchmark}.
-#' @param ... Additional arguments.
-#'
-#' @return A summary table invisibly.
+#' @rdname benchmark
 #' @export
 summary.fastsae_benchmark <- function(object, ...) {
-  print(object, ...)
-  cat("-- Adjustment Statistics --\n")
+  print(object, all_groups = FALSE, ...)
+
+  s1 <- attr(object, "stage1_summary")
+  if (!is.null(s1)) {
+    cat("\n-- Stage 1: Group / Provincial Harmonization Summary --\n")
+    print(utils::head(s1, 10), row.names = FALSE)
+    if (nrow(s1) > 10) {
+      cat("... and", nrow(s1) - 10, "more groups.\n")
+    }
+  }
+
+  cat("\n-- Adjustment Statistics across Small Areas (Level 2) --\n")
   cat("Absolute Adjustment Summary:\n")
   print(summary(object$adjustment))
   cat("\nRelative Adjustment (%) Summary:\n")
@@ -494,14 +636,7 @@ summary.fastsae_benchmark <- function(object, ...) {
   invisible(object)
 }
 
-#' Plot Method for fastsae_benchmark Objects
-#'
-#' Visualizes original model predictions versus benchmarked calibrated estimates.
-#'
-#' @param x An object of class \code{fastsae_benchmark}.
-#' @param ... Additional arguments passed to plotting methods.
-#'
-#' @return A \code{ggplot2} plot object.
+#' @rdname benchmark
 #' @export
 autoplot.fastsae_benchmark <- function(x, ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -518,33 +653,35 @@ autoplot.fastsae_benchmark <- function(x, ...) {
     p <- p + ggplot2::geom_point(ggplot2::aes(color = .data$group), alpha = 0.85, size = 2) +
       ggplot2::labs(color = "Group")
   } else {
-    p <- p + ggplot2::geom_point(color = "#0d6efd", alpha = 0.85, size = 2)
+    p <- p + ggplot2::geom_point(color = "#1D6A5C", alpha = 0.85, size = 2.5)
   }
 
-  method_name <- switch(attr(x, "method") %||% "ratio",
-    "ratio"      = "Ratio (Multiplicative)",
-    "difference" = "Difference (Additive)",
-    "optimal"    = "Optimal (Variance-Weighted)",
-    "logit"      = "Logit (Bounded (0, 1))",
-    attr(x, "method")
-  )
+  is_hier <- isTRUE(attr(x, "hierarchical"))
+  title_str <- if (is_hier) "Two-Stage Hierarchical Calibration" else "Benchmark Calibration"
 
   p <- p +
-    ggplot2::theme_minimal(base_size = 11) +
     ggplot2::labs(
-      title = paste0("Small Area Benchmark Calibration (", method_name, ")"),
-      subtitle = "Original Model Prediction vs Benchmarked Target-Calibrated Estimate",
-      x = "Original Model Prediction",
+      title = paste0("Small Area ", title_str),
+      subtitle = "Original Model Estimates vs Calibrated Benchmarked Predictions",
+      x = "Original Estimate",
       y = "Benchmarked Estimate"
-    )
+    ) +
+    ggplot2::theme_minimal(base_size = 11) +
+    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
+
+  if (has_group && length(unique(df_plot$group)) > 10) {
+    p <- p + ggplot2::theme(legend.position = "none") # suppress cluttered legend for 34 groups
+  }
 
   return(p)
 }
 
-#' @rdname autoplot.fastsae_benchmark
+#' @rdname benchmark
 #' @export
-plot.fastsae_benchmark <- function(x, ...) {
-  p <- autoplot(x, ...)
-  print(p)
-  invisible(p)
+plot.fastsae_benchmark <- function(x, y = NULL, ...) {
+  dots <- list(...)
+  if (!is.null(dots$sf_geom)) {
+    return(map_sae(x, ...))
+  }
+  autoplot.fastsae_benchmark(x, ...)
 }

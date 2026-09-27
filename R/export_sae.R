@@ -145,6 +145,10 @@ export_sae <- function(
   bm_obj <- benchmark %||% (if (inherits(object, "fastsae_benchmark")) object else NULL)
   if (!is.null(bm_obj) && inherits(bm_obj, "fastsae_benchmark")) {
     sheets$Benchmarked <- as.data.frame(bm_obj)
+    s1 <- attr(bm_obj, "stage1_summary")
+    if (!is.null(s1)) {
+      sheets$Benchmarked_Groups <- s1
+    }
   }
 
   # Write output
