@@ -219,10 +219,12 @@ as Susenas or EU-SILC):</p>
                    v                                     v
 +------------------------------------+ +------------------------------------+
 | 3. fastsae::ebp_area()             | | 4. tipsae::fit_sae()               |
-|    - Bayesian INLA                 | |    - Hamiltonian Monte Carlo (Stan)|
+|    - Bayesian INLA (Full Laplace)  | |    - Hamiltonian Monte Carlo (Stan)|
 |    - Family: "beta"                | |    - Likelihood: "beta"            |
 |    - Spatial: "besag"              | |    - Spatial error: TRUE           |
-|    - Execution: ~1.1 sec / fit     | |    - Execution: ~18 sec / fit      |
+|    - Strategy: "laplace"           | |    - Execution: ~10-37 sec / fit   |
+|    - Calibrated PC-Prior (1, 0.05) | |                                    |
+|    - Execution: ~3-4 sec / fit     | |                                    |
 +------------------------------------+ +------------------------------------+
                    |                                     |
                    +------------------+------------------+
@@ -267,7 +269,9 @@ Replications,
 <p>The table below summarizes the macro-averaged empirical metrics
 across all 60 domains from the full
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">R = 100</annotation></semantics></math>
-Monte Carlo simulation:</p>
+Monte Carlo simulation, evaluating <code>fastsae</code> with Full
+Laplace approximation (<code>strategy = "laplace"</code>) and calibrated
+PC-Prior (<code>param = c(1, 0.05)</code>):</p>
 <p><em>(Cells highlighted in <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 1px 5px; border-radius: 3px; font-weight: bold;">green</span>
 indicate superior performance for each evaluation criterion).</em></p>
 <table class="table">
@@ -309,14 +313,14 @@ indicate superior performance for each evaluation criterion).</em></p>
 <tr class="even">
 <td align="left"><strong><code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (Spatial
 Besag)</strong></td>
-<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0486</span></td>
-<td align="center">19.61%</td>
-<td align="center">17.16%</td>
-<td align="center">+5.86%</td>
-<td align="center">87.53%</td>
-<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1691</span></td>
-<td align="center">1.718x</td>
-<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.26
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0485</span></td>
+<td align="center">19.56%</td>
+<td align="center">17.04%</td>
+<td align="center">+5.81%</td>
+<td align="center">88.27%</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1717</span></td>
+<td align="center">1.737x</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.25
 s</span></td>
 </tr>
 <tr class="odd">
@@ -340,15 +344,15 @@ Besag)</strong></td>
 <li>
 <strong>Substantial Variance &amp; Error Reduction</strong>: Both
 <code>fastsae</code> and <code>tipsae</code> reduce empirical RMSE from
-<strong>0.0681</strong> down to <strong>0.0486</strong>, translating to
+<strong>0.0681</strong> down to <strong>0.0485</strong>, translating to
 an empirical efficiency gain of <strong>&gt; 1.7x</strong> relative to
 direct survey estimation. <code>fastsae</code> achieves the lowest
 overall empirical RMSE
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.04857</mn><annotation encoding="application/x-tex">0.04857</annotation></semantics></math>).</li>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.04848</mn><annotation encoding="application/x-tex">0.04848</annotation></semantics></math>).</li>
 <li>
 <strong>Sharper Uncertainty Quantification</strong>:
 <code>fastsae</code> yields narrower credible intervals
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.1691</mn><annotation encoding="application/x-tex">0.1691</annotation></semantics></math>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.1717</mn><annotation encoding="application/x-tex">0.1717</annotation></semantics></math>
 vs
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.1979</mn><annotation encoding="application/x-tex">0.1979</annotation></semantics></math>),
 offering sharper regional estimates.</li>
@@ -428,12 +432,12 @@ indicate superior performance).</em></p>
 Besag)</strong></td>
 <td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0481</span></td>
 <td align="center">19.13%</td>
-<td align="center">16.97%</td>
-<td align="center">+6.71%</td>
-<td align="center">88.91%</td>
-<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1721</span></td>
-<td align="center">1.914x</td>
-<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.58
+<td align="center">16.95%</td>
+<td align="center">+6.70%</td>
+<td align="center">88.97%</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1725</span></td>
+<td align="center">1.917x</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">4.17
 s</span></td>
 </tr>
 <tr class="odd">
@@ -446,7 +450,7 @@ Besag)</strong></td>
 <td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">93.69%</span></td>
 <td align="center">0.2017</td>
 <td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">2.014x</span></td>
-<td align="center">34.36 s</td>
+<td align="center">36.86 s</td>
 </tr>
 </tbody>
 </table>
@@ -455,11 +459,11 @@ Besag)</strong></td>
 </h3>
 <ul>
 <li>
-<strong>9.6x Speedup</strong>: <code>fastsae</code> fits the full
+<strong>8.8x Speedup</strong>: <code>fastsae</code> fits the full
 500-domain spatial model in
-<strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>3.58</mn><annotation encoding="application/x-tex">3.58</annotation></semantics></math>
+<strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>4.17</mn><annotation encoding="application/x-tex">4.17</annotation></semantics></math>
 seconds</strong>, compared to
-<strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>34.36</mn><annotation encoding="application/x-tex">34.36</annotation></semantics></math>
+<strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>36.86</mn><annotation encoding="application/x-tex">36.86</annotation></semantics></math>
 seconds</strong> for Stan MCMC.</li>
 <li>
 <strong>Superior RMSE</strong>: <code>fastsae</code> yields the
@@ -472,7 +476,7 @@ vs
 <li>
 <strong>Sharper Credible Intervals</strong>: Average 95% CrI width
 of <code>fastsae</code>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.1721</mn><annotation encoding="application/x-tex">0.1721</annotation></semantics></math>)
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.1725</mn><annotation encoding="application/x-tex">0.1725</annotation></semantics></math>)
 is significantly sharper than MCMC
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.2017</mn><annotation encoding="application/x-tex">0.2017</annotation></semantics></math>),
 improving statistical precision across all 500 areas.</li>

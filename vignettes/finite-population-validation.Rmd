@@ -62,10 +62,12 @@ The simulation architecture mirrors a national household survey (such as Susenas
                    v                                     v
 +------------------------------------+ +------------------------------------+
 | 3. fastsae::ebp_area()             | | 4. tipsae::fit_sae()               |
-|    - Bayesian INLA                 | |    - Hamiltonian Monte Carlo (Stan)|
+|    - Bayesian INLA (Full Laplace)  | |    - Hamiltonian Monte Carlo (Stan)|
 |    - Family: "beta"                | |    - Likelihood: "beta"            |
 |    - Spatial: "besag"              | |    - Spatial error: TRUE           |
-|    - Execution: ~1.1 sec / fit     | |    - Execution: ~18 sec / fit      |
+|    - Strategy: "laplace"           | |    - Execution: ~10-37 sec / fit   |
+|    - Calibrated PC-Prior (1, 0.05) | |                                    |
+|    - Execution: ~3-4 sec / fit     | |                                    |
 +------------------------------------+ +------------------------------------+
                    |                                     |
                    +------------------+------------------+
@@ -101,22 +103,22 @@ Across $R = 100$ independent survey sample replications, the empirical propertie
 
 ## Empirical Benchmark Results ($R = 100$ Replications, $D = 60$)
 
-The table below summarizes the macro-averaged empirical metrics across all 60 domains from the full $R = 100$ Monte Carlo simulation:
+The table below summarizes the macro-averaged empirical metrics across all 60 domains from the full $R = 100$ Monte Carlo simulation, evaluating `fastsae` with Full Laplace approximation (`strategy = "laplace"`) and calibrated PC-Prior (`param = c(1, 0.05)`):
 
 *(Cells highlighted in <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 1px 5px; border-radius: 3px; font-weight: bold;">green</span> indicate superior performance for each evaluation criterion).*
 
 | Estimator / Model | Empirical RMSE | Empirical RRMSE (%) | Empirical MARB (%) | Empirical RB (%) | Empirical 95% CrI Coverage | Mean CrI Width | Efficiency Gain (vs Direct) | Runtime (s/fit) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Direct Estimator (Sample $\hat{p}_d$)** | 0.0681 | 26.27% | 20.71% | +2.27% | — | — | 1.000x | — |
-| **`fastsae::ebp_area` (Spatial Besag)** | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0486</span> | 19.61% | 17.16% | +5.86% | 87.53% | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1691</span> | 1.718x | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.26 s</span> |
+| **`fastsae::ebp_area` (Spatial Besag)** | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0485</span> | 19.56% | 17.04% | +5.81% | 88.27% | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1717</span> | 1.737x | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.25 s</span> |
 | **`tipsae::fit_sae` (Spatial Besag)** | 0.0491 | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">19.16%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">15.89%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">+1.06%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">93.18%</span> | 0.1979 | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">1.806x</span> | 9.69 s |
 
 ### Key Empirical Findings:
 
 1. **Substantial Variance & Error Reduction**:
-   Both `fastsae` and `tipsae` reduce empirical RMSE from **0.0681** down to **0.0486**, translating to an empirical efficiency gain of **> 1.7x** relative to direct survey estimation. `fastsae` achieves the lowest overall empirical RMSE ($0.04857$).
+   Both `fastsae` and `tipsae` reduce empirical RMSE from **0.0681** down to **0.0485**, translating to an empirical efficiency gain of **> 1.7x** relative to direct survey estimation. `fastsae` achieves the lowest overall empirical RMSE ($0.04848$).
 2. **Sharper Uncertainty Quantification**:
-   `fastsae` yields narrower credible intervals ($0.1691$ vs $0.1979$), offering sharper regional estimates.
+   `fastsae` yields narrower credible intervals ($0.1717$ vs $0.1979$), offering sharper regional estimates.
 3. **Computational Scalability**:
    `fastsae::ebp_area` evaluates in a fraction of the time required by Stan MCMC, completing 100 full spatial Bayesian SAE estimations in just minutes.
 
@@ -131,13 +133,13 @@ To evaluate scalability at the national level (equivalent to the $\approx 514$ r
 | Estimator / Model | Empirical RMSE | Empirical RRMSE (%) | Empirical MARB (%) | Empirical RB (%) | 95% CrI Coverage (%) | Mean CrI Width | Efficiency Gain (vs Direct) | Runtime (s/fit) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Direct Estimator (Sample $\hat{p}_d$)** | 0.0719 | 27.14% | 21.75% | +2.96% | — | — | 1.000x | — |
-| **`fastsae::ebp_area` (Spatial Besag)** | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0481</span> | 19.13% | 16.97% | +6.71% | 88.91% | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1721</span> | 1.914x | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.58 s</span> |
-| **`tipsae::fit_sae` (Spatial Besag)** | 0.0487 | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">18.68%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">15.66%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">+2.00%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">93.69%</span> | 0.2017 | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">2.014x</span> | 34.36 s |
+| **`fastsae::ebp_area` (Spatial Besag)** | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0481</span> | 19.13% | 16.95% | +6.70% | 88.97% | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1725</span> | 1.917x | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">4.17 s</span> |
+| **`tipsae::fit_sae` (Spatial Besag)** | 0.0487 | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">18.68%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">15.66%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">+2.00%</span> | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">93.69%</span> | 0.2017 | <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">2.014x</span> | 36.86 s |
 
 ### Key National Scalability Takeaways:
-- **9.6x Speedup**: `fastsae` fits the full 500-domain spatial model in **$3.58$ seconds**, compared to **$34.36$ seconds** for Stan MCMC.
+- **8.8x Speedup**: `fastsae` fits the full 500-domain spatial model in **$4.17$ seconds**, compared to **$36.86$ seconds** for Stan MCMC.
 - **Superior RMSE**: `fastsae` yields the lowest empirical RMSE ($0.0481$ vs $0.0487$ vs $0.0719$).
-- **Sharper Credible Intervals**: Average 95% CrI width of `fastsae` ($0.1721$) is significantly sharper than MCMC ($0.2017$), improving statistical precision across all 500 areas.
+- **Sharper Credible Intervals**: Average 95% CrI width of `fastsae` ($0.1725$) is significantly sharper than MCMC ($0.2017$), improving statistical precision across all 500 areas.
 
 ---
 

@@ -160,6 +160,8 @@ run_one_replication <- function(r) {
     family = "beta",
     spatial = "besag",
     W = W,
+    strategy = "laplace",
+    prior_prec = list(prior = "pc.prec", param = c(1, 0.05)),
     print_result = FALSE
   )
   time_fast <- as.numeric(difftime(Sys.time(), t0_fast, units = "secs"))

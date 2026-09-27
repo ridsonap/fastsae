@@ -175,6 +175,8 @@ fit_fast <- ebp_area(
   domain = "domain",
   vardir = "vardir",
   family = "beta",
+  strategy = "laplace",
+  prior_prec = list(prior = "pc.prec", param = c(1, 0.05)),
   print_result = FALSE
 )
 t_fast <- as.numeric(difftime(Sys.time(), t0_fast, units = "secs"))
@@ -217,6 +219,8 @@ fit_fast_sp <- ebp_area(
   family = "beta",
   spatial = "besag",
   W = W,
+  strategy = "laplace",
+  prior_prec = list(prior = "pc.prec", param = c(1, 0.05)),
   print_result = FALSE
 )
 t_fast_sp <- as.numeric(difftime(Sys.time(), t0_fast_sp, units = "secs"))
