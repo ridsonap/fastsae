@@ -106,6 +106,7 @@
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
+    <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -989,6 +990,206 @@ deviation across domains</td>
 </tr>
 </tbody>
 </table>
+<hr>
+</div>
+</div>
+<div class="section level3">
+<h3 id="ground-truth-parameter-recovery-finite-population-validation">Ground Truth Parameter Recovery &amp; Finite Population
+Validation<a class="anchor" aria-label="anchor" href="#ground-truth-parameter-recovery-finite-population-validation"></a>
+</h3>
+<p>To assess estimation accuracy when the <strong>true parameter values
+/ population ground truth are known</strong>, two simulation studies
+were conducted: 1. <strong>Model-Based Ground Truth Study</strong>:
+Fixed coefficients
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold-italic">𝜷</mi><mtext mathvariant="normal">true</mtext></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mn>1.50</mn><mo>,</mo><mn>0.60</mn><mo>,</mo><mi>−</mi><mn>0.40</mn><msup><mo stretchy="false" form="postfix">)</mo><mi>⊤</mi></msup></mrow><annotation encoding="application/x-tex">\boldsymbol{\beta}_{\text{true}} = (-1.50, 0.60, -0.40)^\top</annotation></semantics></math>
+and true proportions
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>θ</mi><mi>d</mi><mtext mathvariant="normal">true</mtext></msubsup><annotation encoding="application/x-tex">\theta_d^{\text{true}}</annotation></semantics></math>.
+2. <strong>Finite Population Design-Based Study</strong>: A synthetic
+population of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mn>33</mn><mo>,</mo><mn>511</mn></mrow><annotation encoding="application/x-tex">N = 33{,}511</annotation></semantics></math>
+individuals across
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>60</mn></mrow><annotation encoding="application/x-tex">D = 60</annotation></semantics></math>
+domains, where true domain proportions
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>P</mi><mi>d</mi></msub><mo>=</mo><mfrac><mn>1</mn><msub><mi>N</mi><mi>d</mi></msub></mfrac><msubsup><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><msub><mi>N</mi><mi>d</mi></msub></msubsup><msub><mi>y</mi><mrow><mi>d</mi><mi>i</mi></mrow></msub></mrow><annotation encoding="application/x-tex">P_d = \frac{1}{N_d}\sum_{i=1}^{N_d} y_{di}</annotation></semantics></math>
+are computed by full enumeration. Repeated survey samples
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">R = 100</annotation></semantics></math>
+Monte Carlo replications) were drawn to evaluate empirical
+properties.</p>
+<div class="section level4">
+<h4 id="parameter-recovery-fixed-effects-hatboldsymbolbeta-vs-ground-truth">1. Parameter Recovery (Fixed Effects
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi mathvariant="bold-italic">𝜷</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{\boldsymbol{\beta}}</annotation></semantics></math>
+vs Ground Truth)<a class="anchor" aria-label="anchor" href="#parameter-recovery-fixed-effects-hatboldsymbolbeta-vs-ground-truth"></a>
+</h4>
+<table style="width:100%;" class="table">
+<colgroup>
+<col width="9%">
+<col width="9%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Scenario</th>
+<th align="left">Parameter</th>
+<th align="center">True Value
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mtext mathvariant="normal">true</mtext></msub><annotation encoding="application/x-tex">\beta_{\text{true}}</annotation></semantics></math>)</th>
+<th align="center">FastSAE (<code>ebp_area</code>)</th>
+<th align="center">SE</th>
+<th align="center">Bias</th>
+<th align="center">TipSAE (<code>fit_sae</code>)</th>
+<th align="center">SD</th>
+<th align="center">Bias</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Cross-Sectional</strong></td>
+<td align="left">(Intercept)</td>
+<td align="center"><strong>-1.5000</strong></td>
+<td align="center">-1.3564</td>
+<td align="center">0.1472</td>
+<td align="center"><strong>+0.1436</strong></td>
+<td align="center">-1.0314</td>
+<td align="center">0.0505</td>
+<td align="center">+0.4686</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mn>1</mn></msub><annotation encoding="application/x-tex">x_1</annotation></semantics></math></td>
+<td align="center"><strong>0.6000</strong></td>
+<td align="center">0.5973</td>
+<td align="center">0.0852</td>
+<td align="center"><strong>-0.0027</strong></td>
+<td align="center">0.3526</td>
+<td align="center">0.0545</td>
+<td align="center">-0.2474</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mn>2</mn></msub><annotation encoding="application/x-tex">x_2</annotation></semantics></math></td>
+<td align="center"><strong>-0.4000</strong></td>
+<td align="center">-0.5056</td>
+<td align="center">0.0878</td>
+<td align="center"><strong>-0.1056</strong></td>
+<td align="center">-0.2896</td>
+<td align="center">0.0520</td>
+<td align="center">+0.1104</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Spatial (Besag)</strong></td>
+<td align="left">(Intercept)</td>
+<td align="center"><strong>-1.5000</strong></td>
+<td align="center">-1.4626</td>
+<td align="center">0.1737</td>
+<td align="center"><strong>+0.0374</strong></td>
+<td align="center">-1.0696</td>
+<td align="center">0.0528</td>
+<td align="center">+0.4304</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mn>1</mn></msub><annotation encoding="application/x-tex">x_1</annotation></semantics></math></td>
+<td align="center"><strong>0.6000</strong></td>
+<td align="center">0.7146</td>
+<td align="center">0.1003</td>
+<td align="center"><strong>+0.1146</strong></td>
+<td align="center">0.4457</td>
+<td align="center">0.0667</td>
+<td align="center">-0.1543</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mn>2</mn></msub><annotation encoding="application/x-tex">x_2</annotation></semantics></math></td>
+<td align="center"><strong>-0.4000</strong></td>
+<td align="center">-0.6048</td>
+<td align="center">0.1063</td>
+<td align="center"><strong>-0.2048</strong></td>
+<td align="center">-0.3439</td>
+<td align="center">0.0639</td>
+<td align="center">+0.0561</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level4">
+<h4 id="monte-carlo-finite-population-benchmark-r-100-replications-d-60">2. Monte Carlo Finite Population Benchmark
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">R = 100</annotation></semantics></math>
+Replications,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>60</mn></mrow><annotation encoding="application/x-tex">D = 60</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#monte-carlo-finite-population-benchmark-r-100-replications-d-60"></a>
+</h4>
+<p>Across
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">R = 100</annotation></semantics></math>
+independent sample draws from a finite population of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mn>33</mn><mo>,</mo><mn>511</mn></mrow><annotation encoding="application/x-tex">N = 33{,}511</annotation></semantics></math>
+individuals:</p>
+<table class="table">
+<colgroup>
+<col width="9%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Estimator / Model</th>
+<th align="center">Empirical RMSE</th>
+<th align="center">Empirical RRMSE (%)</th>
+<th align="center">Empirical MARB (%)</th>
+<th align="center">Empirical RB (%)</th>
+<th align="center">95% CrI Coverage (%)</th>
+<th align="center">Mean CrI Width</th>
+<th align="center">Efficiency Gain</th>
+<th align="center">Runtime (s/fit)</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Direct Estimator (Sample
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub><annotation encoding="application/x-tex">\hat{p}_d</annotation></semantics></math>)</strong></td>
+<td align="center"><strong>0.0681</strong></td>
+<td align="center"><strong>26.27%</strong></td>
+<td align="center"><strong>20.71%</strong></td>
+<td align="center"><strong>+2.27%</strong></td>
+<td align="center">—</td>
+<td align="center">—</td>
+<td align="center"><strong>1.000x</strong></td>
+<td align="center">—</td>
+</tr>
+<tr class="even">
+<td align="left"><strong><code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (Spatial
+Besag)</strong></td>
+<td align="center"><strong>0.0486</strong></td>
+<td align="center"><strong>19.61%</strong></td>
+<td align="center"><strong>17.16%</strong></td>
+<td align="center"><strong>+5.86%</strong></td>
+<td align="center"><strong>87.53%</strong></td>
+<td align="center"><strong>0.1691</strong></td>
+<td align="center"><strong>1.718x</strong></td>
+<td align="center"><strong>3.26 s</strong></td>
+</tr>
+<tr class="odd">
+<td align="left"><strong><code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Spatial
+Besag)</strong></td>
+<td align="center"><strong>0.0491</strong></td>
+<td align="center"><strong>19.16%</strong></td>
+<td align="center"><strong>15.89%</strong></td>
+<td align="center"><strong>+1.06%</strong></td>
+<td align="center"><strong>93.18%</strong></td>
+<td align="center"><strong>0.1979</strong></td>
+<td align="center"><strong>1.806x</strong></td>
+<td align="center"><strong>9.69 s</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>For complete methodology, formulas, and high-resolution
+domain-wise plots, see the dedicated article: <a href="finite-population-validation.html">Finite Population Simulation
+&amp; Validation</a>.</em></p>
 </div>
 </div>
 </div>
