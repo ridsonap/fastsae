@@ -780,6 +780,7 @@ ebp_area <- function(
     model = paste0("EBP-", toupper(family), " (Laplace GLMM)"),
     convergence = TRUE,
     fit = fit,
+    data = data,
     call = call
   )
 

@@ -223,6 +223,7 @@ eblup_sfh <- function(
   res$df_eblup <- res$df_eblup[, c("domain", setdiff(names(res$df_eblup), "domain"))]
 
   res$call <- match.call()
+  res$data <- data
   res$W <- W
   class(res) <- "fastsae"
 

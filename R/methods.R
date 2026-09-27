@@ -282,3 +282,32 @@ residuals.fastsae <- function(object, ...) {
   }
   NULL
 }
+
+#' Plot method for fastsae objects
+#'
+#' @description
+#' Provides standard R \code{plot()} dispatch for \code{fastsae} models.
+#' Automatically routes to \code{\link{map_sae}} if spatial geometry is supplied,
+#' to two-model comparison if a second \code{fastsae} model is provided, or
+#' to \code{\link[ggplot2]{autoplot}} for diagnostic and estimate plots.
+#'
+#' @param x An object of class \code{fastsae}.
+#' @param y Optional second object (e.g. another \code{fastsae} model for comparison).
+#' @param ... Additional arguments passed to \code{\link{map_sae}} or \code{\link[ggplot2]{autoplot}}.
+#'
+#' @return A \code{ggplot} object.
+#' @export
+plot.fastsae <- function(x, y = NULL, ...) {
+  dots <- list(...)
+  if (!is.null(y) && inherits(y, "fastsae")) {
+    if (!is.null(dots$sf_geom) || (!is.null(x$data) && inherits(x$data, "sf"))) {
+      return(map_sae(x, model2 = y, ...))
+    }
+    return(ggplot2::autoplot(list("Model 1" = x, "Model 2" = y), ...))
+  }
+  if (!is.null(dots$sf_geom) || (!is.null(x$data) && inherits(x$data, "sf"))) {
+    return(map_sae(x, ...))
+  }
+  ggplot2::autoplot(x, ...)
+}
+

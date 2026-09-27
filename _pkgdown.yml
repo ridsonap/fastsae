@@ -144,6 +144,14 @@ reference:
       - autoplot.fastsae_benchmark
       - print.fastsae_benchmark
       - summary.fastsae_benchmark
+  - title: "Model Comparison & Spatial Mapping"
+    desc: "Unified spatial choropleth mapping ('satu pintu'), model concordance evaluation, and official publication exports"
+    contents:
+      - map_sae
+      - compare_sae
+      - export_sae
+      - add_reliability_flags
+      - plot.fastsae
   - title: "Simulation & Synthetic Data Generation"
     desc: "Utilities to simulate area-level cross-sectional, panel, and spatial weight matrices"
     contents:

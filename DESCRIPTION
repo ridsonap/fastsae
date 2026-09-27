@@ -46,7 +46,9 @@ Suggests:
     parallel,
     sae,
     spdep,
+    sf,
     tipsae,
+    writexl,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
@@ -73,5 +75,8 @@ Collate:
     sim_series_data.R
     diagnose.R
     benchmark.R
+    compare_sae.R
+    export_sae.R
+    map_sae.R
 Config/roxygen2/version: 8.0.0
 Config/testthat/edition: 3

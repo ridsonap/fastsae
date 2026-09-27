@@ -19,10 +19,10 @@ ggplot2::autoplot
 #'   \code{fastsae} objects.
 #' @param type Type of plot to create.
 #'   \itemize{
-#'     \item For a single \code{fastsae} object: \code{"comparison"},
-#'       \code{"mse"}, \code{"estimates"}, or \code{"scatter"}.
+#'     \item For a single \code{fastsae} object: \code{"comparison"}, \code{"ribbon"},
+#'       \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"}.
 #'     \item For a list of \code{fastsae} objects: \code{"comparison"},
-#'       \code{"mse"}, or \code{"scatter"}.
+#'       \code{"mse"}, \code{"scatter"}, or \code{"map"}.
 #'   }
 #' @param ... Additional arguments passed to internal plotting helpers
 #'   (e.g. \code{title}) or to \pkg{ggplot2} layers.
@@ -35,6 +35,7 @@ ggplot2::autoplot
 #' # Single model plot
 #' fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
 #' autoplot(fit_fh, type = "estimates")
+#' autoplot(fit_fh, type = "rse")
 #'
 #' # Compare two models
 #' fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
@@ -42,24 +43,36 @@ ggplot2::autoplot
 #'
 #' @importFrom ggplot2 autoplot
 #' @export
-autoplot.fastsae <- function(object, type = c("comparison", "mse", "estimates", "scatter"), ...) {
+autoplot.fastsae <- function(
+  object,
+  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map"),
+  ...
+) {
   type <- match.arg(type)
+  if (type == "map") {
+    return(map_sae(object, ...))
+  }
   switch(type,
     comparison = .autoplot_single_comparison(object, ...),
+    ribbon     = .autoplot_single_comparison(object, ...),
     mse        = .autoplot_mse(object, ...),
     estimates  = .autoplot_estimates(object, ...),
-    scatter    = .autoplot_scatter_single(object, ...)
+    scatter    = .autoplot_scatter_single(object, ...),
+    rse        = .autoplot_rse(object, ...)
   )
 }
 
 #' @rdname autoplot.fastsae
 #' @export
-autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...) {
+autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"), ...) {
   if (!all(vapply(object, inherits, logical(1), "fastsae"))) {
     # bukan list of fastsae -> lempar ke method/default lain, hentikan eksekusi di sini
     return(NextMethod())
   }
   type <- match.arg(type)
+  if (type == "map") {
+    return(map_sae(object, ...))
+  }
   switch(type,
     comparison = .autoplot_multi_comparison(object, ...),
     mse        = .autoplot_multi_mse(object, ...),
@@ -166,6 +179,68 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter"), ...)
 .autoplot_scatter_single <- function(x, title = NULL, ...) {
   cli::cli_warn("Scatter plot requires at least two models. Use a named list of models.")
   .autoplot_estimates(x, title = title, ...)
+}
+
+#' @noRd
+.autoplot_rse <- function(x, title = NULL, thresholds = c(20, 30), ...) {
+  df <- x$df_ebp %||% x$df_eblup
+  est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
+
+  # Calculate SAE RSE if not already present
+  if (!"rse" %in% names(df)) {
+    mse_val <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else NA_real_)
+    df$rse <- (sqrt(mse_val) / abs(df[[est_col]])) * 100
+  }
+
+  # Check if direct vardir/rse exists
+  has_direct_rse <- FALSE
+  if ("vardir" %in% names(df) && "y" %in% names(df)) {
+    df$direct_rse <- (sqrt(df$vardir) / abs(df$y)) * 100
+    has_direct_rse <- TRUE
+  } else if ("direct_rse" %in% names(df)) {
+    has_direct_rse <- TRUE
+  }
+
+  df$domain_char <- as.character(df$domain)
+  df$domain_char <- factor(df$domain_char, levels = df$domain_char)
+
+  if (has_direct_rse) {
+    long_rse <- rbind(
+      data.frame(domain = df$domain_char, rse = df$direct_rse, Type = "Direct Survey"),
+      data.frame(domain = df$domain_char, rse = df$rse, Type = "SAE Model")
+    )
+    p <- ggplot(long_rse, aes(x = .data$domain, y = .data$rse, color = .data$Type, group = .data$Type)) +
+      geom_point(size = 2) +
+      geom_line(alpha = 0.7) +
+      ggplot2::scale_color_manual(values = c("Direct Survey" = "#E63946", "SAE Model" = "#1D3557"))
+  } else {
+    p <- ggplot(df, aes(x = .data$domain_char, y = .data$rse, group = 1)) +
+      geom_point(color = "#1D3557", size = 2) +
+      geom_line(color = "#1D3557", alpha = 0.7)
+  }
+
+  p <- p +
+    geom_hline(yintercept = thresholds[1], linetype = "dashed", color = "#2A9D8F", linewidth = 0.8) +
+    geom_hline(yintercept = thresholds[2], linetype = "dashed", color = "#E76F51", linewidth = 0.8) +
+    ggplot2::annotate("text", x = 1, y = thresholds[1] - 1.5, label = paste0("Reliable (< ", thresholds[1], "%)"),
+                      hjust = 0, size = 3, color = "#2A9D8F", fontface = "italic") +
+    ggplot2::annotate("text", x = 1, y = thresholds[2] + 1.5, label = paste0("Unreliable (\u2265 ", thresholds[2], "%)"),
+                      hjust = 0, size = 3, color = "#E76F51", fontface = "italic") +
+    labs(
+      title = title %||% "Relative Standard Error (RSE %) across Domains",
+      subtitle = paste0("Official statistics reliability thresholds: < ", thresholds[1], "% (Reliable) and \u2265 ", thresholds[2], "% (Unreliable)"),
+      x = "Domain",
+      y = "RSE (%)",
+      color = "Method"
+    ) +
+    theme_minimal(base_size = 11) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+      plot.title = element_text(face = "bold"),
+      legend.position = "bottom"
+    )
+
+  return(p)
 }
 
 # ------------------------------------------------------------------------------

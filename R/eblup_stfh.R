@@ -226,6 +226,7 @@ eblup_stfh <- function(
 
   # Add class
   res$call <- match.call()
+  res$data <- data
   class(res) <- "fastsae"
 
   # Convergence check

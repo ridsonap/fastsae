@@ -197,6 +197,7 @@ eblup_bhf <- function(
     model = "BHF",
     level = "unit",
     convergence = TRUE,
+    data = unit_data,
     call = match.call()
   )
 

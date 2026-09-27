@@ -98,6 +98,7 @@ eblup_fh <- function(
   res$df_eblup <- res$df_eblup[, c("domain", "y", "eblup", "vardir", "random_effect","mse", "rse")]
 
   res$call <- match.call()
+  res$data <- data
   class(res) <- "fastsae"
 
   if (!res$convergence) {

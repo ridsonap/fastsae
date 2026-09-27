@@ -149,20 +149,8 @@ benchmark.fastsae <- function(
     }
     w_vec <- as.numeric(weight)
   } else if (is.null(weight)) {
-    # Auto-detect weight or population size if present
-    weight_candidates <- c("weight", "weights", "n_pop", "N_d", "N", "pop", "population", "n")
-    found_col <- NULL
-    if (!is.null(object$data)) {
-      found_col <- intersect(weight_candidates, names(object$data))
-      if (length(found_col) > 0) w_vec <- as.numeric(object$data[[found_col[1]]])
-    }
-    if (is.null(w_vec)) {
-      found_col_df <- intersect(weight_candidates, names(df_est))
-      if (length(found_col_df) > 0) w_vec <- as.numeric(df_est[[found_col_df[1]]])
-    }
-    if (is.null(w_vec)) {
-      w_vec <- rep(1, length(y_hat))
-    }
+    # Default to equal weights across domains
+    w_vec <- rep(1, length(y_hat))
   }
 
   # 3. Extract grouping

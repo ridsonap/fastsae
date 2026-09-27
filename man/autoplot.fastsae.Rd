@@ -5,9 +5,13 @@
 \alias{autoplot.list}
 \title{Autoplot Method for fastsae Objects}
 \usage{
-\method{autoplot}{fastsae}(object, type = c("comparison", "mse", "estimates", "scatter"), ...)
+\method{autoplot}{fastsae}(
+  object,
+  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map"),
+  ...
+)
 
-\method{autoplot}{list}(object, type = c("comparison", "mse", "scatter"), ...)
+\method{autoplot}{list}(object, type = c("comparison", "mse", "scatter", "map"), ...)
 }
 \arguments{
 \item{object}{An object of class \code{fastsae}, or a (named) list of
@@ -15,10 +19,10 @@
 
 \item{type}{Type of plot to create.
 \itemize{
-  \item For a single \code{fastsae} object: \code{"comparison"},
-    \code{"mse"}, \code{"estimates"}, or \code{"scatter"}.
+  \item For a single \code{fastsae} object: \code{"comparison"}, \code{"ribbon"},
+    \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"}.
   \item For a list of \code{fastsae} objects: \code{"comparison"},
-    \code{"mse"}, or \code{"scatter"}.
+    \code{"mse"}, \code{"scatter"}, or \code{"map"}.
 }}
 
 \item{...}{Additional arguments passed to internal plotting helpers
@@ -38,6 +42,7 @@ library(fastsae)
 # Single model plot
 fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
 autoplot(fit_fh, type = "estimates")
+autoplot(fit_fh, type = "rse")
 
 # Compare two models
 fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
