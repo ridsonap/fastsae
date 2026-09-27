@@ -96,6 +96,8 @@ navbar:
         - text: "--------------------"
         - text: "Performance Benchmarks"
           href: articles/benchmarks.html
+        - text: "Finite Population Validation"
+          href: articles/finite-population-validation.html
     benchmarks:
       text: Benchmarks
       href: articles/benchmarks.html
