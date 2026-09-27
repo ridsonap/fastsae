@@ -1188,6 +1188,94 @@ Besag)</strong></td>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section level4">
+<h4 id="national-scale-finite-population-benchmark-d-500-domains-n-approx-250000-units-r-25">3. National-Scale Finite Population Benchmark
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 500</annotation></semantics></math>
+Domains,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>≈</mo><mn>250</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">N \approx 250{,}000</annotation></semantics></math>
+Units,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>25</mn></mrow><annotation encoding="application/x-tex">R = 25</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#national-scale-finite-population-benchmark-d-500-domains-n-approx-250000-units-r-25"></a>
+</h4>
+<p>Across
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>25</mn></mrow><annotation encoding="application/x-tex">R = 25</annotation></semantics></math>
+independent sample draws from a national-scale synthetic population of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mn>250</mn><mo>,</mo><mn>824</mn></mrow><annotation encoding="application/x-tex">N = 250{,}824</annotation></semantics></math>
+individuals across
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 500</annotation></semantics></math>
+domains (equivalent to the regency/city administrative breakdown in
+Indonesia):</p>
+<p><em>(Cells highlighted in <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 1px 5px; border-radius: 3px; font-weight: bold;">green</span>
+indicate superior performance for each metric).</em></p>
+<table class="table">
+<colgroup>
+<col width="9%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Estimator / Model</th>
+<th align="center">Empirical RMSE</th>
+<th align="center">Empirical RRMSE (%)</th>
+<th align="center">Empirical MARB (%)</th>
+<th align="center">Empirical RB (%)</th>
+<th align="center">95% CrI Coverage (%)</th>
+<th align="center">Mean CrI Width</th>
+<th align="center">Efficiency Gain</th>
+<th align="center">Runtime (s/fit)</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Direct Estimator (Sample
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub><annotation encoding="application/x-tex">\hat{p}_d</annotation></semantics></math>)</strong></td>
+<td align="center">0.0719</td>
+<td align="center">27.14%</td>
+<td align="center">21.75%</td>
+<td align="center">+2.96%</td>
+<td align="center">—</td>
+<td align="center">—</td>
+<td align="center">1.000x</td>
+<td align="center">—</td>
+</tr>
+<tr class="even">
+<td align="left"><strong><code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (Spatial
+Besag)</strong></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0481</span></td>
+<td align="center">19.13%</td>
+<td align="center">16.97%</td>
+<td align="center">+6.71%</td>
+<td align="center">88.91%</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1721</span></td>
+<td align="center">1.914x</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.58
+s</span></td>
+</tr>
+<tr class="odd">
+<td align="left"><strong><code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Spatial
+Besag)</strong></td>
+<td align="center">0.0487</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">18.68%</span></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">15.66%</span></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">+2.00%</span></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">93.69%</span></td>
+<td align="center">0.2017</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">2.014x</span></td>
+<td align="center">34.36 s</td>
+</tr>
+</tbody>
+</table>
+<p><em>At
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 500</annotation></semantics></math>,
+<code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> executes <strong>9.6x faster</strong>
+than Stan MCMC (3.58 s vs 34.36 s per fit) while achieving the lowest
+overall empirical RMSE
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.04809</mn><annotation encoding="application/x-tex">0.04809</annotation></semantics></math>).</em></p>
 <p><em>For complete methodology, formulas, and high-resolution
 domain-wise plots, see the dedicated article: <a href="finite-population-validation.html">Finite Population Simulation
 &amp; Validation</a>.</em></p>

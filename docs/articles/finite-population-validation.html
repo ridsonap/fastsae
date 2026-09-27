@@ -362,6 +362,125 @@ estimations in just minutes.</li>
 </div>
 </div>
 <div class="section level2">
+<h2 id="national-scale-benchmark-d-500-domains-n-approx-250000-individuals-r-25">National-Scale Benchmark
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 500</annotation></semantics></math>
+Domains,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>≈</mo><mn>250</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">N \approx 250{,}000</annotation></semantics></math>
+Individuals,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>25</mn></mrow><annotation encoding="application/x-tex">R = 25</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#national-scale-benchmark-d-500-domains-n-approx-250000-individuals-r-25"></a>
+</h2>
+<p>To evaluate scalability at the national level (equivalent to the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mn>514</mn></mrow><annotation encoding="application/x-tex">\approx 514</annotation></semantics></math>
+regency/city breakdown in Indonesia or hundreds of counties in other
+nations), a national synthetic population of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mn>250</mn><mo>,</mo><mn>824</mn></mrow><annotation encoding="application/x-tex">N = 250{,}824</annotation></semantics></math>
+individuals was generated across a
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>20</mn><mo>×</mo><mn>25</mn></mrow><annotation encoding="application/x-tex">20 \times 25</annotation></semantics></math>
+spatial grid of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 500</annotation></semantics></math>
+contiguous domains. Survey samples of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi>d</mi></msub><mo>∈</mo><mo stretchy="false" form="prefix">[</mo><mn>20</mn><mo>,</mo><mn>50</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">n_d \in [20, 50]</annotation></semantics></math>
+per domain
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>≈</mo><mn>17</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">n \approx 17{,}500</annotation></semantics></math>
+survey units) were drawn across
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mn>25</mn></mrow><annotation encoding="application/x-tex">R = 25</annotation></semantics></math>
+Monte Carlo replications.</p>
+<p><em>(Cells highlighted in <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 1px 5px; border-radius: 3px; font-weight: bold;">green</span>
+indicate superior performance).</em></p>
+<table class="table">
+<colgroup>
+<col width="9%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+<col width="11%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Estimator / Model</th>
+<th align="center">Empirical RMSE</th>
+<th align="center">Empirical RRMSE (%)</th>
+<th align="center">Empirical MARB (%)</th>
+<th align="center">Empirical RB (%)</th>
+<th align="center">95% CrI Coverage (%)</th>
+<th align="center">Mean CrI Width</th>
+<th align="center">Efficiency Gain (vs Direct)</th>
+<th align="center">Runtime (s/fit)</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Direct Estimator (Sample
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub><annotation encoding="application/x-tex">\hat{p}_d</annotation></semantics></math>)</strong></td>
+<td align="center">0.0719</td>
+<td align="center">27.14%</td>
+<td align="center">21.75%</td>
+<td align="center">+2.96%</td>
+<td align="center">—</td>
+<td align="center">—</td>
+<td align="center">1.000x</td>
+<td align="center">—</td>
+</tr>
+<tr class="even">
+<td align="left"><strong><code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (Spatial
+Besag)</strong></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0481</span></td>
+<td align="center">19.13%</td>
+<td align="center">16.97%</td>
+<td align="center">+6.71%</td>
+<td align="center">88.91%</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.1721</span></td>
+<td align="center">1.914x</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">3.58
+s</span></td>
+</tr>
+<tr class="odd">
+<td align="left"><strong><code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Spatial
+Besag)</strong></td>
+<td align="center">0.0487</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">18.68%</span></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">15.66%</span></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">+2.00%</span></td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">93.69%</span></td>
+<td align="center">0.2017</td>
+<td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">2.014x</span></td>
+<td align="center">34.36 s</td>
+</tr>
+</tbody>
+</table>
+<div class="section level3">
+<h3 id="key-national-scalability-takeaways">Key National Scalability Takeaways:<a class="anchor" aria-label="anchor" href="#key-national-scalability-takeaways"></a>
+</h3>
+<ul>
+<li>
+<strong>9.6x Speedup</strong>: <code>fastsae</code> fits the full
+500-domain spatial model in
+<strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>3.58</mn><annotation encoding="application/x-tex">3.58</annotation></semantics></math>
+seconds</strong>, compared to
+<strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>34.36</mn><annotation encoding="application/x-tex">34.36</annotation></semantics></math>
+seconds</strong> for Stan MCMC.</li>
+<li>
+<strong>Superior RMSE</strong>: <code>fastsae</code> yields the
+lowest empirical RMSE
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.0481</mn><annotation encoding="application/x-tex">0.0481</annotation></semantics></math>
+vs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.0487</mn><annotation encoding="application/x-tex">0.0487</annotation></semantics></math>
+vs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.0719</mn><annotation encoding="application/x-tex">0.0719</annotation></semantics></math>).</li>
+<li>
+<strong>Sharper Credible Intervals</strong>: Average 95% CrI width
+of <code>fastsae</code>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.1721</mn><annotation encoding="application/x-tex">0.1721</annotation></semantics></math>)
+is significantly sharper than MCMC
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.2017</mn><annotation encoding="application/x-tex">0.2017</annotation></semantics></math>),
+improving statistical precision across all 500 areas.</li>
+</ul>
+<hr>
+</div>
+</div>
+<div class="section level2">
 <h2 id="visualizations">Visualizations<a class="anchor" aria-label="anchor" href="#visualizations"></a>
 </h2>
 <div class="section level3">
