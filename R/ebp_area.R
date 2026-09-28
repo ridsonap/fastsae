@@ -340,6 +340,22 @@ ebp_area <- function(
   call = NULL,
   ...
 ) {
+  # Respect CRAN limits and prevent inla.mclapply / OpenMP from exceeding core limits
+  chk_cores <- tolower(Sys.getenv("_R_CHECK_LIMIT_CORES_", ""))
+  is_cran_check <- (nzchar(chk_cores) && (chk_cores != "false")) || nzchar(Sys.getenv("_R_CHECK_PACKAGE_NAME_", ""))
+
+  if (is_cran_check) {
+    old_mc <- getOption("mc.cores")
+    options(mc.cores = 1L)
+    on.exit(options(mc.cores = old_mc), add = TRUE)
+
+    old_inla_threads <- tryCatch(INLA::inla.getOption("num.threads"), error = function(e) NULL)
+    if (!is.null(old_inla_threads)) {
+      INLA::inla.setOption("num.threads", "1:1")
+      on.exit(INLA::inla.setOption("num.threads", old_inla_threads), add = TRUE)
+    }
+  }
+
   n_obs <- nrow(data)
 
   unique_domains <- unique(domain)
@@ -583,6 +599,14 @@ ebp_area <- function(
     control.inla = control_inla,
     ...
   )
+
+  # Respect CRAN core limits and testing environments
+  if (is.null(inla_args$num.threads)) {
+    chk_cores <- tolower(Sys.getenv("_R_CHECK_LIMIT_CORES_", ""))
+    if ((nzchar(chk_cores) && (chk_cores != "false")) || nzchar(Sys.getenv("_R_CHECK_PACKAGE_NAME_", ""))) {
+      inla_args$num.threads <- "1:1"
+    }
+  }
 
   # Gaussian with known sampling variances (Fay-Herriot)
   if (family == "gaussian" && !is.null(vardir)) {

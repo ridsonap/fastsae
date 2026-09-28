@@ -57,6 +57,10 @@
 #'   first calibrates/harmonizes group (provincial) targets to match \code{national_target},
 #'   then calibrates small areas to the harmonized provincial targets.
 #' @param outer_target Alias for \code{national_target}.
+#' @param x An object of class \code{fastsae_benchmark} (for \code{print} and \code{plot} methods).
+#' @param y Ignored argument for compatibility with the generic \code{plot} method.
+#' @param all_groups Logical; if \code{TRUE}, prints verification status for all groups in
+#'   hierarchical benchmarking. Default is \code{FALSE}.
 #' @param ... Additional arguments passed to methods.
 #'
 #' @return An object of class \code{c("fastsae_benchmark", "data.frame")} containing:
@@ -93,6 +97,9 @@
 #' library(fastsae)
 #' data(mys)
 #'
+#' # Assign province groups for hierarchical calibration example
+#' mys$province <- rep(c("Prov_A", "Prov_B", "Prov_C"), length.out = nrow(mys))
+#'
 #' # 1. Fit Fay-Herriot model
 #' fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #'
@@ -101,8 +108,7 @@
 #' head(bm_ratio)
 #'
 #' # 3. Two-Stage Hierarchical Calibration (e.g. Regency -> Province -> National)
-#' # Suppose we assign domains to 3 provinces with an overarching national target of 6.2:
-#' mys$province <- rep(c("Prov_A", "Prov_B", "Prov_C"), length.out = nrow(mys))
+#' # Calibrate domains within provinces while matching overarching national target:
 #' bm_hier <- benchmark(
 #'   fit_fh,
 #'   group = "province",
@@ -638,12 +644,12 @@ summary.fastsae_benchmark <- function(object, ...) {
 
 #' @rdname benchmark
 #' @export
-autoplot.fastsae_benchmark <- function(x, ...) {
+autoplot.fastsae_benchmark <- function(object, ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     cli::cli_abort("Package {.pkg ggplot2} is required to plot benchmarked objects.")
   }
 
-  df_plot <- as.data.frame(x)
+  df_plot <- as.data.frame(object)
   has_group <- "group" %in% names(df_plot) && length(unique(df_plot$group)) > 1
 
   p <- ggplot2::ggplot(df_plot, ggplot2::aes(x = .data$original, y = .data$benchmarked)) +
@@ -656,7 +662,7 @@ autoplot.fastsae_benchmark <- function(x, ...) {
     p <- p + ggplot2::geom_point(color = "#1D6A5C", alpha = 0.85, size = 2.5)
   }
 
-  is_hier <- isTRUE(attr(x, "hierarchical"))
+  is_hier <- isTRUE(attr(object, "hierarchical"))
   title_str <- if (is_hier) "Two-Stage Hierarchical Calibration" else "Benchmark Calibration"
 
   p <- p +

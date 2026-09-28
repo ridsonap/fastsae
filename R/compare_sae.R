@@ -24,6 +24,12 @@
 #'   for the models. Default is inferred from model types or call arguments.
 #' @param thresholds Numeric vector of length 2 defining the RSE (\%) thresholds for reliability.
 #'   Default is \code{c(20, 30)}.
+#' @param x An object of class \code{fastsae_comparison} (for \code{print} and \code{plot} methods).
+#' @param object An object of class \code{fastsae_comparison} (for \code{summary} and \code{autoplot} methods).
+#' @param y Ignored argument for compatibility with the generic \code{plot} method.
+#' @param type Character string indicating comparison plot type: \code{"scatter"},
+#'   \code{"comparison"}, \code{"difference"}, \code{"mse"}, or \code{"rse"}. Default is \code{"scatter"}.
+#' @param title Optional character string specifying a custom plot title.
 #' @param ... Additional arguments.
 #'
 #' @return An S3 object of class \code{fastsae_comparison} containing:

@@ -43,7 +43,7 @@ benchmark_sae(object, ...)
 
 \method{summary}{fastsae_benchmark}(object, ...)
 
-\method{autoplot}{fastsae_benchmark}(x, ...)
+\method{autoplot}{fastsae_benchmark}(object, ...)
 
 \method{plot}{fastsae_benchmark}(x, y = NULL, ...)
 }
@@ -83,6 +83,13 @@ first calibrates/harmonizes group (provincial) targets to match \code{national_t
 then calibrates small areas to the harmonized provincial targets.}
 
 \item{outer_target}{Alias for \code{national_target}.}
+
+\item{x}{An object of class \code{fastsae_benchmark} (for \code{print} and \code{plot} methods).}
+
+\item{all_groups}{Logical; if \code{TRUE}, prints verification status for all groups in
+hierarchical benchmarking. Default is \code{FALSE}.}
+
+\item{y}{Ignored argument for compatibility with the generic \code{plot} method.}
 }
 \value{
 An object of class \code{c("fastsae_benchmark", "data.frame")} containing:
@@ -129,6 +136,9 @@ Methods implemented:
 library(fastsae)
 data(mys)
 
+# Assign province groups for hierarchical calibration example
+mys$province <- rep(c("Prov_A", "Prov_B", "Prov_C"), length.out = nrow(mys))
+
 # 1. Fit Fay-Herriot model
 fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 
@@ -137,8 +147,7 @@ bm_ratio <- benchmark(fit_fh, target = 6.5, method = "ratio")
 head(bm_ratio)
 
 # 3. Two-Stage Hierarchical Calibration (e.g. Regency -> Province -> National)
-# Suppose we assign domains to 3 provinces with an overarching national target of 6.2:
-mys$province <- rep(c("Prov_A", "Prov_B", "Prov_C"), length.out = nrow(mys))
+# Calibrate domains within provinces while matching overarching national target:
 bm_hier <- benchmark(
   fit_fh,
   group = "province",

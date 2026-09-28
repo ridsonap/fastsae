@@ -38,6 +38,17 @@ for the models. Default is inferred from model types or call arguments.}
 Default is \code{c(20, 30)}.}
 
 \item{...}{Additional arguments.}
+
+\item{x}{An object of class \code{fastsae_comparison} (for \code{print} and \code{plot} methods).}
+
+\item{object}{An object of class \code{fastsae_comparison} (for \code{summary} and \code{autoplot} methods).}
+
+\item{y}{Ignored argument for compatibility with the generic \code{plot} method.}
+
+\item{type}{Character string indicating comparison plot type: \code{"scatter"},
+\code{"comparison"}, \code{"difference"}, \code{"mse"}, or \code{"rse"}. Default is \code{"scatter"}.}
+
+\item{title}{Optional character string specifying a custom plot title.}
 }
 \value{
 An S3 object of class \code{fastsae_comparison} containing:
