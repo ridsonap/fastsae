@@ -49,6 +49,7 @@ Suggests:
     spam,
     sf,
     tipsae,
+    rstantools,
     writexl,
     openxlsx,
     knitr,
