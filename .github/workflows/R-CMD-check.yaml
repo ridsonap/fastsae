@@ -54,13 +54,16 @@ jobs:
             echo "LDFLAGS += -L/usr/local/opt/gettext/lib" >> ~/.R/Makevars
           fi
 
+      - name: Pre-install rstantools and spam (required by tipsae configure)
+        run: |
+          Rscript -e 'install.packages(c("rstantools", "spam"), repos = "https://cloud.r-project.org")'
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
             any::rcmdcheck
             any::knitr?source
             any::xfun?source
-            any::rstantools
           needs: check
           cache-version: 3
 
