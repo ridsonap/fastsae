@@ -2,6 +2,7 @@ test_that("ebp_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   skip_if_not_installed("INLA")
   skip_if_not_installed("tipsae")
   skip_if_not_installed("spdep")
+  skip_if_not_installed("spam")
 
   data("emilia", package = "tipsae")
   data("emilia_shp", package = "tipsae")

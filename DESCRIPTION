@@ -46,6 +46,7 @@ Suggests:
     parallel,
     sae,
     spdep,
+    spam,
     sf,
     tipsae,
     writexl,
