@@ -64,7 +64,7 @@ test_that("map_sae works for benchmarked objects", {
 
   data(mys)
   fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
-  bm <- benchmark(fit_fh, target = 6.5, method = "ratio")
+  bm <- benchmark_sae(fit_fh, target = 6.5, method = "ratio")
 
   grid_sf <- sf::st_make_grid(
     sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),

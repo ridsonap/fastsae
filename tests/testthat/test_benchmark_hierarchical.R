@@ -27,7 +27,7 @@ test_that("two-stage hierarchical benchmarking works for D = 500 and 34 province
   nat_target <- 6.5
 
   # Two-stage hierarchical calibration with ratio method
-  bm <- benchmark(
+  bm <- benchmark_sae(
     object = fit,
     national_target = nat_target,
     group = "provinsi",
@@ -65,7 +65,7 @@ test_that("two-stage hierarchical benchmarking works for D = 500 and 34 province
   expect_output(print(bm), "Two-Stage Hierarchical Benchmark Calibration")
   expect_output(print(bm), "Level 0 \\(National Target\\)")
   expect_output(print(bm), "34 groups")
-  expect_output(summary(bm), "Stage 1: Group / Provincial Harmonization Summary")
+  expect_output(summary(bm), "Stage 1: provinsi Harmonization Summary")
 })
 
 test_that("two-stage hierarchical benchmarking works with initial provincial targets", {
@@ -83,7 +83,7 @@ test_that("two-stage hierarchical benchmarking works with initial provincial tar
   nat_target <- 7.25
 
   # Two-stage calibration with difference method
-  bm_diff <- benchmark(
+  bm_diff <- benchmark_sae(
     y,
     target = init_targets,
     national_target = nat_target,

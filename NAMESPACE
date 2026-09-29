@@ -17,6 +17,8 @@ export(export_sae)
 export(add_reliability_flags)
 export(map_sae)
 
+S3method(benchmark_sae, fastsae)
+S3method(benchmark_sae, default)
 S3method(benchmark, fastsae)
 S3method(benchmark, default)
 S3method(autoplot, fastsae_benchmark)

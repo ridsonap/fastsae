@@ -16,7 +16,7 @@ test_that("export_sae exports to Excel and CSV correctly", {
 
   data(mys)
   fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
-  bm <- benchmark(fit_fh, target = 6.5, method = "ratio")
+  bm <- benchmark_sae(fit_fh, target = 6.5, method = "ratio")
 
   # 1. Export to Excel (.xlsx)
   xlsx_file <- tempfile(fileext = ".xlsx")

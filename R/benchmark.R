@@ -104,12 +104,12 @@
 #' fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #'
 #' # 2. Ratio benchmarking to overall target (e.g. target = 6.5)
-#' bm_ratio <- benchmark(fit_fh, target = 6.5, method = "ratio")
+#' bm_ratio <- benchmark_sae(fit_fh, target = 6.5, method = "ratio")
 #' head(bm_ratio)
 #'
 #' # 3. Two-Stage Hierarchical Calibration (e.g. Regency -> Province -> National)
 #' # Calibrate domains within provinces while matching overarching national target:
-#' bm_hier <- benchmark(
+#' bm_hier <- benchmark_sae(
 #'   fit_fh,
 #'   group = "province",
 #'   weight = mys$n,
@@ -117,19 +117,13 @@
 #'   method = "ratio"
 #' )
 #' print(bm_hier)
-benchmark <- function(object, ...) {
-  UseMethod("benchmark")
-}
-
-#' @rdname benchmark
-#' @export
 benchmark_sae <- function(object, ...) {
-  benchmark(object, ...)
+  UseMethod("benchmark_sae")
 }
 
-#' @rdname benchmark
+#' @rdname benchmark_sae
 #' @export
-benchmark.fastsae <- function(
+benchmark_sae.fastsae <- function(
   object,
   target = NULL,
   weight = NULL,
@@ -180,6 +174,7 @@ benchmark.fastsae <- function(
 
   # 3. Extract grouping
   group_vec <- NULL
+  group_name <- if (is.character(group) && length(group) == 1) group else "Group"
   if (is.character(group) && length(group) == 1) {
     if (!is.null(object$data) && group %in% names(object$data)) {
       group_vec <- as.character(object$data[[group]])
@@ -203,6 +198,7 @@ benchmark.fastsae <- function(
     weight = w_vec,
     method = method,
     group = group_vec,
+    group_var = group_name,
     type = type,
     national_target = nat_target,
     mse = mse_vec,
@@ -211,9 +207,9 @@ benchmark.fastsae <- function(
   )
 }
 
-#' @rdname benchmark
+#' @rdname benchmark_sae
 #' @export
-benchmark.default <- function(
+benchmark_sae.default <- function(
   object,
   target = NULL,
   weight = NULL,
@@ -242,6 +238,7 @@ benchmark.default <- function(
   }
 
   group_vec <- if (!is.null(group)) as.character(group) else NULL
+  group_name <- if (is.character(group) && length(group) == 1) group else "Group"
   if (!is.null(group_vec) && length(group_vec) != n) {
     cli::cli_abort("Length of {.arg group} ({length(group_vec)}) does not match length of {.arg object} ({n}).")
   }
@@ -253,12 +250,29 @@ benchmark.default <- function(
     weight = w_vec,
     method = method,
     group = group_vec,
+    group_var = group_name,
     type = type,
     national_target = nat_target,
     mse = NULL,
     call = match.call(),
     model_family = "generic"
   )
+}
+
+#' @rdname benchmark_sae
+#' @export
+benchmark <- function(object, ...) {
+  benchmark_sae(object, ...)
+}
+
+#' @export
+benchmark.fastsae <- function(object, ...) {
+  benchmark_sae.fastsae(object, ...)
+}
+
+#' @export
+benchmark.default <- function(object, ...) {
+  benchmark_sae.default(object, ...)
 }
 
 #' Internal worker to compute small area benchmarking calibrations
@@ -270,6 +284,7 @@ benchmark.default <- function(
   weight,
   method,
   group = NULL,
+  group_var = "Group",
   type = "mean",
   national_target = NULL,
   mse = NULL,
@@ -547,6 +562,7 @@ benchmark.default <- function(
   attr(res_df, "method") <- method
   attr(res_df, "type") <- type
   attr(res_df, "hierarchical") <- is_hierarchical
+  attr(res_df, "group_var") <- group_var
   attr(res_df, "stage1_summary") <- stage1_df
   attr(res_df, "verification") <- verification
   attr(res_df, "national_verification") <- national_verification
@@ -556,7 +572,7 @@ benchmark.default <- function(
   return(res_df)
 }
 
-#' @rdname benchmark
+#' @rdname benchmark_sae
 #' @export
 print.fastsae_benchmark <- function(x, all_groups = FALSE, ...) {
   is_hierarchical <- isTRUE(attr(x, "hierarchical"))
@@ -620,14 +636,15 @@ print.fastsae_benchmark <- function(x, all_groups = FALSE, ...) {
   invisible(x)
 }
 
-#' @rdname benchmark
+#' @rdname benchmark_sae
 #' @export
 summary.fastsae_benchmark <- function(object, ...) {
   print(object, all_groups = FALSE, ...)
 
   s1 <- attr(object, "stage1_summary")
   if (!is.null(s1)) {
-    cat("\n-- Stage 1: Group / Provincial Harmonization Summary --\n")
+    grp_name <- attr(object, "group_var") %||% "Group"
+    cat(sprintf("\n-- Stage 1: %s Harmonization Summary --\n", grp_name))
     print(utils::head(s1, 10), row.names = FALSE)
     if (nrow(s1) > 10) {
       cat("... and", nrow(s1) - 10, "more groups.\n")
@@ -642,7 +659,7 @@ summary.fastsae_benchmark <- function(object, ...) {
   invisible(object)
 }
 
-#' @rdname benchmark
+#' @rdname benchmark_sae
 #' @export
 autoplot.fastsae_benchmark <- function(object, ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -682,7 +699,7 @@ autoplot.fastsae_benchmark <- function(object, ...) {
   return(p)
 }
 
-#' @rdname benchmark
+#' @rdname benchmark_sae
 #' @export
 plot.fastsae_benchmark <- function(x, y = NULL, ...) {
   dots <- list(...)
