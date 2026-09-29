@@ -164,15 +164,15 @@ autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "com
 
 ---
 
-## 4. Bayesian Spatio-Temporal Modeling (`ebp_area`)
+## 4. Bayesian Spatio-Temporal Modeling (`hb_area`)
 
-In addition to frequentist C++ EBLUP implementations (`eblup_sfh` and `eblup_stfh`), **fastsae** provides `ebp_area()` for Bayesian spatio-temporal modeling powered by **INLA**. This supports:
+In addition to frequentist C++ EBLUP implementations (`eblup_sfh` and `eblup_stfh`), **fastsae** provides `hb_area()` for Bayesian spatio-temporal modeling powered by **INLA**. This supports:
 - Bounded proportions via Beta regression (matching `tipsae`)
 - Discrete counts via Poisson and Negative Binomial regression
 - Binary aggregates via Binomial regression
 - Flexible space-time structures including domain-specific random walks, separable dynamic fields, and Knorr-Held Types I–IV.
 
-For full details and a case study on Italian poverty data, see the vignette [Bayesian Area-Level Small Area Estimation with INLA](ebp-area-inla.html).
+For full details and a case study on Italian poverty data, see the vignette [Bayesian Area-Level Small Area Estimation with INLA](hb-area-inla.html).
 
 ---
 

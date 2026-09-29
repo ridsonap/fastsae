@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Finite Population Design-Based Simulation for Small Area Estimation (Beta SAE)
-# Validating fastsae::ebp_area vs tipsae::fit_sae against True Population Parameters
+# Validating fastsae::hb_area vs tipsae::fit_sae against True Population Parameters
 # ==============================================================================
 
 suppressPackageStartupMessages({
@@ -169,7 +169,7 @@ cat("---------------------------------------------------------------------------
 
 # --- 4A. fastsae (Cross-Sectional) ---
 t0_fast <- Sys.time()
-fit_fast <- ebp_area(
+fit_fast <- hb_area(
   formula = p_dir ~ x1_pop_mean + x2_pop_mean,
   data = smp_summary,
   domain = "domain",
@@ -211,7 +211,7 @@ cat("---------------------------------------------------------------------------
 
 # Spatial fastsae
 t0_fast_sp <- Sys.time()
-fit_fast_sp <- ebp_area(
+fit_fast_sp <- hb_area(
   formula = p_dir ~ x1_pop_mean + x2_pop_mean,
   data = smp_summary,
   domain = "domain",
@@ -262,7 +262,7 @@ m_cs <- smp_summary %>%
   left_join(est_fast[, c("domain", "ebp", "sd", "ci_lower", "ci_upper")], by = "domain") %>%
   left_join(est_tip[, c("Domains", "HB est.", "sd", "2.5%", "97.5%")], by = c("domain" = "Domains")) %>%
   rename(
-    fast_ebp = ebp, fast_sd = sd.x, fast_lower = ci_lower, fast_upper = ci_upper,
+    fast_hb = ebp, fast_sd = sd.x, fast_lower = ci_lower, fast_upper = ci_upper,
     tip_ebp = `HB est.`, tip_sd = sd.y, tip_lower = `2.5%`, tip_upper = `97.5%`
   )
 
@@ -271,7 +271,7 @@ m_sp <- smp_summary %>%
   left_join(est_fast_sp[, c("domain", "ebp", "sd", "ci_lower", "ci_upper")], by = "domain") %>%
   left_join(est_tip_sp[, c("Domains", "HB est.", "sd", "2.5%", "97.5%")], by = c("domain" = "Domains")) %>%
   rename(
-    fast_ebp = ebp, fast_sd = sd.x, fast_lower = ci_lower, fast_upper = ci_upper,
+    fast_hb = ebp, fast_sd = sd.x, fast_lower = ci_lower, fast_upper = ci_upper,
     tip_ebp = `HB est.`, tip_sd = sd.y, tip_lower = `2.5%`, tip_upper = `97.5%`
   )
 
@@ -310,34 +310,34 @@ calc_eval <- function(est_vec, true_vec, low_vec = NULL, up_vec = NULL, dir_mse 
 # Cross-sectional metrics
 mse_dir <- mean((m_cs$p_dir - m_cs$True_P_d)^2)
 res_dir <- calc_eval(m_cs$p_dir, m_cs$True_P_d, dir_mse = mse_dir)
-res_fast_cs <- calc_eval(m_cs$fast_ebp, m_cs$True_P_d, m_cs$fast_lower, m_cs$fast_upper, dir_mse = mse_dir)
+res_fast_cs <- calc_eval(m_cs$fast_hb, m_cs$True_P_d, m_cs$fast_lower, m_cs$fast_upper, dir_mse = mse_dir)
 res_tip_cs  <- calc_eval(m_cs$tip_ebp,  m_cs$True_P_d, m_cs$tip_lower,  m_cs$tip_upper,  dir_mse = mse_dir)
 
 tbl_eval_cs <- bind_rows(
   bind_cols(Method = "Direct Estimator (Sample p_dir)", res_dir, `Runtime (s)` = NA_real_),
-  bind_cols(Method = "fastsae::ebp_area (INLA)", res_fast_cs, `Runtime (s)` = t_fast),
+  bind_cols(Method = "fastsae::hb_area (INLA)", res_fast_cs, `Runtime (s)` = t_fast),
   bind_cols(Method = "tipsae::fit_sae (Stan MCMC)", res_tip_cs, `Runtime (s)` = t_tip)
 )
 
 # Spatial metrics
-res_fast_sp <- calc_eval(m_sp$fast_ebp, m_sp$True_P_d, m_sp$fast_lower, m_sp$fast_upper, dir_mse = mse_dir)
+res_fast_sp <- calc_eval(m_sp$fast_hb, m_sp$True_P_d, m_sp$fast_lower, m_sp$fast_upper, dir_mse = mse_dir)
 res_tip_sp  <- calc_eval(m_sp$tip_ebp,  m_sp$True_P_d, m_sp$tip_lower,  m_sp$tip_upper,  dir_mse = mse_dir)
 
 tbl_eval_sp <- bind_rows(
   bind_cols(Method = "Direct Estimator (Sample p_dir)", res_dir, `Runtime (s)` = NA_real_),
-  bind_cols(Method = "fastsae::ebp_area (Spatial Besag)", res_fast_sp, `Runtime (s)` = t_fast_sp),
+  bind_cols(Method = "fastsae::hb_area (Spatial Besag)", res_fast_sp, `Runtime (s)` = t_fast_sp),
   bind_cols(Method = "tipsae::fit_sae (Spatial Besag)", res_tip_sp, `Runtime (s)` = t_tip_sp)
 )
 
 cat("\n--- TABLE 1: Cross-Sectional Evaluation vs True Population P_d ---\n")
 print(as.data.frame(tbl_eval_cs), digits = 4)
 cat(sprintf("Agreement FastSAE vs TipSAE: Pearson r = %.5f | Max Abs Diff = %.5f\n\n",
-            cor(m_cs$fast_ebp, m_cs$tip_ebp), max(abs(m_cs$fast_ebp - m_cs$tip_ebp))))
+            cor(m_cs$fast_hb, m_cs$tip_ebp), max(abs(m_cs$fast_hb - m_cs$tip_ebp))))
 
 cat("--- TABLE 2: Spatial Evaluation vs True Population P_d ---\n")
 print(as.data.frame(tbl_eval_sp), digits = 4)
 cat(sprintf("Agreement FastSAE vs TipSAE: Pearson r = %.5f | Max Abs Diff = %.5f\n\n",
-            cor(m_sp$fast_ebp, m_sp$tip_ebp), max(abs(m_sp$fast_ebp - m_sp$tip_ebp))))
+            cor(m_sp$fast_hb, m_sp$tip_ebp), max(abs(m_sp$fast_hb - m_sp$tip_ebp))))
 
 # ------------------------------------------------------------------------------
 # 6. VISUALIZATIONS
@@ -352,17 +352,17 @@ theme_clean <- theme_bw(base_size = 11) +
 # --- PLOT 1: Estimates vs True Population P_d ---
 df_p1 <- bind_rows(
   data.frame(Domain = m_cs$domain, True_P_d = m_cs$True_P_d, Estimate = m_cs$p_dir, Method = "Direct (Sample)", Model = "Sample"),
-  data.frame(Domain = m_cs$domain, True_P_d = m_cs$True_P_d, Estimate = m_cs$fast_ebp, Method = "FastSAE (ebp_area)", Model = "Cross-Sectional"),
+  data.frame(Domain = m_cs$domain, True_P_d = m_cs$True_P_d, Estimate = m_cs$fast_hb, Method = "FastSAE (hb_area)", Model = "Cross-Sectional"),
   data.frame(Domain = m_cs$domain, True_P_d = m_cs$True_P_d, Estimate = m_cs$tip_ebp, Method = "TipSAE (fit_sae)", Model = "Cross-Sectional"),
-  data.frame(Domain = m_sp$domain, True_P_d = m_sp$True_P_d, Estimate = m_sp$fast_ebp, Method = "FastSAE (ebp_area)", Model = "Spatial (Besag)"),
+  data.frame(Domain = m_sp$domain, True_P_d = m_sp$True_P_d, Estimate = m_sp$fast_hb, Method = "FastSAE (hb_area)", Model = "Spatial (Besag)"),
   data.frame(Domain = m_sp$domain, True_P_d = m_sp$True_P_d, Estimate = m_sp$tip_ebp, Method = "TipSAE (fit_sae)", Model = "Spatial (Besag)")
 )
-df_p1$Method <- factor(df_p1$Method, levels = c("Direct (Sample)", "FastSAE (ebp_area)", "TipSAE (fit_sae)"))
+df_p1$Method <- factor(df_p1$Method, levels = c("Direct (Sample)", "FastSAE (hb_area)", "TipSAE (fit_sae)"))
 
 p1 <- ggplot(df_p1, aes(x = True_P_d, y = Estimate, color = Method)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray40", linewidth = 0.8) +
   geom_point(alpha = 0.75, size = 1.8) +
-  scale_color_manual(values = c("Direct (Sample)" = "#E64B35", "FastSAE (ebp_area)" = "#00A087", "TipSAE (fit_sae)" = "#3C5488")) +
+  scale_color_manual(values = c("Direct (Sample)" = "#E64B35", "FastSAE (hb_area)" = "#00A087", "TipSAE (fit_sae)" = "#3C5488")) +
   facet_wrap(~ Model + Method, nrow = 2) +
   labs(
     title = "Design-Based Simulation: Estimator vs True Population Parameter P_d",
@@ -378,9 +378,9 @@ ggsave(file.path(out_dir, "plot_finite_pop_estimates_vs_true.png"), p1, width = 
 # --- PLOT 2: Absolute Error Comparison vs True P_d (Boxplot) ---
 df_err <- bind_rows(
   data.frame(AbsError = abs(m_cs$p_dir - m_cs$True_P_d), Method = "Direct (Sample)", Model = "Sample"),
-  data.frame(AbsError = abs(m_cs$fast_ebp - m_cs$True_P_d), Method = "FastSAE (INLA)", Model = "Cross-Sectional"),
+  data.frame(AbsError = abs(m_cs$fast_hb - m_cs$True_P_d), Method = "FastSAE (INLA)", Model = "Cross-Sectional"),
   data.frame(AbsError = abs(m_cs$tip_ebp - m_cs$True_P_d), Method = "TipSAE (Stan)", Model = "Cross-Sectional"),
-  data.frame(AbsError = abs(m_sp$fast_ebp - m_sp$True_P_d), Method = "FastSAE (INLA)", Model = "Spatial (Besag)"),
+  data.frame(AbsError = abs(m_sp$fast_hb - m_sp$True_P_d), Method = "FastSAE (INLA)", Model = "Spatial (Besag)"),
   data.frame(AbsError = abs(m_sp$tip_ebp - m_sp$True_P_d), Method = "TipSAE (Stan)", Model = "Spatial (Besag)")
 )
 df_err$Method <- factor(df_err$Method, levels = c("Direct (Sample)", "FastSAE (INLA)", "TipSAE (Stan)"))
@@ -405,7 +405,7 @@ sub_sp <- m_sp[1:25, ]
 sub_sp$AreaIdx <- seq_len(nrow(sub_sp))
 
 df_ci <- bind_rows(
-  data.frame(AreaIdx = sub_sp$AreaIdx, Est = sub_sp$fast_ebp, Lower = sub_sp$fast_lower, Upper = sub_sp$fast_upper,
+  data.frame(AreaIdx = sub_sp$AreaIdx, Est = sub_sp$fast_hb, Lower = sub_sp$fast_lower, Upper = sub_sp$fast_upper,
              True_P_d = sub_sp$True_P_d, Method = "FastSAE (INLA)"),
   data.frame(AreaIdx = sub_sp$AreaIdx, Est = sub_sp$tip_ebp, Lower = sub_sp$tip_lower, Upper = sub_sp$tip_upper,
              True_P_d = sub_sp$True_P_d, Method = "TipSAE (Stan MCMC)")

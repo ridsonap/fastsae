@@ -5,7 +5,7 @@
 #' Benchmark Small Area Estimation Predictions to Aggregate Targets
 #'
 #' @description
-#' Calibrates small area model predictions (from \code{ebp_area}, \code{eblup_fh},
+#' Calibrates small area model predictions (from \code{hb_area}, \code{eblup_fh},
 #' \code{eblup_sfh}, \code{eblup_stfh}, or \code{eblup_bhf}) so that their weighted
 #' aggregate matches known benchmark targets at higher administrative levels (e.g. provincial
 #' or national totals/means), as required in official statistics production.
@@ -31,7 +31,7 @@
 #'   \item \code{"logit"}: Logit-scale additive shift for bounded indicators \eqn{\theta_d \in (0, 1)} (Berg and Fuller, 2014).
 #' }
 #'
-#' @param object A fitted \code{fastsae} model object (e.g., from \code{ebp_area},
+#' @param object A fitted \code{fastsae} model object (e.g., from \code{hb_area},
 #'   \code{eblup_fh}, etc.) or a numeric vector of model predictions.
 #' @param target Numeric value, named vector, or data frame specifying the benchmark
 #'   target(s) \eqn{T_g}. If \code{group} is specified, \code{target} can be:
@@ -139,15 +139,15 @@ benchmark_sae.fastsae <- function(
   nat_target <- outer_target %||% national_target
 
   # 1. Extract estimates and domain identifiers
-  df_est <- object$df_ebp %||% object$df_eblup
+  df_est <- object$df_hb %||% object$df_ebp %||% object$df_eblup
   if (is.null(df_est)) {
-    cli::cli_abort("The {.cls fastsae} object does not contain fitted area estimates ({.code df_ebp} or {.code df_eblup}).")
+    cli::cli_abort("The {.cls fastsae} object does not contain fitted area estimates ({.code df_hb} or {.code df_eblup}).")
   }
 
   domain_vec <- df_est$domain %||% df_est$area %||% seq_len(nrow(df_est))
-  y_hat <- df_est$ebp %||% df_est$eblup %||% df_est$est
+  y_hat <- df_est$hb %||% df_est$ebp %||% df_est$eblup %||% df_est$est
   if (is.null(y_hat)) {
-    cli::cli_abort("Could not find estimation column ({.code ebp}, {.code eblup}, or {.code est}) in model predictions.")
+    cli::cli_abort("Could not find estimation column ({.code hb}, {.code eblup}, or {.code est}) in model predictions.")
   }
 
   mse_vec <- df_est$mse %||% (if (!is.null(df_est$sd)) df_est$sd^2 else NULL)

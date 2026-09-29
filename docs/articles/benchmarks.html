@@ -101,7 +101,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
-    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -539,7 +539,7 @@ bottleneck into scalable
 steps.</p></li>
 <li><p><strong>Integrated Nested Laplace Approximations (INLA)</strong>:
 For complex hierarchical generalized and spatio-temporal models
-(<code>ebp_area</code>), <code>fastsae</code> utilizes INLA to compute
+(<code>hb_area</code>), <code>fastsae</code> utilizes INLA to compute
 analytical posterior margins directly from sparse Gaussian Markov Random
 Fields, bypassing Monte Carlo sampling entirely.</p></li>
 </ol>
@@ -550,7 +550,7 @@ Fields, bypassing Monte Carlo sampling entirely.</p></li>
 <code>tipsae</code> (Stan MCMC)<a class="anchor" aria-label="anchor" href="#bayesian-spatio-temporal-benchmark-fastsae-inla-vs-tipsae-stan-mcmc"></a>
 </h2>
 <p>To assess Bayesian small area estimation performance,
-<code><a href="../reference/ebp_area.html">fastsae::ebp_area()</a></code> was benchmarked against
+<code><a href="../reference/hb_area.html">fastsae::hb_area()</a></code> was benchmarked against
 <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae()</a></code>, the state-of-the-art Stan MCMC package
 for spatio-temporal Beta small area models.</p>
 <p>The test used the official <code>tipsae</code> panel dataset:
@@ -574,7 +574,7 @@ from <strong><code>emilia_shp</code></strong>.</p>
 <th align="left">
 <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Stan MCMC)</th>
 <th align="left">
-<code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (INLA)</th>
+<code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> (INLA)</th>
 <th align="left">Advantage</th>
 </tr></thead>
 <tbody>
@@ -634,7 +634,7 @@ to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#interactive-beta-sae-benchmark-explorer-n-30-to-n-1000"></a>
 </h3>
 <p>Use the interactive controls below to compare runtime, memory
-footprint, and speedup factors between <code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code>
+footprint, and speedup factors between <code><a href="../reference/hb_area.html">fastsae::hb_area</a></code>
 and <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> across <strong>Standard Beta</strong>,
 <strong>Spatial Beta (Besag ICAR)</strong>, and <strong>Spatio-Temporal
 Beta (Besag + RW1)</strong> models:</p>
@@ -925,7 +925,7 @@ Beta (Besag + RW1)</strong> models:</p>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#inferential-equivalence-validation-metrics-n-1000"></a>
 </h4>
 <p>To establish that the substantial computational accelerations
-achieved by <code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> preserve full inferential
+achieved by <code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> preserve full inferential
 validity relative to Stan MCMC (<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>), summary
 concordance and error metrics were evaluated across
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>

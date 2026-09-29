@@ -1,13 +1,13 @@
 #' @title Diagnostic Evaluation of Small Area Estimation Models
 #' @description Conducts a comprehensive diagnostic evaluation of small area estimation
-#'   models (EBP or EBLUP). Evaluates estimation precision, efficiency gains over direct
+#'   models (HB, EBP, or EBLUP). Evaluates estimation precision, efficiency gains over direct
 #'   estimators, external calibration and bias diagnostics (Brown et al., 2001), goodness-of-fit
 #'   tests, and residual spatial autocorrelation (Moran's I).
 #'
-#' @param object A fitted model object of class \code{"fastsae"} (e.g., from \code{\link{ebp_area}},
+#' @param object A fitted model object of class \code{"fastsae"} (e.g., from \code{\link{hb_area}},
 #'   \code{\link{eblup_fh}}, \code{\link{eblup_sfh}}, or \code{\link{eblup_stfh}}).
 #' @param W Optional spatial proximity or adjacency matrix of dimension \eqn{D \times D}.
-#'   If \code{NULL} and the fitted model contains a spatial matrix (e.g. \code{eblup_sfh} or spatial \code{ebp_area}),
+#'   If \code{NULL} and the fitted model contains a spatial matrix (e.g. \code{eblup_sfh} or spatial \code{hb_area}),
 #'   it is automatically extracted from \code{object}.
 #' @param truth Optional numeric vector containing true parameter values \eqn{\theta_d} (useful for simulation studies).
 #' @param rse_threshold Numeric. Threshold for reliable Relative Standard Error (default is 25\%).
@@ -42,10 +42,10 @@
 #' diag_fh <- diagnose(fit_fh)
 #' print(diag_fh)
 #'
-#' # 2. Fit Spatial EBP model
-#' fit_ebp <- ebp_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
-#' diag_ebp <- diagnose(fit_ebp)
-#' print(diag_ebp)
+#' # 2. Fit Spatial HB model
+#' fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
+#' diag_hb <- diagnose(fit_hb)
+#' print(diag_hb)
 #'
 #' @export
 diagnose <- function(object,
@@ -58,17 +58,19 @@ diagnose <- function(object,
   }
 
   # 1. Extract data frame of estimates
-  df <- if (!is.null(object$df_ebp)) {
+  df <- if (!is.null(object$df_hb)) {
+    object$df_hb
+  } else if (!is.null(object$df_ebp)) {
     object$df_ebp
   } else if (!is.null(object$df_eblup)) {
     object$df_eblup
   } else {
-    cli::cli_abort("Could not find estimation results table ({.code df_ebp} or {.code df_eblup}) in {.arg object}.")
+    cli::cli_abort("Could not find estimation results table ({.code df_hb} or {.code df_eblup}) in {.arg object}.")
   }
 
-  est_col <- if ("ebp" %in% names(df)) "ebp" else if ("eblup" %in% names(df)) "eblup" else NULL
+  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else if ("eblup" %in% names(df)) "eblup" else NULL
   if (is.null(est_col)) {
-    cli::cli_abort("Prediction column ({.val ebp} or {.val eblup}) not found in results table.")
+    cli::cli_abort("Prediction column ({.val hb} or {.val eblup}) not found in results table.")
   }
 
   sae_pred <- df[[est_col]]
@@ -274,7 +276,7 @@ diagnose <- function(object,
   cpo_vec <- rep(NA_real_, N_total)
   pit_vec <- rep(NA_real_, N_total)
 
-  is_bayesian <- inherits(object, "fastsae_ebp_area") || any(c("WAIC", "DIC") %in% names(object$goodness))
+  is_bayesian <- inherits(object, "fastsae_hb_area") || inherits(object, "fastsae_ebp_area") || any(c("WAIC", "DIC") %in% names(object$goodness))
   if (is_bayesian) {
     gd <- object$goodness
     waic_val <- if (!is.null(gd) && "WAIC" %in% names(gd)) unname(gd["WAIC"]) else NA_real_

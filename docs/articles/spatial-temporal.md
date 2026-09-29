@@ -261,11 +261,11 @@ different models using
 
 ------------------------------------------------------------------------
 
-## 4. Bayesian Spatio-Temporal Modeling (`ebp_area`)
+## 4. Bayesian Spatio-Temporal Modeling (`hb_area`)
 
 In addition to frequentist C++ EBLUP implementations (`eblup_sfh` and
 `eblup_stfh`), **fastsae** provides
-[`ebp_area()`](https://ridsonap.github.io/fastsae/reference/ebp_area.md)
+[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
 for Bayesian spatio-temporal modeling powered by **INLA**. This
 supports: - Bounded proportions via Beta regression (matching
 `tipsae`) - Discrete counts via Poisson and Negative Binomial
@@ -275,7 +275,7 @@ dynamic fields, and Knorr-Held Types I–IV.
 
 For full details and a case study on Italian poverty data, see the
 vignette [Bayesian Area-Level Small Area Estimation with
-INLA](https://ridsonap.github.io/fastsae/articles/ebp-area-inla.md).
+INLA](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md).
 
 ------------------------------------------------------------------------
 

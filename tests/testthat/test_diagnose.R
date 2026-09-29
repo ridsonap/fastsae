@@ -45,24 +45,24 @@ test_that("diagnose works for eblup_sfh with spatial autocorrelation test", {
   expect_true(d_sfh$spatial_test$p_value >= 0 && d_sfh$spatial_test$p_value <= 1)
 })
 
-test_that("diagnose works for ebp_area and handles simulation truth", {
+test_that("diagnose works for hb_area and handles simulation truth", {
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
 
   data("sim_area", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  fit_ebp <- ebp_area(y_gaussian ~ x1 + x2, data = sim_area,
+  fit_hb <- hb_area(y_gaussian ~ x1 + x2, data = sim_area,
                       vardir = "vardir", spatial = "bym2", W = mys_proxmat,
                       print_result = FALSE)
 
   # Supply dummy ground truth for simulation verification
-  mock_truth <- fit_ebp$df_ebp$ebp * runif(nrow(sim_area), 0.98, 1.02)
-  d_ebp <- diagnose(fit_ebp, truth = mock_truth)
+  mock_truth <- fit_hb$df_hb$hb * runif(nrow(sim_area), 0.98, 1.02)
+  d_hb <- diagnose(fit_hb, truth = mock_truth)
 
-  expect_s3_class(d_ebp, "fastsae_diagnose")
-  expect_false(is.null(d_ebp$simulation_metrics))
-  expect_true(is.numeric(d_ebp$simulation_metrics$mean_abs_rb))
-  expect_true(is.numeric(d_ebp$simulation_metrics$mean_rrmse))
+  expect_s3_class(d_hb, "fastsae_diagnose")
+  expect_false(is.null(d_hb$simulation_metrics))
+  expect_true(is.numeric(d_hb$simulation_metrics$mean_abs_rb))
+  expect_true(is.numeric(d_hb$simulation_metrics$mean_rrmse))
 })
 
 test_that("autoplot.fastsae_diagnose generates valid ggplot objects", {

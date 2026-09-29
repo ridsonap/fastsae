@@ -86,9 +86,9 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
 #' @noRd
 .autoplot_single_comparison <- function(x, title = NULL, ...) {
-  df <- x$df_ebp %||% x$df_eblup
-  est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
-  est_label <- if (est_col == "ebp") "EBP" else "EBLUP"
+  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
+  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
+  est_label <- if (est_col == "hb") "HB" else if (est_col == "ebp") "EBP" else "EBLUP"
 
   has_ci <- all(c("ci_lower", "ci_upper") %in% names(df)) && !all(is.na(df$ci_lower))
   has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
@@ -126,7 +126,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
 #' @noRd
 .autoplot_estimates <- function(x, title = NULL, ...) {
-  df <- x$df_ebp %||% x$df_eblup
+  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
 
   if (!"y" %in% names(df)) {
     cli::cli_abort(c(
@@ -137,8 +137,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Filter out NA values for direct estimates
   df <- df[!is.na(df$y), ]
-  est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
-  est_label <- if (est_col == "ebp") "EBP" else "EBLUP"
+  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
+  est_label <- if (est_col == "hb") "HB" else if (est_col == "ebp") "EBP" else "EBLUP"
 
   if (is.null(title)) {
     title <- paste(est_label, "Estimates vs Direct Estimates")
@@ -183,8 +183,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
 #' @noRd
 .autoplot_rse <- function(x, title = NULL, thresholds = c(20, 30), ...) {
-  df <- x$df_ebp %||% x$df_eblup
-  est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
+  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
+  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
 
   # Calculate SAE RSE if not already present
   if (!"rse" %in% names(df)) {
@@ -255,8 +255,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Combine data from all models
   plot_data <- lapply(names(x), function(name) {
-    df <- x[[name]]$df_ebp %||% x[[name]]$df_eblup
-    est_col <- if ("ebp" %in% names(df)) "ebp" else "eblup"
+    df <- x[[name]]$df_hb %||% x[[name]]$df_ebp %||% x[[name]]$df_eblup
+    est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
     has_ci <- all(c("ci_lower", "ci_upper") %in% names(df)) && !all(is.na(df$ci_lower))
     has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
     ci_l <- if (has_ci) df$ci_lower else if (has_mse) df[[est_col]] - 1.96 * sqrt(df$mse) else df[[est_col]]
@@ -311,7 +311,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Combine MSE data from all models
   plot_data <- lapply(names(x), function(name) {
-    df <- x[[name]]$df_ebp %||% x[[name]]$df_eblup
+    df <- x[[name]]$df_hb %||% x[[name]]$df_ebp %||% x[[name]]$df_eblup
     data.frame(
       domain = as.character(df$domain),
       mse = df$mse,
@@ -327,8 +327,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Check if all models have same domains
   same_domains <- all(sapply(x, function(m) {
-    df_m <- m$df_ebp %||% m$df_eblup
-    df_1 <- x[[1]]$df_ebp %||% x[[1]]$df_eblup
+    df_m <- m$df_hb %||% m$df_ebp %||% m$df_eblup
+    df_1 <- x[[1]]$df_hb %||% x[[1]]$df_ebp %||% x[[1]]$df_eblup
     identical(df_m$domain, df_1$domain)
   }))
 
@@ -374,13 +374,13 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
   }
 
   model_names <- names(x)
-  df1_raw <- x[[1]]$df_ebp %||% x[[1]]$df_eblup
-  df2_raw <- x[[2]]$df_ebp %||% x[[2]]$df_eblup
+  df1_raw <- x[[1]]$df_hb %||% x[[1]]$df_ebp %||% x[[1]]$df_eblup
+  df2_raw <- x[[2]]$df_hb %||% x[[2]]$df_ebp %||% x[[2]]$df_eblup
 
-  col1_name <- if ("ebp" %in% names(df1_raw)) "ebp" else "eblup"
-  col2_name <- if ("ebp" %in% names(df2_raw)) "ebp" else "eblup"
-  label1 <- if (col1_name == "ebp") "EBP" else "EBLUP"
-  label2 <- if (col2_name == "ebp") "EBP" else "EBLUP"
+  col1_name <- if ("hb" %in% names(df1_raw)) "hb" else if ("ebp" %in% names(df1_raw)) "ebp" else "eblup"
+  col2_name <- if ("hb" %in% names(df2_raw)) "hb" else if ("ebp" %in% names(df2_raw)) "ebp" else "eblup"
+  label1 <- if (col1_name == "hb") "HB" else if (col1_name == "ebp") "EBP" else "EBLUP"
+  label2 <- if (col2_name == "hb") "HB" else if (col2_name == "ebp") "EBP" else "EBLUP"
 
   df1 <- data.frame(domain = df1_raw$domain, est1 = df1_raw[[col1_name]])
   df2 <- data.frame(domain = df2_raw$domain, est2 = df2_raw[[col2_name]])
@@ -434,7 +434,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
 #' @noRd
 .autoplot_mse <- function(x, title = NULL, ...) {
-  df <- x$df_ebp %||% x$df_eblup
+  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
 
   if (!"mse" %in% names(df) || all(is.na(df$mse))) {
     cli::cli_abort(c(

@@ -101,7 +101,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
-    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -425,11 +425,11 @@ different models using <code><a href="https://ggplot2.tidyverse.org/reference/au
 <hr>
 </div>
 <div class="section level2">
-<h2 id="bayesian-spatio-temporal-modeling-ebp_area">4. Bayesian Spatio-Temporal Modeling (<code>ebp_area</code>)<a class="anchor" aria-label="anchor" href="#bayesian-spatio-temporal-modeling-ebp_area"></a>
+<h2 id="bayesian-spatio-temporal-modeling-hb_area">4. Bayesian Spatio-Temporal Modeling (<code>hb_area</code>)<a class="anchor" aria-label="anchor" href="#bayesian-spatio-temporal-modeling-hb_area"></a>
 </h2>
 <p>In addition to frequentist C++ EBLUP implementations
 (<code>eblup_sfh</code> and <code>eblup_stfh</code>),
-<strong>fastsae</strong> provides <code><a href="../reference/ebp_area.html">ebp_area()</a></code> for Bayesian
+<strong>fastsae</strong> provides <code><a href="../reference/hb_area.html">hb_area()</a></code> for Bayesian
 spatio-temporal modeling powered by <strong>INLA</strong>. This
 supports: - Bounded proportions via Beta regression (matching
 <code>tipsae</code>) - Discrete counts via Poisson and Negative Binomial
@@ -437,7 +437,7 @@ regression - Binary aggregates via Binomial regression - Flexible
 space-time structures including domain-specific random walks, separable
 dynamic fields, and Knorr-Held Types I–IV.</p>
 <p>For full details and a case study on Italian poverty data, see the
-vignette <a href="ebp-area-inla.html">Bayesian Area-Level Small Area
+vignette <a href="hb-area-inla.html">Bayesian Area-Level Small Area
 Estimation with INLA</a>.</p>
 <hr>
 </div>

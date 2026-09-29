@@ -387,11 +387,11 @@ autoplot.fastsae_comparison <- function(
 #' @noRd
 .extract_domain_data <- function(model) {
   if (inherits(model, "fastsae")) {
-    df <- model$df_ebp %||% model$df_eblup
+    df <- model$df_hb %||% model$df_ebp %||% model$df_eblup
     if (is.null(df)) cli::cli_abort("Model does not contain estimation data frame.")
     dom_col <- intersect(c("domain", "area", "id"), names(df))[1]
     dom_vals <- df[[dom_col]] %||% seq_len(nrow(df))
-    est_val <- df$ebp %||% df$eblup %||% df$est
+    est_val <- df$hb %||% df$ebp %||% df$eblup %||% df$est
     mse_val <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else NA_real_)
     rse_val <- df$rse %||% (if (!all(is.na(mse_val))) (sqrt(mse_val) / abs(est_val)) * 100 else NA_real_)
 
@@ -404,7 +404,7 @@ autoplot.fastsae_comparison <- function(
     ))
   } else if (is.data.frame(model)) {
     dom_col <- intersect(c("domain", "area", "id", "code"), names(model))[1]
-    est_col <- intersect(c("estimate", "ebp", "eblup", "est", "y_hat"), names(model))[1]
+    est_col <- intersect(c("estimate", "hb", "ebp", "eblup", "est", "y_hat"), names(model))[1]
     if (is.null(est_col)) cli::cli_abort("Data frame must contain an estimate column.")
 
     dom_vals <- if (!is.null(dom_col)) model[[dom_col]] else seq_len(nrow(model))

@@ -52,7 +52,7 @@ res <- eblup_bhf(
 
 # EBP Area-Level (INLA & Laplace) -----------------------------------------
 # 1. Non-spatial Fay-Herriot via INLA
-m_ebp0 <- ebp_area(
+m_hb0 <- hb_area(
   y ~ x1 + x2 + x3,
   data = mys,
   domain = ~area,
@@ -61,7 +61,7 @@ m_ebp0 <- ebp_area(
 )
 
 # 2. Spatial BYM2 Fay-Herriot via INLA
-m_ebp_bym2 <- ebp_area(
+m_hb_bym2 <- hb_area(
   y ~ x1 + x2 + x3,
   data = mys,
   domain = ~area,
@@ -71,13 +71,13 @@ m_ebp_bym2 <- ebp_area(
 )
 
 # 3. Model comparison visualization
-autoplot(list("FH-INLA (Non-spatial)" = m_ebp0, "SFH-INLA (BYM2)" = m_ebp_bym2), type = "comparison")
+autoplot(list("FH-INLA (Non-spatial)" = m_hb0, "SFH-INLA (BYM2)" = m_hb_bym2), type = "comparison")
 
 # 4. Diagnostic evaluation of estimates
-diag_fh <- diagnose(m_ebp0)
+diag_fh <- diagnose(m_hb0)
 print(diag_fh)
 
-diag_sfh <- diagnose(m_ebp_bym2)
+diag_sfh <- diagnose(m_hb_bym2)
 print(diag_sfh)
 autoplot(diag_sfh, type = "calibration")
 
@@ -93,7 +93,7 @@ print(sim_res)
 head(sim_res$data)
 
 # 3. Fit Poisson EBP with INLA BYM2 spatial model
-fit_pois <- ebp_area(
+fit_pois <- hb_area(
   y_poisson ~ x1 + x2,
   data = sim_res$data,
   exposure = "exposure",
@@ -106,7 +106,7 @@ summary(fit_pois)
 # 4. Using built-in sim_area with mys_proxmat
 data(sim_area)
 data(mys_proxmat)
-fit_multi_bin <- ebp_area(
+fit_multi_bin <- hb_area(
   y_binomial ~ x1 + x2,
   data = sim_area,
   trials = "trials",

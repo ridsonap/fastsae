@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # ==============================================================================
-# Benchmark: fastsae (ebp_area) vs tipsae (fit_sae) for Spatio-Temporal Beta SAE
+# Benchmark: fastsae (hb_area) vs tipsae (fit_sae) for Spatio-Temporal Beta SAE
 # Supports incremental appending across domain sizes n
 # ==============================================================================
 
@@ -36,7 +36,7 @@ if (length(T_match) > 0) {
 D_values <- if (length(n_args) > 0) n_args else c(30, 50, 100, 250, 500, 1000)
 
 cat("==============================================================================\n")
-cat("Starting Benchmark: fastsae (ebp_area) vs tipsae (fit_sae) [Spatio-Temporal Beta]\n")
+cat("Starting Benchmark: fastsae (hb_area) vs tipsae (fit_sae) [Spatio-Temporal Beta]\n")
 cat(sprintf("Domain sizes: %s | Time periods (T): %d | Iterations: %d each\n",
             paste(D_values, collapse = ", "), T_arg, iter_arg))
 cat("==============================================================================\n\n")
@@ -106,7 +106,7 @@ for (n_val in D_values) {
   t_start <- Sys.time()
   
   res <- bench::mark(
-    fastsae = fastsae::ebp_area(
+    fastsae = fastsae::hb_area(
       formula = y_beta ~ x1 + x2,
       data = df,
       domain = "domain",

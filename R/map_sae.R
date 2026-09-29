@@ -7,7 +7,7 @@
 #' @description
 #' Provides a comprehensive, single-gateway ("satu pintu") spatial choropleth mapping
 #' interface for Small Area Estimation models fitted with \pkg{fastsae} (e.g. \code{eblup_fh},
-#' \code{eblup_sfh}, \code{eblup_stfh}, \code{eblup_bhf}, \code{ebp_area}, and \code{benchmark}).
+#' \code{eblup_sfh}, \code{eblup_stfh}, \code{eblup_bhf}, \code{hb_area}, and \code{benchmark_sae}).
 #'
 #' Intelligently handles:
 #' \itemize{
@@ -140,6 +140,8 @@ map_sae.fastsae <- function(
   if (is.null(sf_obj)) {
     if (!is.null(object$data) && inherits(object$data, "sf")) {
       sf_obj <- object$data
+    } else if (inherits(object$df_hb, "sf")) {
+      sf_obj <- object$df_hb
     } else if (inherits(object$df_ebp, "sf")) {
       sf_obj <- object$df_ebp
     } else if (inherits(object$df_eblup, "sf")) {
@@ -330,10 +332,10 @@ map_sae.default <- function(
     df$domain <- df[[found_dom[1]]]
   }
 
-  est_candidates <- c("ebp", "eblup", "estimate", "est", "y_hat", "pred")
+  est_candidates <- c("hb", "ebp", "eblup", "estimate", "est", "y_hat", "pred")
   found_est <- intersect(est_candidates, names(df))
   if (length(found_est) == 0) {
-    cli::cli_abort("Data frame must contain an estimate column (e.g. {.code ebp}, {.code eblup}, or {.code estimate}).")
+    cli::cli_abort("Data frame must contain an estimate column (e.g. {.code hb}, {.code eblup}, or {.code estimate}).")
   }
   df$estimate <- df[[found_est[1]]]
 
@@ -450,16 +452,16 @@ map_sae.default <- function(
 #' Internal extractor of standardized prediction data frame
 #' @noRd
 .extract_model_data_for_map <- function(object) {
-  df_est <- object$df_ebp %||% object$df_eblup
+  df_est <- object$df_hb %||% object$df_ebp %||% object$df_eblup
   if (is.null(df_est)) {
-    cli::cli_abort("Model object does not contain estimation data ({.code df_ebp} or {.code df_eblup}).")
+    cli::cli_abort("Model object does not contain estimation data ({.code df_hb} or {.code df_eblup}).")
   }
 
   dom_col <- intersect(c("domain", "area", "id"), names(df_est))[1]
   domain_vals <- df_est[[dom_col]] %||% seq_len(nrow(df_est))
 
   y_raw <- if ("y" %in% names(df_est)) df_est$y else NA_real_
-  y_hat <- df_est$ebp %||% df_est$eblup %||% df_est$est
+  y_hat <- df_est$hb %||% df_est$ebp %||% df_est$eblup %||% df_est$est
   mse_val <- df_est$mse %||% (if (!is.null(df_est$sd)) df_est$sd^2 else NA_real_)
 
   rse_val <- df_est$rse

@@ -28,4 +28,7 @@
 ^.*\.docx$
 ^benchmarks$
 ^paper$
+^Ringkasan_.*$
+^\~\$.*$
+
 

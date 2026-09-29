@@ -2,7 +2,7 @@
 % Please edit documentation in R/methods.R
 \name{fitted.fastsae}
 \alias{fitted.fastsae}
-\title{Extract fitted values (EBLUP or EBP) from a fastsae object}
+\title{Extract fitted values (EBLUP or HB) from a fastsae object}
 \usage{
 \method{fitted}{fastsae}(object, ...)
 }
@@ -15,5 +15,5 @@
 Vector of fitted estimates.
 }
 \description{
-Extract fitted values (EBLUP or EBP) from a fastsae object
+Extract fitted values (EBLUP or HB) from a fastsae object
 }

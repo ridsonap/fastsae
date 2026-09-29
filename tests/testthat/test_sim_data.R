@@ -81,7 +81,7 @@ test_that("sim_area_data works with pre-specified spatial weights W", {
   expect_equal(sum(is.na(sim_custom$data$y_gaussian)), 6)
 })
 
-test_that("ebp_area fits successfully on simulated data across families", {
+test_that("hb_area fits successfully on simulated data across families", {
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
 
   sim <- sim_area_data(D = 35, spatial_type = "knn", n_unsampled = 5, seed = 789)
@@ -89,27 +89,27 @@ test_that("ebp_area fits successfully on simulated data across families", {
   W <- sim$W
 
   # 1. Gaussian Fay-Herriot with simulated data
-  fit_gauss <- ebp_area(y_gaussian ~ x1 + x2, data = df, vardir = "vardir")
+  fit_gauss <- hb_area(y_gaussian ~ x1 + x2, data = df, vardir = "vardir")
   expect_s3_class(fit_gauss, "fastsae")
-  expect_equal(nrow(fit_gauss$df_ebp), 35)
+  expect_equal(nrow(fit_gauss$df_hb), 35)
 
   # 2. Spatial Poisson with BYM2 and simulated W
-  fit_pois <- ebp_area(y_poisson ~ x1 + x2, data = df, exposure = "exposure",
+  fit_pois <- hb_area(y_poisson ~ x1 + x2, data = df, exposure = "exposure",
                        family = "poisson", spatial = "bym2", W = W)
   expect_s3_class(fit_pois, "fastsae")
-  expect_equal(nrow(fit_pois$df_ebp), 35)
-  expect_false(any(is.na(fit_pois$df_ebp$ebp)))
+  expect_equal(nrow(fit_pois$df_hb), 35)
+  expect_false(any(is.na(fit_pois$df_hb$hb)))
 
   # 3. Spatial Binomial with BYM2 and simulated W
-  fit_bin <- ebp_area(y_binomial ~ x1 + x2, data = df, trials = "trials",
+  fit_bin <- hb_area(y_binomial ~ x1 + x2, data = df, trials = "trials",
                       family = "binomial", spatial = "bym2", W = W)
   expect_s3_class(fit_bin, "fastsae")
-  expect_equal(nrow(fit_bin$df_ebp), 35)
+  expect_equal(nrow(fit_bin$df_hb), 35)
 
   # 4. Beta regression
-  fit_beta <- ebp_area(y_beta ~ x1 + x2, data = df, family = "beta")
+  fit_beta <- hb_area(y_beta ~ x1 + x2, data = df, family = "beta")
   expect_s3_class(fit_beta, "fastsae")
-  expect_equal(nrow(fit_beta$df_ebp), 35)
+  expect_equal(nrow(fit_beta$df_hb), 35)
 })
 
 test_that("built-in sim_area dataset loads and integrates with mys_proxmat", {
@@ -125,9 +125,9 @@ test_that("built-in sim_area dataset loads and integrates with mys_proxmat", {
 
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
   # Test spatial fit with mys_proxmat
-  fit_multi_spatial <- ebp_area(y_poisson ~ x1 + x2, data = sim_area,
+  fit_multi_spatial <- hb_area(y_poisson ~ x1 + x2, data = sim_area,
                                 exposure = "exposure", family = "poisson",
                                 spatial = "bym2", W = mys_proxmat)
   expect_s3_class(fit_multi_spatial, "fastsae")
-  expect_equal(nrow(fit_multi_spatial$df_ebp), 42)
+  expect_equal(nrow(fit_multi_spatial$df_hb), 42)
 })

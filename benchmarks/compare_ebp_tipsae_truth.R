@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # ==============================================================================
-# Simulation Study: Comparison of fastsae::ebp_area vs tipsae::fit_sae
+# Simulation Study: Comparison of fastsae::hb_area vs tipsae::fit_sae
 # Under Known Ground Truth Parameters
 # Scenarios: 1. Cross-Sectional Beta SAE | 2. Spatial Beta SAE (D = 60)
 # ==============================================================================
@@ -18,7 +18,7 @@ suppressPackageStartupMessages({
 })
 
 cat("==============================================================================\n")
-cat("  FASTSAE (ebp_area) vs TIPSAE (fit_sae) — GROUND TRUTH VALIDATION STUDY     \n")
+cat("  FASTSAE (hb_area) vs TIPSAE (fit_sae) — GROUND TRUTH VALIDATION STUDY     \n")
 cat("==============================================================================\n\n")
 
 # Ensure output directory exists
@@ -100,7 +100,7 @@ df_cs <- data.frame(
 
 # 1. Fit fastsae
 t0_fast_cs <- Sys.time()
-fit_fast_cs <- ebp_area(
+fit_fast_cs <- hb_area(
   formula = y ~ x1 + x2,
   data = df_cs,
   domain = "domain",
@@ -154,7 +154,7 @@ df_sp <- data.frame(
 
 # 1. Fit fastsae
 t0_fast_sp <- Sys.time()
-fit_fast_sp <- ebp_area(
+fit_fast_sp <- hb_area(
   formula = y ~ x1 + x2,
   data = df_sp,
   domain = "domain",
@@ -244,7 +244,7 @@ met_tip_cs <- calc_metrics(m_cs$tip_ebp, m_cs$theta_true, m_cs$tip_lower, m_cs$t
 
 tbl_cs <- bind_rows(
   bind_cols(Method = "Direct Estimator", met_dir_cs, `Runtime (s)` = NA_real_),
-  bind_cols(Method = "fastsae::ebp_area", met_fast_cs, `Runtime (s)` = t_fast_cs),
+  bind_cols(Method = "fastsae::hb_area", met_fast_cs, `Runtime (s)` = t_fast_cs),
   bind_cols(Method = "tipsae::fit_sae", met_tip_cs, `Runtime (s)` = t_tip_cs)
 )
 
@@ -266,7 +266,7 @@ met_tip_sp <- calc_metrics(m_sp$tip_ebp, m_sp$theta_true, m_sp$tip_lower, m_sp$t
 
 tbl_sp <- bind_rows(
   bind_cols(Method = "Direct Estimator", met_dir_sp, `Runtime (s)` = NA_real_),
-  bind_cols(Method = "fastsae::ebp_area", met_fast_sp, `Runtime (s)` = t_fast_sp),
+  bind_cols(Method = "fastsae::hb_area", met_fast_sp, `Runtime (s)` = t_fast_sp),
   bind_cols(Method = "tipsae::fit_sae", met_tip_sp, `Runtime (s)` = t_tip_sp)
 )
 
@@ -333,21 +333,21 @@ theme_clean <- theme_bw(base_size = 11) +
 # --- PLOT 1: Estimates vs Ground Truth (Cross-Sectional & Spatial) ---
 df_plot1_cs <- bind_rows(
   data.frame(Domain = m_cs$domain, Truth = m_cs$theta_true, Estimate = m_cs$y, Method = "Direct", Scenario = "Cross-Sectional"),
-  data.frame(Domain = m_cs$domain, Truth = m_cs$theta_true, Estimate = m_cs$ebp, Method = "FastSAE (ebp_area)", Scenario = "Cross-Sectional"),
+  data.frame(Domain = m_cs$domain, Truth = m_cs$theta_true, Estimate = m_cs$ebp, Method = "FastSAE (hb_area)", Scenario = "Cross-Sectional"),
   data.frame(Domain = m_cs$domain, Truth = m_cs$theta_true, Estimate = m_cs$tip_ebp, Method = "TipSAE (fit_sae)", Scenario = "Cross-Sectional")
 )
 df_plot1_sp <- bind_rows(
   data.frame(Domain = m_sp$domain, Truth = m_sp$theta_true, Estimate = m_sp$y, Method = "Direct", Scenario = "Spatial (Besag)"),
-  data.frame(Domain = m_sp$domain, Truth = m_sp$theta_true, Estimate = m_sp$ebp, Method = "FastSAE (ebp_area)", Scenario = "Spatial (Besag)"),
+  data.frame(Domain = m_sp$domain, Truth = m_sp$theta_true, Estimate = m_sp$ebp, Method = "FastSAE (hb_area)", Scenario = "Spatial (Besag)"),
   data.frame(Domain = m_sp$domain, Truth = m_sp$theta_true, Estimate = m_sp$tip_ebp, Method = "TipSAE (fit_sae)", Scenario = "Spatial (Besag)")
 )
 df_plot1 <- bind_rows(df_plot1_cs, df_plot1_sp)
-df_plot1$Method <- factor(df_plot1$Method, levels = c("Direct", "FastSAE (ebp_area)", "TipSAE (fit_sae)"))
+df_plot1$Method <- factor(df_plot1$Method, levels = c("Direct", "FastSAE (hb_area)", "TipSAE (fit_sae)"))
 
 p1 <- ggplot(df_plot1, aes(x = Truth, y = Estimate, color = Method)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray40", linewidth = 0.8) +
   geom_point(alpha = 0.75, size = 1.8) +
-  scale_color_manual(values = c("Direct" = "#E64B35", "FastSAE (ebp_area)" = "#00A087", "TipSAE (fit_sae)" = "#3C5488")) +
+  scale_color_manual(values = c("Direct" = "#E64B35", "FastSAE (hb_area)" = "#00A087", "TipSAE (fit_sae)" = "#3C5488")) +
   facet_grid(Scenario ~ Method) +
   labs(
     title = "Comparison of Small Area Estimators vs Ground Truth (D = 60)",
@@ -373,7 +373,7 @@ p2 <- ggplot(df_agree, aes(x = FastSAE, y = TipSAE)) +
   labs(
     title = "Direct Method Agreement: FastSAE (INLA) vs TipSAE (Stan MCMC)",
     subtitle = "Near-identical posterior point estimates between Laplace approximation and MCMC",
-    x = "fastsae::ebp_area Posterior Mean",
+    x = "fastsae::hb_area Posterior Mean",
     y = "tipsae::fit_sae Posterior Mean"
   ) +
   theme_clean

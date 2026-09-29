@@ -19,7 +19,7 @@ High-performance C++ implementation of Fay-Herriot models
 Hierarchical Bayesian Small Area Estimation using INLA across 6
 distributions with spatial and spatio-temporal effects
 
-- [`ebp_area()`](https://ridsonap.github.io/fastsae/reference/ebp_area.md)
+- [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
   : Empirical Best Prediction for Area-Level Small Area Estimation
 
 ## Unit-Level Models

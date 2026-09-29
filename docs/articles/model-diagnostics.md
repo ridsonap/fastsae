@@ -14,7 +14,7 @@ function and its dedicated S3
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 visualization method. It evaluates both **frequentist C++ EBLUP** models
 (`eblup_fh`, `eblup_sfh`, `eblup_stfh`, `eblup_bhf`) and **Bayesian INLA
-EBP** models (`ebp_area`).
+EBP** models (`hb_area`).
 
 ------------------------------------------------------------------------
 
@@ -235,13 +235,13 @@ precision gains:
 The exact same
 [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md)
 function applies directly to Bayesian models fitted with
-[`ebp_area()`](https://ridsonap.github.io/fastsae/reference/ebp_area.md):
+[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md):
 
 \
 [`data`](https://rdrr.io/r/utils/data.html)`(``"sim_area"``, package ``=`` ``"fastsae"``)`\
 \
 `# Fit Spatial EBP model with BYM2 prior`\
-`fit_ebp`` ``<-`` `[`ebp_area`](https://ridsonap.github.io/fastsae/reference/ebp_area.md)`(`\
+`fit_hb`` ``<-`` `[`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)`(`\
 `  formula ``=`` ``y_gaussian`` ``~`` ``x1`` ``+`` ``x2``,`\
 `  data ``=`` ``sim_area``,`\
 `  vardir ``=`` ``"vardir"``,`\
@@ -251,8 +251,8 @@ function applies directly to Bayesian models fitted with
 `)`\
 \
 `# Diagnose Bayesian model`\
-`diag_ebp`` ``<-`` `[`diagnose`](https://ridsonap.github.io/fastsae/reference/diagnose.md)`(``fit_ebp``)`\
-`diag_ebp``$``precision`\
+`diag_hb`` ``<-`` `[`diagnose`](https://ridsonap.github.io/fastsae/reference/diagnose.md)`(``fit_hb``)`\
+`diag_hb``$``precision`\
 `#> $rse_threshold`\
 `#> [1] 25`\
 `#> `\
@@ -277,7 +277,7 @@ function applies directly to Bayesian models fitted with
 `#> `\
 `#> $prop_gain`\
 `#> [1] 100`\
-`diag_ebp``$``status`\
+`diag_hb``$``status`\
 `#> [1] "CAUTION: Model goodness-of-fit indicates notable deviation from survey variance."`
 
 ------------------------------------------------------------------------

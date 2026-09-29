@@ -100,7 +100,7 @@ To resolve these limitations, this paper introduces \pkg{fastsae}. Specifically,
 %
 \begin{enumerate}
   \item \textbf{Compiled C++17 Core with OpenMP Acceleration}: We engineer an optimized linear algebra core in \proglang{C++17} via \pkg{RcppArmadillo} that speeds up classical, spatial, and spatio-temporal Fay-Herriot estimation by up to $364\times$ relative to \pkg{sae} and $12,300\times$ relative to \pkg{emdi} at $D=1,000$, while slashing peak memory consumption from gigabytes to under 25 megabytes.
-  \item \textbf{Unified Deterministic Bayesian EBP via INLA with Exact Survey Matching}: We formulate an empirical best prediction interface (\code{ebp\_area()}) spanning six probability distributions (Gaussian, Beta, Gamma, Binomial, Poisson, Negative Binomial) powered by Integrated Nested Laplace Approximations \citep{rue2009approximate}. It embeds exact survey variance mappings---notably the \citet{janicki2020properties} Beta dispersion parameterization and Gamma CV matching---achieving $73\times$ to $544\times$ speedups over Stan-based MCMC while maintaining near-perfect inferential concordance ($r = 0.9993$).
+  \item \textbf{Unified Deterministic Bayesian Hierarchical Modeling via INLA with Exact Survey Matching}: We formulate a Hierarchical Bayes interface (\code{hb\_area()}) spanning six probability distributions (Gaussian, Beta, Gamma, Binomial, Poisson, Negative Binomial) powered by Integrated Nested Laplace Approximations \citep{rue2009approximate}. It embeds exact survey variance mappings---notably the \citet{janicki2020properties} Beta dispersion parameterization and Gamma CV matching---achieving $73\times$ to $544\times$ speedups over Stan-based MCMC while maintaining near-perfect inferential concordance ($r = 0.9993$).
   \item \textbf{Two-Stage Hierarchical Benchmarking Engine}: We implement a modular calibration engine (\code{benchmark\_sae()}) that simultaneously enforces consistency across multi-level administrative hierarchies (Level 0 National, Level 1 Provincial, Level 2 District) via ratio, difference, variance-weighted optimal, and logit-scale adjustments.
   \item \textbf{End-to-End Official Statistics Dissemination Suite}: We provide turnkey post-estimation workflows, including automated reliability tagging (\code{add\_reliability\_flags()}) based on official NSO thresholds, model concordance diagnostics (\code{compare\_sae()}), publication-ready choropleth mapping (\code{map\_sae()}), and multi-sheet spreadsheet exports (\code{export\_sae()}).
 \end{enumerate}
@@ -251,11 +251,11 @@ The architecture of \pkg{fastsae} unites compiled linear algebra with high-level
 \toprule
 \multicolumn{3}{c}{\textbf{1. User-Facing Production API (\proglang{R})}} \\
 \midrule
-\textbf{Frequentist Modeling} & \textbf{Bayesian EBP Engine} & \textbf{Production Workflow} \\
-\code{eblup\_fh()} & \code{ebp\_area(..., family = "beta")} & \code{benchmark\_sae()} (Two-Stage) \\
-\code{eblup\_sfh()} & \code{ebp\_area(..., family = "gamma")} & \code{compare\_sae()} \\
-\code{eblup\_stfh()} & \code{ebp\_area(..., family = "poisson")} & \code{add\_reliability\_flags()} \\
-\code{eblup\_bhf()} & \code{ebp\_area(..., spatial = "bym2")} & \code{map\_sae()} / \code{export\_sae()} \\
+\textbf{Frequentist Modeling} & \textbf{Bayesian HB Engine} & \textbf{Production Workflow} \\
+\code{eblup\_fh()} & \code{hb\_area(..., family = "beta")} & \code{benchmark\_sae()} (Two-Stage) \\
+\code{eblup\_sfh()} & \code{hb\_area(..., family = "gamma")} & \code{compare\_sae()} \\
+\code{eblup\_stfh()} & \code{hb\_area(..., family = "poisson")} & \code{add\_reliability\_flags()} \\
+\code{eblup\_bhf()} & \code{hb\_area(..., spatial = "bym2")} & \code{map\_sae()} / \code{export\_sae()} \\
 \midrule
 \multicolumn{3}{c}{\textbf{2. Core Computational Backends}} \\
 \midrule
@@ -269,7 +269,7 @@ In-Place Fisher-Scoring Updates & Survey Dispersion Injections & Spectral Eigenv
 \caption{\label{fig:arch} Structural architecture and functional components of \pkg{fastsae}.}
 \end{figure}
 
-The frequentist engines (\code{eblup\_fh()}, \code{eblup\_sfh()}, \code{eblup\_stfh()}, \code{eblup\_bhf()}) avoid temporary matrix allocations inside REML loops by reusing working buffers in-place. The bootstrap MSE loops are decorated with OpenMP pragmas (\code{\#pragma omp parallel for}), delivering multi-core throughput scaling. The Bayesian engine (\code{ebp\_area()}) automates the translation of formulas, spatial adjacency matrices $\bm{W}$, and survey dispersion arguments into \pkg{R-INLA} calls. Standard S3 methods (\code{print()}, \code{summary()}, \code{plot()}, \code{coef()}, \code{fitted()}, \code{residuals()}) are implemented across all model classes.
+The frequentist engines (\code{eblup\_fh()}, \code{eblup\_sfh()}, \code{eblup\_stfh()}, \code{eblup\_bhf()}) avoid temporary matrix allocations inside REML loops by reusing working buffers in-place. The bootstrap MSE loops are decorated with OpenMP pragmas (\code{\#pragma omp parallel for}), delivering multi-core throughput scaling. The Bayesian engine (\code{hb\_area()}) automates the translation of formulas, spatial adjacency matrices $\bm{W}$, and survey dispersion arguments into \pkg{R-INLA} calls. Standard S3 methods (\code{print()}, \code{summary()}, \code{plot()}, \code{coef()}, \code{fitted()}, \code{residuals()}) are implemented across all model classes.
 
 %% -- Computational Benchmarks -------------------------------------------------
 
@@ -313,9 +313,9 @@ $D$ & \multicolumn{3}{c}{Execution Time: Median (seconds)} & \multicolumn{3}{c}{
 Table~\ref{tab:bench_freq} demonstrates the dramatic scalability gains of \pkg{fastsae}. At $D=1,000$, classical FH completes in 4 milliseconds in \pkg{fastsae} compared to 1.5 seconds in \pkg{sae} ($364\times$ slower) and 51 seconds in \pkg{emdi} ($12,343\times$ slower). For spatio-temporal models at $D=1,000$, \pkg{sae} required nearly 30 minutes (1,786 seconds) and consumed 32.5 gigabytes of RAM, whereas \pkg{fastsae} finished in 58 seconds using under 1 megabyte of memory.
 \textbf{Operational Takeaway}: \pkg{fastsae} eliminates out-of-memory bottlenecks, enabling routine spatio-temporal estimation across thousands of domains on standard laptop hardware.
 
-\subsection{Bayesian Beta EBP scalability: fastsae vs. tipsae}
+\subsection{Bayesian Beta Hierarchical Modeling scalability: fastsae vs. tipsae}
 
-For bounded rates, we benchmarked \code{ebp\_area(..., family = "beta")} against \pkg{tipsae} \citep{denicolo2022tipsae} using Stan (4 chains, 2,000 iterations).
+For bounded rates, we benchmarked \code{hb\_area(..., family = "beta")} against \pkg{tipsae} \citep{denicolo2022tipsae} using Stan (4 chains, 2,000 iterations).
 
 \begin{table}[t!]
 \centering
@@ -360,7 +360,7 @@ Direct Sample Estimator  & 0.0719 & 27.1\% & 21.7\% & -- & -- & -- \\
 \caption{\label{tab:mc_truth} Finite population Monte Carlo simulation results ($D = 500$, $R = 25$). \pkg{fastsae} achieves an efficiency gain of $1.92\times$ over the direct survey estimator.}
 \end{table}
 
-Table~\ref{tab:mc_truth} demonstrates that \code{ebp\_area()} reduces empirical RMSE from 0.0719 (direct survey estimator) to 0.0481, yielding a $1.92\times$ empirical efficiency gain. Relative Root Mean Squared Error drops from $27.1\%$ to $19.1\%$. Comparing Bayesian engines, \pkg{fastsae} achieves a slightly lower empirical RMSE than \pkg{tipsae} (0.0481 vs. 0.0487) and produces narrower credible intervals (0.173 vs. 0.202) while requiring nearly $9\times$ less runtime per fit.
+Table~\ref{tab:mc_truth} demonstrates that \code{hb\_area()} reduces empirical RMSE from 0.0719 (direct survey estimator) to 0.0481, yielding a $1.92\times$ empirical efficiency gain. Relative Root Mean Squared Error drops from $27.1\%$ to $19.1\%$. Comparing Bayesian engines, \pkg{fastsae} achieves a slightly lower empirical RMSE than \pkg{tipsae} (0.0481 vs. 0.0487) and produces narrower credible intervals (0.173 vs. 0.202) while requiring nearly $9\times$ less runtime per fit.
 \textbf{Operational Takeaway}: \pkg{fastsae} produces well-calibrated, highly efficient area-level predictions that closely track true finite-population parameters while scaling effortlessly to national-scale administrative systems.
 
 %% -- Applied Illustration -----------------------------------------------------
@@ -389,7 +389,7 @@ fit_fh <- eblup_fh(y_gaussian ~ x1 + x2, vardir = "vardir",
 fit_sfh <- eblup_sfh(y_gaussian ~ x1 + x2, vardir = "vardir",
   domain = "area", W = W_std, data = sim_area,
   method = "REML", print_result = FALSE)
-fit_beta <- ebp_area(y_beta ~ x1 + x2, vardir = "vardir",
+fit_beta <- hb_area(y_beta ~ x1 + x2, vardir = "vardir",
   data = sim_area, family = "beta", spatial = "bym2",
   W = W, print_result = FALSE)
 @

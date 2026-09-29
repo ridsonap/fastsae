@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Large-Scale National Monte Carlo Simulation: D = 500 Domains, N = 250,000 Units
-# R = 25 Replications comparing fastsae::ebp_area vs tipsae::fit_sae against True P_d
+# R = 25 Replications comparing fastsae::hb_area vs tipsae::fit_sae against True P_d
 # ==============================================================================
 
 suppressPackageStartupMessages({
@@ -152,7 +152,7 @@ run_one_rep_d500 <- function(r) {
   
   # A. FastSAE (Spatial Besag on D = 500)
   t0_fast <- Sys.time()
-  fit_fast <- fastsae::ebp_area(
+  fit_fast <- fastsae::hb_area(
     formula = p_dir ~ x1_pop_mean + x2_pop_mean,
     data = smp_summary,
     domain = "domain",
@@ -292,7 +292,7 @@ dom_fast <- calc_dom_metrics(mat_fast, cov_fast, width_fast)
 dom_tip  <- calc_dom_metrics(mat_tip, cov_tip, width_tip)
 
 summary_table_d500 <- tibble::tibble(
-  Method = c("Direct Estimator (Sample p_dir)", "fastsae::ebp_area (Spatial Besag)", "tipsae::fit_sae (Spatial Besag)"),
+  Method = c("Direct Estimator (Sample p_dir)", "fastsae::hb_area (Spatial Besag)", "tipsae::fit_sae (Spatial Besag)"),
   `Empirical RMSE` = c(mean(dom_dir$Emp_RMSE), mean(dom_fast$Emp_RMSE), mean(dom_tip$Emp_RMSE)),
   `Empirical RRMSE (%)` = c(mean(dom_dir$Emp_RRMSE), mean(dom_fast$Emp_RRMSE), mean(dom_tip$Emp_RRMSE)),
   `Empirical MARB (%)` = c(mean(dom_dir$Emp_MARB), mean(dom_fast$Emp_MARB), mean(dom_tip$Emp_MARB)),
@@ -378,7 +378,7 @@ pc <- ggplot(df_agree_d500, aes(x = FastSAE, y = TipSAE)) +
     title = sprintf("National Scale Agreement: FastSAE vs TipSAE across D = 500 Domains (r = %.4f)",
                     cor(dom_fast$Emp_Mean, dom_tip$Emp_Mean)),
     subtitle = "Points represent empirical mean estimates across R = 25 replications; line is y = x",
-    x = "fastsae::ebp_area Empirical Mean",
+    x = "fastsae::hb_area Empirical Mean",
     y = "tipsae::fit_sae Empirical Mean"
   ) +
   theme_clean

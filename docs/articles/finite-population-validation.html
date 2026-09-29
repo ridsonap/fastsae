@@ -101,7 +101,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
-    <li><a class="dropdown-item" href="../articles/ebp-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -181,7 +181,7 @@ variances are computed from the survey sample and fed into Small Area
 models.</li>
 </ol>
 <p>This design-based simulation rigorously tests whether: - Area-level
-continuous Beta models (<code>ebp_area</code> and <code>tipsae</code>)
+continuous Beta models (<code>hb_area</code> and <code>tipsae</code>)
 remain robust when the underlying data consist of discrete individual
 binary outcomes
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mrow><mi>d</mi><mi>i</mi></mrow></msub><mo>∈</mo><mo stretchy="false" form="prefix">{</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">y_{di} \in \{0, 1\}</annotation></semantics></math>).
@@ -218,7 +218,7 @@ as Susenas or EU-SILC):</p>
                    |                                     |
                    v                                     v
 +------------------------------------+ +------------------------------------+
-| 3. fastsae::ebp_area()             | | 4. tipsae::fit_sae()               |
+| 3. fastsae::hb_area()             | | 4. tipsae::fit_sae()               |
 |    - Bayesian INLA (Full Laplace)  | |    - Hamiltonian Monte Carlo (Stan)|
 |    - Family: "beta"                | |    - Likelihood: "beta"            |
 |    - Spatial: "besag"              | |    - Spatial error: TRUE           |
@@ -311,7 +311,7 @@ indicate superior performance for each evaluation criterion).</em></p>
 <td align="center">—</td>
 </tr>
 <tr class="even">
-<td align="left"><strong><code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (Spatial
+<td align="left"><strong><code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> (Spatial
 Besag)</strong></td>
 <td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0485</span></td>
 <td align="center">19.56%</td>
@@ -358,7 +358,7 @@ vs
 offering sharper regional estimates.</li>
 <li>
 <strong>Computational Scalability</strong>:
-<code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> evaluates in a fraction of the time
+<code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> evaluates in a fraction of the time
 required by Stan MCMC, completing 100 full spatial Bayesian SAE
 estimations in just minutes.</li>
 </ol>
@@ -428,7 +428,7 @@ indicate superior performance).</em></p>
 <td align="center">—</td>
 </tr>
 <tr class="even">
-<td align="left"><strong><code><a href="../reference/ebp_area.html">fastsae::ebp_area</a></code> (Spatial
+<td align="left"><strong><code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> (Spatial
 Besag)</strong></td>
 <td align="center"><span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(25, 135, 84, 0.35);">0.0481</span></td>
 <td align="center">19.13%</td>

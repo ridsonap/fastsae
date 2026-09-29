@@ -72,7 +72,7 @@ Collate:
     eblup_sfh.R
     eblup_stfh.R
     eblup_bhf.R
-    ebp_area.R
+    hb_area.R
     sim_spatial_weights.R
     sim_area_data.R
     sim_series_data.R

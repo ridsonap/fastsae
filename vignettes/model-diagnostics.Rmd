@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 In Small Area Estimation (SAE), model-based estimators borrow strength across domains and time to improve estimation precision over direct survey estimators. However, introducing model assumptions carries the risk of model misspecification, bias, and inappropriate shrinkage.
 
-To address these challenges, **fastsae** provides a unified diagnostic framework centered on the `diagnose()` function and its dedicated S3 `autoplot()` visualization method. It evaluates both **frequentist C++ EBLUP** models (`eblup_fh`, `eblup_sfh`, `eblup_stfh`, `eblup_bhf`) and **Bayesian INLA EBP** models (`ebp_area`).
+To address these challenges, **fastsae** provides a unified diagnostic framework centered on the `diagnose()` function and its dedicated S3 `autoplot()` visualization method. It evaluates both **frequentist C++ EBLUP** models (`eblup_fh`, `eblup_sfh`, `eblup_stfh`, `eblup_bhf`) and **Bayesian INLA HB** models (`hb_area`).
 
 ---
 
@@ -129,13 +129,13 @@ autoplot(diag_fh, type = "all")
 
 ## Diagnosing Bayesian Spatio-Temporal Models
 
-The exact same `diagnose()` function applies directly to Bayesian models fitted with `ebp_area()`:
+The exact same `diagnose()` function applies directly to Bayesian models fitted with `hb_area()`:
 
-```{r diag_ebp, message = FALSE, warning = FALSE}
+```{r diag_hb, message = FALSE, warning = FALSE}
 data("sim_area", package = "fastsae")
 
 # Fit Spatial EBP model with BYM2 prior
-fit_ebp <- ebp_area(
+fit_hb <- hb_area(
   formula = y_gaussian ~ x1 + x2,
   data = sim_area,
   vardir = "vardir",
@@ -145,9 +145,9 @@ fit_ebp <- ebp_area(
 )
 
 # Diagnose Bayesian model
-diag_ebp <- diagnose(fit_ebp)
-diag_ebp$precision
-diag_ebp$status
+diag_hb <- diagnose(fit_hb)
+diag_hb$precision
+diag_hb$status
 ```
 
 ---

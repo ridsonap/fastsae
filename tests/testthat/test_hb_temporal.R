@@ -1,4 +1,4 @@
-test_that("ebp_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
+test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   skip_on_cran()
   skip_if_not_installed("INLA")
   skip_if_not_installed("tipsae")
@@ -40,7 +40,7 @@ test_that("ebp_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
 
   # 3. Fit fastsae INLA model with equivalent domain-specific RW1 + Besag structure
   t0_inla <- Sys.time()
-  fit_inla <- ebp_area(
+  fit_inla <- hb_area(
     hcr ~ x,
     data = emilia,
     domain = "id",
@@ -56,18 +56,18 @@ test_that("ebp_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   t1_inla <- Sys.time()
   time_inla <- as.numeric(difftime(t1_inla, t0_inla, units = "secs"))
 
-  expect_s3_class(fit_inla, "fastsae_ebp_area")
+  expect_s3_class(fit_inla, "fastsae_hb_area")
   expect_s3_class(fit_inla, "fastsae")
 
   # 4. Check output structure
-  df_ebp <- fit_inla$df_ebp
-  expect_true(all(c("domain", "time", "y", "ebp", "sd", "mse", "rse", "ci_lower", "ci_upper") %in% names(df_ebp)))
-  expect_true(all(c("random_effect", "random_effect_spatial", "random_effect_temporal") %in% names(df_ebp)))
-  expect_equal(nrow(df_ebp), nrow(emilia))
+  df_hb <- fit_inla$df_hb
+  expect_true(all(c("domain", "time", "y", "hb", "sd", "mse", "rse", "ci_lower", "ci_upper") %in% names(df_hb)))
+  expect_true(all(c("random_effect", "random_effect_spatial", "random_effect_temporal") %in% names(df_hb)))
+  expect_equal(nrow(df_hb), nrow(emilia))
 
   # 5. Merge and compare estimates
   df_comp <- merge(
-    data.frame(id = df_ebp$domain, year = df_ebp$time, inla_est = df_ebp$ebp),
+    data.frame(id = df_hb$domain, year = df_hb$time, inla_est = df_hb$hb),
     est_tip,
     by.x = c("id", "year"),
     by.y = c("Domains", "Times")
@@ -88,7 +88,7 @@ test_that("ebp_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   expect_gt(fit_inla$random_effect_var_time, 0)
 })
 
-test_that("ebp_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data", {
+test_that("hb_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data", {
   skip_if_not_installed("INLA")
 
   data("mys_panel", package = "fastsae")
@@ -98,7 +98,7 @@ test_that("ebp_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data
   panel_sub <- mys_panel[mys_panel$year %in% c(2022, 2023, 2024), ]
 
   # 1. Spatio-temporal with BYM2 + AR(1)
-  fit_st <- ebp_area(
+  fit_st <- hb_area(
     y ~ x1 + x2 + x3,
     data = panel_sub,
     domain = "area",
@@ -112,11 +112,11 @@ test_that("ebp_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data
     print_result = FALSE
   )
 
-  expect_s3_class(fit_st, "fastsae_ebp_area")
-  expect_equal(nrow(fit_st$df_ebp), nrow(panel_sub))
-  expect_true("time" %in% names(fit_st$df_ebp))
-  expect_false(any(is.na(fit_st$df_ebp$ebp)))
-  expect_false(any(is.na(fit_st$df_ebp$sd)))
+  expect_s3_class(fit_st, "fastsae_hb_area")
+  expect_equal(nrow(fit_st$df_hb), nrow(panel_sub))
+  expect_true("time" %in% names(fit_st$df_hb))
+  expect_false(any(is.na(fit_st$df_hb$hb)))
+  expect_false(any(is.na(fit_st$df_hb$sd)))
 
   # Check temporal hyperparameters
   expect_false(is.null(fit_st$random_effect_var_time))
@@ -124,7 +124,7 @@ test_that("ebp_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data
   expect_true(fit_st$rho_time >= -1 && fit_st$rho_time <= 1)
 
   # 2. Test separable space-time interaction (ST-FH)
-  fit_sep <- ebp_area(
+  fit_sep <- hb_area(
     y ~ x1 + x2,
     data = panel_sub,
     domain = "area",
@@ -137,11 +137,11 @@ test_that("ebp_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data
     W = mys_proxmat,
     print_result = FALSE
   )
-  expect_s3_class(fit_sep, "fastsae_ebp_area")
-  expect_false(any(is.na(fit_sep$df_ebp$ebp)))
+  expect_s3_class(fit_sep, "fastsae_hb_area")
+  expect_false(any(is.na(fit_sep$df_hb$hb)))
 })
 
-test_that("ebp_area works for Poisson and Binomial Spatio-Temporal models", {
+test_that("hb_area works for Poisson and Binomial Spatio-Temporal models", {
   skip_if_not_installed("INLA")
 
   set.seed(123)
@@ -170,7 +170,7 @@ test_that("ebp_area works for Poisson and Binomial Spatio-Temporal models", {
   }
 
   # 1. Poisson Spatio-Temporal
-  fit_pois <- ebp_area(
+  fit_pois <- hb_area(
     y_pois ~ x,
     data = df_panel,
     domain = "domain",
@@ -182,13 +182,13 @@ test_that("ebp_area works for Poisson and Binomial Spatio-Temporal models", {
     W = W_syn,
     print_result = FALSE
   )
-  expect_s3_class(fit_pois, "fastsae_ebp_area")
-  expect_true(all(fit_pois$df_ebp$ebp > 0))
-  expect_true("rate" %in% names(fit_pois$df_ebp))
-  expect_true("estimated_count" %in% names(fit_pois$df_ebp))
+  expect_s3_class(fit_pois, "fastsae_hb_area")
+  expect_true(all(fit_pois$df_hb$hb > 0))
+  expect_true("rate" %in% names(fit_pois$df_hb))
+  expect_true("estimated_count" %in% names(fit_pois$df_hb))
 
   # 2. Binomial Spatio-Temporal
-  fit_bin <- ebp_area(
+  fit_bin <- hb_area(
     y_bin ~ x,
     data = df_panel,
     domain = "domain",
@@ -200,12 +200,12 @@ test_that("ebp_area works for Poisson and Binomial Spatio-Temporal models", {
     W = W_syn,
     print_result = FALSE
   )
-  expect_s3_class(fit_bin, "fastsae_ebp_area")
-  expect_true(all(fit_bin$df_ebp$ebp >= 0 & fit_bin$df_ebp$ebp <= 1))
-  expect_true("estimated_total" %in% names(fit_bin$df_ebp))
+  expect_s3_class(fit_bin, "fastsae_hb_area")
+  expect_true(all(fit_bin$df_hb$hb >= 0 & fit_bin$df_hb$hb <= 1))
+  expect_true("estimated_total" %in% names(fit_bin$df_hb))
 })
 
-test_that("ebp_area works for Negative Binomial and Gamma Spatio-Temporal models", {
+test_that("hb_area works for Negative Binomial and Gamma Spatio-Temporal models", {
   skip_if_not_installed("INLA")
 
   set.seed(456)
@@ -227,7 +227,7 @@ test_that("ebp_area works for Negative Binomial and Gamma Spatio-Temporal models
   }
 
   # 1. Negative Binomial ST
-  fit_nbin <- ebp_area(
+  fit_nbin <- hb_area(
     y_nbin ~ x,
     data = df_panel,
     domain = "domain",
@@ -239,11 +239,11 @@ test_that("ebp_area works for Negative Binomial and Gamma Spatio-Temporal models
     W = W_syn,
     print_result = FALSE
   )
-  expect_s3_class(fit_nbin, "fastsae_ebp_area")
-  expect_true(all(fit_nbin$df_ebp$ebp > 0))
+  expect_s3_class(fit_nbin, "fastsae_hb_area")
+  expect_true(all(fit_nbin$df_hb$hb > 0))
 
   # 2. Gamma ST with known vardir
-  fit_gamma <- ebp_area(
+  fit_gamma <- hb_area(
     y_gamma ~ x,
     data = df_panel,
     domain = "domain",
@@ -255,24 +255,24 @@ test_that("ebp_area works for Negative Binomial and Gamma Spatio-Temporal models
     W = W_syn,
     print_result = FALSE
   )
-  expect_s3_class(fit_gamma, "fastsae_ebp_area")
-  expect_true(all(fit_gamma$df_ebp$ebp > 0))
-  expect_true("precision" %in% names(fit_gamma$df_ebp))
+  expect_s3_class(fit_gamma, "fastsae_hb_area")
+  expect_true(all(fit_gamma$df_hb$hb > 0))
+  expect_true("precision" %in% names(fit_gamma$df_hb))
 })
 
-test_that("ebp_area temporal input validation and error handling work", {
+test_that("hb_area temporal input validation and error handling work", {
   skip_if_not_installed("INLA")
   data("mys", package = "fastsae")
 
   # 1. Error when temporal != "none" but time is NULL
   expect_error(
-    ebp_area(y ~ x1, data = mys, vardir = "vardir", temporal = "rw1"),
+    hb_area(y ~ x1, data = mys, vardir = "vardir", temporal = "rw1"),
     "time"
   )
 
   # 2. Error when time is specified without domain
   expect_error(
-    ebp_area(y ~ x1, data = mys, vardir = "vardir", time = "year", temporal = "rw1"),
+    hb_area(y ~ x1, data = mys, vardir = "vardir", time = "year", temporal = "rw1"),
     "domain.*must also be specified"
   )
 
@@ -281,7 +281,7 @@ test_that("ebp_area temporal input validation and error handling work", {
   df_single_time$area_id <- seq_len(nrow(mys))
   df_single_time$year <- 2024
   expect_error(
-    ebp_area(y ~ x1, data = df_single_time, domain = "area_id", vardir = "vardir", time = "year", temporal = "rw1"),
+    hb_area(y ~ x1, data = df_single_time, domain = "area_id", vardir = "vardir", time = "year", temporal = "rw1"),
     "at least 2 distinct time periods"
   )
 
@@ -292,7 +292,7 @@ test_that("ebp_area temporal input validation and error handling work", {
     area = rep(1:10, 2),
     year = rep(c(2023, 2024), each = 10)
   )
-  fit_pure_temp <- ebp_area(
+  fit_pure_temp <- hb_area(
     y ~ 1,
     data = df_temp,
     domain = "area",

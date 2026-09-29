@@ -27,13 +27,13 @@ Classical Small Area Estimation (SAE) models—such as the Fay-Herriot (1979) mo
 
 Furthermore, when data are collected across geographical areas and repeated over time (panel/longitudinal surveys), outcomes exhibit both spatial dependency and temporal autocorrelation.
 
-The **fastsae** package introduces `ebp_area()`, a unified hierarchical Bayesian framework powered by **Integrated Nested Laplace Approximations (INLA)**. It provides fast, deterministic, and highly accurate analytical posterior approximations without the computational bottlenecks, convergence diagnostics, or chain-tuning associated with Markov Chain Monte Carlo (MCMC).
+The **fastsae** package introduces `hb_area()`, a unified hierarchical Bayesian framework powered by **Integrated Nested Laplace Approximations (INLA)**. It provides fast, deterministic, and highly accurate analytical posterior approximations without the computational bottlenecks, convergence diagnostics, or chain-tuning associated with Markov Chain Monte Carlo (MCMC).
 
 ---
 
 ## Supported Distribution Families
 
-`ebp_area()` supports 6 probability distributions for the direct response:
+`hb_area()` supports 6 probability distributions for the direct response:
 
 | Family | Typical SAE Use Case | Required Sampling Input | Model Scale Parameter |
 | :--- | :--- | :--- | :--- |
@@ -77,7 +77,7 @@ When data are observed longitudinally across $T \ge 2$ time periods, specify `ti
 
 ## Case Study: Spatio-Temporal Beta SAE on Emilia-Romagna Poverty
 
-We demonstrate `ebp_area()` using the Italian poverty dataset `emilia` from the `tipsae` package (38 health districts in Emilia-Romagna across 5 years, $N = 190$). The goal is to estimate the Head Count Ratio (`hcr`), which represents the proportion of households below the poverty line.
+We demonstrate `hb_area()` using the Italian poverty dataset `emilia` from the `tipsae` package (38 health districts in Emilia-Romagna across 5 years, $N = 190$). The goal is to estimate the Head Count Ratio (`hcr`), which represents the proportion of households below the poverty line.
 
 ### 1. Load Data and Construct Spatial Adjacency Matrix
 
@@ -102,7 +102,7 @@ head(emilia[, c("id", "year", "hcr", "vars", "x")])
 We model the poverty proportion using a Beta likelihood with a Besag ICAR spatial random effect, a domain-specific RW(1) temporal dynamic, and known sampling variances `vars`:
 
 ```{r fit_beta_st, message = FALSE, warning = FALSE}
-fit_beta_st <- ebp_area(
+fit_beta_st <- hb_area(
   formula = hcr ~ x,
   data = emilia,
   domain = "id",
@@ -124,16 +124,16 @@ summary(fit_beta_st)
 The output object contains full domain-period predictions, posterior standard errors, and 95% Credible Intervals:
 
 ```{r inspect_predictions}
-head(fit_beta_st$df_ebp[, c("domain", "time", "y", "ebp", "sd", "rse", "ci_lower", "ci_upper")])
+head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 ```
 
 ---
 
 ## Comparison and Validation Against `tipsae` (Stan MCMC)
 
-In `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`, the model is estimated using Hamiltonian Monte Carlo (HMC) in Stan. In `fastsae::ebp_area()`, the identical structural model is estimated analytically via INLA.
+In `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`, the model is estimated using Hamiltonian Monte Carlo (HMC) in Stan. In `fastsae::hb_area()`, the identical structural model is estimated analytically via INLA.
 
-| Characteristic | `tipsae::fit_sae` (Stan MCMC) | `fastsae::ebp_area` (INLA) | Advantage |
+| Characteristic | `tipsae::fit_sae` (Stan MCMC) | `fastsae::hb_area` (INLA) | Advantage |
 | :--- | :--- | :--- | :--- |
 | **Model Specification** | Besag ICAR + Domain RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` | Exact structural match |
 | **Estimation Method** | MCMC (NUTS) | Integrated Nested Laplace Approximations | Deterministic, no burn-in needed |
@@ -143,7 +143,7 @@ In `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`, the mode
 
 ### Interactive Scalability Explorer ($n = 30$ to $n = 1,000$)
 
-Use the interactive controls below to compare runtime, memory footprint, and speedup factors between `fastsae::ebp_area` and `tipsae::fit_sae` across both **Standard Beta** and **Spatial Beta (Besag ICAR)** models:
+Use the interactive controls below to compare runtime, memory footprint, and speedup factors between `fastsae::hb_area` and `tipsae::fit_sae` across both **Standard Beta** and **Spatial Beta (Besag ICAR)** models:
 
 ```{=html}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -434,7 +434,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 
 #### Inferential Equivalence & Validation Metrics ($n = 1,000$)
 
-To establish that the substantial computational accelerations achieved by `fastsae::ebp_area` preserve full inferential validity relative to Stan MCMC (`tipsae::fit_sae`), summary concordance and error metrics were evaluated across $n = 1,000$ domains/units for Standard Beta, Spatial Beta (Besag ICAR), and Spatio-Temporal Beta models:
+To establish that the substantial computational accelerations achieved by `fastsae::hb_area` preserve full inferential validity relative to Stan MCMC (`tipsae::fit_sae`), summary concordance and error metrics were evaluated across $n = 1,000$ domains/units for Standard Beta, Spatial Beta (Besag ICAR), and Spatio-Temporal Beta models:
 
 | Dimension | Metric | Beta | Spatial Beta | Spatio-Temporal Beta | Statistical Implication |
 | :--- | :--- | :---: | :---: | :---: | :--- |
@@ -449,7 +449,7 @@ To establish that the substantial computational accelerations achieved by `fasts
 
 ## Cross-Sectional Count Data: Poisson & Negative Binomial
 
-For count data such as disease incidence or crime events, `ebp_area()` seamlessly supports Poisson and Negative Binomial distributions with population offsets:
+For count data such as disease incidence or crime events, `hb_area()` seamlessly supports Poisson and Negative Binomial distributions with population offsets:
 
 ```{r count_example, message = FALSE, warning = FALSE}
 # Simulate 42-domain count data with known spatial structure
@@ -457,7 +457,7 @@ data("sim_area", package = "fastsae")
 data("mys_proxmat", package = "fastsae")
 
 # Fit Poisson Spatial Model with population exposure offset
-fit_pois <- ebp_area(
+fit_pois <- hb_area(
   formula = y_poisson ~ x1 + x2,
   data = sim_area,
   exposure = "exposure",

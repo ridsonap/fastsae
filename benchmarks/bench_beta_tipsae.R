@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # ==============================================================================
-# Benchmark: fastsae (ebp_area) vs tipsae (fit_sae) for Beta SAE
+# Benchmark: fastsae (hb_area) vs tipsae (fit_sae) for Beta SAE
 # Supports incremental appending across domain sizes n
 # ==============================================================================
 
@@ -28,7 +28,7 @@ if (length(iter_match) > 0) {
 D_values <- if (length(n_args) > 0) n_args else c(250, 500)
 
 cat("==============================================================================\n")
-cat("Starting Benchmark: fastsae (ebp_area) vs tipsae (fit_sae) [Beta Family]\n")
+cat("Starting Benchmark: fastsae (hb_area) vs tipsae (fit_sae) [Beta Family]\n")
 cat(sprintf("Domain sizes to run: %s | Iterations: %d each\n", paste(D_values, collapse = ", "), iter_arg))
 cat("==============================================================================\n\n")
 
@@ -58,7 +58,7 @@ for (n_val in D_values) {
   t_start <- Sys.time()
   
   res <- bench::mark(
-    fastsae = fastsae::ebp_area(
+    fastsae = fastsae::hb_area(
       formula = y_beta ~ x1 + x2,
       data = df,
       domain = "domain",

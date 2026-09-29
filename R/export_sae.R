@@ -36,7 +36,7 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30
   }
 
   is_model <- inherits(object, "fastsae")
-  df <- if (is_model) (object$df_ebp %||% object$df_eblup) else as.data.frame(object)
+  df <- if (is_model) (object$df_hb %||% object$df_ebp %||% object$df_eblup) else as.data.frame(object)
 
   if (is.null(df)) {
     cli::cli_abort("Could not extract estimation data from {.arg object}.")
@@ -44,7 +44,7 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30
 
   if (!rse_col %in% names(df)) {
     if ("mse" %in% names(df)) {
-      est_col <- intersect(c("ebp", "eblup", "estimate", "est"), names(df))[1]
+      est_col <- intersect(c("hb", "ebp", "eblup", "estimate", "est"), names(df))[1]
       if (is.null(est_col)) cli::cli_abort("Cannot calculate RSE: missing estimate column.")
       df[[rse_col]] <- (sqrt(df$mse) / abs(df[[est_col]])) * 100
     } else {
@@ -66,7 +66,8 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30
   )
 
   if (is_model) {
-    if (!is.null(object$df_ebp)) object$df_ebp <- df
+    if (!is.null(object$df_hb)) object$df_hb <- df
+    else if (!is.null(object$df_ebp)) object$df_ebp <- df
     else object$df_eblup <- df
     return(df)
   }
@@ -198,14 +199,14 @@ export_sae <- function(
     return(res)
   }
 
-  df <- object$df_ebp %||% object$df_eblup
+  df <- object$df_hb %||% object$df_ebp %||% object$df_eblup
   if (is.null(df) && is.data.frame(object)) df <- object
   if (is.null(df)) cli::cli_abort("Cannot extract estimation table from object.")
 
   dom_col <- intersect(c("domain", "area", "id"), names(df))[1]
   dom_vals <- df[[dom_col]] %||% seq_len(nrow(df))
 
-  est_col <- intersect(c("ebp", "eblup", "estimate", "est"), names(df))[1]
+  est_col <- intersect(c("hb", "ebp", "eblup", "estimate", "est"), names(df))[1]
   est_val <- df[[est_col]]
 
   y_val <- if ("y" %in% names(df)) df$y else rep(NA_real_, nrow(df))

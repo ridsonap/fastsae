@@ -199,8 +199,8 @@ Explore advanced modeling capabilities in **fastsae**: - **Spatial &
 Spatio-Temporal Models (EBLUP)**:
 [spatial-temporal.html](https://ridsonap.github.io/fastsae/articles/spatial-temporal.md)
 (SAR and AR(1) dynamics). - **Bayesian Area-Level SAE with INLA
-(`ebp_area`)**:
-[ebp-area-inla.html](https://ridsonap.github.io/fastsae/articles/ebp-area-inla.md)
+(`hb_area`)**:
+[hb-area-inla.html](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md)
 (Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma,
 Binomial, and spatio-temporal interactions). - **Model Diagnostics and
 Residual Analysis (`diagnose`)**:

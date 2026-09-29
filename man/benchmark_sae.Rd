@@ -48,7 +48,7 @@ benchmark(object, ...)
 \method{plot}{fastsae_benchmark}(x, y = NULL, ...)
 }
 \arguments{
-\item{object}{A fitted \code{fastsae} model object (e.g., from \code{ebp_area},
+\item{object}{A fitted \code{fastsae} model object (e.g., from \code{hb_area},
 \code{eblup_fh}, etc.) or a numeric vector of model predictions.}
 
 \item{...}{Additional arguments passed to methods.}
@@ -106,7 +106,7 @@ An object of class \code{c("fastsae_benchmark", "data.frame")} containing:
 }
 }
 \description{
-Calibrates small area model predictions (from \code{ebp_area}, \code{eblup_fh},
+Calibrates small area model predictions (from \code{hb_area}, \code{eblup_fh},
 \code{eblup_sfh}, \code{eblup_stfh}, or \code{eblup_bhf}) so that their weighted
 aggregate matches known benchmark targets at higher administrative levels (e.g. provincial
 or national totals/means), as required in official statistics production.

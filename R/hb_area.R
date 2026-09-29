@@ -1,9 +1,9 @@
-#' Empirical Best Prediction for Area-Level Small Area Estimation
+#' Hierarchical Bayes for Area-Level Small Area Estimation
 #'
 #' @description
-#' Estimates small area parameters using area-level models under various distributions
-#' (Gaussian, Binomial, Poisson, Negative Binomial, Beta, Gamma) and spatial random
-#' effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux) using
+#' Estimates small area parameters using area-level Hierarchical Bayesian models
+#' under various distributions (Gaussian, Binomial, Poisson, Negative Binomial, Beta, Gamma)
+#' and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux) using
 #' Integrated Nested Laplace Approximations (INLA) or frequentist Laplace Approximation.
 #'
 #' @param formula An object of class \code{formula} specifying the fixed-effects model
@@ -86,10 +86,10 @@
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Additional arguments passed to \code{INLA::inla()}.
 #'
-#' @returns An object of class \code{c("fastsae_ebp_area", "fastsae")} containing:
+#' @returns An object of class \code{c("fastsae_hb_area", "fastsae")} containing:
 #' \itemize{
-#'   \item \code{df_ebp}: Data frame with domain estimates, including \code{domain},
-#'     \code{time} (if specified), observed \code{y}, predicted \code{ebp}, linear predictor \code{linear_pred},
+#'   \item \code{df_hb}: Data frame with domain estimates, including \code{domain},
+#'     \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},
 #'     posterior standard error \code{sd}, \code{mse}, relative error \code{rse} (\%),
 #'     95\% credible interval (\code{ci_lower}, \code{ci_upper}), and \code{random_effect}.
 #'   \item \code{estcoef}: Data frame of estimated regression coefficients.
@@ -127,7 +127,7 @@
 #'   library(fastsae)
 #'
 #'   # 1. Non-spatial Gaussian Fay-Herriot with INLA
-#'   m_norm <- ebp_area(
+#'   m_norm <- hb_area(
 #'     y ~ x1 + x2 + x3,
 #'     data = mys,
 #'     vardir = "vardir",
@@ -135,7 +135,7 @@
 #'   )
 #'
 #'   # 2. Spatial BYM2 Gaussian Fay-Herriot with INLA
-#'   m_bym2 <- ebp_area(
+#'   m_bym2 <- hb_area(
 #'     y ~ x1 + x2 + x3,
 #'     data = mys,
 #'     vardir = "vardir",
@@ -145,7 +145,7 @@
 #'   )
 #' }
 #' }
-ebp_area <- function(
+hb_area <- function(
   formula,
   data,
   domain = NULL,
@@ -769,10 +769,10 @@ ebp_area <- function(
   linpred <- stats::predict(fit, newdata = lmer_data, type = "link", allow.new.levels = TRUE)
   ranefs <- lme4::ranef(fit)$..domain_id..[, 1]
 
-  df_ebp <- data.frame(
+  df_hb <- data.frame(
     domain = domain,
     y = y,
-    ebp = preds,
+    hb = preds,
     linear_pred = linpred,
     sd = NA_real_,
     mse = NA_real_,
@@ -790,9 +790,9 @@ ebp_area <- function(
   )
 
   out <- list(
-    df_ebp = df_ebp,
-    ebp = df_ebp,
-    df_eblup = df_ebp,
+    df_hb = df_hb,
+    hb = df_hb,
+    df_eblup = df_hb,
     estcoef = estcoef,
     hyperpar = data.frame(Parameter = "sigma2_u", Estimate = sigma2_u),
     random_effect_var = sigma2_u,
@@ -801,13 +801,13 @@ ebp_area <- function(
     family = family,
     spatial = "none",
     level = "area",
-    model = paste0("EBP-", toupper(family), " (Laplace GLMM)"),
+    model = paste0("HB-", toupper(family), " (Laplace GLMM)"),
     convergence = TRUE,
     fit = fit,
     data = data,
     call = call
   )
 
-  class(out) <- c("fastsae_ebp_area", "fastsae")
+  class(out) <- c("fastsae_hb_area", "fastsae")
   return(out)
 }

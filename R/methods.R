@@ -78,9 +78,9 @@ print.fastsae <- function(x, ...) {
     )
   }
 
-  est_df <- x$df_ebp %||% x$df_eblup
+  est_df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
   if (!is.null(est_df)) {
-    label_est <- if (!is.null(x$df_ebp)) "EBP Estimates" else "EBLUP Estimates"
+    label_est <- if (!is.null(x$df_hb)) "HB Estimates" else if (!is.null(x$df_ebp)) "EBP Estimates" else "EBLUP Estimates"
     cat("\n", label_est, " (First 6 domains):\n", sep = "")
     print(utils::head(est_df, 6), ...)
     if (nrow(est_df) > 6) {
@@ -120,6 +120,7 @@ summary.fastsae <- function(object, ...) {
     phi = object$phi,
     goodness = object$goodness,
     df_eblup = object$df_eblup,
+    df_hb = object$df_hb,
     df_ebp = object$df_ebp,
     level = object$level
   )
@@ -214,11 +215,11 @@ print.summary.fastsae <- function(x, ...) {
     print(x$goodness)
   }
 
-  est_df <- x$df_ebp %||% x$df_eblup
+  est_df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
   if (!is.null(est_df)) {
-    label_sum <- if (!is.null(x$df_ebp)) "EBP Summary Statistics" else "EBLUP Summary Statistics"
+    label_sum <- if (!is.null(x$df_hb)) "HB Summary Statistics" else if (!is.null(x$df_ebp)) "EBP Summary Statistics" else "EBLUP Summary Statistics"
     cat("\n", label_sum, ":\n", sep = "")
-    summary_cols <- intersect(c("ebp", "linear_pred", "sd", "mse", "rse"), names(est_df))
+    summary_cols <- intersect(c("hb", "ebp", "linear_pred", "sd", "mse", "rse"), names(est_df))
     if (length(summary_cols) == 0) summary_cols <- intersect(c("eblup", "mse", "rse"), names(est_df))
     if (length(summary_cols) > 0) {
       print(summary(est_df[, summary_cols, drop = FALSE]))
@@ -246,7 +247,7 @@ coef.fastsae <- function(object, ...) {
   NULL
 }
 
-#' Extract fitted values (EBLUP or EBP) from a fastsae object
+#' Extract fitted values (EBLUP or HB) from a fastsae object
 #'
 #' @param object An object of class \code{fastsae}.
 #' @param ... Additional arguments.
@@ -254,6 +255,9 @@ coef.fastsae <- function(object, ...) {
 #' @return Vector of fitted estimates.
 #' @export
 fitted.fastsae <- function(object, ...) {
+  if (!is.null(object$df_hb) && "hb" %in% names(object$df_hb)) {
+    return(object$df_hb$hb)
+  }
   if (!is.null(object$df_ebp) && "ebp" %in% names(object$df_ebp)) {
     return(object$df_ebp$ebp)
   }
@@ -271,6 +275,9 @@ fitted.fastsae <- function(object, ...) {
 #' @return Vector of residuals for sampled areas.
 #' @export
 residuals.fastsae <- function(object, ...) {
+  if (!is.null(object$df_hb) && all(c("y", "hb") %in% names(object$df_hb))) {
+    return(object$df_hb$y - object$df_hb$hb)
+  }
   if (!is.null(object$df_ebp) && all(c("y", "ebp") %in% names(object$df_ebp))) {
     return(object$df_ebp$y - object$df_ebp$ebp)
   }

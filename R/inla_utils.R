@@ -275,41 +275,41 @@
   fitted_summary <- as.data.frame(fit$summary.fitted.values[seq_len(n_obs), , drop = FALSE])
   linpred_summary <- as.data.frame(fit$summary.linear.predictor[seq_len(n_obs), , drop = FALSE])
 
-  ebp_est <- fitted_summary$mean
-  ebp_sd  <- fitted_summary$sd
-  ebp_mse <- ebp_sd^2
-  ebp_rse <- ifelse(abs(ebp_est) < .Machine$double.eps, NA_real_, (ebp_sd / abs(ebp_est)) * 100)
+  hb_est <- fitted_summary$mean
+  hb_sd  <- fitted_summary$sd
+  hb_mse <- hb_sd^2
+  hb_rse <- ifelse(abs(hb_est) < .Machine$double.eps, NA_real_, (hb_sd / abs(hb_est)) * 100)
   ci_lower <- fitted_summary[["0.025quant"]]
   ci_upper <- fitted_summary[["0.975quant"]]
   linpred  <- linpred_summary$mean
 
-  # Assemble df_ebp
+  # Assemble df_hb
   if (!is.null(time)) {
-    df_ebp <- data.frame(
+    df_hb <- data.frame(
       domain = domain,
       time = time,
       y = y,
-      ebp = ebp_est,
+      hb = hb_est,
       linear_pred = linpred,
-      sd = ebp_sd,
-      mse = ebp_mse,
-      rse = ebp_rse,
+      sd = hb_sd,
+      mse = hb_mse,
+      rse = hb_rse,
       ci_lower = ci_lower,
       ci_upper = ci_upper,
       random_effect = rand_eff,
       stringsAsFactors = FALSE
     )
-    if (!is.null(rand_eff_spatial)) df_ebp$random_effect_spatial <- rand_eff_spatial
-    if (!is.null(rand_eff_temporal)) df_ebp$random_effect_temporal <- rand_eff_temporal
+    if (!is.null(rand_eff_spatial)) df_hb$random_effect_spatial <- rand_eff_spatial
+    if (!is.null(rand_eff_temporal)) df_hb$random_effect_temporal <- rand_eff_temporal
   } else {
-    df_ebp <- data.frame(
+    df_hb <- data.frame(
       domain = domain,
       y = y,
-      ebp = ebp_est,
+      hb = hb_est,
       linear_pred = linpred,
-      sd = ebp_sd,
-      mse = ebp_mse,
-      rse = ebp_rse,
+      sd = hb_sd,
+      mse = hb_mse,
+      rse = hb_rse,
       ci_lower = ci_lower,
       ci_upper = ci_upper,
       random_effect = rand_eff,
@@ -319,32 +319,32 @@
 
   # If vardir provided (Gaussian FH, Beta, or Gamma)
   if (!is.null(vardir)) {
-    df_ebp$vardir <- vardir
+    df_hb$vardir <- vardir
     if (family == "beta") {
       phi_dir <- (y * (1 - y) / vardir) - 1
-      df_ebp$precision <- pmax(phi_dir, 1, na.rm = TRUE)
+      df_hb$precision <- pmax(phi_dir, 1, na.rm = TRUE)
     } else if (family == "gamma") {
       s_dir <- (y^2) / vardir
-      df_ebp$precision <- s_dir
-      df_ebp$cv_dir <- sqrt(vardir) / y
+      df_hb$precision <- s_dir
+      df_hb$cv_dir <- sqrt(vardir) / y
     }
   }
 
   # If trials provided (Binomial or Beta)
   if (!is.null(trials)) {
-    df_ebp$trials <- trials
+    df_hb$trials <- trials
     if (family == "binomial") {
-      df_ebp$estimated_total <- ebp_est * trials
+      df_hb$estimated_total <- hb_est * trials
     } else if (family == "beta" && is.null(vardir)) {
-      df_ebp$precision <- pmax(trials - 1, 1, na.rm = TRUE)
+      df_hb$precision <- pmax(trials - 1, 1, na.rm = TRUE)
     }
   }
 
   # If exposure provided (Poisson / NegBinom)
   if (!is.null(exposure)) {
-    df_ebp$exposure <- exposure
-    df_ebp$rate <- ebp_est
-    df_ebp$estimated_count <- ebp_est * exposure
+    df_hb$exposure <- exposure
+    df_hb$rate <- hb_est
+    df_hb$estimated_count <- hb_est * exposure
   }
 
   # 5. Goodness of fit measures
@@ -357,7 +357,7 @@
   )
 
   # Format model description
-  model_label <- paste0("EBP-", toupper(family))
+  model_label <- paste0("HB-", toupper(family))
   if (temporal != "none" || spatial != "none") {
     comps <- c()
     if (spatial != "none") comps <- c(comps, toupper(spatial))
@@ -369,9 +369,9 @@
   }
 
   out <- list(
-    df_ebp = df_ebp,
-    ebp = df_ebp, # backward compatibility with fastsae conventions
-    df_eblup = df_ebp, # compatibility with eblup methods
+    df_hb = df_hb,
+    hb = df_hb,
+    df_eblup = df_hb, # compatibility with eblup methods
     estcoef = estcoef,
     hyperpar = hyper_summary,
     random_effect_var = random_effect_var,
@@ -391,7 +391,7 @@
     call = call
   )
 
-  class(out) <- c("fastsae_ebp_area", "fastsae")
+  class(out) <- c("fastsae_hb_area", "fastsae")
   return(out)
 }
 

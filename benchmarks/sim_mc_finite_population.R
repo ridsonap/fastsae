@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Monte Carlo Simulation (R = 100 Replications) on Finite Population (N = 33,511)
-# Validating fastsae::ebp_area vs tipsae::fit_sae against True Population P_d
+# Validating fastsae::hb_area vs tipsae::fit_sae against True Population P_d
 # ==============================================================================
 
 suppressPackageStartupMessages({
@@ -152,7 +152,7 @@ run_one_replication <- function(r) {
   
   # A. FastSAE (Spatial Besag)
   t0_fast <- Sys.time()
-  fit_fast <- fastsae::ebp_area(
+  fit_fast <- fastsae::hb_area(
     formula = p_dir ~ x1_pop_mean + x2_pop_mean,
     data = smp_summary,
     domain = "domain",
@@ -304,7 +304,7 @@ dom_tip  <- calc_domain_metrics(mat_tip, cov_tip, width_tip)
 
 # Global Macro-Averaged Summary
 summary_table <- tibble::tibble(
-  Method = c("Direct Estimator (Sample p_dir)", "fastsae::ebp_area (Spatial Besag)", "tipsae::fit_sae (Spatial Besag)"),
+  Method = c("Direct Estimator (Sample p_dir)", "fastsae::hb_area (Spatial Besag)", "tipsae::fit_sae (Spatial Besag)"),
   `Empirical RMSE` = c(mean(dom_dir$Emp_RMSE), mean(dom_fast$Emp_RMSE), mean(dom_tip$Emp_RMSE)),
   `Empirical RRMSE (%)` = c(mean(dom_dir$Emp_RRMSE), mean(dom_fast$Emp_RRMSE), mean(dom_tip$Emp_RRMSE)),
   `Empirical MARB (%)` = c(mean(dom_dir$Emp_MARB), mean(dom_fast$Emp_MARB), mean(dom_tip$Emp_MARB)),

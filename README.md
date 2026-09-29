@@ -54,7 +54,7 @@ Documentation : <https://ridsonap.github.io/fastsae/>
 | **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects ($u_d \sim N(0, \sigma_u^2)$) | Analytical (Prasad-Rao) |
 | **Spatial Fay-Herriot** | `eblup_sfh()` | Simultaneous Autoregressive (SAR(1)) | Analytical, Parametric Bootstrap (`pbmse`), Non-Parametric Bootstrap (`npbmse`) |
 | **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | Spatial SAR(1) + Temporal AR(1) | Parametric Bootstrap (`pbmse`) |
-| **Bayesian Area-Level (INLA)** | `ebp_area()` | Area IID, Spatial (BYM2, Besag, SLM), Temporal (RW1, RW2, AR1), Spatio-Temporal interactions across 6 distributions | Analytical Bayesian posterior S.D., MSE, and 95% Credible Intervals |
+| **Bayesian Area-Level (INLA)** | `hb_area()` | Area IID, Spatial (BYM2, Besag, SLM), Temporal (RW1, RW2, AR1), Spatio-Temporal interactions across 6 distributions | Analytical Bayesian posterior S.D., MSE, and 95% Credible Intervals |
 | **Battese-Harter-Fuller** (Unit-level) | `eblup_bhf()` | Random intercept nested in domains | Parametric Bootstrap (`pbmse`) |
 
 ------------------------------------------------------------------------
@@ -129,11 +129,11 @@ $n = 1,000$ (with 5 covariates):
 
 ### Bayesian Spatio-Temporal SAE Benchmark: `fastsae` (INLA) vs `tipsae` (Stan MCMC)
 
-In addition to frequentist C++ EBLUP models, `fastsae::ebp_area()` offers Bayesian Hierarchical SAE powered by **Integrated Nested Laplace Approximations (INLA)** across 6 distribution families (`gaussian`, `binomial`, `poisson`, `nbinomial`, `beta`, `gamma`) with spatial and spatio-temporal dynamics.
+In addition to frequentist C++ EBLUP models, `fastsae::hb_area()` offers Bayesian Hierarchical SAE powered by **Integrated Nested Laplace Approximations (INLA)** across 6 distribution families (`gaussian`, `binomial`, `poisson`, `nbinomial`, `beta`, `gamma`) with spatial and spatio-temporal dynamics.
 
 #### 1. Scalability Across Sample Sizes ($n = 30$ to $n = 1,000$)
 
-Benchmark of Area-Level Beta Small Area Estimation models (`fastsae::ebp_area` vs `tipsae::fit_sae`) evaluating runtime scalability and memory footprint from $n = 30$ to $n = 1,000$ domains (explore the interactive dashboard in the [documentation website](https://ridsonap.github.io/fastsae/articles/benchmarks.html)):
+Benchmark of Area-Level Beta Small Area Estimation models (`fastsae::hb_area` vs `tipsae::fit_sae`) evaluating runtime scalability and memory footprint from $n = 30$ to $n = 1,000$ domains (explore the interactive dashboard in the [documentation website](https://ridsonap.github.io/fastsae/articles/benchmarks.html)):
 
 ![](README_files/figure-gfm/benchmark_beta_combined.png)
 
@@ -141,7 +141,7 @@ Benchmark of Area-Level Beta Small Area Estimation models (`fastsae::ebp_area` v
 
 Empirical comparison on the official `tipsae` Italian poverty panel dataset (`emilia`, 38 districts over 5 years, $N = 190$):
 
-| Metric | `tipsae::fit_sae` (Stan MCMC) | `fastsae::ebp_area` (INLA) | Advantage |
+| Metric | `tipsae::fit_sae` (Stan MCMC) | `fastsae::hb_area` (INLA) | Advantage |
 |:---|:---:|:---:|:---:|
 | **Model Structure** | Besag ICAR + Domain RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` | **Exact structural equivalence** |
 | **Engine** | Full MCMC via Stan | Deterministic INLA | Analytical posterior approximations |
@@ -277,9 +277,9 @@ autoplot(fit_fh, type = "mse")
 autoplot(list("FH" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
 ```
 
-### 6. Bayesian Area-Level SAE with INLA (`ebp_area`)
+### 6. Bayesian Area-Level SAE with INLA (`hb_area`)
 
-`ebp_area()` implements Bayesian Empirical Best Prediction for continuous, count, rate, and bounded proportion data across 6 distribution families (`gaussian`, `binomial`, `poisson`, `nbinomial`, `beta`, `gamma`), supporting spatial models (`bym2`, `besag`, `slm`) and temporal/spatio-temporal dynamics (`rw1`, `ar1`, domain-specific, separable):
+`hb_area()` implements Bayesian Hierarchical Modeling (Hierarchical Bayes) for continuous, count, rate, and bounded proportion data across 6 distribution families (`gaussian`, `binomial`, `poisson`, `nbinomial`, `beta`, `gamma`), supporting spatial models (`bym2`, `besag`, `slm`) and temporal/spatio-temporal dynamics (`rw1`, `ar1`, domain-specific, separable):
 
 ``` r
 # Fit Spatio-Temporal Beta SAE model (e.g. Italian poverty rates)
@@ -291,7 +291,7 @@ data("emilia_shp", package = "tipsae")
 W_emilia <- nb2mat(poly2nb(emilia_shp), style = "B", zero.policy = TRUE)
 rownames(W_emilia) <- colnames(W_emilia) <- emilia_shp$NAME_DISTRICT
 
-fit_beta_st <- ebp_area(
+fit_beta_st <- hb_area(
   formula = hcr ~ x,
   data = emilia,
   domain = "id",
@@ -305,7 +305,7 @@ fit_beta_st <- ebp_area(
 )
 
 summary(fit_beta_st)
-head(fit_beta_st$df_ebp)
+head(fit_beta_st$df_hb)
 ```
 
 ### 7. Universal Model Diagnostics & Residual Analysis (`diagnose`)

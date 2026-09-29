@@ -23,7 +23,7 @@ diagnose(
 - object:
 
   A fitted model object of class `"fastsae"` (e.g., from
-  [`ebp_area`](https://ridsonap.github.io/fastsae/reference/ebp_area.md),
+  [`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
   [`eblup_fh`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
   [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
   or
@@ -33,7 +33,7 @@ diagnose(
 
   Optional spatial proximity or adjacency matrix of dimension \\D \times
   D\\. If `NULL` and the fitted model contains a spatial matrix (e.g.
-  `eblup_sfh` or spatial `ebp_area`), it is automatically extracted from
+  `eblup_sfh` or spatial `hb_area`), it is automatically extracted from
   `object`.
 
 - truth:
@@ -156,11 +156,11 @@ print(diag_fh)
 #> ────────────────────────────────────────────────────────────────────────────────
 
 # 2. Fit Spatial EBP model
-fit_ebp <- ebp_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
+fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
 #> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
-#> ebp_area(formula = y ~ x1 + x2, data = mys, spatial = "bym2", W = mys_proxmat,
+#> hb_area(formula = y ~ x1 + x2, data = mys, spatial = "bym2", W = mys_proxmat,
 #> vardir = "vardir")
 #> 
 #> ✔ Convergence: Yes (in - iterations)
@@ -196,8 +196,8 @@ fit_ebp <- ebp_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2"
 #> 6 5.258498   -0.99777047 0.3878004
 #> ... and 36 more rows.
 #> 
-diag_ebp <- diagnose(fit_ebp)
-print(diag_ebp)
+diag_hb <- diagnose(fit_hb)
+print(diag_hb)
 #> ── fastsae Small Area Estimation Diagnostic Report ─────────────────────────────
 #> Model: "EBP-GAUSSIAN (BYM2)" | Domains: 42 (Sampled: 32, Unsampled: 10)
 #> 

@@ -115,7 +115,7 @@ A \code{ggplot} object containing the thematic choropleth map.
 \description{
 Provides a comprehensive, single-gateway ("satu pintu") spatial choropleth mapping
 interface for Small Area Estimation models fitted with \pkg{fastsae} (e.g. \code{eblup_fh},
-\code{eblup_sfh}, \code{eblup_stfh}, \code{eblup_bhf}, \code{ebp_area}, and \code{benchmark}).
+\code{eblup_sfh}, \code{eblup_stfh}, \code{eblup_bhf}, \code{hb_area}, and \code{benchmark_sae}).
 
 Intelligently handles:
 \itemize{

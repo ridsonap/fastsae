@@ -13,11 +13,11 @@ diagnose(
 )
 }
 \arguments{
-\item{object}{A fitted model object of class \code{"fastsae"} (e.g., from \code{\link{ebp_area}},
+\item{object}{A fitted model object of class \code{"fastsae"} (e.g., from \code{\link{hb_area}},
 \code{\link{eblup_fh}}, \code{\link{eblup_sfh}}, or \code{\link{eblup_stfh}}).}
 
 \item{W}{Optional spatial proximity or adjacency matrix of dimension \eqn{D \times D}.
-If \code{NULL} and the fitted model contains a spatial matrix (e.g. \code{eblup_sfh} or spatial \code{ebp_area}),
+If \code{NULL} and the fitted model contains a spatial matrix (e.g. \code{eblup_sfh} or spatial \code{hb_area}),
 it is automatically extracted from \code{object}.}
 
 \item{truth}{Optional numeric vector containing true parameter values \eqn{\theta_d} (useful for simulation studies).}
@@ -40,7 +40,7 @@ An object of class \code{c("fastsae_diagnose", "list")} containing:
 }
 \description{
 Conducts a comprehensive diagnostic evaluation of small area estimation
-  models (EBP or EBLUP). Evaluates estimation precision, efficiency gains over direct
+  models (HB, EBP, or EBLUP). Evaluates estimation precision, efficiency gains over direct
   estimators, external calibration and bias diagnostics (Brown et al., 2001), goodness-of-fit
   tests, and residual spatial autocorrelation (Moran's I).
 }
@@ -54,10 +54,10 @@ fit_fh <- eblup_fh(y ~ x1 + x2, data = mys, vardir = ~vardir, domain = ~area)
 diag_fh <- diagnose(fit_fh)
 print(diag_fh)
 
-# 2. Fit Spatial EBP model
-fit_ebp <- ebp_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
-diag_ebp <- diagnose(fit_ebp)
-print(diag_ebp)
+# 2. Fit Spatial HB model
+fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
+diag_hb <- diagnose(fit_hb)
+print(diag_hb)
 
 }
 \references{

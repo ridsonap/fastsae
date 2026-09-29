@@ -1,7 +1,7 @@
 library(testthat)
 library(fastsae)
 
-test_that("ebp_area Gaussian estimates match sae::mseFH benchmark (r > 0.99)", {
+test_that("hb_area Gaussian estimates match sae::mseFH benchmark (r > 0.99)", {
   skip_if_not_installed("sae")
 
   data("mys", package = "fastsae")
@@ -13,7 +13,7 @@ test_that("ebp_area Gaussian estimates match sae::mseFH benchmark (r > 0.99)", {
     method = "REML"
   )
 
-  fit_ebp <- ebp_area(
+  fit_hb <- hb_area(
     y ~ x1 + x2 + x3,
     data = mysnona,
     vardir = "vardir",
@@ -24,23 +24,23 @@ test_that("ebp_area Gaussian estimates match sae::mseFH benchmark (r > 0.99)", {
   )
 
   sae_eblup <- as.numeric(fit_sae[["est"]][["eblup"]])
-  ebp_pred <- as.numeric(fit_ebp[["df_ebp"]][["ebp"]])
+  hb_pred <- as.numeric(fit_hb[["df_hb"]][["hb"]])
 
   # Correlation between Frequentist EBLUP (REML) and Bayesian Posterior Mean (INLA)
-  r_est <- cor(sae_eblup, ebp_pred)
+  r_est <- cor(sae_eblup, hb_pred)
   expect_gt(r_est, 0.99)
 
   # Average difference should be small (< 0.25 on this scale)
-  expect_lt(mean(abs(sae_eblup - ebp_pred)), 0.25)
+  expect_lt(mean(abs(sae_eblup - hb_pred)), 0.25)
 
   # MSE / Posterior Variance correlation
   sae_mse <- as.numeric(fit_sae[["mse"]])
-  ebp_mse <- as.numeric(fit_ebp[["df_ebp"]][["mse"]])
-  r_mse <- cor(sae_mse, ebp_mse)
+  hb_mse <- as.numeric(fit_hb[["df_hb"]][["mse"]])
+  r_mse <- cor(sae_mse, hb_mse)
   expect_gt(r_mse, 0.98)
 })
 
-test_that("ebp_area achieves parameter recovery and nominal coverage rate on synthetic data", {
+test_that("hb_area achieves parameter recovery and nominal coverage rate on synthetic data", {
   sim <- sim_area_data(
     D = 40,
     beta = c(10.0, 1.0, 0.5),
@@ -49,7 +49,7 @@ test_that("ebp_area achieves parameter recovery and nominal coverage rate on syn
     seed = 2026
   )
 
-  fit_sim <- ebp_area(
+  fit_sim <- hb_area(
     y_gaussian ~ x1 + x2,
     data = sim$data,
     vardir = "vardir",
@@ -81,7 +81,7 @@ test_that("ebp_area achieves parameter recovery and nominal coverage rate on syn
 test_that("diagnose extracts Bayesian metrics and autoplot supports pit and cpo", {
   data("mys", package = "fastsae")
 
-  fit_ebp <- ebp_area(
+  fit_hb <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
     vardir = ~vardir,
@@ -90,28 +90,28 @@ test_that("diagnose extracts Bayesian metrics and autoplot supports pit and cpo"
     print_result = FALSE
   )
 
-  d_ebp <- diagnose(fit_ebp)
-  expect_s3_class(d_ebp, "fastsae_diagnose")
+  d_hb <- diagnose(fit_hb)
+  expect_s3_class(d_hb, "fastsae_diagnose")
 
   # Bayesian metrics slot
-  expect_true(!is.null(d_ebp$bayesian_metrics))
-  expect_true(is.numeric(d_ebp$bayesian_metrics$waic))
-  expect_true(is.numeric(d_ebp$bayesian_metrics$dic))
-  expect_true(is.numeric(d_ebp$bayesian_metrics$log_mlik))
-  expect_true(!is.null(d_ebp$bayesian_metrics$cpo_summary))
-  expect_true(!is.null(d_ebp$bayesian_metrics$pit_test))
+  expect_true(!is.null(d_hb$bayesian_metrics))
+  expect_true(is.numeric(d_hb$bayesian_metrics$waic))
+  expect_true(is.numeric(d_hb$bayesian_metrics$dic))
+  expect_true(is.numeric(d_hb$bayesian_metrics$log_mlik))
+  expect_true(!is.null(d_hb$bayesian_metrics$cpo_summary))
+  expect_true(!is.null(d_hb$bayesian_metrics$pit_test))
 
   # Dataframe includes cpo and pit columns
-  expect_true("cpo" %in% names(d_ebp$df_diag))
-  expect_true("pit" %in% names(d_ebp$df_diag))
+  expect_true("cpo" %in% names(d_hb$df_diag))
+  expect_true("pit" %in% names(d_hb$df_diag))
 
   # Autoplot methods for Bayesian calibration
-  p_pit <- autoplot(d_ebp, type = "pit")
+  p_pit <- autoplot(d_hb, type = "pit")
   expect_s3_class(p_pit, "ggplot")
 
-  p_cpo <- autoplot(d_ebp, type = "cpo")
+  p_cpo <- autoplot(d_hb, type = "cpo")
   expect_s3_class(p_cpo, "ggplot")
 
   # Print report contains Bayesian section
-  expect_message(print(d_ebp), "Bayesian Information Criteria")
+  expect_message(print(d_hb), "Bayesian Information Criteria")
 })

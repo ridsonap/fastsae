@@ -88,7 +88,7 @@ navbar:
         - text: "Spatial & Spatio-Temporal Models (EBLUP)"
           href: articles/spatial-temporal.html
         - text: "Bayesian Area-Level Models (INLA)"
-          href: articles/ebp-area-inla.html
+          href: articles/hb-area-inla.html
         - text: "Model Diagnostics & Calibration"
           href: articles/model-diagnostics.html
         - text: "Unit-Level Estimation (BHF)"
@@ -116,10 +116,10 @@ reference:
       - eblup_fh
       - eblup_sfh
       - eblup_stfh
-  - title: "Bayesian Area-Level Models (INLA / EBP)"
+  - title: "Bayesian Area-Level Models (INLA / HB)"
     desc: "Hierarchical Bayesian Small Area Estimation using INLA across 6 distributions with spatial and spatio-temporal effects"
     contents:
-      - ebp_area
+      - hb_area
   - title: "Unit-Level Models"
     desc: "Battese-Harter-Fuller model for unit-level survey data"
     contents:
