@@ -37,6 +37,7 @@ print.fastsae <- function(x, ...) {
     "ST"  = "Spatio-Temporal Fay-Herriot (ST-FH)",
     "S"   = "Spatial Fay-Herriot (S-FH)",
     "BHF" = "Battese-Harter-Fuller (Unit-level)",
+    "TFH" = "Two-fold Fay-Herriot (Area/Subarea-level)",
     x$model %||% "Fay-Herriot"
   )
 
@@ -54,7 +55,13 @@ print.fastsae <- function(x, ...) {
   }
 
   if (!is.null(x$random_effect_var)) {
-    cat("Random effect variance (sigma2_u):", round(x$random_effect_var, 6), "\n")
+    rev <- x$random_effect_var
+    if (length(rev) == 2L && !is.null(names(rev))) {
+      cat("Area effect variance (sigma2_u):", round(rev[1], 6), "\n")
+      cat("Subarea effect variance (sigma2_v):", round(rev[2], 6), "\n")
+    } else {
+      cat("Random effect variance (sigma2_u):", round(rev, 6), "\n")
+    }
   }
   if (!is.null(x$random_effect_var_time)) {
     cat("Temporal effect variance (sigma2_t):", round(x$random_effect_var_time, 6), "\n")
@@ -151,6 +158,7 @@ print.summary.fastsae <- function(x, ...) {
     "ST"  = "Spatio-Temporal Fay-Herriot (ST-FH)",
     "S"   = "Spatial Fay-Herriot (S-FH)",
     "BHF" = "Battese-Harter-Fuller (Unit-level)",
+    "TFH" = "Two-fold Fay-Herriot (Area/Subarea-level)",
     x$model %||% "Fay-Herriot"
   )
 
@@ -181,7 +189,13 @@ print.summary.fastsae <- function(x, ...) {
     print(x$estvarcomp, row.names = FALSE)
   } else if (!is.null(x$random_effect_var)) {
     cat("\nVariance Components:\n")
-    cat("sigma2_u:", round(x$random_effect_var, 6), "\n")
+    rev <- x$random_effect_var
+    if (length(rev) == 2L && !is.null(names(rev))) {
+      cat("sigma2_u (area):", round(rev[1], 6), "\n")
+      cat("sigma2_v (subarea):", round(rev[2], 6), "\n")
+    } else {
+      cat("sigma2_u:", round(rev, 6), "\n")
+    }
   }
   if (!is.null(x$random_effect_var_time)) {
     cat("sigma2_t (temporal):", round(x$random_effect_var_time, 6), "\n")

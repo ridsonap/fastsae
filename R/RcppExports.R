@@ -25,6 +25,10 @@
     .Call(`_fastsae_pbmse_stfh`, Xall, yall, vardirall, proxmat, D, Tt, model, maxiter, precision, B, n_threads, seed)
 }
 
+.eblup_tfh_core <- function(Xall, yall, vardirall, area, method = "REML", B = 200L, maxiter = 100L, precision = 1e-4) {
+    .Call(`_fastsae_eblup_tfh_core`, Xall, yall, vardirall, area, method, B, maxiter, precision)
+}
+
 .eblup_bhf_cpp <- function(selectdom, dom, Xs, meanxpop, ys, popnsize, betaest, upred) {
     .Call(`_fastsae_eblup_bhf_cpp`, selectdom, dom, Xs, meanxpop, ys, popnsize, betaest, upred)
 }
