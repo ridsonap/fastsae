@@ -54,10 +54,12 @@ fit_fh <- eblup_fh(y ~ x1 + x2, data = mys, vardir = ~vardir, domain = ~area)
 diag_fh <- diagnose(fit_fh)
 print(diag_fh)
 
-# 2. Fit Spatial HB model
-fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
-diag_hb <- diagnose(fit_hb)
-print(diag_hb)
+# 2. Fit Spatial HB model (requires INLA)
+if (requireNamespace("INLA", quietly = TRUE)) {
+  fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
+  diag_hb <- diagnose(fit_hb)
+  print(diag_hb)
+}
 
 }
 \references{
