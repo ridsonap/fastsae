@@ -255,7 +255,7 @@ List eblup_core(
     _["df_eblup"] = df_eblup,
     _["goodness"] = goodness,
     _["n_iter"] = k,
-    _["convergence"] = (k < maxiter),
+    _["convergence"] = (diff <= precision),
     _["method"] = "eblup",
     _["level"] = "area"
   );

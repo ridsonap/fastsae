@@ -94,8 +94,13 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
   df1 <- .extract_domain_data(model1)
   df2 <- .extract_domain_data(model2)
 
-  # Merge on domain ID
-  merged <- merge(df1, df2, by = "domain", suffixes = c("_1", "_2"), all = FALSE)
+  # Merge on domain ID; for panel (domain x time) data also merge on time
+  # to avoid a Cartesian product
+  by_cols <- "domain"
+  if ("time" %in% names(df1) && "time" %in% names(df2)) {
+    by_cols <- c("domain", "time")
+  }
+  merged <- merge(df1, df2, by = by_cols, suffixes = c("_1", "_2"), all = FALSE)
 
   if (nrow(merged) == 0) {
     cli::cli_abort("No overlapping domains found between {.arg model1} and {.arg model2}.")
@@ -395,13 +400,17 @@ autoplot.fastsae_comparison <- function(
     mse_val <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else NA_real_)
     rse_val <- df$rse %||% (if (!all(is.na(mse_val))) (sqrt(mse_val) / abs(est_val)) * 100 else NA_real_)
 
-    return(data.frame(
+    out <- data.frame(
       domain = as.character(dom_vals),
       estimate = as.numeric(est_val),
       mse = as.numeric(mse_val),
       rse = as.numeric(rse_val),
       stringsAsFactors = FALSE
-    ))
+    )
+    # Preserve the time index for panel models so merges don't Cartesian-join
+    time_col <- intersect(c("time", "period", "year"), names(df))[1]
+    if (!is.null(time_col)) out$time <- df[[time_col]]
+    return(out)
   } else if (is.data.frame(model)) {
     dom_col <- intersect(c("domain", "area", "id", "code"), names(model))[1]
     est_col <- intersect(c("estimate", "hb", "ebp", "eblup", "est", "y_hat"), names(model))[1]
@@ -412,13 +421,16 @@ autoplot.fastsae_comparison <- function(
     mse_val <- model$mse %||% rep(NA_real_, nrow(model))
     rse_val <- model$rse %||% (if (!all(is.na(mse_val))) (sqrt(mse_val) / abs(est_val)) * 100 else rep(NA_real_, nrow(model)))
 
-    return(data.frame(
+    out <- data.frame(
       domain = as.character(dom_vals),
       estimate = as.numeric(est_val),
       mse = as.numeric(mse_val),
       rse = as.numeric(rse_val),
       stringsAsFactors = FALSE
-    ))
+    )
+    time_col <- intersect(c("time", "period", "year"), names(model))[1]
+    if (!is.null(time_col)) out$time <- model[[time_col]]
+    return(out)
   } else {
     cli::cli_abort("Unsupported model object class: {.cls {class(model)}}.")
   }

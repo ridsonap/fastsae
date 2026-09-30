@@ -236,6 +236,7 @@ List seblup_core(
   arma::mat Xns, X;
   arma::vec y, vardir;
   arma::uvec idx_ns, idx_s;
+  arma::vec u_ns; // kriged random effects for unsampled areas (filled when adaNA)
   bool adaNA = yall.has_nan();
 
   if (adaNA) {
@@ -586,7 +587,7 @@ List seblup_core(
     mat G_rr = G_full.submat(idx_ns, idx_ns);
 
     mat KrigW = G_rs * Vi;
-    mat u_ns = KrigW * resid;
+    u_ns = KrigW * resid;
     vec eblup_ns = Xns * beta + u_ns;
 
     mat Gb_ns = KrigW * X;
@@ -596,11 +597,6 @@ List seblup_core(
     vec g1d_ns = Ga_ns.diag();
     vec g2d_ns = sum((R_ns * Q) % R_ns, 1);
     vec mse_ns = g1d_ns + g2d_ns;
-
-    vec u_sampled = GVi * resid;
-    vec u_all(Xall.n_rows);
-    u_all.elem(idx_s) = u_sampled;
-    u_all.elem(idx_ns) = u_ns;
 
     eblup_all.elem(idx_s)  = eblup;
     eblup_all.elem(idx_ns)  = eblup_ns;
@@ -615,9 +611,8 @@ List seblup_core(
   if (!adaNA) {
     u_all = GVi * resid;
   } else {
-    // already populated inside if (adaNA)
     u_all.elem(idx_s) = GVi * resid;
-    // idx_ns already set
+    u_all.elem(idx_ns) = u_ns;
   }
 
   // ================================================================

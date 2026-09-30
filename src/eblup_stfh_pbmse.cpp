@@ -320,11 +320,13 @@ List pbmse_stfh(
         U2_boot.rows(d * Tt, (d + 1) * Tt - 1).col(b) = U2_st.slice(0).col(d);
       }
     } else {
-      vec u2_d(Tt);
-      for (int t = 0; t < Tt; ++t) {
-        u2_d(t) = R::rnorm(0.0, std::sqrt(sigma22_est));
-      }
+      // Model "S": u2dt iid N(0, sigma22) independently per domain and time.
+      // NOTE: each domain gets its own independent draw (no cross-domain reuse).
       for (int d = 0; d < D; ++d) {
+        vec u2_d(Tt);
+        for (int t = 0; t < Tt; ++t) {
+          u2_d(t) = R::rnorm(0.0, std::sqrt(sigma22_est));
+        }
         U2_boot.rows(d * Tt, (d + 1) * Tt - 1).col(b) = u2_d;
       }
     }
