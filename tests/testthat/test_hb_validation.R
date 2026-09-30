@@ -2,6 +2,7 @@ library(testthat)
 library(fastsae)
 
 test_that("hb_area Gaussian estimates match sae::mseFH benchmark (r > 0.99)", {
+  skip_if_not_installed("INLA")
   skip_if_not_installed("sae")
 
   data("mys", package = "fastsae")
@@ -41,6 +42,7 @@ test_that("hb_area Gaussian estimates match sae::mseFH benchmark (r > 0.99)", {
 })
 
 test_that("hb_area achieves parameter recovery and nominal coverage rate on synthetic data", {
+  skip_if_not_installed("INLA")
   sim <- sim_area_data(
     D = 40,
     beta = c(10.0, 1.0, 0.5),
@@ -79,6 +81,7 @@ test_that("hb_area achieves parameter recovery and nominal coverage rate on synt
 })
 
 test_that("diagnose extracts Bayesian metrics and autoplot supports pit and cpo", {
+  skip_if_not_installed("INLA")
   data("mys", package = "fastsae")
 
   fit_hb <- hb_area(
