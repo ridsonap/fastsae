@@ -19,6 +19,10 @@
 #' @param subarea vector, column name or one-sided formula referencing the subarea identifier column
 #'   in \code{data}. If NULL, rows are numbered consecutively.
 #' @param method Fitting method can be chosen between 'REML' and 'ML'.
+#' @param mse MSE estimation method: 'analytical' (Prasad-Rao g1+g2+g3, fast) or
+#'   'bootstrap' (parametric bootstrap, slower but robust).
+#' @param B number of parametric bootstrap replicates (only used if mse = 'bootstrap').
+#' @param seed integer seed for bootstrap resampling (NULL = no seed set).
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
 #' @param print_result print coefficient or not, default value is TRUE.
@@ -34,9 +38,8 @@
 #' @details
 #' The model has a form that is response ~ auxiliary variables, with one row per subarea.
 #' When the response contains NA the subarea is treated as non-sampled and predicted
-#' with the synthetic estimator. MSE is the analytical Prasad-Rao estimator
-#' \eqn{g_1+g_2+g_3}; the \eqn{g_3} term uses an exact matrix derivation for the
-#' derivatives of the BLUP w.r.t. the variance components.
+#' with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
+#' g1+g2+g3 with exact matrix derivation for g3) or by parametric bootstrap.
 #'
 #' @export
 #' @examples
@@ -65,11 +68,15 @@ eblup_tfh <- function(
   subarea = NULL,
   data,
   method = c("REML", "ML"),
+  mse = c("analytical", "bootstrap"),
+  B = 200,
+  seed = NULL,
   maxiter = 100,
   precision = 1e-4,
   print_result = TRUE
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
+  mse <- match.arg(mse, choices = c("analytical", "bootstrap"))
   if (is.null(domain)) {
     cli::cli_abort("`domain` (area identifier) must be supplied for the two-fold model.")
   }
@@ -98,12 +105,16 @@ eblup_tfh <- function(
 
   area_idx <- as.integer(factor(domain)) - 1L
 
+  if (!is.null(seed)) set.seed(seed)
+
   res <- .eblup_tfh_core(
     Xall = X,
     yall = y,
     vardirall = vardir,
     area = area_idx,
     method = method,
+    mse_type = mse,
+    B = as.integer(B),
     maxiter = maxiter,
     precision = precision
   )

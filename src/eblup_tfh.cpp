@@ -236,12 +236,15 @@ TfhFit tfh_fit(const mat& Xs, const vec& ys, const vec& psis,
 // [[Rcpp::export(.eblup_tfh_core)]]
 List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
                     const arma::vec& vardirall, const arma::ivec& area,
-                    std::string method = "REML",
-                    int maxiter = 100, double precision = 1e-4) {
+                    std::string method = "REML", std::string mse_type = "analytical",
+                    int B = 200, int maxiter = 100, double precision = 1e-4) {
   const int N = Xall.n_rows;
   const int p = Xall.n_cols;
 
   if (!(method == "ML" || method == "REML")) Rcpp::stop("method must be 'ML' or 'REML'.");
+  if (!(mse_type == "analytical" || mse_type == "bootstrap"))
+    Rcpp::stop("mse_type must be 'analytical' or 'bootstrap'.");
+  if (mse_type == "bootstrap" && B < 1) Rcpp::stop("B must be >= 1 for bootstrap MSE.");
   if (area.n_elem != (uword)N) Rcpp::stop("area length must match data rows.");
 
   uvec idx_s = find_finite(yall);
@@ -273,7 +276,8 @@ List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
   const double s2v = f.s2v, s2u = f.s2u;
   const double var_v = f.InfoInv(0,0), var_u = f.InfoInv(1,1), cov_vu = f.InfoInv(0,1);
 
-  // ---- EBLUP + analytical MSE (g1+g2+g3) for sampled; synthetic for non-sampled
+  // ---- EBLUP for sampled; synthetic for non-sampled
+  // MSE computed separately below (analytical or bootstrap)
   vec eblup_all(N), mse_all(N);
   vec u_area(N), v_sub(N);
   u_area.fill(NA_REAL);
@@ -301,108 +305,135 @@ List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
     eblup_all.elem(gid) = Xd * beta + vhat + uhat;
     u_area.elem(gid).fill(vhat);
     v_sub.elem(gid) = uhat;
-
-    // ---- g1, g2, g3 via explicit per-area matrices (nd is small)
-    mat Vd = s2v * ones<mat>(nd, nd) + diagmat(s2u + psid);
-    mat Sd = s2v * ones<mat>(nd, nd) + s2u * eye<mat>(nd, nd);
-    mat Vinv;
-    if (!inv_sympd(Vinv, Vd)) Vinv = pinv(Vd);
-    mat Vinv2 = Vinv * Vinv;
-
-    // g1 = diag(Sd - Sd*Vinv*Sd)
-    mat SVinv = Sd * Vinv;
-    mat G1m = Sd - SVinv * Sd;
-    vec g1 = G1m.diag();
-
-    // g2 = diag( D Q D' ), D = (I - Sd*Vinv) Xd
-    mat Dd = (eye<mat>(nd, nd) - SVinv) * Xd;
-    mat DQ = Dd * f.Q;
-    vec g2(nd);
-    for (int j = 0; j < nd; ++j) g2(j) = dot(DQ.row(j), Dd.row(j));
-
-    // g3: Mu = Vinv - Sd*Vinv2 ; Mv = 11'Vinv - Sd*Vinv*11'Vinv
-    mat Mu = Vinv - Sd * Vinv2;
-    vec onev = ones<vec>(nd);
-    vec w = Vinv * onev;            // V^{-1} 1
-    mat Mv = onev * w.t() - Sd * Vinv * onev * w.t();
-    // E_uu = diag(Mu V Mu'), E_vv = diag(Mv V Mv'), E_vu = diag(Mv V Mu')
-    mat MuV = Mu * Vd;
-    mat MvV = Mv * Vd;
-    vec E_uu(nd), E_vv(nd), E_vu(nd);
-    for (int j = 0; j < nd; ++j) {
-      E_uu(j) = dot(MuV.row(j), Mu.row(j));
-      E_vv(j) = dot(MvV.row(j), Mv.row(j));
-      E_vu(j) = dot(MvV.row(j), Mu.row(j));
-    }
-    vec g3 = E_vv * var_v + E_uu * var_u + 2.0 * E_vu * cov_vu;
-    // Guard against tiny negative values from numerical error
-    vec mse_d = g1 + g2 + g3;
-    for (int j = 0; j < nd; ++j) if (mse_d(j) < 0 && mse_d(j) > -1e-8) mse_d(j) = 0;
-    mse_all.elem(gid) = mse_d;
   }
+  // Non-sampled EBLUP: synthetic
+  if (adaNA) eblup_all.elem(idx_ns) = Xbeta_all.elem(idx_ns);
 
-  // Non-sampled: synthetic predictor + analytical MSE (g1*+g2*+g3*)
-  // mu*_j = x'_j beta + vhat_i ; MSE* = Var(mu_j - mu*_j)
-  // Derived: MSE* = s2v + s2u + x'_j Q x_j - 2*s2v*x'_j Q X_i' V_i^{-1} 1
-  //                + g3*  (variance-component estimation)
-  // For g3* we use the delta method on mu*_j = x'_j beta + s2v*1'V_i^{-1}r_i.
-  if (adaNA) {
-    // Need per-area Vinv*1 and X'Vinv*1 for areas with sampled data
+  // ---- MSE: analytical (g1+g2+g3) or parametric bootstrap
+  if (mse_type == "analytical") {
+    // Sampled: g1+g2+g3 via explicit per-area matrices
     for (int d = 0; d < m_all; ++d) {
       const uvec& id = sidx[d];
       if (id.n_elem == 0) continue;
+      uvec gid = idx_s.elem(id);
       const int nd = id.n_elem;
       const mat Xd = Xs.rows(id);
       const vec psid = psis.elem(id);
-      const vec dd = 1.0 / (s2u + psid);
-      const double s = accu(dd);
-      const double c = (s2v > 0.0) ? s2v / (1.0 + s2v * s) : 0.0;
-      const vec w = dd * (1.0 - c * s);  // V_d^{-1} 1
-      const vec Xtw = Xd.t() * w;         // X_d' V_d^{-1} 1
-      // global rows in area d that are non-sampled
-      uvec alld = find(area == d);
-      for (uword k = 0; k < alld.n_elem; ++k) {
-        const int gi = alld(k);
-        if (arma::is_finite(yall(gi))) continue;  // sampled already done
-        rowvec xj = Xall.row(gi);
-        double vhat_i = 0.0;
-        // vhat_i needs r_i; recompute from sampled data in area d
-        const vec yd = ys.elem(id);
-        const vec res = yd - Xd * beta;
-        vhat_i = s2v * dot(w, res);
-        eblup_all(gi) = as_scalar(xj * beta) + vhat_i;
-        u_area(gi) = vhat_i;
-        v_sub(gi) = 0.0;
-        // g1*+g2*: Var(x'_j(beta^-beta) - v_i - u_ij)
-        // = x'_j Q x_j + s2v + s2u - 2*s2v*x'_j Q X_i'V_i^{-1}1
-        double xQx = as_scalar(xj * f.Q * xj.t());
-        double xQXt = as_scalar(xj * f.Q * Xtw);
-        double mse_star = xQx + s2v + s2u - 2.0 * s2v * xQXt;
-        // g3*: delta method on mu*_j = x'_j beta + s2v * w' r_i
-        // d mu*/d s2v, d mu*/d s2u via matrix calculus on w and r_i.
-        // We compute E[(d mu*/d .)^2] = a' V_d a form with a from derivatives.
-        // d/d s2v [s2v * w'r] ; d/d s2u [s2v * w'r].
-        // w = V^{-1} 1. dw/d s2v = -V^{-1} 11' V^{-1} 1 = -V^{-1}1 (1'V^{-1}1) = -w*(w'1).
-        // dw/d s2u = -V^{-1} V^{-1} 1 = -V^{-1} w.
-        // Let t = w'r. d mu*/d s2v = t + s2v * (dw/d s2v)' r = t - s2v*(w'1)*w'r.
-        // d mu*/d s2u = s2v * (dw/d s2u)' r = -s2v * w' V^{-1} r.
-        // These are linear in r: a_v' r, a_u' r.
-        mat Vd = s2v * ones<mat>(nd, nd) + diagmat(s2u + psid);
-        mat Vinv;
-        if (!inv_sympd(Vinv, Vd)) Vinv = pinv(Vd);
-        vec wv = Vinv * ones<vec>(nd);
-        double w1 = dot(wv, ones<vec>(nd));
-        vec a_v = wv - s2v * w1 * wv;   // a_v' r = d mu*/d s2v
-        vec a_u = -s2v * (Vinv * wv);    // a_u' r = d mu*/d s2u
-        double Evv = as_scalar(a_v.t() * Vd * a_v);
-        double Euu = as_scalar(a_u.t() * Vd * a_u);
-        double Evu = as_scalar(a_v.t() * Vd * a_u);
-        double g3s = Evv * var_v + Euu * var_u + 2.0 * Evu * cov_vu;
-        mse_star += g3s;
-        if (mse_star < 0 && mse_star > -1e-8) mse_star = 0;
-        mse_all(gi) = mse_star;
+
+      mat Vd = s2v * ones<mat>(nd, nd) + diagmat(s2u + psid);
+      mat Sd = s2v * ones<mat>(nd, nd) + s2u * eye<mat>(nd, nd);
+      mat Vinv;
+      if (!inv_sympd(Vinv, Vd)) Vinv = pinv(Vd);
+      mat Vinv2 = Vinv * Vinv;
+
+      // g1 = diag(Sd - Sd*Vinv*Sd)
+      mat SVinv = Sd * Vinv;
+      mat G1m = Sd - SVinv * Sd;
+      vec g1 = G1m.diag();
+
+      // g2 = diag( D Q D' ), D = (I - Sd*Vinv) Xd
+      mat Dd = (eye<mat>(nd, nd) - SVinv) * Xd;
+      mat DQ = Dd * f.Q;
+      vec g2(nd);
+      for (int j = 0; j < nd; ++j) g2(j) = dot(DQ.row(j), Dd.row(j));
+
+      // g3: Mu = Vinv - Sd*Vinv2 ; Mv = 11'Vinv - Sd*Vinv*11'Vinv
+      mat Mu = Vinv - Sd * Vinv2;
+      vec onev = ones<vec>(nd);
+      vec w = Vinv * onev;
+      mat Mv = onev * w.t() - Sd * Vinv * onev * w.t();
+      mat MuV = Mu * Vd;
+      mat MvV = Mv * Vd;
+      vec E_uu(nd), E_vv(nd), E_vu(nd);
+      for (int j = 0; j < nd; ++j) {
+        E_uu(j) = dot(MuV.row(j), Mu.row(j));
+        E_vv(j) = dot(MvV.row(j), Mv.row(j));
+        E_vu(j) = dot(MvV.row(j), Mu.row(j));
+      }
+      vec g3 = E_vv * var_v + E_uu * var_u + 2.0 * E_vu * cov_vu;
+      vec mse_d = g1 + g2 + g3;
+      for (int j = 0; j < nd; ++j) if (mse_d(j) < 0 && mse_d(j) > -1e-8) mse_d(j) = 0;
+      mse_all.elem(gid) = mse_d;
+    }
+
+    // Non-sampled: g1*+g2*+g3* via delta method
+    if (adaNA) {
+      for (int d = 0; d < m_all; ++d) {
+        const uvec& id = sidx[d];
+        if (id.n_elem == 0) continue;
+        const int nd = id.n_elem;
+        const mat Xd = Xs.rows(id);
+        const vec psid = psis.elem(id);
+        const vec dd = 1.0 / (s2u + psid);
+        const double s = accu(dd);
+        const double c = (s2v > 0.0) ? s2v / (1.0 + s2v * s) : 0.0;
+        const vec w = dd * (1.0 - c * s);
+        const vec Xtw = Xd.t() * w;
+        uvec alld = find(area == d);
+        for (uword k = 0; k < alld.n_elem; ++k) {
+          const int gi = alld(k);
+          if (arma::is_finite(yall(gi))) continue;
+          rowvec xj = Xall.row(gi);
+          const vec yd = ys.elem(id);
+          const vec res = yd - Xd * beta;
+          double vhat_i = s2v * dot(w, res);
+          eblup_all(gi) = as_scalar(xj * beta) + vhat_i;
+          u_area(gi) = vhat_i;
+          v_sub(gi) = 0.0;
+          double xQx = as_scalar(xj * f.Q * xj.t());
+          double xQXt = as_scalar(xj * f.Q * Xtw);
+          double mse_star = xQx + s2v + s2u - 2.0 * s2v * xQXt;
+          mat Vd = s2v * ones<mat>(nd, nd) + diagmat(s2u + psid);
+          mat Vinv;
+          if (!inv_sympd(Vinv, Vd)) Vinv = pinv(Vd);
+          vec wv = Vinv * ones<vec>(nd);
+          double w1 = dot(wv, ones<vec>(nd));
+          vec a_v = wv - s2v * w1 * wv;
+          vec a_u = -s2v * (Vinv * wv);
+          double Evv = as_scalar(a_v.t() * Vd * a_v);
+          double Euu = as_scalar(a_u.t() * Vd * a_u);
+          double Evu = as_scalar(a_v.t() * Vd * a_u);
+          double g3s = Evv * var_v + Euu * var_u + 2.0 * Evu * cov_vu;
+          mse_star += g3s;
+          if (mse_star < 0 && mse_star > -1e-8) mse_star = 0;
+          mse_all(gi) = mse_star;
+        }
       }
     }
+  } else {
+    // ---- parametric bootstrap MSE (paper notation: s2v=area, s2u=subarea)
+    vec se_acc(N, fill::zeros);
+    const double sd_v = std::sqrt(s2v), sd_u = std::sqrt(s2u);
+    vec theta_star(N), y_star(Ns);
+    for (int b = 0; b < B; ++b) {
+      vec v_star = randn<vec>(m_all) * sd_v;  // area effects
+      vec u_star = randn<vec>(N) * sd_u;      // subarea effects
+      vec e_star = randn<vec>(Ns);
+      e_star %= sqrt(psis);
+      for (int i = 0; i < N; ++i) theta_star(i) = Xbeta_all(i) + v_star(area(i)) + u_star(i);
+      y_star = theta_star.elem(idx_s) + e_star;
+
+      TfhFit fb = tfh_fit(Xs, y_star, psis, sidx, m_all, method, maxiter, precision);
+      vec eb_star(N);
+      vec Xb = Xall * fb.beta;
+      const double bs2v = fb.s2v, bs2u = fb.s2u;
+      for (int d = 0; d < m_all; ++d) {
+        const uvec& id = sidx[d];
+        if (id.n_elem == 0) continue;
+        uvec gid = idx_s.elem(id);
+        const mat Xd = Xs.rows(id);
+        const vec psid = psis.elem(id);
+        const vec dd = 1.0 / (bs2u + psid);
+        const double s = accu(dd);
+        const double c = (bs2v > 0.0) ? bs2v / (1.0 + bs2v * s) : 0.0;
+        const vec res = y_star.elem(id) - Xd * fb.beta;
+        const vec vr = dd % res - c * dd * dot(dd, res);
+        eb_star.elem(gid) = Xd * fb.beta + bs2v * accu(vr) + bs2u * vr;
+      }
+      if (adaNA) eb_star.elem(idx_ns) = Xb.elem(idx_ns);
+      se_acc += square(eb_star - theta_star);
+    }
+    mse_all = se_acc / (double)B;
   }
 
   // ---- RSE (%)

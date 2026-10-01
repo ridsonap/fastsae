@@ -100,6 +100,33 @@ test_that("eblup_tfh handles non-sampled subareas and degenerate variances", {
   expect_true(all(!is.na(fit$df_eblup$eblup[c(3, 10)])))
 })
 
+test_that("eblup_tfh bootstrap MSE matches analytical MSE", {
+  set.seed(42)
+  m <- 20
+  dat <- do.call(rbind, lapply(seq_len(m), function(d) {
+    nd <- sample(2:4, 1)
+    data.frame(area = d, subarea = paste0(d, "-", seq_len(nd)),
+               x1 = rnorm(nd), vardir = runif(nd, 0.3, 1.0))
+  }))
+  dat$y <- 1 + dat$x1 + rnorm(m, sd = 1)[dat$area] +
+    rnorm(nrow(dat), sd = 0.7) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
+
+  fit_a <- eblup_tfh(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
+                     data = dat, mse = "analytical", print_result = FALSE)
+  fit_b <- eblup_tfh(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
+                     data = dat, mse = "bootstrap", B = 100, seed = 123,
+                     print_result = FALSE)
+
+  # EBLUP identical regardless of MSE method
+  expect_equal(fit_a$df_eblup$eblup, fit_b$df_eblup$eblup)
+  # MSE positively correlated and same order of magnitude
+  expect_gt(cor(fit_a$df_eblup$mse, fit_b$df_eblup$mse), 0.7)
+  ratio <- mean(fit_b$df_eblup$mse) / mean(fit_a$df_eblup$mse)
+  expect_gt(ratio, 0.5)
+  expect_lt(ratio, 2)
+  expect_true(all(fit_b$df_eblup$mse > 0))
+})
+
 test_that("eblup_tfh requires a domain identifier", {
   expect_error(
     eblup_tfh(y ~ x1, vardir = "vardir", data = data.frame(y = 1, x1 = 1, vardir = 1)),

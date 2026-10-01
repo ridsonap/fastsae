@@ -11,6 +11,9 @@ eblup_tfh(
   subarea = NULL,
   data,
   method = c("REML", "ML"),
+  mse = c("analytical", "bootstrap"),
+  B = 200,
+  seed = NULL,
   maxiter = 100,
   precision = 1e-04,
   print_result = TRUE
@@ -30,6 +33,13 @@ in \code{data}. If NULL, rows are numbered consecutively.}
 \item{data}{a data frame or a data frame extension (e.g. a tibble), one row per subarea.}
 
 \item{method}{Fitting method can be chosen between 'REML' and 'ML'.}
+
+\item{mse}{MSE estimation method: 'analytical' (Prasad-Rao g1+g2+g3, fast) or
+'bootstrap' (parametric bootstrap, slower but robust).}
+
+\item{B}{number of parametric bootstrap replicates (only used if mse = 'bootstrap').}
+
+\item{seed}{integer seed for bootstrap resampling (NULL = no seed set).}
 
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm.}
 
@@ -54,9 +64,8 @@ with an area random effect \eqn{v_i} and a subarea random effect \eqn{u_{ij}}.
 \details{
 The model has a form that is response ~ auxiliary variables, with one row per subarea.
 When the response contains NA the subarea is treated as non-sampled and predicted
-with the synthetic estimator. MSE is the analytical Prasad-Rao estimator
-\eqn{g_1+g_2+g_3}; the \eqn{g_3} term uses an exact matrix derivation for the
-derivatives of the BLUP w.r.t. the variance components.
+with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
+g1+g2+g3 with exact matrix derivation for g3) or by parametric bootstrap.
 }
 \examples{
 library(fastsae)
