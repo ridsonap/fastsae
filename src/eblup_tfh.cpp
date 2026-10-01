@@ -23,6 +23,7 @@
 // derivatives (cor 0.97/0.96/0.74). A proposed sigma_u^-2 "correction" was
 // rejected as dimensionally wrong.
 #include <RcppArmadillo.h>
+#include <omp.h>
 
 using namespace Rcpp;
 using namespace arma;
@@ -402,16 +403,23 @@ List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
     }
   } else {
     // ---- parametric bootstrap MSE (paper notation: s2v=area, s2u=subarea)
-    vec se_acc(N, fill::zeros);
+    // OpenMP parallel: pre-generate all random draws (RNG not thread-safe),
+    // each thread writes its own column of SqDiff.
     const double sd_v = std::sqrt(s2v), sd_u = std::sqrt(s2u);
-    vec theta_star(N), y_star(Ns);
+    mat V_star = randn<mat>(m_all, B) * sd_v;  // area effects
+    mat U_star = randn<mat>(N, B) * sd_u;      // subarea effects
+    mat E_star = randn<mat>(Ns, B);
+    E_star.each_col() %= sqrt(psis);           // sampling errors
+    mat SqDiff(N, B, fill::zeros);
+
+#pragma omp parallel for schedule(static)
     for (int b = 0; b < B; ++b) {
-      vec v_star = randn<vec>(m_all) * sd_v;  // area effects
-      vec u_star = randn<vec>(N) * sd_u;      // subarea effects
-      vec e_star = randn<vec>(Ns);
-      e_star %= sqrt(psis);
-      for (int i = 0; i < N; ++i) theta_star(i) = Xbeta_all(i) + v_star(area(i)) + u_star(i);
-      y_star = theta_star.elem(idx_s) + e_star;
+      vec theta_star(N);
+      vec v_star = V_star.col(b);
+      vec u_star = U_star.col(b);
+      for (int i = 0; i < N; ++i)
+        theta_star(i) = Xbeta_all(i) + v_star(area(i)) + u_star(i);
+      vec y_star = theta_star.elem(idx_s) + E_star.col(b);
 
       TfhFit fb = tfh_fit(Xs, y_star, psis, sidx, m_all, method, maxiter, precision);
       vec eb_star(N);
@@ -431,9 +439,9 @@ List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
         eb_star.elem(gid) = Xd * fb.beta + bs2v * accu(vr) + bs2u * vr;
       }
       if (adaNA) eb_star.elem(idx_ns) = Xb.elem(idx_ns);
-      se_acc += square(eb_star - theta_star);
+      SqDiff.col(b) = square(eb_star - theta_star);
     }
-    mse_all = se_acc / (double)B;
+    mse_all = mean(SqDiff, 1);
   }
 
   // ---- RSE (%)
