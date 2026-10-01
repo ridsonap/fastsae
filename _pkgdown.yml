@@ -74,10 +74,16 @@ reference:
     desc: "Hierarchical Bayesian Small Area Estimation using INLA across 6 distributions with spatial and spatio-temporal effects"
     contents:
       - hb_area
+  - title: "Subarea-Level Models (Two-Fold)"
+    desc: "Nested two-fold sub-area level models (Torabi & Rao, 2014) via REML EBLUP and Bayesian INLA"
+    contents:
+      - eblup_twofold
+      - hb_twofold
   - title: "Unit-Level Models"
-    desc: "Battese-Harter-Fuller model for unit-level survey data"
+    desc: "Battese-Harter-Fuller models for unit-level survey data via REML EBLUP and Bayesian INLA"
     contents:
       - eblup_bhf
+      - hb_unit
   - title: "Model Diagnostics & Visualization"
     desc: "Universal diagnostic framework and ggplot2 visualization methods"
     contents:

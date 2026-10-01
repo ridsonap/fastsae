@@ -62,7 +62,11 @@ Documentation : <https://ridsonap.github.io/fastsae/>
 | **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects ($u_d \sim N(0, \sigma_u^2)$) | Analytical (Prasad-Rao) |
 | **Spatial Fay-Herriot** | `eblup_sfh()` | Simultaneous Autoregressive (SAR(1)) | Analytical, Parametric Bootstrap (`pbmse`), Non-Parametric Bootstrap (`npbmse`) |
 | **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | Spatial SAR(1) + Temporal AR(1) | Parametric Bootstrap (`pbmse`) |
+| **Two-Fold Subarea Fay-Herriot** | `eblup_twofold()` | Nested area ($v_i$) and subarea ($u_{ij}$) effects | Analytical Prasad-Rao ($g_1+g_2+g_3$), Parametric Bootstrap |
 | **Battese-Harter-Fuller** (Unit-level) | `eblup_bhf()` | Random intercept nested in domains | Parametric Bootstrap (`pbmse`) |
+| **Bayesian Area-Level (HB)** | `hb_area()` | IID, BYM2, or Besag spatial (6 distribution families) | INLA Posterior Marginal / Variational Laplace |
+| **Bayesian Unit-Level (HB)** | `hb_unit()` | Unit-level GLMM with area random effects | INLA Posterior Sampling (Gaussian, Binomial, Poisson) |
+| **Bayesian Two-Fold Subarea (HB)** | `hb_twofold()` | Nested subarea and area effects with area aggregation | INLA Posterior Sampling (Gaussian, Binomial, Poisson) |
 
 ------------------------------------------------------------------------
 
@@ -246,7 +250,38 @@ summary(fit_bhf)
 head(fit_bhf$df_eblup)
 ```
 
-### 5. Diagnostics and Visualization (`autoplot`)
+### 5. Two-Fold Subarea Models (`eblup_twofold` & `hb_twofold`)
+
+For nested administrative structures (e.g. subdistricts/villages nested within districts):
+
+``` r
+# Frequentist Two-Fold EBLUP (Torabi & Rao, 2014) with analytical Prasad-Rao MSE
+fit_tf_eblup <- eblup_twofold(
+  y ~ x1,
+  vardir = "vardir",
+  domain = "area",
+  subarea = "subarea",
+  data = dat,
+  method = "REML",
+  mse = "analytical"
+)
+
+# Hierarchical Bayes Two-Fold via INLA (subarea predictions + area-level aggregates)
+fit_tf_hb <- hb_twofold(
+  y ~ x1,
+  vardir = "vardir",
+  domain = "area",
+  subarea = "subarea",
+  weight = "w",
+  data = dat
+)
+
+# View sub-area predictions and area-level aggregates
+head(fit_tf_hb$df_subarea)
+head(fit_tf_hb$df_area)
+```
+
+### 6. Diagnostics and Visualization (`autoplot`)
 
 `fastsae` provides convenient ggplot2-based diagnostic and comparison
 visualizations via `autoplot()`:
@@ -279,5 +314,8 @@ autoplot(list("FH" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
 - Pratesi, M., & Salvati, N. (2008). Small area estimation for spatially
   correlated data: A Fay-Herriot with the spatial linear spline model.
   *Journal of Applied Statistics*, 35(7), 781–794.
+- Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a
+  sub-area level model. *Journal of Multivariate Analysis*, 127, 36–55.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
   John Wiley & Sons.
+

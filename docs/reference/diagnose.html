@@ -200,73 +200,68 @@ it is automatically extracted from <code>object</code>.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> <span style="font-weight: bold;">Final Assessment:</span> CAUTION: Potential systematic bias detected between direct and model predictions.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ────────────────────────────────────────────────────────────────────────────────</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 2. Fit Spatial HB model</span></span></span>
-<span class="r-in"><span><span class="va">fit_hb</span> <span class="op">&lt;-</span> <span class="fu"><a href="hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>, data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>, spatial <span class="op">=</span> <span class="st">"bym2"</span>, W <span class="op">=</span> <span class="va">mys_proxmat</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># 2. Fit Spatial HB model (requires INLA)</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"INLA"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">fit_hb</span> <span class="op">&lt;-</span> <span class="fu"><a href="hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>, data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">diag_hb</span> <span class="op">&lt;-</span> <span class="fu">diagnose</span><span class="op">(</span><span class="va">fit_hb</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diag_hb</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> hb_area(formula = y ~ x1 + x2, data = mys, spatial = "bym2", W = mys_proxmat,</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> vardir = "vardir")</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> hb_area(formula = y ~ x1 + x2, data = mys, vardir = "vardir")</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in - iterations)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (BYM2)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 1.678076 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial autocorrelation (rho): 0.4817 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial mixing fraction (phi): 0.4817 </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (Non-spatial)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 1.680241 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  2.9993e+00  6.7355e-01  4.4529e+00  8.4699e-06  1.6908e+00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -3.6465e-03  8.0773e-03 -4.5145e-01  6.5167e-01 -1.9694e-02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           8.6081e-02  2.7821e-02  3.0942e+00  1.9738e-03  3.1295e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  2.9985e+00  6.9159e-01  4.3357e+00  1.4533e-05  1.6566e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -3.6458e-03  8.0955e-03 -4.5035e-01  6.5246e-01 -1.9768e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           8.6096e-02  2.7872e-02  3.0890e+00  2.0084e-03  3.1167e-02</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.3416</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1            0.0121</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2            0.1409</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.3809</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1            0.0122</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2            0.1410</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.336937    7.336937 0.7396177 0.5470343 10.08074 5.902625</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.515022    6.515022 0.7988455 0.6381542 12.26159 4.970633</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.150737    5.150737 0.7839678 0.6146055 15.22050 3.623152</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.362793    4.362793 0.7078676 0.5010765 16.22510 2.964204</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.362973    6.362973 0.8812813 0.7766567 13.85015 4.631067</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.146942    4.146942 0.5685674 0.3232689 13.71052 3.028191</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.334868    7.334868 0.7431323 0.5522456 10.13150 5.897791</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.513206    6.513206 0.8022372 0.6435845 12.31709 4.966316</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.149912    5.149912 0.7842250 0.6150089 15.22793 3.622868</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.363563    4.363563 0.7084515 0.5019035 16.23562 2.962401</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.362974    6.362974 0.8810955 0.7763292 13.84723 4.631029</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.147451    4.147451 0.5686368 0.3233478 13.71051 3.028119</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 8.802104    2.72064313 0.6618838</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.102565    2.28783016 0.8374691</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.699835    0.72250797 0.8822257</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.741249   -1.32713961 0.6581716</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.092337   -0.08182539 1.2788021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.258483   -0.99782653 0.3878004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 8.810718    2.71676505 0.6618838</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.111704    2.28442581 0.8374691</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.701009    0.72130456 0.8822257</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.742049   -1.32530431 0.6581716</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.092070   -0.08178547 1.2788021</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.258779   -0.99654656 0.3878004</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-in"><span><span class="va">diag_hb</span> <span class="op">&lt;-</span> <span class="fu">diagnose</span><span class="op">(</span><span class="va">fit_hb</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diag_hb</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">fastsae Small Area Estimation Diagnostic Report</span> ─────────────────────────────</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model:</span> <span style="color: #0000BB;">"HB-GAUSSIAN (BYM2)"</span> | <span style="font-weight: bold;">Domains:</span> 42 (Sampled: 32, Unsampled: 10)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model:</span> <span style="color: #0000BB;">"HB-GAUSSIAN (Non-spatial)"</span> | <span style="font-weight: bold;">Domains:</span> 42 (Sampled: 32, Unsampled: 10)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">1. Precision &amp; Efficiency Gain</span> ──</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> Domains with RSE &lt; 25%: <span style="font-weight: bold;">61.9%</span> (Caution: low precision)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Average RSE reduction: Direct <span style="color: #0000BB;">"29.49%"</span> -&gt; SAE <span style="color: #0000BB;">"22.92%"</span> (Gain: <span style="font-weight: bold;">6.57%</span>)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Variance reduction in <span style="font-weight: bold;">100%</span> of areas (MSE ratio median: <span style="color: #0000BB;">1.55</span>, max: <span style="color: #0000BB;">5.98</span>)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Average RSE reduction: Direct <span style="color: #0000BB;">"29.49%"</span> -&gt; SAE <span style="color: #0000BB;">"22.95%"</span> (Gain: <span style="font-weight: bold;">6.54%</span>)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Variance reduction in <span style="font-weight: bold;">100%</span> of areas (MSE ratio median: <span style="color: #0000BB;">1.55</span>, max: <span style="color: #0000BB;">5.96</span>)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">2. Brown et al. (2001) Calibration Tests</span> ──</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Bias Regression Test (H0: alpha = 0, beta = 1): F = <span style="color: #0000BB;">2.995</span>, p-value = <span style="color: #0000BB;">0.0652</span> [Statistically Unbiased]</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Estimated parameters: <span style="color: #00BB00;">alpha</span> = -0.8042, <span style="color: #00BB00;">beta</span> = 1.1793</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Bias Regression Test (H0: alpha = 0, beta = 1): F = <span style="color: #0000BB;">3</span>, p-value = <span style="color: #0000BB;">0.0649</span> [Statistically Unbiased]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Estimated parameters: <span style="color: #00BB00;">alpha</span> = -0.805, <span style="color: #00BB00;">beta</span> = 1.1794</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> Goodness-of-Fit Statistic W (Chi-Square): W = <span style="color: #0000BB;">7.34</span> (df = 32), p-value = <span style="color: #0000BB;">1</span> [Deviation from Survey Variance]</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">3. Residual Spatial Autocorrelation</span> ──</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Moran's I on Residuals: I = <span style="color: #0000BB;">-0.0382</span> (Expected: <span style="color: #0000BB;">-0.0323</span>, p-value = <span style="color: #0000BB;">0.438</span>) [No Residual Spatial Autocorrelation]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">5. Bayesian Information Criteria &amp; Predictive Diagnostics</span> ──</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> WAIC: <span style="color: #0000BB;">117.4</span> (p_eff: 13.98) | DIC: <span style="color: #0000BB;">118.44</span> (p_eff: 19.95)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> PIT Calibration Test vs Uniform(0,1): D = <span style="color: #0000BB;">0.084</span>, p-value = <span style="color: #0000BB;">0.9646</span> [Well-calibrated predictive distribution]</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Leave-One-Out CPO: No numerical approximation issues (min CPO = <span style="color: #0000BB;">0.0087</span>)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> WAIC: <span style="color: #0000BB;">117.61</span> (p_eff: 14.05) | DIC: <span style="color: #0000BB;">118.62</span> (p_eff: 20.03)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> PIT Calibration Test vs Uniform(0,1): D = <span style="color: #0000BB;">0.084</span>, p-value = <span style="color: #0000BB;">0.9651</span> [Well-calibrated predictive distribution]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Leave-One-Out CPO: No numerical approximation issues (min CPO = <span style="color: #0000BB;">0.0084</span>)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ────────────────────────────────────────────────────────────────────────────────</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> <span style="font-weight: bold;">Final Assessment:</span> CAUTION: Model goodness-of-fit indicates notable deviation from survey variance.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ────────────────────────────────────────────────────────────────────────────────</span>
