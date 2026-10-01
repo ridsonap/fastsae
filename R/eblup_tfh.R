@@ -2,7 +2,7 @@
 #'
 #' @description This function gives the Empirical Best Linear Unbiased Prediction (EBLUP)
 #'   under a two-fold Fay-Herriot model (Torabi & Rao, 2014): subareas nested within areas
-#'   with an area random effect \eqn{u_d} and a subarea random effect \eqn{v_{di}}.
+#'   with an area random effect \eqn{v_i} and a subarea random effect \eqn{u_{ij}}.
 #'
 #' @references
 #' \enumerate{
@@ -19,16 +19,14 @@
 #' @param subarea vector, column name or one-sided formula referencing the subarea identifier column
 #'   in \code{data}. If NULL, rows are numbered consecutively.
 #' @param method Fitting method can be chosen between 'REML' and 'ML'.
-#' @param B number of parametric bootstrap replicates for MSE estimation.
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
-#' @param seed integer seed for the bootstrap resampling (NULL = no seed set).
 #' @param print_result print coefficient or not, default value is TRUE.
 #'
 #' @returns The function returns a list with the following objects:
 #' \code{estcoef} a data frame with the estimated model coefficients,
-#' \code{random_effect_var} named vector with the estimated area (\code{sigma2_u}) and
-#' subarea (\code{sigma2_v}) variances,
+#' \code{random_effect_var} named vector with the estimated area (\code{sigma2_v}) and
+#' subarea (\code{sigma2_u}) variances (paper notation),
 #' \code{goodness} vector containing several goodness-of-fit measures,
 #' \code{df_eblup} a data frame that contains domain, subarea, y, eblup, vardir,
 #' random_effect_area, random_effect_subarea, mse, and rse. \cr
@@ -36,7 +34,9 @@
 #' @details
 #' The model has a form that is response ~ auxiliary variables, with one row per subarea.
 #' When the response contains NA the subarea is treated as non-sampled and predicted
-#' with the synthetic estimator. MSE is estimated by parametric bootstrap.
+#' with the synthetic estimator. MSE is the analytical Prasad-Rao estimator
+#' \eqn{g_1+g_2+g_3}; the \eqn{g_3} term uses an exact matrix derivation for the
+#' derivatives of the BLUP w.r.t. the variance components.
 #'
 #' @export
 #' @examples
@@ -55,7 +55,7 @@
 #' dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
 #'   rnorm(nrow(dat), sd = sqrt(dat$vardir))
 #' m1 <- eblup_tfh(y ~ x1, vardir = "vardir", domain = "area",
-#'                 subarea = "subarea", data = dat, B = 50, seed = 1)
+#'                 subarea = "subarea", data = dat)
 #'
 #' @md
 eblup_tfh <- function(
@@ -65,10 +65,8 @@ eblup_tfh <- function(
   subarea = NULL,
   data,
   method = c("REML", "ML"),
-  B = 200,
   maxiter = 100,
   precision = 1e-4,
-  seed = NULL,
   print_result = TRUE
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
@@ -100,15 +98,12 @@ eblup_tfh <- function(
 
   area_idx <- as.integer(factor(domain)) - 1L
 
-  if (!is.null(seed)) set.seed(seed)
-
   res <- .eblup_tfh_core(
     Xall = X,
     yall = y,
     vardirall = vardir,
     area = area_idx,
     method = method,
-    B = as.integer(B),
     maxiter = maxiter,
     precision = precision
   )
