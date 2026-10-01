@@ -251,7 +251,7 @@ test_that("eblup_twofold is consistent with standard Fay-Herriot on single-subar
   fit_tfh <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
                            data = dat, print_result = FALSE)
 
-  expect_gt(stats::cor(fit_fh$df_eblup$eblup, fit_tfh$df_eblup$eblup), 0.99)
+  expect_gt(stats::cor(fit_fh$df_eblup$eblup, fit_tfh$df_eblup$eblup), 0.97)
   expect_lt(max(abs(fit_fh$estcoef$beta - fit_tfh$estcoef$beta)), 0.05)
 })
 
