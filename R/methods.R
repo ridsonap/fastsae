@@ -38,6 +38,7 @@ print.fastsae <- function(x, ...) {
     "S"   = "Spatial Fay-Herriot (S-FH)",
     "BHF" = "Battese-Harter-Fuller (Unit-level)",
     "TFH" = "Two-fold Fay-Herriot (Area/Subarea-level)",
+    "TWOFOLD" = "Two-fold Fay-Herriot (Area/Subarea-level)",
     x$model %||% "Fay-Herriot"
   )
 
@@ -57,8 +58,8 @@ print.fastsae <- function(x, ...) {
   if (!is.null(x$random_effect_var)) {
     rev <- x$random_effect_var
     if (length(rev) == 2L && !is.null(names(rev))) {
-      cat("Area effect variance (sigma2_u):", round(rev[1], 6), "\n")
-      cat("Subarea effect variance (sigma2_v):", round(rev[2], 6), "\n")
+      cat(paste0("Area effect variance (", names(rev)[1], "):"), round(rev[1], 6), "\n")
+      cat(paste0("Subarea effect variance (", names(rev)[2], "):"), round(rev[2], 6), "\n")
     } else {
       cat("Random effect variance (sigma2_u):", round(rev, 6), "\n")
     }
@@ -95,6 +96,14 @@ print.fastsae <- function(x, ...) {
     }
   }
 
+  if (!is.null(x$df_area)) {
+    cat("\nArea-Level Aggregates (First 6 areas):\n")
+    print(utils::head(x$df_area, 6), ...)
+    if (nrow(x$df_area) > 6) {
+      cat("... and", nrow(x$df_area) - 6, "more areas.\n")
+    }
+  }
+
   cat("\n")
   invisible(x)
 }
@@ -128,6 +137,7 @@ summary.fastsae <- function(object, ...) {
     goodness = object$goodness,
     df_eblup = object$df_eblup,
     df_hb = object$df_hb,
+    df_area = object$df_area,
     df_ebp = object$df_ebp,
     level = object$level
   )
@@ -159,6 +169,7 @@ print.summary.fastsae <- function(x, ...) {
     "S"   = "Spatial Fay-Herriot (S-FH)",
     "BHF" = "Battese-Harter-Fuller (Unit-level)",
     "TFH" = "Two-fold Fay-Herriot (Area/Subarea-level)",
+    "TWOFOLD" = "Two-fold Fay-Herriot (Area/Subarea-level)",
     x$model %||% "Fay-Herriot"
   )
 
@@ -191,8 +202,8 @@ print.summary.fastsae <- function(x, ...) {
     cat("\nVariance Components:\n")
     rev <- x$random_effect_var
     if (length(rev) == 2L && !is.null(names(rev))) {
-      cat("sigma2_u (area):", round(rev[1], 6), "\n")
-      cat("sigma2_v (subarea):", round(rev[2], 6), "\n")
+      cat(paste0(names(rev)[1], " (area):"), round(rev[1], 6), "\n")
+      cat(paste0(names(rev)[2], " (subarea):"), round(rev[2], 6), "\n")
     } else {
       cat("sigma2_u:", round(rev, 6), "\n")
     }

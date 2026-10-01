@@ -56,7 +56,7 @@ print(diag_fh)
 
 # 2. Fit Spatial HB model (requires INLA)
 if (requireNamespace("INLA", quietly = TRUE)) {
-  fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir", spatial = "bym2", W = mys_proxmat)
+  fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir")
   diag_hb <- diagnose(fit_hb)
   print(diag_hb)
 }

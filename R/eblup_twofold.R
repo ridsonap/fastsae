@@ -41,6 +41,7 @@
 #' with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
 #' g1+g2+g3 with exact matrix derivation for g3) or by parametric bootstrap.
 #'
+#' @aliases eblup_tfh
 #' @export
 #' @examples
 #' library(fastsae)
@@ -57,11 +58,11 @@
 #' }))
 #' dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
 #'   rnorm(nrow(dat), sd = sqrt(dat$vardir))
-#' m1 <- eblup_tfh(y ~ x1, vardir = "vardir", domain = "area",
-#'                 subarea = "subarea", data = dat)
+#' m1 <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area",
+#'                     subarea = "subarea", data = dat)
 #'
 #' @md
-eblup_tfh <- function(
+eblup_twofold <- function(
   formula,
   vardir,
   domain = NULL,
@@ -122,7 +123,7 @@ eblup_tfh <- function(
   # attach metadata
   row.names(res$estcoef) <- colnames(X)
   res$formula <- formula
-  res$model <- "TFH"
+  res$model <- "TWOFOLD"
 
   # Add domain/subarea identifiers as first columns in df_eblup
   res$df_eblup$domain <- domain
@@ -145,3 +146,7 @@ eblup_tfh <- function(
   }
   return(res)
 }
+
+#' @export
+eblup_tfh <- eblup_twofold
+

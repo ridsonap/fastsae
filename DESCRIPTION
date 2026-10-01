@@ -71,8 +71,11 @@ Collate:
     eblup_fh.R
     eblup_sfh.R
     eblup_stfh.R
+    eblup_twofold.R
     eblup_bhf.R
     hb_area.R
+    hb_unit.R
+    hb_twofold.R
     sim_spatial_weights.R
     sim_area_data.R
     sim_series_data.R

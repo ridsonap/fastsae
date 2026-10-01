@@ -97,7 +97,9 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
   # Merge on domain ID; for panel (domain x time) data also merge on time
   # to avoid a Cartesian product
   by_cols <- "domain"
-  if ("time" %in% names(df1) && "time" %in% names(df2)) {
+  if ("subarea" %in% names(df1) && "subarea" %in% names(df2)) {
+    by_cols <- c("domain", "subarea")
+  } else if ("time" %in% names(df1) && "time" %in% names(df2)) {
     by_cols <- c("domain", "time")
   }
   merged <- merge(df1, df2, by = by_cols, suffixes = c("_1", "_2"), all = FALSE)
@@ -407,17 +409,19 @@ autoplot.fastsae_comparison <- function(
       rse = as.numeric(rse_val),
       stringsAsFactors = FALSE
     )
-    # Preserve the time index for panel models so merges don't Cartesian-join
-    time_col <- intersect(c("time", "period", "year"), names(df))[1]
-    if (!is.null(time_col)) out$time <- df[[time_col]]
+    # Preserve time and subarea index to avoid Cartesian join
+    time_col <- intersect(c("time", "period", "year"), names(df))
+    if (length(time_col) > 0) out$time <- df[[time_col[1]]]
+    subarea_col <- intersect(c("subarea", "sub_id", "subdomain"), names(df))
+    if (length(subarea_col) > 0) out$subarea <- as.character(df[[subarea_col[1]]])
     return(out)
   } else if (is.data.frame(model)) {
-    dom_col <- intersect(c("domain", "area", "id", "code"), names(model))[1]
-    est_col <- intersect(c("estimate", "hb", "ebp", "eblup", "est", "y_hat"), names(model))[1]
-    if (is.null(est_col)) cli::cli_abort("Data frame must contain an estimate column.")
+    dom_col <- intersect(c("domain", "area", "id", "code"), names(model))
+    dom_vals <- if (length(dom_col) > 0) model[[dom_col[1]]] else seq_len(nrow(model))
+    est_col <- intersect(c("estimate", "hb", "ebp", "eblup", "est", "y_hat"), names(model))
+    if (length(est_col) == 0) cli::cli_abort("Data frame must contain an estimate column.")
 
-    dom_vals <- if (!is.null(dom_col)) model[[dom_col]] else seq_len(nrow(model))
-    est_val <- model[[est_col]]
+    est_val <- model[[est_col[1]]]
     mse_val <- model$mse %||% rep(NA_real_, nrow(model))
     rse_val <- model$rse %||% (if (!all(is.na(mse_val))) (sqrt(mse_val) / abs(est_val)) * 100 else rep(NA_real_, nrow(model)))
 
@@ -428,8 +432,10 @@ autoplot.fastsae_comparison <- function(
       rse = as.numeric(rse_val),
       stringsAsFactors = FALSE
     )
-    time_col <- intersect(c("time", "period", "year"), names(model))[1]
-    if (!is.null(time_col)) out$time <- model[[time_col]]
+    time_col <- intersect(c("time", "period", "year"), names(model))
+    if (length(time_col) > 0) out$time <- model[[time_col[1]]]
+    subarea_col <- intersect(c("subarea", "sub_id", "subdomain"), names(model))
+    if (length(subarea_col) > 0) out$subarea <- as.character(model[[subarea_col[1]]])
     return(out)
   } else {
     cli::cli_abort("Unsupported model object class: {.cls {class(model)}}.")
@@ -446,6 +452,8 @@ autoplot.fastsae_comparison <- function(
         "SFH" = "Spatial FH",
         "ST" = "Spatio-Temporal FH",
         "BHF" = "BHF",
+        "TFH" = "Two-fold FH",
+        "TWOFOLD" = "Two-fold FH",
         "EBP" = paste0("EBP-", toupper(model$family %||% "Beta")),
         model$model
       )
