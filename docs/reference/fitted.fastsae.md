@@ -1,6 +1,6 @@
-# Extract fitted values (EBLUP or EBP) from a fastsae object
+# Extract fitted values (EBLUP or HB) from a fastsae object
 
-Extract fitted values (EBLUP or EBP) from a fastsae object
+Extract fitted values (EBLUP or HB) from a fastsae object
 
 ## Usage
 

@@ -1,29 +1,35 @@
 Package: fastsae
 Type: Package
-Title: Fast Implementation of Small Area Estimation Methods
-Version: 0.1.0
+Title: Fast Frequentist and Bayesian Small Area Estimation
+Version: 1.0.0
 Authors@R: c(
       person("Ridson", "Al Farizal P", role = c("aut", "cre","cph"), email = "alfrzlp@gmail.com", comment = c(ORCID = "0000-0003-0617-0214")),
       person("Azka", "Ubaidillah", role = "aut", email = "azka@stis.ac.id", comment = c(ORCID = "0000-0002-3597-0459")) 
     )
-Description: Provides high-performance implementations of Small Area Estimation
-    (SAE) methods leveraging C++ ('Rcpp', 'RcppArmadillo'), 'OpenMP' multi-threading,
-    and Integrated Nested Laplace Approximations ('INLA'). Supports standard
-    area-level Fay-Herriot models (Fay and Herriot, 1979
-    <doi:10.1080/01621459.1979.10482505>), Spatial Fay-Herriot models (Pratesi
-    and Salvati, 2008 <doi:10.1002/env.861>), Spatio-Temporal Fay-Herriot models
-    (Marhuenda et al., 2013 <doi:10.1016/j.csda.2013.01.016>), unit-level
-    Battese-Harter-Fuller models (Battese et al., 1988 <doi:10.1080/01621459.1988.10478561>),
-    and Empirical Best Predictor (EBP) for generalized linear area-level models
-    (Gaussian, Binomial, Poisson, Negative Binomial, Beta, and Gamma). Features
-    include analytical and bootstrap Mean Squared Error (MSE) estimation, Full
-    Laplace Bayesian inference, external and internal benchmarking calibration
-    to aggregate population targets (Rao and Molina, 2015 <doi:10.1002/9781118814888>),
-    automatic handling of unsampled domains, and modern S3 diagnostic methods.
+Description: Small area estimation (SAE) methods for survey data, covering both
+    frequentist and Bayesian approaches. Frequentist models are fitted with
+    compiled C++ code ('Rcpp', 'RcppArmadillo') and optional 'OpenMP'
+    multi-threading. They include the area-level Fay-Herriot model (Fay and
+    Herriot, 1979 <doi:10.1080/01621459.1979.10482505>), the spatial
+    Fay-Herriot model (Pratesi and Salvati, 2008
+    <doi:10.1007/s10260-007-0061-9>), the spatio-temporal Fay-Herriot model
+    (Marhuenda et al., 2013 <doi:10.1016/j.csda.2012.09.002>), the unit-level
+    Battese-Harter-Fuller model (Battese et al., 1988
+    <doi:10.1080/01621459.1988.10478561>) and the two-fold subarea model
+    (Torabi and Rao, 2014 <doi:10.1016/j.jmva.2014.02.001>). Bayesian models
+    are fitted with Integrated Nested Laplace Approximations ('INLA'), which
+    must be installed separately. The Empirical Best Predictor (EBP) is
+    available for generalized linear area-level models (Gaussian, Binomial,
+    Poisson, Negative Binomial, Beta, and Gamma). Further features include
+    analytical and bootstrap mean squared error estimation, external and
+    internal benchmarking of estimates to aggregate population targets (Rao
+    and Molina, 2015 <doi:10.1002/9781118735855>), automatic handling of
+    unsampled domains, and S3 methods for summaries, diagnostics and plots.
 License: GPL (>= 3)
 URL: https://ridsonap.github.io/fastsae/, https://github.com/ridsonap/fastsae
 BugReports: https://github.com/ridsonap/fastsae/issues
 Encoding: UTF-8
+Language: en-US
 LazyData: true
 Additional_repositories: https://inla.r-inla-download.org/R/stable
 Imports:

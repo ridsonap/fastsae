@@ -124,7 +124,15 @@ $`\times`$ years) with spatial polygon contiguity matrix $`W`$ from
 Use the interactive controls below to compare runtime, memory footprint,
 and speedup factors between
 [`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
-and [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html):
+and [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)
+across **Standard Beta**, **Spatial Beta (Besag ICAR)**, and
+**Spatio-Temporal Beta (Besag + RW1)** models:
+
+Standard Beta
+
+Spatial Beta (ICAR)
+
+Spatio-Temporal Beta
 
 Execution Time
 
@@ -132,26 +140,37 @@ Peak Memory
 
 Throughput (iter/s)
 
-**Area-Level Beta SAE**: INLA vs Stan MCMC
+Execution time (median, seconds) — Standard Beta · log scale
 
-Execution time (median, seconds) — Beta SAE · log scale
-
-Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Beta SAE
+Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Standard
+Beta
 
 #### Inferential Equivalence & Validation Metrics ($`n = 1,000`$)
 
-To establish that the 114x computational acceleration achieved by
+To establish that the substantial computational accelerations achieved
+by
 [`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
-preserves full inferential validity relative to Stan MCMC
+preserve full inferential validity relative to Stan MCMC
 ([`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)),
-summary concordance and error metrics were evaluated across all
-$`n = 1,000`$ domains:
+summary concordance and error metrics were evaluated across
+$`n = 1,000`$ domains/units for Standard Beta, Spatial Beta (Besag
+ICAR), and Spatio-Temporal Beta models:
 
-| Dimension | Metric | Value (5 Digits) | Statistical Implication |
-|:---|:---|:--:|:---|
-| **Point Estimates (EBP)** | **Pearson Correlation ($`r`$)** | **0.99934** | Near-perfect linear agreement between INLA and MCMC |
-|  | **Spearman Rank Correlation ($`\rho`$)** | **0.99921** | Identical domain priority ordering |
-|  | **Mean Absolute Error (MAE)** | **0.01969** | Average estimation discrepancy \< 0.02 |
-|  | **Root Mean Squared Difference (RMSD)** | **0.02369** | Negligible $`L_2`$ deviation across domains |
-| **Uncertainty / MSE** | **MSE Pearson Correlation ($`r_{\text{MSE}}`$)** | **0.96315** | Consistent area-level precision ordering |
-|  | **Mean Absolute Difference (MSE)** | **0.00018** | Virtually identical error variances |
+| Dimension | Metric | Beta | Spatial Beta | Spatio-Temporal Beta | Statistical Implication |
+|:---|:---|:--:|:--:|:--:|:---|
+| **Point Estimates (EBP)** | **Pearson Correlation ($`r`$)** | **0.99934** | **0.99891** | **0.99614** | Near-perfect linear agreement between INLA and MCMC |
+|  | **Spearman Rank Correlation ($`\rho`$)** | **0.99921** | **0.99875** | **0.99517** | Consistent domain priority and rank ordering |
+|  | **Mean Absolute Error (MAE)** | **0.01969** | **0.01456** | **0.01200** | Average estimation discrepancy $`< 0.02`$ |
+|  | **Root Mean Squared Difference (RMSD)** | **0.02369** | **0.01713** | **0.01458** | Negligible $`L_2`$ deviation across domains |
+| **Uncertainty / MSE** | **MSE Pearson Correlation ($`r_{\text{MSE}}`$)** | **0.96315** | **0.89254** | **0.67957** | Preserved area-level precision ordering |
+|  | **Mean Absolute Difference (MSE)** | **0.00018** | **0.00012** | **0.00025** | Virtually identical error variances |
+
+------------------------------------------------------------------------
+
+### Finite Population Simulation & Ground Truth Validation
+
+For comprehensive design-based simulation studies evaluating parameter
+recovery and empirical properties under repeated survey sampling from
+finite populations ($`D = 60`$ and national-scale $`D = 500`$), see the
+dedicated article: [Finite Population Simulation &
+Validation](https://ridsonap.github.io/fastsae/articles/finite-population-validation.md).

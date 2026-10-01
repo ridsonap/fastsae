@@ -12,14 +12,14 @@
 Source:
 [`DESCRIPTION`](https://github.com/ridsonap/fastsae/blob/HEAD/DESCRIPTION)
 
-Al Farizal P R, Ubaidillah A (2026). *fastsae: Fast Implementation of
-Small Area Estimation Methods*. R package version 0.1.0,
+Al Farizal P R, Ubaidillah A (2026). *fastsae: Fast Frequentist and
+Bayesian Small Area Estimation*. R package version 1.0.0,
 <https://ridsonap.github.io/fastsae/>.
 
 @Manual{,\
-  title = {fastsae: Fast Implementation of Small Area Estimation Methods},\
+  title = {fastsae: Fast Frequentist and Bayesian Small Area Estimation},\
   author = {Ridson {Al Farizal P} and Azka Ubaidillah},\
   year = {2026},\
-  note = {R package version 0.1.0},\
+  note = {R package version 1.0.0},\
   url = {https://ridsonap.github.io/fastsae/},\
 }

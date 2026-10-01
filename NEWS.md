@@ -1,4 +1,4 @@
-# fastsae 0.1.1
+# fastsae 1.0.0
 
 ### Major New Features & Enhancements
 * **Two-Fold Subarea EBLUP (`eblup_twofold`, alias `eblup_tfh`)**:

@@ -1,10 +1,16 @@
 ## Test environments
-* local macOS Tahoe 26.6.2, R 4.6.1 (aarch64-apple-darwin23)
+* local macOS, R 4.4 / 4.5
 * win-builder (devel and release)
-* R-hub builder
+* GitHub Actions (macOS, Windows, Ubuntu devel/release/oldrel)
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
-* This is a new submission.
+## Submission summary
+This is an update from version 0.1.0 to 1.0.0.
+
+* Updated package title to "Fast Frequentist and Bayesian Small Area Estimation" to reflect the inclusion of both Frequentist and Bayesian methods.
+* Added Hierarchical Bayes Small Area Estimation models via INLA (`hb_area`, `hb_unit`, `hb_twofold`).
+* Added Two-Fold subarea EBLUP models (`eblup_twofold`).
+* Added model benchmarking (`benchmark_sae`), diagnostics (`diagnose`), comparison (`compare_sae`), mapping (`map_sae`), and export (`export_sae`).

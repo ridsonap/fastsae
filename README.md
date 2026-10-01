@@ -1,82 +1,156 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
 <img src="man/figures/logo.png" alt="fastsae logo" align="right" height="139"/>
 
-# fastsae: High-Performance Small Area Estimation in R
+# fastsae: Fast Frequentist and Bayesian Small Area Estimation in R
 
 <!-- badges: start -->
-[![CRAN status](https://www.r-pkg.org/badges/version/fastsae)](https://CRAN.R-project.org/package=fastsae)
-[![CRAN Downloads](https://cranlogs.r-pkg.org/badges/grand-total/fastsae)](https://CRAN.R-project.org/package=fastsae)
-[![Monthly Downloads](https://cranlogs.r-pkg.org/badges/fastsae)](https://CRAN.R-project.org/package=fastsae)
+
+[![CRAN
+status](https://www.r-pkg.org/badges/version/fastsae)](https://CRAN.R-project.org/package=fastsae)
+[![CRAN
+Downloads](https://cranlogs.r-pkg.org/badges/grand-total/fastsae)](https://CRAN.R-project.org/package=fastsae)
+[![Monthly
+Downloads](https://cranlogs.r-pkg.org/badges/fastsae)](https://CRAN.R-project.org/package=fastsae)
 [![R-CMD-check](https://github.com/ridsonap/fastsae/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ridsonap/fastsae/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/ridsonap/fastsae/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ridsonap/fastsae)
-[![License: GPL-3](https://img.shields.io/badge/License-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Codecov test
+coverage](https://codecov.io/gh/ridsonap/fastsae/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ridsonap/fastsae)
+[![License:
+GPL-3](https://img.shields.io/badge/License-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 <!-- badges: end -->
 
-**fastsae** provides lightning-fast, production-ready Small Area Estimation (SAE) methods for R. Powered by compiled **C++ (`RcppArmadillo`)**, native **OpenMP multi-threading**, and **INLA**, it achieves **up to 10,000x+ speedups** and **99%+ memory reduction** compared to conventional packages—while maintaining **100% exact numerical equivalence** with gold-standard published implementations.
+**fastsae** implements widely used Small Area Estimation (SAE) models
+for survey data. Frequentist estimation runs in compiled **C++**
+(`RcppArmadillo`) with **OpenMP** multi-threading, and Bayesian
+estimation uses **INLA**. In the benchmark below, the frequentist
+Fay-Herriot fits are roughly 50 to 6,000 times faster than `sae` and
+`emdi` and use a small fraction of their memory, while point estimates
+and variance components agree with `sae` to numerical tolerance.
 
----
+------------------------------------------------------------------------
 
 ### Why fastsae?
 
-- ⚡ **Insanely Fast**: Shrink execution times from minutes to milliseconds with optimized C++ Fisher-scoring algorithms.
-- 🎯 **Exact Numerical Match**: Point estimates ($\hat{\beta}$, $\hat{\theta}$) and variance components ($\hat{\sigma}_u^2$, $\hat{\rho}$) match `sae` (Molina & Rao) to machine precision.
-- 🧵 **Parallel Bootstrap**: Multi-core OpenMP parametric & non-parametric bootstrap MSE estimation out-of-the-box.
-- 🗺️ **Unsampled Areas Handled Automatically**: Full spatial kriging for domains with missing observations (`y = NA`).
-- 💾 **Ultra-Low Memory**: Zero wasteful $O(m^2)$ / $O(m^3)$ allocations, preventing RAM crashes on large datasets.
-- 📊 **Modern R Interface**: Standard S3 methods (`summary`, `coef`, `fitted`, `residuals`) and publication-ready `autoplot()`.
+- ⚡ **Speed**: optimized C++ Fisher-scoring algorithms turn fits that
+  take seconds in other R packages into milliseconds.
+- 🎯 **Numerical agreement**: point estimates ($\hat{\beta}$,
+  $\hat{\theta}$) and variance components ($\hat{\sigma}_u^2$,
+  $\hat{\rho}$) match `sae` (Molina & Marhuenda) to numerical tolerance
+  for the models they share.
+- 🔀 **Frequentist and Bayesian in one package**: EBLUP models in C++
+  and hierarchical Bayesian models through INLA, with a consistent
+  interface.
+- 🧵 **Parallel bootstrap**: multi-core OpenMP parametric and
+  non-parametric bootstrap MSE estimation.
+- 🗺️ **Unsampled areas**: domains with missing observations (`y = NA`)
+  are predicted automatically, and spatial models borrow strength from
+  neighbouring areas.
+- 💾 **Low memory**: avoids unnecessary $O(m^2)$ / $O(m^3)$ allocations,
+  which keeps large problems within RAM.
+- 📊 **Standard R interface**: S3 methods (`summary`, `coef`, `fitted`,
+  `residuals`) and publication-ready `autoplot()`.
 
----
+------------------------------------------------------------------------
+
+### Models
+
+**Frequentist (EBLUP, C++):**
+
+- `eblup_fh()`: area-level Fay-Herriot
+- `eblup_sfh()`: spatial Fay-Herriot
+- `eblup_stfh()`: spatio-temporal Fay-Herriot
+- `eblup_bhf()`: unit-level Battese-Harter-Fuller
+- `eblup_twofold()`: two-fold subarea model (area and subarea effects)
+
+**Bayesian (INLA):**
+
+- `hb_area()`, `hb_unit()`, `hb_twofold()`
+
+Analytical and bootstrap MSE, benchmarking to aggregate targets,
+diagnostics, model comparison, export and mapping helpers are available
+across the models. See the
+[documentation](https://ridsonap.github.io/fastsae/) for details.
+
+------------------------------------------------------------------------
 
 ### Performance at a Glance
 
 Benchmark across $n = 1,000$ areas (5 covariates):
 
-| Task | `fastsae` | `sae` (Molina & Rao) | `emdi` |
-|:---|:---:|:---:|:---:|
-| **Standard Fay-Herriot** | **0.0015 s** | 0.291 s | 9.64 s |
-| **Spatial Fay-Herriot** | **0.165 s** | 12.60 s | 8.69 s |
-| **Peak RAM Usage** | **< 10 MB** | ~400 MB | ~800 MB |
-| **Relative Speed** | 🚀 **Baseline** | *~360x slower* | *~12,000x slower* |
+| Task | `fastsae` | `sae` (Molina & Marhuenda) | `emdi` |
+|:---|:--:|:--:|:--:|
+| **Standard Fay-Herriot** | **0.0015 s** | 0.291 s (~190x slower) | 9.64 s (~6,400x slower) |
+| **Spatial Fay-Herriot** | **0.165 s** | 12.60 s (~76x slower) | 8.69 s (~53x slower) |
+| **Peak RAM usage** | **\< 10 MB** | ~400 MB | ~800 MB |
 
----
+Timings depend on hardware and the number of threads. Scripts to
+reproduce the benchmark are in the `benchmarks/` folder.
+
+------------------------------------------------------------------------
 
 ## Installation
 
-Install the stable release directly from **CRAN**:
+Install the stable release from **CRAN**:
 
-```r
+``` r
 install.packages("fastsae")
 ```
 
-Or install the cutting-edge development version from **GitHub**:
+Or install the development version from **GitHub**:
 
-```r
+``` r
 # install.packages("remotes")
 remotes::install_github("ridsonap/fastsae")
 ```
 
----
+The Bayesian models need **INLA**, which is not on CRAN:
 
-## Quick Start (30 Seconds)
+``` r
+install.packages(
+  "INLA",
+  repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"),
+  dep = TRUE
+)
+```
 
-```r
+------------------------------------------------------------------------
+
+## Quick Start
+
+``` r
 library(fastsae)
 
-# Fit area-level Fay-Herriot model in milliseconds
+# Fit an area-level Fay-Herriot model
 fit <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(mys))
 
-# Inspect model summary
+# Inspect the model summary
 summary(fit)
 
 # Diagnostic plot
 autoplot(fit, type = "estimates")
 ```
 
----
+------------------------------------------------------------------------
 
-## 📖 Complete Documentation & Tutorials
+## 📖 Documentation & Tutorials
 
-Need spatial models (`eblup_sfh`), spatio-temporal (`eblup_stfh`), unit-level (`eblup_bhf`), two-fold models (`eblup_twofold`), or Bayesian models via INLA (`hb_area`, `hb_unit`)?
+Need spatial models (`eblup_sfh`), spatio-temporal (`eblup_stfh`),
+unit-level (`eblup_bhf`), two-fold models (`eblup_twofold`), or Bayesian
+models via INLA (`hb_area`, `hb_unit`, `hb_twofold`)?
 
-Explore the full interactive documentation, mathematical formulations, and step-by-step vignettes:
+Explore the full documentation, mathematical formulations, and
+step-by-step vignettes:
 
-👉 **[https://ridsonap.github.io/fastsae/](https://ridsonap.github.io/fastsae/)**
+👉
+[**https://ridsonap.github.io/fastsae/**](https://ridsonap.github.io/fastsae/)
+
+## Citation
+
+``` r
+citation("fastsae")
+```
+
+Bug reports and feature requests are welcome on the [issue
+tracker](https://github.com/ridsonap/fastsae/issues).

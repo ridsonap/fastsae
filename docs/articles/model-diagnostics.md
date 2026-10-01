@@ -14,7 +14,7 @@ function and its dedicated S3
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 visualization method. It evaluates both **frequentist C++ EBLUP** models
 (`eblup_fh`, `eblup_sfh`, `eblup_stfh`, `eblup_bhf`) and **Bayesian INLA
-EBP** models (`hb_area`).
+HB** models (`hb_area`).
 
 ------------------------------------------------------------------------
 
@@ -266,14 +266,14 @@ function applies directly to Bayesian models fitted with
 `#> [1] 17.64954`\
 `#> `\
 `#> $mean_sae_rse`\
-`#> [1] 106.1975`\
+`#> [1] 106.2247`\
 `#> `\
 `#> $median_sae_rse`\
-`#> [1] 18.65768`\
+`#> [1] 18.65592`\
 `#> `\
 `#> $eff_ratio_summary`\
 `#>      Min   Q1.25%   Median     Mean   Q3.75%      Max `\
-`#> 1.137394 1.273193 1.319755 1.326775 1.411162 1.500922 `\
+`#> 1.137443 1.273247 1.319816 1.326840 1.411241 1.501019 `\
 `#> `\
 `#> $prop_gain`\
 `#> [1] 100`\

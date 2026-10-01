@@ -108,12 +108,12 @@ automatically performs **full-spatial kriging**:
 `# Inspect estimates for unsampled domains`\
 [`head`](https://rdrr.io/r/utils/head.html)`(``fit_sfh``$``df_eblup``[`[`is.na`](https://rdrr.io/r/base/NA.html)`(``mys``$``y``)``, ``]``)`\
 `#>    domain  y vardir    eblup random_effect      mse      rse`\
-`#> 21     21 NA      0 3.660260             0 1.904961 37.70779`\
-`#> 25     25 NA      0 4.153888             0 1.862352 32.85309`\
-`#> 26     26 NA      0 5.305132             0 2.206307 27.99863`\
-`#> 27     27 NA      0 4.300605             0 1.872941 31.82237`\
-`#> 28     28 NA      0 5.039354             0 1.824374 26.80292`\
-`#> 34     34 NA      0 3.491430             0 1.853401 38.99253`
+`#> 21     21 NA      0 3.660260   -0.01724344 1.904961 37.70779`\
+`#> 25     25 NA      0 4.153888   -0.04026218 1.862352 32.85309`\
+`#> 26     26 NA      0 5.305132   -0.01461301 2.206307 27.99863`\
+`#> 27     27 NA      0 4.300605   -0.01064087 1.872941 31.82237`\
+`#> 28     28 NA      0 5.039354   -0.01975323 1.824374 26.80292`\
+`#> 34     34 NA      0 3.491430   -0.01490467 1.853401 38.99253`
 
 For unsampled areas, prediction borrows strength from both the
 regression synthetic component $`x_d^\top \hat{\beta}`$ and spatial

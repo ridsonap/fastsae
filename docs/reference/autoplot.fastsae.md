@@ -9,10 +9,14 @@ ggplot2.
 
 ``` r
 # S3 method for class 'fastsae'
-autoplot(object, type = c("comparison", "mse", "estimates", "scatter"), ...)
+autoplot(
+  object,
+  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map"),
+  ...
+)
 
 # S3 method for class 'list'
-autoplot(object, type = c("comparison", "mse", "scatter"), ...)
+autoplot(object, type = c("comparison", "mse", "scatter", "map"), ...)
 ```
 
 ## Arguments
@@ -25,11 +29,11 @@ autoplot(object, type = c("comparison", "mse", "scatter"), ...)
 
   Type of plot to create.
 
-  - For a single `fastsae` object: `"comparison"`, `"mse"`,
-    `"estimates"`, or `"scatter"`.
+  - For a single `fastsae` object: `"comparison"`, `"ribbon"`, `"mse"`,
+    `"estimates"`, `"scatter"`, `"rse"`, or `"map"`.
 
-  - For a list of `fastsae` objects: `"comparison"`, `"mse"`, or
-    `"scatter"`.
+  - For a list of `fastsae` objects: `"comparison"`, `"mse"`,
+    `"scatter"`, or `"map"`.
 
 - ...:
 
@@ -75,6 +79,10 @@ fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
 #> ... and 36 more rows.
 #> 
 autoplot(fit_fh, type = "estimates")
+
+autoplot(fit_fh, type = "rse")
+#> Warning: Removed 10 rows containing missing values or values outside the scale range
+#> (`geom_point()`).
 
 
 # Compare two models
