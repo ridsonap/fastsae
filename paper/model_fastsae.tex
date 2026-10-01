@@ -1,0 +1,985 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{algpseudocode}
+\floatstyle{ruled}
+\newfloat{algorithm}{tbp}{loa}
+\floatname{algorithm}{Algoritma}
+
+\geometry{margin=2.5cm}
+\hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
+
+\theoremstyle{definition}
+\newtheorem{definisi}{Definisi}[section]
+
+\title{Model-Model \emph{Small Area Estimation} dalam Paket \texttt{fastsae} \\
+\large Formulasi Matematis, Penduga, dan Rujukan}
+\author{Dokumen teknis disusun dari \textit{codebase} \texttt{ridsonap/fastsae} v0.1.0}
+\date{30 September 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+%====================================================================
+\section{Pendahuluan dan Notasi}
+%====================================================================
+
+Paket \texttt{fastsae} mengimplementasikan sejumlah model \emph{small area estimation} (SAE)
+berbasis area dan berbasis unit dengan komputasi berkinerja tinggi (C++ melalui
+\texttt{RcppArmadillo}, paralelisasi OpenMP, serta \emph{Integrated Nested Laplace
+Approximations}/INLA). Dokumen ini merangkum formulasi matematis setiap model yang
+diimplementasikan, cara pendugaan parameternya, prediktor yang dihasilkan, penduga
+\emph{mean squared error} (MSE), dan rujukan pustaka yang mendasarinya.
+
+Notasi yang dipakai konsisten di seluruh dokumen:
+\begin{itemize}[nosep]
+  \item $d = 1,\dots,D$: indeks area (domain); $t = 1,\dots,T$: indeks waktu.
+  \item $y_d$: penduga langsung (\emph{direct estimator}) bagi parameter area $\theta_d$.
+  \item $\psi_d > 0$: varians penarikan contoh (\emph{sampling variance}) dari $y_d$,
+        dianggap diketahui.
+  \item $\mathbf{x}_d \in \mathbb{R}^p$: vektor peubah bantu (termasuk intersep) bagi area $d$;
+        $\mathbf{X}$: matriks desain $D \times p$; $\boldsymbol{\beta} \in \mathbb{R}^p$:
+        vektor koefisien tetap.
+  \item $u_d$: pengaruh acak (\emph{random effect}) area; $e_d$: galat penarikan contoh.
+  \item $\mathbf{W}$: matriks bobot spasial $D \times D$ yang dibakukan per baris
+        (\emph{row-standardized}), $0 \le w_{ij} \le 1$, $w_{ii} = 0$.
+\end{itemize}
+
+Fungsi-fungsi pemodelan utama dalam paket ini diringkas pada Tabel~\ref{tab:fungsi}.
+
+\begin{table}[h]
+\centering
+\caption{Fungsi pemodelan utama paket \texttt{fastsae}.}
+\label{tab:fungsi}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Fungsi & Level & Model \\
+\midrule
+\texttt{eblup\_fh}   & Area & Fay--Herriot (1979), EBLUP \\
+\texttt{eblup\_sfh}  & Area & Fay--Herriot spasial, SAR(1) pada pengaruh acak \\
+\texttt{eblup\_stfh} & Area & Fay--Herriot spasio-temporal (model ``S'' dan ``ST'') \\
+\texttt{eblup\_bhf}  & Unit & Battese--Harter--Fuller (1988), EBLUP \\
+\texttt{hb\_area}    & Area & Bayes hierarkis GLMM via INLA (6 keluarga sebaran) \\
+\texttt{benchmark\_sae} & --- & Kalibrasi \emph{benchmarking} (4 metode) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%====================================================================
+\section{Model Fay--Herriot: \texttt{eblup\_fh}}
+%====================================================================
+
+\subsection{Spesifikasi model}
+
+Model Fay--Herriot \cite{fay1979} terdiri dari dua tingkat:
+\begin{subequations}
+\begin{align}
+  \text{Model penarikan contoh:} && y_d &= \theta_d + e_d,
+      \qquad e_d \overset{\text{ind}}{\sim} N(0, \psi_d), \label{eq:fh-sampling} \\
+  \text{Model penghubung:} && \theta_d &= \mathbf{x}_d^{\top}\boldsymbol{\beta} + u_d,
+      \qquad u_d \overset{\text{iid}}{\sim} N(0, \sigma_u^2), \label{eq:fh-linking}
+\end{align}
+\end{subequations}
+dengan $\{e_d\}$ dan $\{u_d\}$ saling bebas. Bentuk gabungannya adalah model linear campuran
+\begin{equation}
+  y_d = \mathbf{x}_d^{\top}\boldsymbol{\beta} + u_d + e_d,
+  \qquad
+  \mathbf{y} \sim N(\mathbf{X}\boldsymbol{\beta}, \mathbf{V}), \quad
+  \mathbf{V} = \operatorname{diag}(\sigma_u^2 + \psi_d).
+  \label{eq:fh-combined}
+\end{equation}
+Varians penarikan contoh $\psi_d$ dianggap diketahui (diestimasi terlebih dahulu dari
+data survei, misalnya melalui linearisasi Taylor atau replikasi).
+
+\subsection{Pendugaan parameter}
+
+Parameter $(\boldsymbol{\beta}, \sigma_u^2)$ diduga dengan kemungkinan maksimum (ML)
+atau kemungkinan maksimum terkendala (REML) melalui algoritma \emph{Fisher-scoring}.
+Untuk REML, fungsi skor dan informasi Fisher bagi $\sigma_u^2$ adalah
+\begin{equation}
+  s(\sigma_u^2) = -\tfrac{1}{2}\operatorname{tr}(\mathbf{P})
+      + \tfrac{1}{2}\mathbf{y}^{\top}\mathbf{P}^2\mathbf{y},
+  \qquad
+  \mathcal{I}(\sigma_u^2) = \tfrac{1}{2}\operatorname{tr}(\mathbf{P}^2),
+\end{equation}
+dengan $\mathbf{P} = \mathbf{V}^{-1} - \mathbf{V}^{-1}\mathbf{X}
+(\mathbf{X}^{\top}\mathbf{V}^{-1}\mathbf{X})^{-1}\mathbf{X}^{\top}\mathbf{V}^{-1}$,
+dan iterasi $\sigma_{u,(k+1)}^2 = \sigma_{u,(k)}^2 + s/\mathcal{I}$
+(varian ML memakai $\mathbf{V}^{-1}$ sebagai pengganti $\mathbf{P}$).
+Nilai awal $\sigma_{u,(0)}^2 = \operatorname{median}(\psi_d)$; iterasi berhenti jika
+perubahan relatif $< 10^{-4}$ atau mencapai 100 iterasi.
+
+\subsection{Prediktor EBLUP}
+
+Untuk $\sigma_u^2$ diketahui, \emph{best linear unbiased predictor} (BLUP) bagi $\theta_d$ adalah
+\begin{equation}
+  \tilde{\theta}_d = \mathbf{x}_d^{\top}\tilde{\boldsymbol{\beta}}
+      + \gamma_d\,(y_d - \mathbf{x}_d^{\top}\tilde{\boldsymbol{\beta}}),
+  \qquad
+  \gamma_d = \frac{\sigma_u^2}{\sigma_u^2 + \psi_d},
+  \label{eq:fh-blup}
+\end{equation}
+dengan $\tilde{\boldsymbol{\beta}} =
+(\sum_d \mathbf{x}_d\mathbf{x}_d^{\top}/(\sigma_u^2+\psi_d))^{-1}
+ \sum_d \mathbf{x}_d y_d/(\sigma_u^2+\psi_d)$ penduga GLS dan
+$\gamma_d \in [0,1]$ faktor penyusutan (\emph{shrinkage}): semakin kecil $\psi_d$
+relatif terhadap $\sigma_u^2$, semakin besar bobot pada penduga langsung $y_d$.
+Mengganti $\sigma_u^2$ dengan $\hat{\sigma}_u^2$ menghasilkan EBLUP
+$\hat{\theta}_d^{\mathrm{EBLUP}}$ \cite{rao2015}.
+
+\subsection{Penduga MSE}
+
+MSE dari EBLUP diduga dengan aproksimasi Prasad--Rao \cite{prasad1990}:
+\begin{equation}
+  \operatorname{mse}(\hat{\theta}_d^{\mathrm{EBLUP}})
+  \approx g_{1d} + g_{2d} + 2g_{3d},
+\end{equation}
+dengan
+\begin{align}
+  g_{1d} &= \gamma_d\,\psi_d, \\
+  g_{2d} &= (1-\gamma_d)^2\,
+            \mathbf{x}_d^{\top}
+            \Bigl(\sum_{j}\tfrac{\mathbf{x}_j\mathbf{x}_j^{\top}}
+                                   {\hat{\sigma}_u^2+\psi_j}\Bigr)^{-1}
+            \mathbf{x}_d, \\
+  g_{3d} &= \frac{\psi_d^2}{(\hat{\sigma}_u^2+\psi_d)^3}\,
+            \overline{\operatorname{Var}}(\hat{\sigma}_u^2),
+  \qquad
+  \overline{\operatorname{Var}}(\hat{\sigma}_u^2)
+    = \frac{2}{\sum_j (\hat{\sigma}_u^2+\psi_j)^{-2}}.
+\end{align}
+Suku $g_{1d}$ adalah ketidakpastian prediksi jika $\boldsymbol{\beta}$ dan $\sigma_u^2$
+diketahui; $g_{2d}$ berasal dari pendugaan $\boldsymbol{\beta}$; $g_{3d}$ berasal dari
+pendugaan $\sigma_u^2$. Untuk penduga ML ditambahkan koreksi bias orde-dua
+$-b(\hat{\sigma}_u^2)\,\nabla g_{1d}$ menurut Datta dan Lahiri \cite{datta2000},
+sebagaimana diimplementasikan dalam kode.
+
+\subsection{Area tak tersampel}
+
+Area dengan $y_d$ hilang (\texttt{NA}) diperlakukan sebagai tak tersampel dan diprediksi
+dengan penduga sintetik $\hat{\theta}_d = \mathbf{x}_d^{\top}\hat{\boldsymbol{\beta}}$
+dengan $\operatorname{mse}(\hat{\theta}_d) = \hat{\sigma}_u^2 +
+\mathbf{x}_d^{\top}(\mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{X})^{-1}\mathbf{x}_d$.
+
+\subsection{Pseudocode}
+
+\begin{algorithm}[H]
+\caption{\texttt{eblup\_fh}: EBLUP Fay--Herriot via \emph{Fisher-scoring}}
+\label{alg:fh}
+\begin{algorithmic}[1]
+\Require $\mathbf{y}, \mathbf{X}, \boldsymbol{\psi}$; \texttt{method} $\in\{$REML, ML$\}$;
+  \texttt{maxiter} $= 100$; \texttt{precision} $= 10^{-4}$
+\Ensure $\hat{\boldsymbol{\theta}}^{\text{EBLUP}}$, $\operatorname{mse}$,
+  $\hat{\boldsymbol{\beta}}$, $\hat{\sigma}_u^2$, penanda konvergensi
+\State $\sigma^2 \gets \operatorname{median}(\boldsymbol{\psi})$;
+  $k \gets 0$; $\mathit{diff} \gets \texttt{precision} + 1$
+\While{$\mathit{diff} > \texttt{precision}$ \textbf{dan} $k < \texttt{maxiter}$}
+  \State $V_i \gets 1/(\psi_i + \sigma^2)$ untuk semua $i$ \Comment{$\mathbf{V} = \operatorname{diag}(\sigma^2 + \psi_i)$}
+  \State Bentuk $\mathbf{P} = \mathbf{V}^{-1} - \mathbf{V}^{-1}\mathbf{X}
+    (\mathbf{X}^{\top}\mathbf{V}^{-1}\mathbf{X})^{-1}\mathbf{X}^{\top}\mathbf{V}^{-1}$
+    (REML) atau pakai $\mathbf{V}^{-1}$ (ML)
+  \State $s \gets -\tfrac{1}{2}\operatorname{tr}(\mathbf{P})
+    + \tfrac{1}{2}\mathbf{y}^{\top}\mathbf{P}^2\mathbf{y}$ \Comment{skor}
+  \State $\mathcal{I} \gets \tfrac{1}{2}\operatorname{tr}(\mathbf{P}^2)$ \Comment{informasi Fisher}
+  \State $\sigma^2_{\text{baru}} \gets \max(\sigma^2 + s/\mathcal{I},\, 0)$
+  \State $\mathit{diff} \gets |\sigma^2_{\text{baru}} - \sigma^2|$;
+    $\sigma^2 \gets \sigma^2_{\text{baru}}$; $k \gets k + 1$
+\EndWhile
+\State $\text{konvergen} \gets (\mathit{diff} \le \texttt{precision})$;
+  $\hat{\sigma}_u^2 \gets \sigma^2$
+\State $\hat{\boldsymbol{\beta}} \gets
+  (\mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{X})^{-1}
+  \mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{y}$ \Comment{GLS}
+\For{$d = 1, \dots, D$}
+  \State $\gamma_d \gets \hat{\sigma}_u^2 / (\hat{\sigma}_u^2 + \psi_d)$
+  \If{$y_d$ tersedia}
+    \State $\hat{\theta}_d \gets \mathbf{x}_d^{\top}\hat{\boldsymbol{\beta}}
+      + \gamma_d\,(y_d - \mathbf{x}_d^{\top}\hat{\boldsymbol{\beta}})$
+    \State $\operatorname{mse}_d \gets g_{1d} + g_{2d} + 2g_{3d}$
+      (+ koreksi bias Datta--Lahiri bila ML)
+  \Else
+    \State $\hat{\theta}_d \gets \mathbf{x}_d^{\top}\hat{\boldsymbol{\beta}}$
+      \Comment{sintetik}
+    \State $\operatorname{mse}_d \gets \hat{\sigma}_u^2 +
+      \mathbf{x}_d^{\top}(\mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{X})^{-1}\mathbf{x}_d$
+  \EndIf
+\EndFor
+\State \Return $\hat{\boldsymbol{\theta}}, \operatorname{mse},
+  \hat{\boldsymbol{\beta}}, \hat{\sigma}_u^2, \text{konvergen}$
+\end{algorithmic}
+\end{algorithm}
+
+%====================================================================
+\section{Model Fay--Herriot Spasial: \texttt{eblup\_sfh}}
+%====================================================================
+
+\subsection{Spesifikasi model}
+
+Model Fay--Herriot spasial \cite{pratesi2008} menambahkan autokorelasi spasial pada
+pengaruh acak melalui proses simultan-autoregresif SAR(1):
+\begin{subequations}
+\begin{align}
+  \mathbf{y} &= \mathbf{X}\boldsymbol{\beta} + \mathbf{u} + \mathbf{e}, \\
+  \mathbf{u} &= \rho\,\mathbf{W}\mathbf{u} + \boldsymbol{\varepsilon},
+      \qquad \boldsymbol{\varepsilon} \sim N(\mathbf{0}, \sigma_u^2 \mathbf{I}_D), \\
+  \mathbf{e} &\sim N(\mathbf{0}, \boldsymbol{\Psi}), \quad
+      \boldsymbol{\Psi} = \operatorname{diag}(\psi_d),
+\end{align}
+\end{subequations}
+sehingga $\mathbf{u} \sim N(\mathbf{0}, \mathbf{G})$ dengan
+\begin{equation}
+  \mathbf{G} = \sigma_u^2\,\boldsymbol{\Omega}(\rho),
+  \qquad
+  \boldsymbol{\Omega}(\rho) =
+  \bigl[(\mathbf{I}_D - \rho\mathbf{W})^{\top}(\mathbf{I}_D - \rho\mathbf{W})\bigr]^{-1},
+  \label{eq:sfh-G}
+\end{equation}
+dan $\mathbf{y} \sim N(\mathbf{X}\boldsymbol{\beta}, \mathbf{V})$ dengan
+$\mathbf{V} = \mathbf{G} + \boldsymbol{\Psi}$.
+Parameter spasial $\rho \in (-1,1)$ mengukur kekuatan ketergantungan antar-area
+bertetangga; $\rho = 0$ mengembalikan model Fay--Herriot biasa.
+
+\subsection{Prediktor SEBLUP}
+
+\emph{Spatial EBLUP} (SEBLUP) didefinisikan sebagai
+\begin{equation}
+  \hat{\boldsymbol{\theta}}^{\mathrm{SEBLUP}}
+  = \mathbf{X}\hat{\boldsymbol{\beta}} +
+    \hat{\mathbf{G}}\hat{\mathbf{V}}^{-1}(\mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}}),
+  \label{eq:seblup}
+\end{equation}
+dengan $\hat{\boldsymbol{\beta}} =
+(\mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{X})^{-1}
+ \mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{y}$ dan
+$(\hat{\sigma}_u^2, \hat{\rho})$ diduga via ML/REML dengan \emph{Fisher-scoring}
+dua parameter (skor dan informasi harapan dihitung dari turunan
+$\partial\mathbf{V}/\partial\sigma_u^2$ dan $\partial\mathbf{V}/\partial\rho$;
+$\rho$ dibatasi pada $(-0{,}999;\, 0{,}999)$).
+
+\subsection{Penduga MSE analitik}
+
+MSE analitik memakai dekomposisi Singh, Shukla, dan Kundu \cite{singh2005}:
+\begin{equation}
+  \operatorname{mse}(\hat{\theta}_d^{\mathrm{SEBLUP}})
+  \approx g_{1d} + g_{2d} + 2g_{3d} - g_{4d},
+\end{equation}
+dengan, untuk $\mathbf{b}_d^{\top}$ baris ke-$d$ dari $\mathbf{G}\mathbf{V}^{-1}$,
+\begin{align}
+  g_{1d} &= \bigl[\mathbf{G} - \mathbf{G}\mathbf{V}^{-1}\mathbf{G}\bigr]_{dd}, \\
+  g_{2d} &= (\mathbf{x}_d - \mathbf{b}_d^{\top}\mathbf{X})
+            (\mathbf{X}^{\top}\mathbf{V}^{-1}\mathbf{X})^{-1}
+            (\mathbf{x}_d - \mathbf{b}_d^{\top}\mathbf{X})^{\top}, \\
+  g_{3d} &= \operatorname{tr}\!\left\{
+            [\nabla\mathbf{b}_d]\,\mathbf{V}\,[\nabla\mathbf{b}_d]^{\top}
+            \bar{\mathcal{I}}^{-1} \right\},
+\end{align}
+di mana $\nabla\mathbf{b}_d$ adalah gradien $\mathbf{b}_d$ terhadap
+$(\sigma_u^2, \rho)$ dan $\bar{\mathcal{I}}$ matriks informasi harapan.
+Suku $g_{4d}$ adalah koreksi orde-dua yang melibatkan turunan kedua matriks
+kovarians spasial $\mathbf{G}$ terhadap $(\sigma_u^2, \rho)$, diboboti oleh
+invers matriks informasi; ia mengoreksi bias akibat pendugaan $\rho$.
+Untuk ML ditambahkan koreksi bias $-\mathbf{b}_{\mathrm{ML}}^{\top}\nabla g_{1d}$
+\cite{datta2000}. Semua komponen dievaluasi pada $(\hat{\sigma}_u^2, \hat{\rho})$.
+
+\subsection{MSE bootstrap}
+
+Selain analitik, tersedia \texttt{mse\_method = "pbmse"} (\emph{parametric bootstrap}
+MSE) dan \texttt{"npbmse"} (\emph{non-parametric bootstrap} MSE):
+\begin{itemize}[nosep]
+  \item \textbf{PB-MSE} \cite{gonzalez2008}: bangkitkan $B$ populasi bootstrap dari model
+    terpasang $N(\mathbf{X}\hat{\boldsymbol{\beta}}, \hat{\mathbf{V}})$,
+    hitung SEBLUP tiap replikasi, lalu
+    $\operatorname{mse}_{\mathrm{PB},d} = B^{-1}\sum_{b}(\hat{\theta}_d^{*(b)} - \theta_d^{*(b)})^2$,
+    beserta versi koreksi-biasnya.
+  \item \textbf{NPB-MSE}: residual $(y_d - \mathbf{x}_d^{\top}\hat{\boldsymbol{\beta}})$
+    diambil-ulang (\emph{resampling}) secara non-parametrik untuk membangun populasi
+    bootstrap tanpa asumsi normalitas penuh.
+\end{itemize}
+Komputasi bootstrap diparalelkan dengan OpenMP.
+
+\subsection{Area tak tersampel: prediksi kriging spasial}
+
+Area tak tersampel diprediksi dengan kriging memakai seluruh matriks $\mathbf{W}$
+(termasuk baris/kolom area tak tersampel):
+\begin{equation}
+  \hat{\theta}_d = \mathbf{x}_d^{\top}\hat{\boldsymbol{\beta}}
+  + \mathbf{G}_{rs}\mathbf{V}_{ss}^{-1}(\mathbf{y}_s - \mathbf{X}_s\hat{\boldsymbol{\beta}}),
+\end{equation}
+dengan MSE analitik $g_{1d} + g_{2d}$ yang bersesuaian ($r$ = tak tersampel,
+$s$ = tersampel). MSE bootstrap hanya terdefinisi bagi area tersampel.
+
+\subsection{Pseudocode}
+
+\begin{algorithm}[H]
+\caption{\texttt{eblup\_sfh}: SEBLUP spasial via \emph{Fisher-scoring} dua parameter}
+\label{alg:sfh}
+\begin{algorithmic}[1]
+\Require $\mathbf{y}, \mathbf{X}, \boldsymbol{\psi}$; $\mathbf{W}$ \emph{row-standardized};
+  \texttt{method} $\in\{$REML, ML$\}$;
+  \texttt{mse\_method} $\in\{$analytical, pbmse, npbmse$\}$; $B$; \texttt{n\_threads}
+\Ensure $\hat{\boldsymbol{\theta}}^{\text{SEBLUP}}$, $\operatorname{mse}$,
+  $\hat{\sigma}_u^2$, $\hat{\rho}$
+\State Inisialisasi $(\sigma_u^2, \rho)$; $k \gets 0$
+\While{belum konvergen \textbf{dan} $k < \texttt{maxiter}$}
+  \State $\boldsymbol{\Omega}(\rho) \gets
+    [(\mathbf{I} - \rho\mathbf{W})^{\top}(\mathbf{I} - \rho\mathbf{W})]^{-1}$
+  \State $\mathbf{G} \gets \sigma_u^2\,\boldsymbol{\Omega}(\rho)$;
+    $\mathbf{V} \gets \mathbf{G} + \operatorname{diag}(\boldsymbol{\psi})$
+  \State Hitung skor $\mathbf{s}$ dan informasi Fisher $\boldsymbol{\mathcal{I}}$
+    dari $\partial\mathbf{V}/\partial\sigma_u^2$ dan $\partial\mathbf{V}/\partial\rho$
+  \State $(\sigma_u^2, \rho) \gets (\sigma_u^2, \rho) + \boldsymbol{\mathcal{I}}^{-1}\mathbf{s}$;
+    $\rho \gets \operatorname{clip}(\rho, -0{,}999;\, 0{,}999)$
+  \State $k \gets k + 1$
+\EndWhile
+\State $\hat{\boldsymbol{\beta}} \gets
+  (\mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{X})^{-1}
+  \mathbf{X}^{\top}\hat{\mathbf{V}}^{-1}\mathbf{y}$
+\State $\hat{\boldsymbol{\theta}} \gets \mathbf{X}\hat{\boldsymbol{\beta}}
+  + \hat{\mathbf{G}}\hat{\mathbf{V}}^{-1}(\mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}})$
+  \Comment{SEBLUP, \eqref{eq:seblup}}
+\If{\texttt{mse\_method} = analytical}
+  \State $\operatorname{mse}_d \gets g_{1d} + g_{2d} + 2g_{3d} - g_{4d}$
+    (+ koreksi bias bila ML)
+\ElsIf{\texttt{mse\_method} = pbmse}
+  \For{$b = 1, \dots, B$} \Comment{paralel OpenMP}
+    \State Bangkitkan $\mathbf{y}^{*(b)} \sim N(\mathbf{X}\hat{\boldsymbol{\beta}}, \hat{\mathbf{V}})$
+      dan $\boldsymbol{\theta}^{*(b)}$
+    \State Pasang ulang SEBLUP $\to \hat{\boldsymbol{\theta}}^{*(b)}$
+    \State Akumulasi $(\hat{\theta}_d^{*(b)} - \theta_d^{*(b)})^2$
+  \EndFor
+  \State $\operatorname{mse}_d \gets B^{-1}\sum_b (\hat{\theta}_d^{*(b)} - \theta_d^{*(b)})^2$
+    (dengan opsi koreksi bias)
+\Else \Comment{npbmse}
+  \State Bangun populasi bootstrap via \emph{resampling} residual
+    $\mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}}$, lalu seperti PB
+\EndIf
+\State Area tak tersampel: kriging
+  $\hat{\theta}_d = \mathbf{x}_d^{\top}\hat{\boldsymbol{\beta}}
+  + \mathbf{G}_{rs}\mathbf{V}_{ss}^{-1}(\mathbf{y}_s - \mathbf{X}_s\hat{\boldsymbol{\beta}})$
+\State \Return $\hat{\boldsymbol{\theta}}, \operatorname{mse},
+  \hat{\sigma}_u^2, \hat{\rho}$
+\end{algorithmic}
+\end{algorithm}
+
+%====================================================================
+\section{Model Fay--Herriot Spasio-Temporal: \texttt{eblup\_stfh}}
+%====================================================================
+
+\subsection{Spesifikasi model}
+
+Model spasio-temporal Fay--Herriot \cite{marhuenda2013} untuk panel seimbang
+($D$ area $\times$ $T$ waktu, data diurut per area) adalah
+\begin{equation}
+  y_{dt} = \mathbf{x}_{dt}^{\top}\boldsymbol{\beta}
+           + u_{1d} + u_{2dt} + e_{dt},
+  \qquad d=1,\dots,D,\; t=1,\dots,T,
+  \label{eq:stfh}
+\end{equation}
+dengan tiga komponen galat yang saling bebas:
+\begin{itemize}[nosep]
+  \item $u_{1d}$: pengaruh acak area yang \emph{tidak berubah terhadap waktu},
+    mengikuti SAR(1) spasial seperti pada \eqref{eq:sfh-G}:
+    $\mathbf{u}_1 \sim N(\mathbf{0}, \sigma_1^2\,\boldsymbol{\Omega}_1(\rho_1))$.
+  \item $u_{2dt}$: pengaruh acak area-waktu, dengan dua varian model:
+    \begin{description}[nosep]
+      \item[Model ``S'' (spasial saja):] $u_{2dt} \overset{\text{iid}}{\sim} N(0, \sigma_2^2)$.
+      \item[Model ``ST'' (spasio-temporal):]
+        $\mathbf{u}_{2d} = (u_{2d1},\dots,u_{2dT})^{\top}
+        \sim N(\mathbf{0}, \sigma_2^2\,\boldsymbol{\Omega}_2(\rho_2))$ bebas antar $d$,
+        dengan korelasi AR(1) stasioner
+        \begin{equation}
+          [\boldsymbol{\Omega}_2(\rho_2)]_{ts}
+          = \frac{\rho_2^{|t-s|}}{1-\rho_2^2},
+          \qquad |\rho_2| < 1.
+        \end{equation}
+    \end{description}
+  \item $e_{dt} \overset{\text{ind}}{\sim} N(0, \psi_{dt})$: galat penarikan contoh
+    dengan varians diketahui.
+\end{itemize}
+Matriks kovarians $\mathbf{V}$ berukuran $DT \times DT$ dibangun per blok domain
+dengan identitas Woodbury agar inversi efisien.
+
+\subsection{Prediktor EBLUP}
+
+Dengan $\hat{\boldsymbol{\theta}} = (\hat{\sigma}_1^2, \hat{\rho}_1, \hat{\sigma}_2^2[, \hat{\rho}_2])$
+hasil pendugaan,
+\begin{equation}
+  \hat{\theta}_{dt}^{\mathrm{EBLUP}}
+  = \mathbf{x}_{dt}^{\top}\hat{\boldsymbol{\beta}}
+    + \hat{u}_{1d} + \hat{u}_{2dt},
+\end{equation}
+dengan $\hat{\mathbf{u}}_1 = \hat{\sigma}_1^2\boldsymbol{\Omega}_1
+\mathbf{Z}_1^{\top}\hat{\mathbf{V}}^{-1}(\mathbf{y}-\mathbf{X}\hat{\boldsymbol{\beta}})$
+dan $\hat{\mathbf{u}}_2 = \hat{\sigma}_2^2\boldsymbol{\Omega}_2^{\oplus}
+\hat{\mathbf{V}}^{-1}(\mathbf{y}-\mathbf{X}\hat{\boldsymbol{\beta}})$
+($\boldsymbol{\Omega}_2^{\oplus}$: blok-diagonal per domain; untuk model ``S'',
+$\boldsymbol{\Omega}_2 = \mathbf{I}_T$).
+
+\subsection{Pendugaan parameter dan MSE}
+
+Parameter varians diduga dengan \emph{Fisher-scoring} gaya-REML atas
+$(\sigma_1^2, \rho_1, \sigma_2^2[, \rho_2])$. MSE diestimasi dengan
+\emph{parametric bootstrap} (PB-MSE, \texttt{compute\_mse = TRUE}):
+populasi bootstrap dibangkitkan dari model terpasang dengan
+$\mathbf{u}_1^* \sim N(\mathbf{0}, \hat{\sigma}_1^2\boldsymbol{\Omega}_1(\hat{\rho}_1))$,
+$\mathbf{u}_{2d}^* \sim N(\mathbf{0}, \hat{\sigma}_2^2\boldsymbol{\Omega}_2(\hat{\rho}_2))$,
+dan $\mathbf{e}^* \sim N(\mathbf{0}, \operatorname{diag}(\psi_{dt}))$,
+lalu MSE dihitung dari $B$ replikasi EBLUP. Versi ini mensyaratkan panel lengkap
+(tanpa \texttt{NA} pada respons).
+
+\subsection{Pseudocode}
+
+\begin{algorithm}[H]
+\caption{\texttt{eblup\_stfh}: EBLUP spasio-temporal + PB-MSE}
+\label{alg:stfh}
+\begin{algorithmic}[1]
+\Require Panel seimbang $y_{dt}, \mathbf{x}_{dt}, \psi_{dt}$ ($D$ area $\times$ $T$ waktu,
+  diurut per area); $\mathbf{W}$; \texttt{model} $\in\{$S, ST$\}$;
+  \texttt{compute\_mse}; $B$; \texttt{n\_threads}
+\Ensure $\hat{\theta}_{dt}^{\text{EBLUP}}$, $\operatorname{mse}$ (bila diminta),
+  $(\hat{\sigma}_1^2, \hat{\rho}_1, \hat{\sigma}_2^2[, \hat{\rho}_2])$
+\State Susun $\mathbf{y}, \mathbf{X}$; bangun $\boldsymbol{\Omega}_1(\rho_1)$ (spasial SAR)
+  dan $\boldsymbol{\Omega}_2(\rho_2)$ (AR(1) temporal, model ST) atau $\mathbf{I}_T$ (model S)
+\State Bentuk $\mathbf{V}$ ($DT \times DT$) per blok domain dengan identitas Woodbury
+\State \emph{Fisher-scoring} gaya-REML atas $(\sigma_1^2, \rho_1, \sigma_2^2[, \rho_2])$
+  hingga $|\Delta| \le \texttt{precision}$ atau \texttt{maxiter}
+\State $\hat{\boldsymbol{\beta}} \gets$ GLS; \
+  $\hat{\mathbf{u}}_1 \gets \hat{\sigma}_1^2\boldsymbol{\Omega}_1\mathbf{Z}_1^{\top}
+  \hat{\mathbf{V}}^{-1}(\mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}})$; \
+  $\hat{\mathbf{u}}_2 \gets \hat{\sigma}_2^2\boldsymbol{\Omega}_2^{\oplus}
+  \hat{\mathbf{V}}^{-1}(\mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}})$
+\State $\hat{\theta}_{dt} \gets \mathbf{x}_{dt}^{\top}\hat{\boldsymbol{\beta}}
+  + \hat{u}_{1d} + \hat{u}_{2dt}$
+\If{\texttt{compute\_mse} = TRUE}
+  \For{$b = 1, \dots, B$} \Comment{paralel OpenMP}
+    \State $\mathbf{u}_1^{*(b)} \sim N(\mathbf{0}, \hat{\sigma}_1^2\boldsymbol{\Omega}_1(\hat{\rho}_1))$;
+      $\mathbf{u}_{2d}^{*(b)} \sim N(\mathbf{0}, \hat{\sigma}_2^2\boldsymbol{\Omega}_2(\hat{\rho}_2))$
+      independen per domain;
+      $\mathbf{e}^{*(b)} \sim N(\mathbf{0}, \operatorname{diag}(\psi_{dt}))$
+    \State $\mathbf{y}^{*(b)} \gets \mathbf{X}\hat{\boldsymbol{\beta}}
+      + \mathbf{u}_1^{*(b)} + \mathbf{u}_2^{*(b)} + \mathbf{e}^{*(b)}$;
+      $\boldsymbol{\theta}^{*(b)} \gets \mathbf{X}\hat{\boldsymbol{\beta}}
+      + \mathbf{u}_1^{*(b)} + \mathbf{u}_2^{*(b)}$
+    \State Pasang ulang EBLUP $\to \hat{\boldsymbol{\theta}}^{*(b)}$
+    \State Akumulasi $(\hat{\theta}_{dt}^{*(b)} - \theta_{dt}^{*(b)})^2$
+  \EndFor
+  \State $\operatorname{mse}_{dt} \gets B^{-1}\sum_b
+    (\hat{\theta}_{dt}^{*(b)} - \theta_{dt}^{*(b)})^2$
+\EndIf
+\State \Return $\hat{\boldsymbol{\theta}}, \operatorname{mse}$ (opsional), parameter varians
+\end{algorithmic}
+\end{algorithm}
+
+%====================================================================
+\section{Model Battese--Harter--Fuller: \texttt{eblup\_bhf}}
+%====================================================================
+
+\subsection{Spesifikasi model}
+
+Model berbasis unit \cite{battese1988} untuk unit $j$ dalam area $d$:
+\begin{equation}
+  y_{dj} = \mathbf{x}_{dj}^{\top}\boldsymbol{\beta} + u_d + e_{dj},
+  \qquad
+  u_d \overset{\text{iid}}{\sim} N(0, \sigma_u^2), \quad
+  e_{dj} \overset{\text{iid}}{\sim} N(0, \sigma_e^2),
+  \label{eq:bhf}
+\end{equation}
+dengan $d = 1,\dots,D$, $j = 1,\dots,n_d$. Berbeda dari model berbasis area,
+model ini memakai data unit hasil survei ($n_d$ unit per area) dan informasi
+peubah bantu pada level populasi ($\bar{\mathbf{X}}_d$, $N_d$).
+
+\subsection{Pendugaan dan EBLUP}
+
+Komponen varians $(\sigma_u^2, \sigma_e^2)$ dan $\boldsymbol{\beta}$ diduga dengan
+model linear campuran via \texttt{lme4} (REML baku, atau ML). Prediktor EBLUP bagi
+rata-rata area $\bar{Y}_d$ adalah
+\begin{equation}
+  \hat{\bar{Y}}_d^{\mathrm{EBLUP}}
+  = f_d\,\bar{y}_{ds}
+    + \bigl(\bar{\mathbf{X}}_d - f_d\bar{\mathbf{x}}_{ds}\bigr)^{\top}\hat{\boldsymbol{\beta}}
+    + (1 - f_d)\,\hat{u}_d,
+  \label{eq:bhf-eblup}
+\end{equation}
+dengan $f_d = n_d/N_d$ fraksi penarikan contoh, $\bar{y}_{ds}$ dan
+$\bar{\mathbf{x}}_{ds}$ rata-rata contoh, $\bar{\mathbf{X}}_d$ rata-rata populasi,
+dan $\hat{u}_d$ BLUP pengaruh acak area. Area tanpa unit contoh diprediksi secara
+sintetik: $\hat{\bar{Y}}_d = \bar{\mathbf{X}}_d^{\top}\hat{\boldsymbol{\beta}}$.
+
+\subsection{MSE bootstrap}
+
+Dengan \texttt{compute\_mse = TRUE}, MSE diestimasi secara \emph{parametric bootstrap}:
+populasi unit artifisial dibangkitkan dari \eqref{eq:bhf} dengan parameter terpasang,
+contoh bootstrap diambil, EBLUP dihitung ulang, dan MSE = rata-rata kuadrat galat
+terhadap nilai populasi bootstrap selama $B$ replikasi.
+
+\subsection{Pseudocode}
+
+\begin{algorithm}[H]
+\caption{\texttt{eblup\_bhf}: EBLUP Battese--Harter--Fuller berbasis unit}
+\label{alg:bhf}
+\begin{algorithmic}[1]
+\Require \texttt{unit\_data} ($y_{dj}, \mathbf{x}_{dj}$); \texttt{Xpop} (rata-rata populasi
+  $\bar{\mathbf{X}}_d$); \texttt{domain\_var}; \texttt{popsize\_var} ($N_d$);
+  \texttt{method} $\in\{$REML, ML$\}$; \texttt{compute\_mse}; $B$
+\Ensure $\hat{\bar{Y}}_d^{\text{EBLUP}}$, $\operatorname{mse}$ (bila diminta)
+\State Pasang model linear campuran \eqref{eq:bhf} via \texttt{lme4}
+  $\to \hat{\sigma}_u^2, \hat{\sigma}_e^2, \hat{\boldsymbol{\beta}}$
+\For{$d = 1, \dots, D$}
+  \State $f_d \gets n_d / N_d$ \Comment{fraksi penarikan contoh}
+  \State $\hat{u}_d \gets$ BLUP pengaruh acak area
+  \If{$n_d > 0$}
+    \State $\hat{\bar{Y}}_d \gets f_d\,\bar{y}_{ds}
+      + (\bar{\mathbf{X}}_d - f_d\bar{\mathbf{x}}_{ds})^{\top}\hat{\boldsymbol{\beta}}
+      + (1 - f_d)\,\hat{u}_d$ \Comment{\eqref{eq:bhf-eblup}}
+  \Else
+    \State $\hat{\bar{Y}}_d \gets \bar{\mathbf{X}}_d^{\top}\hat{\boldsymbol{\beta}}$
+      \Comment{sintetik}
+  \EndIf
+\EndFor
+\If{\texttt{compute\_mse} = TRUE}
+  \For{$b = 1, \dots, B$} \Comment{paralel OpenMP}
+    \State Bangkitkan populasi unit artifisial
+      $y_{dj}^{*(b)} = \mathbf{x}_{dj}^{\top}\hat{\boldsymbol{\beta}}
+      + u_d^{*(b)} + e_{dj}^{*(b)}$ memakai parameter terpasang
+    \State Ambil contoh bootstrap; pasang ulang \eqref{eq:bhf} $\to \hat{\bar{Y}}_d^{*(b)}$
+    \State Akumulasi $(\hat{\bar{Y}}_d^{*(b)} - \bar{Y}_d^{*(b)})^2$
+  \EndFor
+  \State $\operatorname{mse}_d \gets B^{-1}\sum_b
+    (\hat{\bar{Y}}_d^{*(b)} - \bar{Y}_d^{*(b)})^2$
+\EndIf
+\State \Return $\hat{\bar{\mathbf{Y}}}, \operatorname{mse}$ (opsional)
+\end{algorithmic}
+\end{algorithm}
+
+%====================================================================
+\section{Model Bayes Hierarkis Area-Level: \texttt{hb\_area}}
+%====================================================================
+
+\subsection{Kerangka umum}
+
+\texttt{hb\_area} memodelkan respons area $y_d$ melalui GLMM hierarkis
+\begin{equation}
+  y_d \mid \mu_d \sim \mathcal{F}(\mu_d, \boldsymbol{\phi}), \qquad
+  g(\mu_d) = \eta_d = \mathbf{x}_d^{\top}\boldsymbol{\beta}
+             + u_d + v_d + \gamma_t + \delta_{dt},
+  \label{eq:hb}
+\end{equation}
+dengan $g(\cdot)$ fungsi hubung, $u_d$ pengaruh acak area tak terstruktur,
+$v_d$ pengaruh acak spasial, $\gamma_t$ pengaruh acak temporal, dan
+$\delta_{dt}$ interaksi spasio-temporal. Inferensi dilakukan dengan
+\emph{Integrated Nested Laplace Approximations} (INLA) \cite{rue2009} memakai
+strategi \texttt{laplace} penuh; alternatifnya, GLMM binomial/Poisson dapat
+dipasang secara frekuentis dengan aproksimasi Laplace via \texttt{lme4}.
+
+\subsection{Keluarga sebaran}
+
+\begin{table}[h]
+\centering
+\caption{Keluarga sebaran pada \texttt{hb\_area} beserta fungsi hubung baku.}
+\label{tab:family}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\texttt{family} & Sebaran & Hubung baku \\
+\midrule
+\texttt{gaussian}   & Normal (model Fay--Herriot; $\psi_d$ diketahui bila \texttt{vardir} diisi) & identitas \\
+\texttt{binomial}   & Binomial$(n_d, p_d)$; perlu \texttt{trials} $= n_d$ & logit \\
+\texttt{poisson}    & Poisson$(\mu_d)$; mendukung \texttt{exposure} $E_d$ & log \\
+\texttt{nbinomial}  & Binomial negatif (untuk \emph{overdispersion}) & log \\
+\texttt{beta}       & Beta$(\mu_d, \phi_d)$ untuk proporsi $(0,1)$ & logit \\
+\texttt{gamma}      & Gamma untuk respons positif menceng & log \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Untuk \texttt{family = "beta"}, presisi $\phi_d$ dihitung dari inversi varians
+distribusi beta,
+\begin{equation}
+  \phi_d = \frac{y_d(1-y_d)}{\psi_d} - 1,
+\end{equation}
+(disebut dalam dokumentasi paket sebagai formula Janicki, 2020) dan disuntikkan
+melalui argumen \texttt{scale} pada INLA; bila \texttt{trials} diisi, presisi
+diskalakan sebesar $n_d - 1$.
+
+\subsection{Efek acak spasial}
+
+\begin{description}[nosep]
+  \item[\texttt{"none"}:] hanya $u_d \overset{\text{iid}}{\sim} N(0, \sigma_u^2)$.
+  \item[\texttt{"bym"}:] Besag--York--Molli\'e klasik \cite{besag1991},
+    $u_d + v_d$ dengan $v_d$ ICAR dan $u_d$ iid.
+  \item[\texttt{"bym2"}:] BYM2 terskala \cite{riebler2016},
+    \begin{equation}
+      \eta_d^{\text{(spasial)}} = \sigma\Bigl(\sqrt{1-\phi}\,v_d + \sqrt{\phi}\,s_d^{\star}\Bigr),
+    \end{equation}
+    dengan $s_d^{\star}$ efek terstruktur yang diskalakan sehingga varians
+    marginalnya $\approx 1$; $\phi \in [0,1]$ proporsi varians yang bersifat spasial.
+  \item[\texttt{"besag"}:] ICAR murni (intrinsik),
+    $v_d \mid \mathbf{v}_{-d} \sim N\bigl(\bar{v}_{\delta d},\, \tau^{-1}/m_d\bigr)$.
+  \item[\texttt{"generic1"}:] model autoregresif Leroux \cite{leroux2000},
+    $\mathbf{v} \sim N(\mathbf{0}, \tau^{-1}[(1-\lambda)\mathbf{I} + \lambda\mathbf{R}]^{-1})$.
+  \item[\texttt{"slm"}:] model \emph{spatial lag} SAR pada medan laten
+    (\texttt{f(..., model="slm")} pada INLA),
+    $\mathbf{v} = \rho\mathbf{W}\mathbf{v} + \boldsymbol{\varepsilon}$.
+\end{description}
+Prior baku memakai \emph{penalized complexity} (PC): $\mathrm{PC}(1, 0{,}01)$ untuk
+presisi dan $\mathrm{PC}(0{,}5;\, 0{,}5)$ untuk $\phi$ pada BYM2.
+
+\subsection{Efek temporal dan interaksi spasio-temporal}
+
+Efek temporal $\gamma_t$: \texttt{"rw1"} (\emph{random walk} orde-1),
+\texttt{"rw2"} (orde-2), \texttt{"ar1"} (autoregresif orde-1), atau \texttt{"iid"}.
+Interaksi $\delta_{dt}$ mengikuti klasifikasi Knorr-Held \cite{knorrheld2000}:
+tipe I (tak terstruktur $\times$ tak terstruktur), II (tak terstruktur $\times$
+terstruktur), III (terstruktur $\times$ tak terstruktur), IV (terstruktur $\times$
+terstruktur); serta varian \texttt{"domain-specific"} (dinamika temporal per domain,
+seperti model spasio-temporal \texttt{tipsae} \cite{denicolo2024}) dan
+\texttt{"separable"} (medan spasial dinamis AR(1)/RW, analog model Marhuenda dkk.).
+
+\subsection{Pseudocode}
+
+\begin{algorithm}[H]
+\caption{\texttt{hb\_area}: GLMM hierarkis area-level via INLA}
+\label{alg:hb}
+\begin{algorithmic}[1]
+\Require \texttt{formula}, \texttt{data}; \texttt{family} (6 pilihan);
+  \texttt{spatial}, \texttt{temporal}, \texttt{st\_interaction}; $\mathbf{W}$;
+  \texttt{vardir} / \texttt{trials} / \texttt{exposure} sesuai keluarga sebaran
+\Ensure Ringkasan posterior per area(-waktu): mean, SD, kuantil, interval kredibel
+\State Periksa paket \texttt{INLA} tersedia; bila \texttt{method} = \texttt{"laplace"},
+  pasang GLMM frekuentis via \texttt{lme4} dan selesai
+\State Petakan \texttt{family} $\to$ sebaran INLA + fungsi hubung baku
+  (Tabel~\ref{tab:family})
+\State Bangun formula INLA:
+  \texttt{y \~{} x + f(domain, model=<spatial>) + f(time, model=<temporal>)} \\
+  \hspace*{1.2em}\texttt{+ f(domain.time, model=<st\_interaction>)}
+  sesuai Tabel efek acak; untuk \texttt{"bym2"} aktifkan \texttt{scale.model = TRUE}
+\State Tetapkan prior PC: presisi $\sim \mathrm{PC}(1, 0{,}01)$,
+  $\phi_{\text{bym2}} \sim \mathrm{PC}(0{,}5;\, 0{,}5)$
+\If{\texttt{family} = \texttt{"beta"}}
+  \State Hitung presisi $\phi_d = y_d(1-y_d)/\psi_d - 1$; teruskan via \texttt{scale}
+\EndIf
+\State \texttt{fit} $\gets$ \texttt{INLA::inla(formula, family, data,}
+  \texttt{control.inla = list(strategy = <strategy>),} \\
+  \hspace*{1.2em}\texttt{control.compute = list(dic, waic, cpo, pit))}
+\State Ekstrak marginal posterior $\theta_d \mid \mathbf{y}$ $\to$
+  mean, SD, kuantil $2{,}5\%$/$97{,}5\%$ (interval kredibel)
+\State Hitung diagnostik: PIT, CPO, DIC, WAIC
+\State \Return tabel ringkasan posterior + diagnostik model
+\end{algorithmic}
+\end{algorithm}
+
+%====================================================================
+\section{Kalibrasi \emph{Benchmarking}: \texttt{benchmark\_sae}}
+%====================================================================
+
+\emph{Benchmarking} mengkalibrasi penduga area $\hat{\theta}_d$ agar agregatnya
+konsisten dengan target tepercaya pada tingkat agregasi yang lebih tinggi
+(misalnya total provinsi/nasional) \cite{rao2015}:
+\begin{equation}
+  \sum_{d \in g} w_d\,\hat{\theta}_d^{\mathrm{BM}} = T_g,
+  \label{eq:bench-constraint}
+\end{equation}
+dengan $w_d$ bobot (misalnya ukuran populasi $N_d$) dan $T_g$ target kalibrasi
+grup $g$. Empat metode diimplementasikan:
+\begin{description}[nosep]
+  \item[\texttt{"ratio"}:] penyesuaian proporsional
+    $\hat{\theta}_d^{\mathrm{BM}} = \hat{\theta}_d \cdot T_g / \sum_{j \in g} w_j\hat{\theta}_j$
+    \cite{you2002}; mempertahankan non-negativitas.
+  \item[\texttt{"difference"}:] penyesuaian aditif seragam
+    $\hat{\theta}_d^{\mathrm{BM}} = \hat{\theta}_d + (T_g - \sum_{j} w_j\hat{\theta}_j)/\sum_j w_j$
+    \cite{rao2015}.
+  \item[\texttt{"optimal"}:] meminimumkan rugi kuadrat berbobot-MSE
+    $\sum_d (\hat{\theta}_d^{\mathrm{BM}} - \hat{\theta}_d)^2 / \operatorname{mse}_d$
+    dengan kendala \eqref{eq:bench-constraint}, menghasilkan
+    \begin{equation}
+      \hat{\theta}_d^{\mathrm{BM}} = \hat{\theta}_d
+      + \frac{w_d\,\operatorname{mse}_d}{\sum_j w_j^2\,\operatorname{mse}_j}
+        \Bigl(T_g - \sum_{j \in g} w_j\hat{\theta}_j\Bigr)
+    \end{equation}
+    \cite{datta2011}; area dengan MSE besar menyerap penyesuaian lebih besar.
+  \item[\texttt{"logit"}:] pergeseran aditif pada skala logit untuk indikator
+    terbatas $\theta_d \in (0,1)$ \cite{berg2014}.
+\end{description}
+Tersedia pula kalibrasi hierarkis dua tahap (kabupaten/kota $\to$ provinsi $\to$
+nasional) yang menjamin konsistensi matematis di semua jenjang administrasi
+sekaligus \cite{rao2015,steorts2014}.
+
+\subsection{Pseudocode}
+
+\begin{algorithm}[H]
+\caption{\texttt{benchmark\_sae}: kalibrasi benchmarking}
+\label{alg:bench}
+\begin{algorithmic}[1]
+\Require Objek \texttt{fastsae} ($\hat{\theta}_d$, $\operatorname{mse}_d$);
+  target $T_g$; bobot $w_d$; grup $g$; \texttt{method} $\in\{$ratio, difference,
+  optimal, logit$\}$; \texttt{type} $\in\{$mean, total$\}$
+\Ensure $\hat{\theta}_d^{\text{BM}}$ memenuhi $\sum_{d \in g} w_d\hat{\theta}_d^{\text{BM}} = T_g$
+\State $S \gets \sum_{d \in g} w_d\hat{\theta}_d$; $\Delta \gets T_g - S$
+\If{\texttt{method} = \texttt{"ratio"}}
+  \State $\hat{\theta}_d^{\text{BM}} \gets \hat{\theta}_d \cdot T_g / S$
+\ElsIf{\texttt{method} = \texttt{"difference"}}
+  \State $\hat{\theta}_d^{\text{BM}} \gets \hat{\theta}_d + \Delta / \sum_{d \in g} w_d$
+\ElsIf{\texttt{method} = \texttt{"optimal"}}
+  \State $\hat{\theta}_d^{\text{BM}} \gets \hat{\theta}_d
+    + \dfrac{w_d\,\operatorname{mse}_d}{\sum_j w_j^2\,\operatorname{mse}_j}\,\Delta$
+\ElsIf{\texttt{method} = \texttt{"logit"}}
+  \State $\hat{\theta}_d^{\text{BM}} \gets
+    \operatorname{logit}^{-1}\!\bigl(\operatorname{logit}(\hat{\theta}_d) + c\bigr)$,
+    dengan $c$ dipecahkan agar \eqref{eq:bench-constraint} terpenuhi
+\EndIf
+\State Bila kalibrasi hierarkis dua tahap: terapkan Algoritma~\ref{alg:bench}
+  pada jenjang bawah dahulu, lalu kalibrasi agregatnya ke target jenjang atas
+\State \Return $\hat{\boldsymbol{\theta}}^{\text{BM}}$
+\end{algorithmic}
+\end{algorithm}
+
+%====================================================================
+\section{Metode Estimasi MSE dalam Paket}
+%====================================================================
+
+\begin{table}[h]
+\centering
+\caption{Metode estimasi MSE yang tersedia per fungsi.}
+\label{tab:mse}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Fungsi & Metode MSE & Rujukan \\
+\midrule
+\texttt{eblup\_fh}   & Analitik Prasad--Rao (+ koreksi ML) & \cite{prasad1990,datta2000} \\
+\texttt{eblup\_sfh}  & Analitik $g_1{+}g_2{+}2g_3{-}g_4$; PB; NPB & \cite{singh2005,gonzalez2008} \\
+\texttt{eblup\_stfh} & \emph{Parametric bootstrap} & \cite{marhuenda2013} \\
+\texttt{eblup\_bhf}  & \emph{Parametric bootstrap} & \cite{battese1988} \\
+\texttt{hb\_area}    & Posterior INLA (interval kredibel) & \cite{rue2009} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%====================================================================
+\section{Penggunaan Kode \texttt{fastsae}}
+%====================================================================
+
+Bagian ini memberi contoh alur kerja tipikal memakai paket \texttt{fastsae} di R,
+berdasarkan himpunan data bawaan paket (\texttt{mys}: 42 kabupaten/kota,
+\texttt{mys\_panel}: panel 2016--2026, \texttt{mys\_proxmat}: matriks ketetanggaan).
+Instalasi dari GitHub:
+
+\begin{verbatim}
+# install.packages("remotes")
+remotes::install_github("ridsonap/fastsae")
+\end{verbatim}
+
+\subsection{Model berbasis area}
+
+\begin{verbatim}
+library(fastsae)
+data(mys); data(mys_proxmat); data(mys_panel)
+
+# 1. Fay-Herriot baku (REML)
+fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
+
+# 2. Fay-Herriot spasial (SAR(1) pada pengaruh acak)
+fit_sfh <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys,
+                     W = mys_proxmat, mse_method = "analytical")
+
+# 3. Fay-Herriot spasio-temporal, model "ST"
+fit_stfh <- eblup_stfh(y ~ x1 + x2, vardir = "vardir", data = mys_panel,
+                       domain = "area", time = "year",
+                       W = mys_proxmat, model = "ST", compute_mse = TRUE)
+\end{verbatim}
+
+\subsection{Model berbasis unit}
+
+\begin{verbatim}
+# 4. Battese-Harter-Fuller (butuh data unit + rata-rata populasi Xpop)
+fit_bhf <- eblup_bhf(y ~ x1 + x2, unit_data = susenas_unit,
+                     Xpop = pop_means, domain_var = "kab",
+                     popsize_var = "N", compute_mse = TRUE)
+\end{verbatim}
+
+\subsection{Model Bayes hierarkis (INLA)}
+
+\begin{verbatim}
+# 5. HB area-level; INLA hanya tersedia bila terpasang
+if (requireNamespace("INLA", quietly = TRUE)) {
+  fit_hb <- hb_area(y ~ x1 + x2, data = mys, vardir = "vardir",
+                    family = "gaussian", spatial = "bym2",
+                    W = mys_proxmat)
+}
+\end{verbatim}
+
+\subsection{Kalibrasi, diagnostik, dan visualisasi}
+
+\begin{verbatim}
+# 6. Benchmarking ke target provinsi/nasional
+bm <- benchmark_sae(fit_fh, target = 6.5, method = "ratio")
+
+# 7. Diagnostik model dan plot otomatis
+dg <- diagnose(fit_fh)
+print(dg)
+autoplot(dg)          # ggplot2: residual, RSE, peta keandalan
+
+# 8. Bandingkan beberapa model
+cmp <- compare_sae(fh = fit_fh, sfh = fit_sfh)
+
+# 9. Ekspor hasil ke Excel/CSV
+export_sae(fit_fh, file = "hasil_sae.xlsx", benchmark = bm)
+\end{verbatim}
+
+Semua fungsi pemodelan mengembalikan objek kelas \texttt{fastsae} (list berisi
+penduga, MSE, parameter, dan ringkasan model) yang dapat dicetak dengan
+\texttt{print()} dan diringkas dengan \texttt{summary()}.
+
+%====================================================================
+\appendix
+\section{Riwayat Perbaikan Implementasi}
+%====================================================================
+
+Berdasarkan pembacaan kode sumber v0.1.0, ditemukan empat isu implementasi
+(yang tidak mengubah formulasi model pada bagian-bagian sebelumnya, tetapi
+memengaruhi keluaran perangkat lunak). Keempatnya telah diperbaiki pada
+\textit{branch} \texttt{inla-v2} (komit \texttt{55af78ab}):
+
+\begin{enumerate}[nosep]
+  \item \texttt{src/eblup\_sfh\_core.cpp}: variabel \texttt{u\_all} dideklarasikan
+    ulang sehingga menutupi (\emph{shadowing}) versi yang telah diisi; kolom
+    \texttt{random\_effect} untuk area tak tersampel tidak terinisialisasi.
+    \textbf{Perbaikan:} deklarasi bayangan dihapus sehingga prediksi kriging
+    area tak tersampel terisi dengan benar.
+  \item \texttt{src/eblup\_stfh\_pbmse.cpp}: pada bootstrap model ``S'',
+    satu vektor pengaruh acak temporal $u_{2t}$ dibangkitkan sekali per replikasi
+    lalu dipakai ulang untuk \emph{seluruh} domain, sehingga menciptakan korelasi
+    silang-domain artifisial. \textbf{Perbaikan:} $u_{2dt}$ kini dibangkitkan
+    independen per domain dan waktu, sesuai spesifikasi model ``S''.
+  \item \texttt{R/compare\_sae.R}: penggabungan panel hanya berdasarkan
+    \texttt{domain} sehingga berpotensi menghasilkan perkalian kartesius antar
+    waktu. \textbf{Perbaikan:} penggabungan dilakukan berdasarkan
+    \texttt{domain} \emph{dan} \texttt{time}.
+  \item \texttt{src/eblup\_fh.cpp}: penanda konvergensi $(k < \text{maxiter})$
+    melaporkan tidak konvergen bila algoritma tepat berhenti pada iterasi
+    maksimum (\emph{off-by-one}). \textbf{Perbaikan:} penanda kini memakai
+    \texttt{diff <= precision}.
+\end{enumerate}
+Keempat perbaikan telah diverifikasi dengan skrip pengujian khusus (6/6 lolos)
+serta suite \texttt{testthat} bawaan paket (0 gagal).
+
+%====================================================================
+\begin{thebibliography}{99}
+%====================================================================
+
+\bibitem{fay1979}
+Fay, R.~E. dan Herriot, R.~A. (1979).
+Estimates of income for small places: An application of James--Stein procedures
+to census data.
+\emph{Journal of the American Statistical Association}, 74(366), 269--277.
+
+\bibitem{battese1988}
+Battese, G.~E., Harter, R.~M., dan Fuller, W.~A. (1988).
+An error-components model for prediction of county crop areas using survey and
+satellite data.
+\emph{Journal of the American Statistical Association}, 83(401), 28--36.
+
+\bibitem{prasad1990}
+Prasad, N.~G.~N. dan Rao, J.~N.~K. (1990).
+The estimation of the mean squared error of small-area estimators.
+\emph{Journal of the American Statistical Association}, 85(409), 163--171.
+
+\bibitem{besag1991}
+Besag, J., York, J., dan Molli\'e, A. (1991).
+Bayesian image restoration, with two applications in spatial statistics.
+\emph{Annals of the Institute of Statistical Mathematics}, 43, 1--20.
+
+\bibitem{datta2000}
+Datta, G.~S. dan Lahiri, P. (2000).
+A unified measure of uncertainty of estimated best linear unbiased predictors
+in small area estimation problems.
+\emph{Statistica Sinica}, 10(2), 613--627.
+
+\bibitem{knorrheld2000}
+Knorr-Held, L. (2000).
+Bayesian modelling of inseparable space-time variation in disease risk.
+\emph{Statistics in Medicine}, 19, 2555--2567.
+
+\bibitem{leroux2000}
+Leroux, B.~G., Lei, X., dan Breslow, N. (2000).
+Estimation of disease rates in small areas: A new mixed model for spatial
+dependence.
+Dalam M.~E. Halloran dan D.~Berry (ed.), \emph{Statistical Models in
+Epidemiology, the Environment, and Clinical Trials}, 179--191. Springer.
+
+\bibitem{you2002}
+You, Y. dan Rao, J.~N.~K. (2002).
+Small area estimation using matched sampling and linking models.
+\emph{The Canadian Journal of Statistics}, 30(1), 3--19.
+
+\bibitem{singh2005}
+Singh, B.~B., Shukla, G.~K., dan Kundu, D. (2005).
+Spatio-temporal models in small area estimation.
+\emph{Survey Methodology}, 31(2), 183--195.
+
+\bibitem{pratesi2008}
+Pratesi, M. dan Salvati, N. (2008).
+Small area estimation: the EBLUP estimator based on spatially correlated random
+area effects.
+\emph{Statistical Methods \& Applications}, 17, 113--141.
+
+\bibitem{gonzalez2008}
+Gonz\'alez-Manteiga, W., Lombard{\'\i}a, M.~J., Molina, I., Morales, D., dan
+Santamar{\'\i}a, L. (2008).
+Bootstrap mean squared error of a small-area EBLUP.
+\emph{Journal of Statistical Computation and Simulation}, 78(5), 443--462.
+
+\bibitem{rue2009}
+Rue, H., Martino, S., dan Chopin, N. (2009).
+Approximate Bayesian inference for latent Gaussian models by using integrated
+nested Laplace approximations.
+\emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319--392.
+
+\bibitem{datta2011}
+Datta, G.~S., Ghosh, M., Steorts, R.~C., dan Maples, J.~J. (2011).
+Bayesian benchmarking with applications to small area estimation.
+\emph{TEST}, 20, 574--588.
+
+\bibitem{marhuenda2013}
+Marhuenda, Y., Molina, I., dan Morales, D. (2013).
+Small area estimation with spatio-temporal Fay--Herriot models.
+\emph{Computational Statistics \& Data Analysis}, 58, 308--325.
+
+\bibitem{berg2014}
+Berg, E.~J. dan Fuller, W.~A. (2014).
+Small area prediction of proportions with applications to the Canadian Labour
+Force Survey.
+\emph{Journal of Survey Statistics and Methodology}, 2(2), 227--256.
+
+\bibitem{steorts2014}
+Steorts, R.~C. dan Ghosh, M. (2014).
+Bayesian benchmarking of the Fay--Herriot model using random deletion.
+\emph{Calcutta Statistical Association Bulletin}, 65, 257--274.
+
+\bibitem{rao2015}
+Rao, J.~N.~K. dan Molina, I. (2015).
+\emph{Small Area Estimation} (edisi ke-2). John Wiley \& Sons.
+
+\bibitem{riebler2016}
+Riebler, A., S{\o}rbye, S.~H., Simpson, D., dan Rue, H. (2016).
+An intuitive Bayesian spatial model for disease mapping that accounts for
+scaling.
+\emph{Statistical Methods in Medical Research}, 25(4), 1145--1165.
+
+\bibitem{denicolo2024}
+De Nicol\`o, S. dan Gardini, A. (2024).
+The R package \texttt{tipsae}: Tools for mapping proportions and indicators on
+the unit interval.
+\emph{Journal of Statistical Software}, 108(1), 1--36.
+
+\end{thebibliography}
+
+\end{document}
