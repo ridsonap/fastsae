@@ -7,9 +7,18 @@
 //
 // Variance components (s2u, s2v) by ML/REML Fisher-scoring exploiting the
 // block-diagonal covariance (Woodbury per area block). EBLUP from the BLUP
-// equations. MSE by parametric bootstrap (same pattern as seblup/stfh pbmse);
-// the closed-form Prasad-Rao g3 term of Torabi & Rao (2014) is left for a
-// future release.
+// equations. MSE by parametric bootstrap (same pattern as seblup/stfh pbmse).
+//
+// NOTE (2026-10-01): the closed-form Prasad-Rao g3 of Torabi & Rao (2014),
+// eq. (3.4), was investigated and deliberately NOT implemented. The preprint
+// version contains a spurious [A][B] term (dimensionally inconsistent, no
+// var/cov multiplier) and the sigma_u^-4 factor — though dimensionally
+// correct — disagrees with numerical derivatives by ~2x (cause unresolved;
+// possibly derived from the approximate BLUP mu^B rather than the exact
+// BLUP). A proposed "correction" to sigma_u^-2 was rejected: it is
+// dimensionally wrong (y^4 instead of y^2) and only matched simulations by
+// numerical coincidence. Bootstrap MSE is retained as the validated,
+// dimensionally correct estimator.
 #include <RcppArmadillo.h>
 
 using namespace Rcpp;
