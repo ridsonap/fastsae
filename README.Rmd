@@ -62,58 +62,29 @@ and variance components agree with `sae` to numerical tolerance.
 
 ### Understanding INLA: Fast Bayesian Inference without MCMC
 
-**INLA** (Integrated Nested Laplace Approximations; Rue et al., 2009) provides a
-deterministic alternative to Markov Chain Monte Carlo (MCMC) for Bayesian
-inference in latent Gaussian models. Instead of drawing thousands of samples,
-INLA:
+**INLA** (Integrated Nested Laplace Approximations; Rue et al., 2009)
+provides a deterministic alternative to Markov Chain Monte Carlo (MCMC)
+for Bayesian inference in latent Gaussian models. Instead of drawing
+thousands of samples, INLA:
 
-- **Approximates** posterior marginals analytically using Laplace approximations
+- **Approximates** posterior marginals analytically using Laplace
+  approximations
 - **Integrates** out non-Gaussian observations analytically
 - **Delivers** results in seconds rather than hours
 
-`fastsae` uses INLA through the [`INLA`](https://www.r-inla-download.org) R
-package to fit hierarchical Bayesian small area models with:
+`fastsae` uses INLA through the
+[`INLA`](https://www.r-inla-download.org) R package to fit hierarchical
+Bayesian small area models with:
 
 - **6 likelihood families**: Gaussian, Beta, Binomial, Poisson, Negative
   Binomial, Gamma
 - **Spatial random effects**: BYM2, Besag ICAR, Spatial Lag
 - **Temporal random effects**: RW1, RW2, AR(1)
-- **Spatio-temporal interactions**: separable and non-separable structures
+- **Spatio-temporal interactions**: separable and non-separable
+  structures
 
 **Key advantage over MCMC**: No convergence diagnostics, no burn-in,
 reproducible results, and 10–100× speedups for large problems.
-
-------------------------------------------------------------------------
-
-### Two-Fold Subarea Models: Nested Hierarchical Structure
-
-The two-fold subarea model (Torabi & Rao, 2014) extends the standard
-Fay-Herriot model to hierarchical data where **subareas are nested within
-areas**. This is ideal when:
-
-- A province contains multiple districts (subareas), and we want both district
-  and province estimates
-- Administrative data exist at a finer granularity than the target estimation
-  domain
-- Borrowing strength is needed at two levels simultaneously
-
-**Model structure:**
-
-$$y_{ij} = x_{ij}^\top \beta + v_i + u_{ij} + e_{ij}$$
-
-where:
-- $v_i \sim N(0, \sigma_v^2)$: **Area-level random effect** (borrows strength
-  across all subareas in area $i$)
-- $u_{ij} \sim N(0, \sigma_u^2)$: **Subarea-level random effect** (captures
-  local variation within area $i$)
-- $e_{ij} \sim N(0, D_{ij})$: Sampling error with known variance
-
-**Available implementations:**
-- `eblup_twofold()`: Frequentist EBLUP via REML Fisher-scoring (C++)
-- `hb_twofold()`: Bayesian hierarchical model via INLA with spatial support
-
-Both functions automatically aggregate subarea estimates to produce area-level
-predictions with proper uncertainty propagation.
 
 ------------------------------------------------------------------------
 
@@ -122,7 +93,7 @@ predictions with proper uncertainty propagation.
 #### Frequentist Models (EBLUP, C++)
 
 | Function | Model Type | Description |
-|:---|:---|:---|
+|:-----------------------|:-----------------------|:-----------------------|
 | `eblup_fh()` | Area-level | Standard Fay-Herriot with area random effects |
 | `eblup_sfh()` | Spatial | Fay-Herriot with spatial CAR random effects |
 | `eblup_stfh()` | Spatio-temporal | Dynamic spatial-temporal Fay-Herriot |
@@ -132,7 +103,7 @@ predictions with proper uncertainty propagation.
 #### Bayesian Models (INLA)
 
 | Function | Model Type | Distributions | Spatial/Temporal |
-|:---|:---|:---|:---|
+|:-----------------|:-----------------|:-----------------|:-----------------|
 | `hb_area()` | Area-level | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Full support |
 | `hb_unit()` | Unit-level | Gaussian | ✓ Via nested error |
 | `hb_twofold()` | Two-fold | Gaussian, Binomial, Poisson | ✓ Area-level BYM2/Besag |
@@ -147,7 +118,7 @@ aggregate targets, diagnostics, model comparison, and export.
 Benchmark across $n = 1,000$ areas (5 covariates):
 
 | Task | `fastsae` | `sae` (Molina & Marhuenda) | `emdi` |
-|:---|:--:|:--:|:--:|
+|:-----------------|:----------------:|:----------------:|:----------------:|
 | **Standard Fay-Herriot** | **0.0015 s** | 0.291 s (\~190x slower) | 9.64 s (\~6,400x slower) |
 | **Spatial Fay-Herriot** | **0.165 s** | 12.60 s (\~76x slower) | 8.69 s (\~53x slower) |
 | **Peak RAM usage** | **\< 10 MB** | \~400 MB | \~800 MB |

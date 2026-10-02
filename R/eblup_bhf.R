@@ -85,6 +85,7 @@ eblup_bhf <- function(
 
   # --- prepare population data sorted to match selectdom ---
   pop_dom <- .get_variable(Xpop, domain_var)
+  selectdom <- unique(c(selectdom, pop_dom))
   Xpop <- Xpop[order(match(pop_dom, selectdom)), , drop = FALSE]
   popnsize <- .get_variable(Xpop, popsize_var)
 
@@ -238,6 +239,7 @@ eblup_bhf <- function(
 
   # --- prepare population data sorted to match selectdom ---
   pop_dom <- .get_variable(Xpop, domain_var)
+  selectdom <- unique(c(selectdom, pop_dom))
   Xpop <- Xpop[order(match(pop_dom, selectdom)), , drop = FALSE]
   popnsize <- .get_variable(Xpop, popsize_var)
 

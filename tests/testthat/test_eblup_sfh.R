@@ -248,3 +248,46 @@ test_that("negative sampling variance throws error", {
     )
   )
 })
+
+test_that("eblup_sfh validation and edge cases", {
+  # W is NULL
+  expect_error(eblup_sfh(y ~ x1, vardir = "vardir", data = mysnona, print_result = FALSE), "must be provided")
+
+  # domain = NULL defaults to 1:nrow(data)
+  fit_nodom <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mysnona, W = mys_proxmat_nona, domain = NULL, print_result = FALSE)
+  expect_equal(fit_nodom$df_eblup$domain, 1:nrow(mysnona))
+
+  # NA in auxiliary variables
+  bad_mys <- mysnona
+  bad_mys$x1[1] <- NA
+  expect_error(eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = bad_mys, W = mys_proxmat_nona, print_result = FALSE), "Auxiliary variables contain NA")
+
+  # Length of vardir mismatch
+  expect_error(eblup_sfh(y ~ x1 + x2, vardir = 1:5, data = mysnona, W = mys_proxmat_nona, print_result = FALSE), "length does not match")
+
+  # Non-convergence with maxiter = 1
+  fit_nc <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mysnona, W = mys_proxmat_nona, maxiter = 1, print_result = FALSE)
+  expect_false(fit_nc$convergence)
+
+  # print_result = TRUE
+  expect_output(eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mysnona, W = mys_proxmat_nona, print_result = TRUE))
+
+  # Bootstrap MSE with unsampled domains
+  fit_pb_unsampled <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, mse_method = "pbmse", B = 5, print_result = FALSE)
+  expect_s3_class(fit_pb_unsampled, "fastsae")
+
+  fit_npb_unsampled <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, mse_method = "npbmse", B = 5, print_result = FALSE)
+  expect_s3_class(fit_npb_unsampled, "fastsae")
+
+  # Direct nrow(mf) != length(vardir) check in eblup_sfh
+  testthat::with_mocked_bindings(
+    .get_variable = function(data, variable) c(1, 2),
+    .package = "fastsae",
+    {
+      expect_error(
+        eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mysnona, W = mys_proxmat_nona, print_result = FALSE),
+        "Length of 'vardir' must equal number of observations"
+      )
+    }
+  )
+})

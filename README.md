@@ -82,37 +82,6 @@ reproducible results, and 10–100× speedups for large problems.
 
 ------------------------------------------------------------------------
 
-### Two-Fold Subarea Models: Nested Hierarchical Structure
-
-The two-fold subarea model (Torabi & Rao, 2014) extends the standard
-Fay-Herriot model to hierarchical data where **subareas are nested
-within areas**. This is ideal when:
-
-- A province contains multiple districts (subareas), and we want both
-  district and province estimates
-- Administrative data exist at a finer granularity than the target
-  estimation domain
-- Borrowing strength is needed at two levels simultaneously
-
-**Model structure:**
-
-$$y_{ij} = x_{ij}^\top \beta + v_i + u_{ij} + e_{ij}$$
-
-where: - $v_i \sim N(0, \sigma_v^2)$: **Area-level random effect**
-(borrows strength across all subareas in area $i$) -
-$u_{ij} \sim N(0, \sigma_u^2)$: **Subarea-level random effect**
-(captures local variation within area $i$) - $e_{ij} \sim N(0, D_{ij})$:
-Sampling error with known variance
-
-**Available implementations:** - `eblup_twofold()`: Frequentist EBLUP
-via REML Fisher-scoring (C++) - `hb_twofold()`: Bayesian hierarchical
-model via INLA with spatial support
-
-Both functions automatically aggregate subarea estimates to produce
-area-level predictions with proper uncertainty propagation.
-
-------------------------------------------------------------------------
-
 ### Models
 
 #### Frequentist Models (EBLUP, C++)

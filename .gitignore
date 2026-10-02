@@ -26,3 +26,9 @@ Rplots.pdf
 *.out
 *.toc
 .playwright-mcp
+
+# Test & coverage artifacts
+cov_res.rds
+tests/testthat/_problems/
+tests/testthat/testthat-problems.rds
+htmltools/

@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("map_sae works for single model eblup_fh with auto and explicit keys", {
   skip_if_not_installed("sf")
 
@@ -155,3 +158,99 @@ test_that("map_sae handles errors cleanly", {
 
   expect_error(map_sae(fit_fh, sf_geom = mys_sf, key = "non_existent_column"), "was not found")
 })
+
+test_that("map_sae.default works with data frame and checks errors", {
+  skip_if_not_installed("sf")
+  data(mys)
+  grid_sf <- sf::st_make_grid(
+    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    cellsize = c(1, 1),
+    what = "polygons"
+  )[seq_len(nrow(mys))]
+  mys_sf <- sf::st_sf(area = mys$area, geometry = grid_sf)
+
+  df_est <- data.frame(area = mys$area, eblup = runif(nrow(mys), 5, 10), mse = runif(nrow(mys), 0.1, 0.5))
+
+  # 1. Plain data frame
+  p_df <- map_sae(df_est, sf_geom = mys_sf)
+  expect_s3_class(p_df, "ggplot")
+
+  # 2. RSE map from data frame (rse computed from mse)
+  p_df_rse <- map_sae(df_est, sf_geom = mys_sf, type = "rse")
+  expect_s3_class(p_df_rse, "ggplot")
+
+  # 3. Reliability map from data frame
+  p_df_rel <- map_sae(df_est, sf_geom = mys_sf, type = "reliability")
+  expect_s3_class(p_df_rel, "ggplot")
+
+  # 4. Error if object is not a data frame
+  expect_error(map_sae(12345), "must be a <fastsae> object, a benchmark object, or a data frame")
+
+  # 5. Error if data frame has no estimate column
+  expect_error(map_sae(data.frame(area = 1:5, val = 1:5), sf_geom = mys_sf), "Data frame must contain an estimate column")
+
+  # 6. Error if no sf_geom provided to data frame
+  expect_error(map_sae(df_est), "Please provide spatial polygons")
+})
+
+test_that("map_sae.list edge cases and two-model errors", {
+  skip_if_not_installed("sf")
+  data(mys)
+  fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
+
+  grid_sf <- sf::st_make_grid(
+    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    cellsize = c(1, 1),
+    what = "polygons"
+  )[seq_len(nrow(mys))]
+  mys_sf <- sf::st_sf(area = mys$area, geometry = grid_sf)
+
+  # 1. Empty list error
+  expect_error(map_sae(list()), "Empty list provided")
+
+  # 2. Single element list delegates to single map_sae
+  p_single_list <- map_sae(list(fit_fh), sf_geom = mys_sf)
+  expect_s3_class(p_single_list, "ggplot")
+
+  # 3. Two models without sf_geom errors
+  expect_error(map_sae(fit_fh, model2 = fit_fh), "Please provide spatial polygons")
+
+  # 4. Benchmarked object without sf_geom errors
+  bm <- benchmark_sae(fit_fh, target = 6.5, method = "ratio")
+  expect_error(map_sae(bm), "Please provide spatial polygons")
+})
+
+test_that("map_sae smart key matching errors and NA direct branches", {
+  skip_if_not_installed("sf")
+  data(mys)
+  fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
+
+  grid_sf <- sf::st_make_grid(
+    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    cellsize = c(1, 1),
+    what = "polygons"
+  )[seq_len(nrow(mys))]
+  mys_sf <- sf::st_sf(area = mys$area, geometry = grid_sf)
+
+  # 1. Named key with missing model column
+  expect_error(map_sae(fit_fh, sf_geom = mys_sf, key = c("wrong_col" = "area")), "Model domain column .* was not found")
+
+  # 2. Named key with missing spatial column
+  expect_error(map_sae(fit_fh, sf_geom = mys_sf, key = c("domain" = "wrong_col")), "Spatial key column .* was not found")
+
+  # 3. Auto key match fails when columns have no standard name and < 40% overlap
+  mys_sf_mismatch <- sf::st_sf(unrelated_col = paste0("UNKNOWN_", 1:nrow(mys)), geometry = grid_sf)
+  expect_error(map_sae(fit_fh, sf_geom = mys_sf_mismatch), "Could not automatically match model domain IDs")
+
+  # 4. Model with all NA direct estimates
+  fit_na_direct <- fit_fh
+  fit_na_direct$df_eblup$y <- NA_real_
+
+  # Comparison warns and falls back to estimate map
+  expect_warning(p_na_cmp <- map_sae(fit_na_direct, sf_geom = mys_sf, type = "comparison"), "Direct estimates are not available")
+  expect_s3_class(p_na_cmp, "ggplot")
+
+  # Difference aborts with error
+  expect_error(map_sae(fit_na_direct, sf_geom = mys_sf, type = "difference"), "Direct estimates are required")
+})
+

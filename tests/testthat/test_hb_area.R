@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("hb_area works for Gaussian Fay-Herriot model with INLA", {
   skip_if_not_installed("INLA")
 
@@ -328,3 +331,260 @@ test_that("hb_area works for Spatial Lag Model (spatial = slm)", {
   expect_true(all(c("beta", "std.error", "zvalue", "pvalue") %in% names(fit_slm$estcoef)))
   expect_false(any(is.na(fit_slm$df_hb$hb)))
 })
+
+test_that("hb_area works for method = laplace via lme4 (binomial & poisson) and fallback messages", {
+  set.seed(42)
+  D <- 20
+  df_glmm <- data.frame(
+    area = 1:D,
+    x = rnorm(D),
+    n = sample(20:50, D, replace = TRUE),
+    exposure = sample(50:100, D, replace = TRUE)
+  )
+  df_glmm$y_bin <- rbinom(D, size = df_glmm$n, prob = plogis(-0.2 + 0.5 * df_glmm$x))
+  df_glmm$y_pois <- rpois(D, lambda = df_glmm$exposure * exp(-1.5 + 0.3 * df_glmm$x))
+
+  # 1. method = "laplace" for binomial
+  fit_lap_bin <- hb_area(
+    y_bin ~ x,
+    data = df_glmm,
+    domain = "area",
+    family = "binomial",
+    trials = "n",
+    method = "laplace",
+    print_result = FALSE
+  )
+  expect_s3_class(fit_lap_bin, "fastsae_hb_area")
+  expect_equal(fit_lap_bin$model, "HB-BINOMIAL (Laplace GLMM)")
+
+  # 2. method = "laplace" for poisson with exposure
+  fit_lap_pois <- hb_area(
+    y_pois ~ x,
+    data = df_glmm,
+    domain = "area",
+    family = "poisson",
+    exposure = "exposure",
+    method = "laplace",
+    print_result = FALSE
+  )
+  expect_s3_class(fit_lap_pois, "fastsae_hb_area")
+  expect_equal(fit_lap_pois$model, "HB-POISSON (Laplace GLMM)")
+
+  # 3. method = "laplace" for gaussian triggers message and INLA laplace strategy
+  data("mys", package = "fastsae")
+  expect_message(
+    fit_lap_gauss <- hb_area(
+      y ~ x1,
+      data = mys,
+      vardir = "vardir",
+      family = "gaussian",
+      method = "laplace",
+      print_result = FALSE
+    ),
+    "utilizing INLA"
+  )
+  expect_s3_class(fit_lap_gauss, "fastsae_hb_area")
+
+  # 4. Gaussian model with vardir = NULL (estimated sampling variance)
+  fit_no_vardir <- hb_area(
+    y ~ x1 + x2,
+    data = mys,
+    vardir = NULL,
+    family = "gaussian",
+    print_result = FALSE
+  )
+  expect_s3_class(fit_no_vardir, "fastsae_hb_area")
+  expect_true(!is.null(fit_no_vardir$random_effect_var))
+
+  # 5. method = "laplace" with spatial != "none" and non-gaussian triggers message
+  expect_message(
+    hb_area(
+      y_bin ~ x,
+      data = df_glmm,
+      domain = "area",
+      family = "binomial",
+      trials = "n",
+      spatial = "bym2",
+      W = mys_proxmat[1:D, 1:D],
+      method = "laplace",
+      print_result = FALSE
+    ),
+    "Spatial and temporal models require INLA"
+  )
+
+  # 6. method = "laplace" without exposure (Poisson)
+  fit_lap_pois2 <- hb_area(y_pois ~ x, data = df_glmm, domain = "area", family = "poisson", method = "laplace", print_result = FALSE)
+  expect_s3_class(fit_lap_pois2, "fastsae_hb_area")
+})
+
+test_that("hb_area Beta likelihood and vardir validation checks work", {
+  skip_if_not_installed("INLA")
+  set.seed(42)
+  D <- 15
+  df_beta <- data.frame(
+    area = 1:D,
+    x = rnorm(D),
+    y = runif(D, 0.1, 0.8),
+    vardir = runif(D, 0.001, 0.01),
+    n = sample(30:60, D, replace = TRUE)
+  )
+
+  # 1. Beta with vardir (Janicki 2020)
+  fit_beta_v <- hb_area(y ~ x, data = df_beta, domain = "area", family = "beta", vardir = "vardir", print_result = FALSE)
+  expect_s3_class(fit_beta_v, "fastsae_hb_area")
+  expect_true("precision" %in% names(fit_beta_v$df_hb))
+
+  # 2. Beta with trials (no vardir)
+  fit_beta_t <- hb_area(y ~ x, data = df_beta, domain = "area", family = "beta", trials = "n", print_result = FALSE)
+  expect_s3_class(fit_beta_t, "fastsae_hb_area")
+  expect_true("precision" %in% names(fit_beta_t$df_hb))
+
+  # 3. Beta with non-positive vardir errors
+  df_beta_bad <- df_beta
+  df_beta_bad$vardir[1] <- 0
+  expect_error(hb_area(y ~ x, data = df_beta_bad, domain = "area", family = "beta", vardir = "vardir", print_result = FALSE), "strictly positive")
+
+  # 4. Gamma with non-positive vardir errors
+  df_gamma_bad <- df_beta
+  df_gamma_bad$vardir[1] <- -1
+  expect_error(hb_area(y ~ x, data = df_gamma_bad, domain = "area", family = "gamma", vardir = "vardir", print_result = FALSE), "strictly positive")
+
+  # 5. Respect CRAN limit check
+  old_env <- Sys.getenv("_R_CHECK_PACKAGE_NAME_")
+  Sys.setenv("_R_CHECK_PACKAGE_NAME_" = "fastsae")
+  fit_cran <- hb_area(y ~ x, data = df_beta, domain = "area", family = "beta", trials = "n", print_result = FALSE)
+  expect_s3_class(fit_cran, "fastsae_hb_area")
+  if (nzchar(old_env)) Sys.setenv("_R_CHECK_PACKAGE_NAME_" = old_env) else Sys.unsetenv("_R_CHECK_PACKAGE_NAME_")
+})
+
+test_that("hb_area handles ST interaction types", {
+  skip_if_not_installed("INLA")
+  set.seed(42)
+  D <- 6
+  T_per <- 2
+  N <- D * T_per
+
+  df_st <- expand.grid(time = 1:T_per, domain = 1:D)
+  df_st$x <- rnorm(N)
+  df_st$y <- 5 + 0.5 * df_st$x + rnorm(N, 0, 0.2)
+  df_st$vardir <- rep(0.1, N)
+
+  W_st <- matrix(0, D, D)
+  for (i in 1:(D - 1)) {
+    W_st[i, i + 1] <- W_st[i + 1, i] <- 1
+  }
+
+  # separable with bym2
+  fit_sep_bym2 <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+                          spatial = "bym2", temporal = "ar1", st_interaction = "separable", W = W_st, print_result = FALSE)
+  expect_s3_class(fit_sep_bym2, "fastsae_hb_area")
+
+  # separable with bym
+  fit_sep_bym <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+                         spatial = "bym", temporal = "ar1", st_interaction = "separable", W = W_st, print_result = FALSE)
+  expect_s3_class(fit_sep_bym, "fastsae_hb_area")
+
+  # separable with generic1 (crashes inside INLA GMRFLib)
+  expect_error(
+    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+            spatial = "generic1", temporal = "ar1", st_interaction = "separable", W = W_st, print_result = FALSE),
+    "Fitting model with INLA failed"
+  )
+
+  # separable with spatial = none
+  fit_sep_none <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+                          spatial = "none", temporal = "ar1", st_interaction = "separable", print_result = FALSE)
+  expect_s3_class(fit_sep_none, "fastsae_hb_area")
+
+  # type1
+  fit_t1 <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+                    spatial = "none", temporal = "ar1", st_interaction = "type1", print_result = FALSE)
+  expect_s3_class(fit_t1, "fastsae_hb_area")
+
+  # type2 (INLA failure)
+  expect_error(
+    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+            spatial = "none", temporal = "ar1", st_interaction = "type2", print_result = FALSE),
+    "Fitting model with INLA failed"
+  )
+
+  # type3 (INLA failure)
+  expect_error(
+    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+            spatial = "besag", temporal = "ar1", st_interaction = "type3", W = W_st, print_result = FALSE),
+    "Fitting model with INLA failed"
+  )
+
+  # type4 (INLA failure)
+  expect_error(
+    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+            spatial = "besag", temporal = "ar1", st_interaction = "type4", W = W_st, print_result = FALSE),
+    "Fitting model with INLA failed"
+  )
+})
+
+test_that(".fit_glmm_laplace and hb_area prior/spatial branches work", {
+  skip_if_not_installed("lme4")
+  # 1. .fit_glmm_laplace gaussian and binomial without trials
+  df_test <- data.frame(y = rnorm(10), x = rnorm(10), d = rep(1:5, 2))
+  fit_g <- fastsae:::.fit_glmm_laplace(y ~ x, data = df_test, domain = df_test$d, family = "gaussian")
+  expect_s3_class(fit_g, "fastsae")
+
+  df_bin <- data.frame(y = rbinom(10, 1, 0.5), x = rnorm(10), d = rep(1:5, 2))
+  fit_b <- fastsae:::.fit_glmm_laplace(y ~ x, data = df_bin, domain = df_bin$d, family = "binomial")
+  expect_s3_class(fit_b, "fastsae")
+
+  # 2. vardir <= 0 error for gaussian
+  df_bad_var <- data.frame(y = 1:5, x = 1:5, vardir = c(1, 0, 1, 1, 1))
+  expect_error(hb_area(y ~ x, data = df_bad_var, vardir = "vardir", family = "gaussian"), "strictly positive")
+
+  skip_if_not_installed("INLA")
+  data("mys", package = "fastsae")
+  data("mys_proxmat", package = "fastsae")
+
+  # 3. spatial = "bym"
+  fit_bym <- hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "bym", W = mys_proxmat, print_result = FALSE)
+  expect_s3_class(fit_bym, "fastsae_hb_area")
+
+  # 4. temporal = "ar1" with prior_rho_time and domain-specific st_interaction
+  panel_data <- mys[rep(1:10, each = 3), ]
+  panel_data$time <- rep(1:3, 10)
+  panel_data$area <- rep(1:10, each = 3)
+  fit_ds <- hb_area(
+    y ~ x1,
+    data = panel_data,
+    domain = "area",
+    time = "time",
+    vardir = "vardir",
+    temporal = "ar1",
+    prior_rho_time = list(prior = "normal", param = c(0, 0.15)),
+    st_interaction = "domain-specific",
+    print_result = FALSE
+  )
+  expect_s3_class(fit_ds, "fastsae_hb_area")
+
+  # 5. generic1 and slm with prior_rho
+  fit_gen <- hb_area(
+    y ~ x1,
+    data = mys,
+    vardir = "vardir",
+    spatial = "generic1",
+    W = mys_proxmat,
+    prior_rho = list(prior = "normal", param = c(0, 1)),
+    print_result = FALSE
+  )
+  expect_s3_class(fit_gen, "fastsae_hb_area")
+
+  fit_slm <- hb_area(
+    y ~ x1,
+    data = mys,
+    vardir = "vardir",
+    spatial = "slm",
+    W = mys_proxmat,
+    prior_rho = list(prior = "normal", param = c(0, 1)),
+    print_result = FALSE
+  )
+  expect_s3_class(fit_slm, "fastsae_hb_area")
+})
+
+

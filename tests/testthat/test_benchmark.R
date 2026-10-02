@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("benchmark.default works for ratio, difference, optimal, and logit methods", {
   set.seed(42)
   n <- 20
@@ -87,6 +90,10 @@ test_that("benchmark print, summary, and autoplot methods work", {
 
   p <- autoplot(bm)
   expect_s3_class(p, "ggplot")
+
+  # plot.fastsae_benchmark dispatch
+  p_plot <- plot(bm)
+  expect_s3_class(p_plot, "ggplot")
 })
 
 test_that("benchmark works as alias for benchmark_sae", {
@@ -96,3 +103,93 @@ test_that("benchmark works as alias for benchmark_sae", {
   expect_equal(bm1$benchmarked, bm2$benchmarked)
   expect_s3_class(bm2, "fastsae_benchmark")
 })
+
+test_that("benchmark covers all validation, targets, and methods branches", {
+  data(mys, package = "fastsae")
+  fit_fh <- eblup_fh(y ~ x1, vardir = "vardir", data = mys, print_result = FALSE)
+
+  # 1. Target as data frame with group and target columns
+  groups_df <- rep(c("G1", "G2"), each = 21)
+  target_df <- data.frame(group = c("G1", "G2"), target = c(6.5, 7.5))
+  bm_df_target <- benchmark_sae(fit_fh, target = target_df, group = groups_df)
+  expect_s3_class(bm_df_target, "fastsae_benchmark")
+
+  # Target data frame missing columns
+  expect_error(benchmark_sae(fit_fh, target = data.frame(a = 1), group = groups_df), "must contain columns")
+  # Target data frame missing a group
+  expect_error(benchmark_sae(fit_fh, target = data.frame(group = "G1", target = 6.5), group = groups_df), "not found in target data frame")
+
+  # 2. Named vector target missing a group
+  expect_error(benchmark_sae(fit_fh, target = c(G1 = 6.5, G3 = 7.5), group = groups_df), "does not contain group")
+  # Length mismatch
+  expect_error(benchmark_sae(fit_fh, target = c(6.5, 7.5, 8.5), group = groups_df), "does not match number of groups")
+  # Invalid target class
+  expect_error(benchmark_sae(fit_fh, target = "invalid", group = groups_df), "must be a numeric value")
+
+  # 3. Neither target nor national target provided
+  expect_error(benchmark_sae(fit_fh), "Please provide either")
+
+  # 4. Weight as column name in object data and df_eblup
+  bm_col_wt <- benchmark_sae(fit_fh, target = 7.0, weight = "n")
+  expect_s3_class(bm_col_wt, "fastsae_benchmark")
+  expect_error(benchmark_sae(fit_fh, target = 7.0, weight = "nonexistent_col"), "not found in object data")
+  expect_error(benchmark_sae(fit_fh, target = 7.0, weight = 1:5), "does not match number of domains")
+
+  # 5. Group as column name and error handling
+  expect_error(benchmark_sae(fit_fh, target = 7.0, group = "nonexistent_grp"), "not found in object data")
+  expect_error(benchmark_sae(fit_fh, target = 7.0, group = 1:5), "does not match number of domains")
+
+  # 6. Invalid fastsae object
+  expect_error(benchmark_sae(structure(list(), class = "fastsae"), target = 7.0), "does not contain fitted area estimates")
+  expect_error(benchmark_sae(structure(list(df_eblup = data.frame(a = 1)), class = "fastsae"), target = 7.0), "Could not find estimation column")
+
+  # 7. Non-numeric object in benchmark_sae.default
+  expect_error(benchmark_sae("not_numeric", target = 7.0), "must be a numeric vector")
+  expect_error(benchmark_sae(1:5, target = 7.0, weight = 1:3), "Length of `weight`")
+  expect_error(benchmark_sae(1:5, target = 7.0, group = 1:3), "Length of `group`")
+
+  # 8. Hierarchical Stage 1 with difference, optimal, logit methods
+  y_test <- runif(20, 0.1, 0.9)
+  grp_test <- rep(c("A", "B"), each = 10)
+  bm_h_diff <- benchmark_sae(y_test, national_target = 0.5, group = grp_test, method = "difference")
+  expect_s3_class(bm_h_diff, "fastsae_benchmark")
+
+  bm_h_opt <- benchmark_sae(y_test, national_target = 0.5, group = grp_test, method = "optimal")
+  expect_s3_class(bm_h_opt, "fastsae_benchmark")
+
+  bm_h_logit <- benchmark_sae(y_test, national_target = 0.5, group = grp_test, method = "logit")
+  expect_s3_class(bm_h_logit, "fastsae_benchmark")
+
+  # 9. Optimal method fallback to difference when MSE contains NA or non-positive
+  expect_warning(benchmark_sae(y_test, target = 0.5, method = "optimal"), "MSE not available or non-positive")
+
+  # 10. Aggregation virtually zero for ratio
+  expect_error(benchmark_sae(c(0, 0, 0), target = 5.0, method = "ratio"), "virtually zero")
+
+  # 11. Print all_groups = TRUE and summary.fastsae_benchmark
+  expect_output(print(bm_h_diff, all_groups = TRUE))
+  expect_output(summary(bm_h_diff), "Stage 1: Group Harmonization Summary")
+
+  # 12. Benchmark with > 10 groups to test truncation in print and autoplot legend suppression
+  y_12 <- runif(24, 0.2, 0.8)
+  grp_12 <- rep(paste0("G", 1:12), each = 2)
+  bm_12 <- benchmark_sae(y_12, national_target = 0.5, group = grp_12, method = "ratio")
+  expect_output(print(bm_12, all_groups = FALSE), "and 6 more groups")
+  expect_output(summary(bm_12), "and 2 more groups")
+
+  p_12 <- autoplot(bm_12)
+  expect_s3_class(p_12, "ggplot")
+
+  # 13. plot with sf_geom
+  if (requireNamespace("sf", quietly = TRUE)) {
+    grid_sf <- sf::st_make_grid(
+      sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+      cellsize = c(1, 1),
+      what = "polygons"
+    )[seq_len(nrow(mys))]
+    mys_sf <- sf::st_sf(area = mys$area, geometry = grid_sf)
+    p_sf <- plot(bm_col_wt, sf_geom = mys_sf)
+    expect_s3_class(p_sf, "ggplot")
+  }
+})
+

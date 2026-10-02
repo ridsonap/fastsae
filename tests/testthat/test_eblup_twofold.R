@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("eblup_twofold recovers two-fold parameters from simulated data", {
   set.seed(42)
   m <- 40
@@ -257,6 +260,50 @@ test_that("eblup_twofold is consistent with standard Fay-Herriot on single-subar
 
 test_that("eblup_tfh alias is identical to eblup_twofold", {
   expect_identical(eblup_tfh, eblup_twofold)
+})
+
+test_that("eblup_twofold validation and edge cases", {
+  dat <- data.frame(
+    area = rep(1:5, each = 2),
+    subarea = rep(1:2, 5),
+    x1 = rnorm(10),
+    vardir = runif(10, 0.2, 0.5),
+    y = rnorm(10)
+  )
+
+  # domain = NULL error
+  expect_error(eblup_twofold(y ~ x1, vardir = "vardir", domain = NULL, data = dat, print_result = FALSE), "must be supplied")
+
+  # subarea = NULL defaults to seq_len(nrow(data))
+  fit_nosub <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = NULL, data = dat, print_result = FALSE)
+  expect_equal(fit_nosub$df_eblup$subarea, seq_len(nrow(dat)))
+
+  # vardir mismatch
+  expect_error(eblup_twofold(y ~ x1, vardir = 1:3, domain = "area", data = dat, print_result = FALSE), "length does not match")
+
+  # NA in auxiliary
+  dat_na <- dat
+  dat_na$x1[1] <- NA
+  expect_error(eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat_na, print_result = FALSE), "Auxiliary variables contain NA")
+
+  # Non-convergence with maxiter = 1
+  fit_nc <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat, maxiter = 1, print_result = FALSE)
+  expect_false(fit_nc$convergence)
+
+  # print_result = TRUE
+  expect_output(eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat, print_result = TRUE))
+
+  # Direct nrow(mf) != length(vardir) check
+  testthat::with_mocked_bindings(
+    .get_variable = function(data, variable) c(1, 2),
+    .package = "fastsae",
+    {
+      expect_error(
+        eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat, print_result = FALSE),
+        "Length of 'vardir' must equal number of observations"
+      )
+    }
+  )
 })
 
 

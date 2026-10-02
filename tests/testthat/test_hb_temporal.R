@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   skip_on_cran()
   skip_if_not_installed("INLA")

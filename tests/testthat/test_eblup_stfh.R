@@ -170,3 +170,162 @@ test_that("negative sampling variance throws error", {
     )
   )
 })
+
+test_that("eblup_stfh validation and edge cases", {
+  # Unsampled areas (NA in response)
+  expect_error(
+    eblup_stfh(
+      y ~ x1 + x2 + x3,
+      data = mys_panel,
+      vardir = ~vardir,
+      domain = ~area,
+      time = ~year,
+      W = mys_proxmat,
+      model = "ST",
+      print_result = FALSE
+    ),
+    "does not support unsampled areas"
+  )
+
+  # W contains NA
+  W_na <- mys_proxmat_nona
+  W_na[1, 2] <- NA
+  expect_error(
+    eblup_stfh(
+      y ~ x1 + x2 + x3,
+      data = mys_panel_nona,
+      vardir = ~vardir,
+      domain = ~area,
+      time = ~year,
+      W = W_na,
+      model = "ST",
+      print_result = FALSE
+    ),
+    "Argument W contains NA"
+  )
+
+  # Dimension mismatch
+  bad_panel <- mys_panel_nona[-1, ]
+  expect_error(
+    eblup_stfh(
+      y ~ x1 + x2 + x3,
+      data = bad_panel,
+      vardir = ~vardir,
+      domain = ~area,
+      time = ~year,
+      W = mys_proxmat_nona,
+      model = "ST",
+      print_result = FALSE
+    ),
+    "Dimensions mismatch"
+  )
+
+  # Custom starting values
+  fit_custom_start <- eblup_stfh(
+    y ~ x1 + x2 + x3,
+    data = mys_panel_nona,
+    vardir = ~vardir,
+    domain = ~area,
+    time = ~year,
+    W = mys_proxmat_nona,
+    model = "ST",
+    sigma21_start = 1.0,
+    sigma22_start = 0.5,
+    rho1_start = 0.3,
+    rho2_start = 0.4,
+    print_result = FALSE
+  )
+  expect_s3_class(fit_custom_start, "fastsae")
+
+  # Non-convergence with maxiter = 1
+  fit_st_nc <- eblup_stfh(
+    y ~ x1 + x2 + x3,
+    data = mys_panel_nona,
+    vardir = ~vardir,
+    domain = ~area,
+    time = ~year,
+    W = mys_proxmat_nona,
+    model = "ST",
+    maxiter = 1,
+    print_result = FALSE
+  )
+  expect_false(fit_st_nc$convergence)
+
+  # print_result = TRUE with model = "S"
+  expect_output(
+    eblup_stfh(
+      y ~ x1 + x2 + x3,
+      data = mys_panel_nona,
+      vardir = ~vardir,
+      domain = ~area,
+      time = ~year,
+      W = mys_proxmat_nona,
+      model = "S",
+      print_result = TRUE
+    )
+  )
+
+  # Parameter bounds errors
+  expect_error(
+    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+               W = mys_proxmat_nona, sigma21_start = -1),
+    "sigma21_start must be >= 0"
+  )
+  expect_error(
+    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+               W = mys_proxmat_nona, sigma22_start = -1),
+    "sigma22_start must be >= 0"
+  )
+  expect_error(
+    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+               W = mys_proxmat_nona, rho1_start = -1.5),
+    "rho1_start must be in the interval"
+  )
+  expect_error(
+    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+               W = mys_proxmat_nona, model = "ST", rho2_start = 1.5),
+    "rho2_start must be in the interval"
+  )
+
+  # Parametric bootstrap MSE
+  expect_output(
+    fit_pb <- eblup_stfh(
+      y ~ x1 + x2,
+      data = mys_panel_nona,
+      vardir = ~vardir,
+      domain = ~area,
+      time = ~year,
+      W = mys_proxmat_nona,
+      model = "ST",
+      compute_mse = TRUE,
+      B = 5,
+      seed = 42,
+      print_result = TRUE
+    ),
+    "Fixed Effects Coefficients"
+  )
+  expect_true("mse_pb" %in% names(fit_pb$df_eblup))
+  expect_true(all(fit_pb$df_eblup$mse_pb >= 0))
+  expect_equal(fit_pb$B, 5)
+
+  # Direct nrow(mf) != length(vardir) check
+  testthat::with_mocked_bindings(
+    .get_variable = function(data, variable) c(1, 2),
+    .package = "fastsae",
+    {
+      expect_error(
+        eblup_stfh(
+          y ~ x1 + x2,
+          data = mys_panel_nona,
+          vardir = ~vardir,
+          domain = ~area,
+          time = ~year,
+          W = mys_proxmat_nona,
+          print_result = FALSE
+        ),
+        "Length of 'vardir' must equal number of observations"
+      )
+    }
+  )
+})
+

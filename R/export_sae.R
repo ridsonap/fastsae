@@ -45,7 +45,7 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30
   if (!rse_col %in% names(df)) {
     if ("mse" %in% names(df)) {
       est_col <- intersect(c("hb", "ebp", "eblup", "estimate", "est"), names(df))[1]
-      if (is.null(est_col)) cli::cli_abort("Cannot calculate RSE: missing estimate column.")
+      if (is.null(est_col) || is.na(est_col)) cli::cli_abort("Cannot calculate RSE: missing estimate column.")
       df[[rse_col]] <- (sqrt(df$mse) / abs(df[[est_col]])) * 100
     } else {
       cli::cli_abort("Column {.val {rse_col}} was not found in data.")
@@ -73,6 +73,10 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30
   }
 
   return(df)
+}
+
+.has_pkg <- function(pkg) {
+  requireNamespace(pkg, quietly = TRUE)
 }
 
 #' Export Small Area Estimation Results to Excel or CSV
@@ -154,10 +158,10 @@ export_sae <- function(
 
   # Write output
   if (ext == "xlsx") {
-    if (requireNamespace("writexl", quietly = TRUE)) {
+    if (.has_pkg("writexl")) {
       writexl::write_xlsx(sheets, path = file)
       cli::cli_alert_success("Successfully exported SAE results to Excel: {.path {file}}")
-    } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+    } else if (.has_pkg("openxlsx")) {
       openxlsx::write.xlsx(sheets, file = file)
       cli::cli_alert_success("Successfully exported SAE results to Excel: {.path {file}}")
     } else {
@@ -188,12 +192,13 @@ export_sae <- function(
 .build_estimates_sheet <- function(object, thresholds = c(20, 30)) {
   if (inherits(object, "fastsae_benchmark")) {
     bm_df <- as.data.frame(object)
+    adj_pct <- bm_df$adjustment_pct %||% bm_df$rel_adjustment_pct
     res <- data.frame(
       Domain = bm_df$domain,
       Original_Estimate = bm_df$original,
       Benchmarked_Estimate = bm_df$benchmarked,
       Adjustment = bm_df$adjustment,
-      Adjustment_Pct = bm_df$adjustment_pct,
+      Adjustment_Pct = adj_pct,
       stringsAsFactors = FALSE
     )
     return(res)

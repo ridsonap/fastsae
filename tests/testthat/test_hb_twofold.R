@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("hb_twofold works for Gaussian two-fold model and matches eblup_tfh", {
   skip_if_not_installed("INLA")
 
@@ -243,3 +246,152 @@ test_that("hb_twofold integrates with compare_sae() and diagnose()", {
 test_that("hb_tfh alias is identical to hb_twofold", {
   expect_identical(hb_tfh, hb_twofold)
 })
+
+test_that("hb_twofold handles besag spatial and subarea = NULL", {
+  skip_if_not_installed("INLA")
+  data("mys", package = "fastsae")
+  data("mys_proxmat", package = "fastsae")
+
+  # Create synthetic subarea data
+  set.seed(42)
+  dat <- do.call(rbind, lapply(seq_len(nrow(mys)), function(d) {
+    nd <- 2
+    data.frame(
+      area = mys$area[d],
+      x1 = mys$x1[d] + stats::rnorm(nd, 0, 0.1),
+      vardir = stats::runif(nd, 0.2, 0.8),
+      y = mys$y[d] + stats::rnorm(nd, 0, 0.2)
+    )
+  }))
+
+  # 1. subarea = NULL and spatial = besag
+  fit_besag <- hb_twofold(
+    y ~ x1,
+    vardir = "vardir",
+    domain = "area",
+    subarea = NULL,
+    spatial = "besag",
+    W = mys_proxmat,
+    data = dat,
+    print_result = FALSE
+  )
+  expect_s3_class(fit_besag, "fastsae_hb_twofold")
+  expect_equal(fit_besag$spatial, "besag")
+  expect_equal(nrow(fit_besag$df_hb), nrow(dat))
+})
+
+test_that("hb_twofold supports binomial, poisson, and fallback aggregation", {
+  skip_if_not_installed("INLA")
+  set.seed(42)
+  dat_bin <- data.frame(
+    area = rep(c("A1", "A2"), each = 3),
+    subarea = paste0("sub_", 1:6),
+    x = rnorm(6),
+    n = c(50, 60, 40, 55, 65, 45),
+    y = c(10, 15, 8, 12, 18, 9)
+  )
+
+  # Binomial with compute_area = TRUE
+  fit_bin <- hb_twofold(
+    y ~ x,
+    domain = "area",
+    subarea = "subarea",
+    trials = "n",
+    family = "binomial",
+    data = dat_bin,
+    compute_area = TRUE,
+    n_samples = 50,
+    print_result = FALSE
+  )
+  expect_s3_class(fit_bin, "fastsae_hb_twofold")
+  expect_true(!is.null(fit_bin$df_area))
+
+  # Poisson with compute_area = TRUE
+  dat_pois <- data.frame(
+    area = rep(c("A1", "A2"), each = 3),
+    subarea = paste0("sub_", 1:6),
+    x = rnorm(6),
+    y = c(3, 5, 2, 4, 6, 3)
+  )
+  fit_pois <- hb_twofold(
+    y ~ x,
+    domain = "area",
+    subarea = "subarea",
+    family = "poisson",
+    data = dat_pois,
+    compute_area = TRUE,
+    n_samples = 50,
+    print_result = FALSE
+  )
+  expect_s3_class(fit_pois, "fastsae_hb_twofold")
+
+  # Fallback aggregation when n_samples = 0
+  dat_gauss <- data.frame(
+    area = rep(c("A1", "A2"), each = 3),
+    subarea = paste0("sub_", 1:6),
+    x = rnorm(6),
+    vardir = rep(0.5, 6),
+    y = rnorm(6, 5, 1)
+  )
+  expect_output(
+    fit_fallback <- hb_twofold(
+      y ~ x,
+      vardir = "vardir",
+      domain = "area",
+      subarea = "subarea",
+      data = dat_gauss,
+      compute_area = TRUE,
+      n_samples = 0,
+      print_result = TRUE
+    ),
+    "Area-Level Aggregates"
+  )
+  expect_s3_class(fit_fallback, "fastsae_hb_twofold")
+  expect_true(!is.null(fit_fallback$df_area))
+})
+
+test_that("hb_twofold handles INLA failure and fallback aggregation", {
+  skip_if_not_installed("INLA")
+
+  dat <- data.frame(
+    area = rep(c("A1", "A2"), each = 3),
+    subarea = paste0("sub_", 1:6),
+    x = rnorm(6),
+    vardir = rep(0.5, 6),
+    y = exp(rnorm(6))
+  )
+
+  # 1. INLA error -> cli_abort (L296-299)
+  testthat::with_mocked_bindings(
+    inla = function(...) stop("Simulated INLA crash"),
+    .package = "INLA",
+    {
+      expect_error(
+        hb_twofold(
+          y ~ x,
+          vardir = "vardir",
+          domain = "area",
+          subarea = "subarea",
+          data = dat,
+          print_result = FALSE
+        ),
+        "Fitting two-fold model with INLA failed"
+      )
+    }
+  )
+
+  # 2. Fallback aggregation when n_samples=0 (L394 ps_ok=FALSE path)
+  fit_fb <- hb_twofold(
+    y ~ x,
+    vardir = "vardir",
+    domain = "area",
+    subarea = "subarea",
+    data = dat,
+    n_samples = 0L,
+    print_result = FALSE
+  )
+  expect_s3_class(fit_fb, "fastsae")
+  expect_false(any(is.na(fit_fb$df_area$hb)))
+})
+
+

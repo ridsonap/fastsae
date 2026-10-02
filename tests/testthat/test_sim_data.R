@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("sim_spatial_weights produces valid matrices across types and styles", {
   # 1. KNN with Binary style
   W_knn <- sim_spatial_weights(D = 30, type = "knn", k = 4, style = "B", seed = 123)
@@ -30,8 +33,22 @@ test_that("sim_spatial_weights produces valid matrices across types and styles",
   W2 <- sim_spatial_weights(D = 15, seed = 999)
   expect_identical(W1, W2)
 
-  # 6. Error handling
+  # 6. Custom coords & Grid/Ring with style W
+  custom_coords <- matrix(stats::runif(20), ncol = 2)
+  W_custom <- sim_spatial_weights(D = 10, coords = custom_coords)
+  expect_equal(dim(W_custom), c(10, 10))
+
+  W_grid_w <- sim_spatial_weights(D = 16, type = "grid", style = "W")
+  expect_equal(unname(rowSums(W_grid_w)), rep(1, 16))
+
+  W_ring_w <- sim_spatial_weights(D = 12, type = "ring", style = "W")
+  expect_equal(unname(rowSums(W_ring_w)), rep(1, 12))
+
+  # 7. Error handling
   expect_error(sim_spatial_weights(D = 1), "D.*must be an integer >= 2")
+  expect_error(sim_spatial_weights(D = NA), "D.*must be an integer >= 2")
+  expect_error(sim_spatial_weights(D = -5), "D.*must be an integer >= 2")
+  expect_error(sim_spatial_weights(D = 10, coords = matrix(1:5, 5, 1)), "coords.*must be a matrix or data.frame with 10 rows and >= 2 columns")
 })
 
 test_that("sim_area_data generates complete multi-distribution dataset", {
@@ -72,13 +89,25 @@ test_that("sim_area_data generates complete multi-distribution dataset", {
   expect_output(print(sim), "fastsae Simulated Multi-Distribution Area Data")
 })
 
-test_that("sim_area_data works with pre-specified spatial weights W", {
+test_that("sim_area_data works with pre-specified spatial weights W and handles edge cases", {
   data("mys_proxmat", package = "fastsae")
   sim_custom <- sim_area_data(W = mys_proxmat, n_unsampled = 6, seed = 202)
 
   expect_equal(nrow(sim_custom$data), nrow(mys_proxmat))
   expect_equal(dim(sim_custom$W), dim(mys_proxmat))
   expect_equal(sum(is.na(sim_custom$data$y_gaussian)), 6)
+
+  # Custom matrix without coords and without rownames
+  raw_W <- matrix(c(0, 1, 1, 1, 0, 1, 1, 1, 0), nrow = 3, ncol = 3)
+  sim_raw <- sim_area_data(W = raw_W, n_unsampled = 0, seed = 303)
+  expect_equal(nrow(sim_raw$data), 3)
+  expect_equal(sum(is.na(sim_raw$data$y_gaussian)), 0)
+  expect_true(grepl("^Area_", sim_raw$data$domain[1]))
+
+  # Errors
+  expect_error(sim_area_data(D = 1), "'D' must be an integer >= 2")
+  expect_error(sim_area_data(D = NA), "'D' must be an integer >= 2")
+  expect_error(sim_area_data(W = matrix(1:6, 2, 3)), "'W' must be a square matrix")
 })
 
 test_that("hb_area fits successfully on simulated data across families", {
@@ -130,4 +159,11 @@ test_that("built-in sim_area dataset loads and integrates with mys_proxmat", {
                                 spatial = "bym2", W = mys_proxmat)
   expect_s3_class(fit_multi_spatial, "fastsae")
   expect_equal(nrow(fit_multi_spatial$df_hb), 42)
+})
+
+test_that("sim_area_data triggers cmdscale fallback when D = 2 and coords is NULL", {
+  W2 <- matrix(c(0, 1, 1, 0), nrow = 2, ncol = 2)
+  sim_2 <- sim_area_data(W = W2)
+  expect_equal(nrow(sim_2$data), 2)
+  expect_equal(dim(sim_2$coords), c(2, 2))
 })

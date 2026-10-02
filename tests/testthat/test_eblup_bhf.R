@@ -185,3 +185,139 @@ test_that("Invalid method throws error", {
     )
   )
 })
+
+test_that("eblup_bhf works with popnmean_xpop and handles all options", {
+  # 1. popnmean_xpop without intercept (auto-prepended)
+  mean_no_int <- as.matrix(Xmean[, c("CornPix", "SoyBeansPix")])
+  fit_popmean <- eblup_bhf(
+    formula = CornHec ~ CornPix + SoyBeansPix,
+    unit_data = df_cornsoybean,
+    Xpop = Xpop,
+    popnmean_xpop = mean_no_int,
+    domain_var = "CountyIndex",
+    popsize_var = "PopnSegments",
+    method = "ML",
+    print_result = TRUE
+  )
+  expect_s3_class(fit_popmean, "fastsae")
+
+  # 2. popnmean_xpop with wrong number of columns
+  expect_error(
+    eblup_bhf(
+      formula = CornHec ~ CornPix + SoyBeansPix,
+      unit_data = df_cornsoybean,
+      Xpop = Xpop,
+      popnmean_xpop = matrix(1:60, 12, 5),
+      domain_var = "CountyIndex",
+      popsize_var = "PopnSegments",
+      print_result = FALSE
+    ),
+    "Number of columns in auxiliary population means"
+  )
+
+  # 3. Direct cpp call covering empty domain / warn_domains and error stops
+  upred_df <- data.frame(upred = c(0.1, 0.2), row.names = c("A", "B"))
+  Xs_test <- matrix(c(1, 1, 2, 3), 2, 2, dimnames = list(NULL, c("(Intercept)", "x")))
+  meanx_test <- matrix(c(1, 1, 2, 3), 2, 2)
+  res_cpp <- fastsae:::.eblup_bhf_cpp(
+    selectdom = c("A", "C"), # C not in dom
+    dom = c("A", "B"),
+    Xs = Xs_test,
+    meanxpop = meanx_test,
+    ys = c(10, 20),
+    popnsize = c(100, 100),
+    betaest = matrix(c(1, 1), 2, 1),
+    upred = upred_df
+  )
+  expect_equal(res_cpp$warn_domains, "C")
+
+  # Error checks in .eblup_bhf_cpp
+  expect_error(fastsae:::.eblup_bhf_cpp(c("A", "B"), c("A", "B"), Xs_test, matrix(1:6, 2, 3), c(1, 2), c(10, 10), matrix(1, 2, 1), upred_df), "Number of columns in meanxpop")
+  expect_error(fastsae:::.eblup_bhf_cpp(c("A", "B"), c("A", "B"), Xs_test, matrix(1:2, 1, 2), c(1, 2), c(10, 10), matrix(1, 2, 1), upred_df), "Number of rows in meanxpop")
+  expect_error(fastsae:::.eblup_bhf_cpp(c("A", "B"), c("A", "B"), Xs_test, meanx_test, c(1, 2), c(10), matrix(1, 2, 1), upred_df), "Length of popnsize")
+})
+
+test_that("eblup_bhf bootstrap MSE computation works", {
+  fit_mse <- eblup_bhf(
+    formula = CornHec ~ CornPix + SoyBeansPix,
+    unit_data = df_cornsoybean,
+    Xpop = Xpop,
+    domain_var = "CountyIndex",
+    popsize_var = "PopnSegments",
+    method = "REML",
+    compute_mse = TRUE,
+    B = 5,
+    seed = 123,
+    print_result = TRUE
+  )
+
+  expect_s3_class(fit_mse, "fastsae_unit")
+  expect_true("mse" %in% names(fit_mse$df_eblup))
+  expect_true("rse" %in% names(fit_mse$df_eblup))
+  expect_true(all(!is.na(fit_mse$df_eblup$mse)))
+  expect_true(all(fit_mse$df_eblup$mse > 0))
+  expect_true(all(fit_mse$df_eblup$rse > 0))
+})
+
+test_that("eblup_bhf handles unsampled domains, full enumeration, and NA in unit data", {
+  # 1. NA in unit data (leaves at least 1 obs for county 1)
+  df_na <- df_cornsoybean
+  df_na$CornPix[nrow(df_na)] <- NA
+
+  # 2. Unsampled domain in Xpop
+  Xpop_extra <- rbind(Xpop, data.frame(CountyIndex = 999, PopnSegments = 50, CornPix = 300, SoyBeansPix = 200))
+
+  # 3. Full enumeration domain (nd == Ni)
+  Xpop_extra$PopnSegments[1] <- sum(df_na$CountyIndex == Xpop_extra$CountyIndex[1], na.rm = TRUE)
+
+  expect_warning(
+    fit_warn <- eblup_bhf(
+      formula = CornHec ~ CornPix + SoyBeansPix,
+      unit_data = df_na,
+      Xpop = Xpop_extra,
+      domain_var = "CountyIndex",
+      popsize_var = "PopnSegments",
+      compute_mse = TRUE,
+      B = 2,
+      seed = 42,
+      print_result = FALSE
+    ),
+    "domain\\(s\\) have no sample units"
+  )
+
+  expect_s3_class(fit_warn, "fastsae_unit")
+  expect_true(999 %in% fit_warn$df_eblup$domain)
+  expect_equal(fit_warn$df_eblup$samp_size[fit_warn$df_eblup$domain == 999], 0)
+  expect_true(fit_warn$df_eblup$mse[fit_warn$df_eblup$domain == 999] > 0)
+
+  # 4. .pbmse_unit directly with NA and fit_boot NULL
+  # NOTE: with_mocked_bindings intercepts even qualified lme4::lmer calls,
+  # so grab the real implementation first to avoid infinite recursion.
+  real_lmer <- lme4::lmer
+  lmer_env <- new.env(parent = emptyenv())
+  lmer_env$call_count <- 0L
+  testthat::with_mocked_bindings(
+    lmer = function(formula, data, ...) {
+      lmer_env$call_count <- lmer_env$call_count + 1L
+      # First call is the initial fit; return real result
+      if (lmer_env$call_count == 1L) return(real_lmer(formula, data = data, ...))
+      # All subsequent (bootstrap) calls return NULL -> exercises `next` path
+      NULL
+    },
+    .package = "lme4",
+    {
+      fit_lme4_na <- fastsae:::.pbmse_unit(
+        formula = CornHec ~ CornPix + SoyBeansPix,
+        unit_data = df_na,
+        Xpop = Xpop,
+        domain_var = "CountyIndex",
+        popsize_var = "PopnSegments",
+        B = 2,
+        seed = 42
+      )
+      expect_type(fit_lme4_na, "list")
+      expect_true(all(c("eblup", "mse", "B") %in% names(fit_lme4_na)))
+    }
+  )
+})
+

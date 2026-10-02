@@ -67,7 +67,7 @@ compare_sae <- function(model1, model2 = NULL, names = NULL, thresholds = c(20, 
 #' @export
 compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...) {
   # Support passing a list of two models
-  if (is.list(model1) && !inherits(model1, "fastsae") && length(model1) >= 2) {
+  if (is.list(model1) && !is.data.frame(model1) && !inherits(model1, "fastsae") && length(model1) >= 2) {
     if (is.null(names)) {
       names <- names(model1)[1:2]
     }

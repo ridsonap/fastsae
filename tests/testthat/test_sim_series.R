@@ -1,3 +1,6 @@
+library(testthat)
+library(fastsae)
+
 test_that("sim_series_data produces valid spatio-temporal panel dataset", {
   sim <- sim_series_data(D = 25, T = 4, time_start = 2020, seed = 123)
 
@@ -57,6 +60,28 @@ test_that("sim_series_data handles unsampled domains and distribution bounds", {
 
   # Print method
   expect_output(print(sim), "fastsae Simulated Spatio-Temporal Multi-Distribution Panel")
+
+  # Different trend types
+  sim_rw <- sim_series_data(D = 10, T = 3, trend = "random_walk", seed = 1)
+  expect_s3_class(sim_rw, "fastsae_sim_series")
+
+  sim_ar1 <- sim_series_data(D = 10, T = 3, trend = "ar1", seed = 1)
+  expect_s3_class(sim_ar1, "fastsae_sim_series")
+
+  sim_none <- sim_series_data(D = 10, T = 3, trend = "none", seed = 1)
+  expect_s3_class(sim_none, "fastsae_sim_series")
+
+  # Custom matrix W without coords and without rownames
+  raw_W <- matrix(c(0, 1, 1, 1, 0, 1, 1, 1, 0), 3, 3)
+  sim_custom_w <- sim_series_data(W = raw_W, T = 3, seed = 1)
+  expect_equal(nrow(sim_custom_w$data), 9)
+
+  # Errors
+  expect_error(sim_series_data(T = 1), "'T' must be an integer >= 2")
+  expect_error(sim_series_data(T = NA), "'T' must be an integer >= 2")
+  expect_error(sim_series_data(D = 1), "'D' must be an integer >= 2")
+  expect_error(sim_series_data(D = NA), "'D' must be an integer >= 2")
+  expect_error(sim_series_data(W = matrix(1:6, 2, 3), T = 3), "'W' must be a square matrix")
 })
 
 test_that("sim_series_data integrates directly with eblup_stfh", {
@@ -112,4 +137,11 @@ test_that("built-in sim_panel dataset loads and integrates with eblup_stfh", {
 
   expect_s3_class(fit_panel, "fastsae")
   expect_equal(nrow(fit_panel$df_eblup), nrow(df_complete))
+})
+
+test_that("sim_series_data triggers cmdscale fallback when D = 2 and coords is NULL", {
+  W2 <- matrix(c(0, 1, 1, 0), nrow = 2, ncol = 2)
+  sim_s2 <- sim_series_data(W = W2, T = 2)
+  expect_equal(nrow(sim_s2$data), 4)
+  expect_equal(dim(sim_s2$coords), c(2, 2))
 })
