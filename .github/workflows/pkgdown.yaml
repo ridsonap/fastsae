@@ -1,0 +1,46 @@
+# Workflow to deploy pkgdown site to GitHub Pages
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+name: pkgdown
+
+permissions:
+  contents: contents
+
+jobs:
+  pkgdown:
+    runs-on: ubuntu-latest
+    # Only run on main/master, not on PRs
+    if: github.event_name != 'pull_request'
+    container: rocker/verse:latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      INLA_REPOS: 'https://inla.r-inla-download.org/R/stable'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install INLA
+        run: |
+          install.packages(
+            "INLA",
+            repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"),
+            dep = TRUE
+          )
+
+      - name: Install pkgdown dependencies
+        run: |
+          install.packages(c("pkgdown", "ggplot2", "dplyr", "sf", "spdep", "tipsae"))
+
+      - name: Build site
+        run: |
+          Rscript -e "pkgdown::build_site()"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: 'docs/'
+          publish_branch: 'main'
