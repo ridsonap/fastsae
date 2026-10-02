@@ -46,6 +46,65 @@ The **fastsae** package introduces `hb_area()`, a unified hierarchical Bayesian 
 
 ---
 
+## Mathematical Formulation
+
+The hierarchical Bayesian model underlying `hb_area()` extends the classical
+Fay-Herriot framework to handle non-Gaussian responses and structured random
+effects. The model comprises three levels:
+
+### Level 1: Sampling Model (Likelihood)
+
+For domain $d$ with direct estimator $y_d$ and known sampling variance
+$D_d$:
+
+$$\pi(y_d \mid \eta_d) = \text{ExpFamily}(y_d \mid \eta_d, D_d)$$
+
+The link function connects the linear predictor $\eta_d$ to the mean
+$\mu_d = E(y_d)$:
+
+| Family | Link Function | Linear Predictor |
+|:---|:---|:---|
+| Gaussian | Identity: $\eta_d = \mu_d$ | $\eta_d = x_d^\top \beta + u_d$ |
+| Beta | Logit: $\eta_d = \log(\mu_d / (1-\mu_d))$ | $\eta_d = x_d^\top \beta + u_d$ |
+| Poisson | Log: $\eta_d = \log(\mu_d)$ | $\eta_d = x_d^\top \beta + u_d + \log(E_d)$ |
+| Binomial | Logit: $\eta_d = \log(\mu_d / (1-\mu_d))$ | $\eta_d = x_d^\top \beta + u_d$ |
+| Negative Binomial | Log: $\eta_d = \log(\mu_d)$ | $\eta_d = x_d^\top \beta + u_d + \log(E_d)$ |
+| Gamma | Log: $\eta_d = \log(\mu_d)$ | $\eta_d = x_d^\top \beta + u_d$ |
+
+### Level 2: Prior on Fixed Effects
+
+$$\beta \sim N(0, \tau_\beta^2 I_p)$$
+
+A weakly informative normal prior with large variance $\tau_\beta^2$ is placed
+on regression coefficients.
+
+### Level 3: Prior on Random Effects
+
+$$u \sim N(0, \Sigma)$$
+
+The random effects $u = (u_1, \ldots, u_m)^\top$ follow a zero-mean Gaussian
+Markov Random Field (GMRF) with precision matrix $\Sigma^{-1}$ encoding the
+chosen spatial or temporal structure (BYM2, Besag ICAR, RW1, etc.).
+
+### INLA Approximation
+
+Rather than MCMC sampling, INLA approximates the posterior marginals:
+
+$$\pi(\theta \mid y) \approx \tilde{\pi}(\theta \mid y) = \frac{\pi(\theta) \pi(y \mid \theta)}{\pi(y \mid \theta)}$$
+
+and
+
+$$\pi(u_d \mid y) \approx \tilde{\pi}(u_d \mid y) = \sum_k \tilde{\pi}(u_d \mid \theta_k, y) \tilde{\pi}(\theta_k \mid y) \Delta_k$$
+
+where the integrals are evaluated using **Laplace approximations** and **numerical
+integration**. Three computational strategies are available:
+
+- **`strategy = "gaussian"`**: Fastest, best for well-behaved problems
+- **`strategy = "laplace"`**: Default, good accuracy/speed balance
+- **`strategy = "simplified.laplace"`**: Slightly faster Laplace, good for large models
+
+---
+
 ## Spatial and Spatio-Temporal Structures
 
 ### Spatial Priors

@@ -44,6 +44,79 @@ supports 6 probability distributions for the direct response:
 
 ------------------------------------------------------------------------
 
+## Mathematical Formulation
+
+The hierarchical Bayesian model underlying
+[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+extends the classical Fay-Herriot framework to handle non-Gaussian
+responses and structured random effects. The model comprises three
+levels:
+
+### Level 1: Sampling Model (Likelihood)
+
+For domain $`d`$ with direct estimator $`y_d`$ and known sampling
+variance $`D_d`$:
+
+``` math
+\pi(y_d \mid \eta_d) = \text{ExpFamily}(y_d \mid \eta_d, D_d)
+```
+
+The link function connects the linear predictor $`\eta_d`$ to the mean
+$`\mu_d = E(y_d)`$:
+
+| Family | Link Function | Linear Predictor |
+|:---|:---|:---|
+| Gaussian | Identity: $`\eta_d = \mu_d`$ | $`\eta_d = x_d^\top \beta + u_d`$ |
+| Beta | Logit: $`\eta_d = \log(\mu_d / (1-\mu_d))`$ | $`\eta_d = x_d^\top \beta + u_d`$ |
+| Poisson | Log: $`\eta_d = \log(\mu_d)`$ | $`\eta_d = x_d^\top \beta + u_d + \log(E_d)`$ |
+| Binomial | Logit: $`\eta_d = \log(\mu_d / (1-\mu_d))`$ | $`\eta_d = x_d^\top \beta + u_d`$ |
+| Negative Binomial | Log: $`\eta_d = \log(\mu_d)`$ | $`\eta_d = x_d^\top \beta + u_d + \log(E_d)`$ |
+| Gamma | Log: $`\eta_d = \log(\mu_d)`$ | $`\eta_d = x_d^\top \beta + u_d`$ |
+
+### Level 2: Prior on Fixed Effects
+
+``` math
+\beta \sim N(0, \tau_\beta^2 I_p)
+```
+
+A weakly informative normal prior with large variance $`\tau_\beta^2`$
+is placed on regression coefficients.
+
+### Level 3: Prior on Random Effects
+
+``` math
+u \sim N(0, \Sigma)
+```
+
+The random effects $`u = (u_1, \ldots, u_m)^\top`$ follow a zero-mean
+Gaussian Markov Random Field (GMRF) with precision matrix
+$`\Sigma^{-1}`$ encoding the chosen spatial or temporal structure (BYM2,
+Besag ICAR, RW1, etc.).
+
+### INLA Approximation
+
+Rather than MCMC sampling, INLA approximates the posterior marginals:
+
+``` math
+\pi(\theta \mid y) \approx \tilde{\pi}(\theta \mid y) = \frac{\pi(\theta) \pi(y \mid \theta)}{\pi(y \mid \theta)}
+```
+
+and
+
+``` math
+\pi(u_d \mid y) \approx \tilde{\pi}(u_d \mid y) = \sum_k \tilde{\pi}(u_d \mid \theta_k, y) \tilde{\pi}(\theta_k \mid y) \Delta_k
+```
+
+where the integrals are evaluated using **Laplace approximations** and
+**numerical integration**. Three computational strategies are available:
+
+- **`strategy = "gaussian"`**: Fastest, best for well-behaved problems
+- **`strategy = "laplace"`**: Default, good accuracy/speed balance
+- **`strategy = "simplified.laplace"`**: Slightly faster Laplace, good
+  for large models
+
+------------------------------------------------------------------------
+
 ## Spatial and Spatio-Temporal Structures
 
 ### Spatial Priors
@@ -155,30 +228,30 @@ and known sampling variances `vars`:
 `#> Coefficients:`\
 `#>                    beta   std.error      zvalue      pvalue    ci_lower`\
 `#> (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00`\
-`#> x            4.0612e-01  6.4372e-02  6.3090e+00  2.8084e-10  2.7947e-01`\
+`#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8081e-10  2.7947e-01`\
 `#>             ci_upper`\
 `#> (Intercept)  -2.2218`\
 `#> x             0.5321`\
 `#> `\
 `#> Hyperparameters:`\
-`#>                                  mean        sd 0.025quant  0.5quant 0.975quant`\
-`#> Precision for ..domain_id..  18.22307  6.626532   8.634569  17.10219    34.3505`\
-`#> Precision for ..time_id..   172.31221 78.434145  72.154753 155.44927   373.0483`\
+`#>                                  mean       sd 0.025quant  0.5quant 0.975quant`\
+`#> Precision for ..domain_id..  18.22296  6.62633   8.634528  17.10218    34.3497`\
+`#> Precision for ..time_id..   172.31261 78.43491  72.152963 155.44977   373.0499`\
 `#>                                  mode`\
-`#> Precision for ..domain_id..  15.06357`\
-`#> Precision for ..time_id..   127.08259`\
+`#> Precision for ..domain_id..  15.06372`\
+`#> Precision for ..time_id..   127.08334`\
 `#> `\
 `#> Goodness of Fit:`\
 `#>                                                   DIC `\
-`#>                                            -976.34166 `\
+`#>                                            -976.34160 `\
 `#>                                                    pD `\
-`#>                                              56.02386 `\
+`#>                                              56.02359 `\
 `#>                                                  WAIC `\
-`#>                                            -984.78987 `\
+`#>                                            -984.78963 `\
 `#>                                                 pWAIC `\
-`#>                                              38.70815 `\
+`#>                                              38.70809 `\
 `#> Marginal_LogLik.log marginal-likelihood (integration) `\
-`#>                                             439.32542 `\
+`#>                                             439.32543 `\
 `#> `\
 `#> HB Summary Statistics:`\
 `#>        hb           linear_pred           sd                mse           `\
@@ -204,19 +277,19 @@ standard errors, and 95% Credible Intervals:
 \
 [`head`](https://rdrr.io/r/utils/head.html)`(``fit_beta_st``$``df_hb``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"domain"``, ``"time"``, ``"y"``, ``"hb"``, ``"sd"``, ``"rse"``, ``"ci_lower"``, ``"ci_upper"``)``]``)`\
 `#>                domain time      y         hb          sd       rse   ci_lower`\
-`#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554640 0.006127610 11.031517 0.04408725`\
-`#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131567  7.453981 0.07068300`\
-`#> 3               IMOLA 2014 0.1033 0.09343262 0.010214743 10.932738 0.07511425`\
-`#> 4         PIANURA EST 2014 0.0633 0.06509827 0.006294797  9.669684 0.05342022`\
-`#> 5       PIANURA OVEST 2014 0.0625 0.07112654 0.007870670 11.065728 0.05671270`\
-`#> 6      PORRETTA TERME 2014 0.1276 0.09608738 0.012916482 13.442434 0.07314336`\
+`#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554648 0.006127591 11.031465 0.04408737`\
+`#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131555  7.453966 0.07068304`\
+`#> 3               IMOLA 2014 0.1033 0.09343257 0.010214708 10.932706 0.07511426`\
+`#> 4         PIANURA EST 2014 0.0633 0.06509829 0.006294779  9.669652 0.05342028`\
+`#> 5       PIANURA OVEST 2014 0.0625 0.07112657 0.007870648 11.065693 0.05671277`\
+`#> 6      PORRETTA TERME 2014 0.1276 0.09608722 0.012916432 13.442403 0.07314329`\
 `#>     ci_upper`\
-`#> 1 0.06810568`\
-`#> 2 0.09473235`\
-`#> 3 0.11517443`\
-`#> 4 0.07814090`\
-`#> 5 0.08759940`\
-`#> 6 0.12376161`
+`#> 1 0.06810573`\
+`#> 2 0.09473234`\
+`#> 3 0.11517430`\
+`#> 4 0.07814089`\
+`#> 5 0.08759939`\
+`#> 6 0.12376134`
 
 ------------------------------------------------------------------------
 
@@ -315,28 +388,28 @@ population offsets:
 `#> Coefficients:`\
 `#>                    beta   std.error      zvalue      pvalue    ci_lower`\
 `#> (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01`\
-`#> x1           3.8369e-01  4.9804e-02  7.7040e+00  1.3187e-14  2.8563e-01`\
-`#> x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4859e-19 -3.6363e-01`\
+`#> x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3186e-14  2.8563e-01`\
+`#> x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4852e-19 -3.6363e-01`\
 `#>             ci_upper`\
 `#> (Intercept)   0.4120`\
 `#> x1            0.4820`\
 `#> x2           -0.2317`\
 `#> `\
 `#> Hyperparameters:`\
-`#>                                   mean        sd 0.025quant   0.5quant`\
-`#> Precision for ..domain_id.. 17.0200956 4.6704720 9.50753133 16.4615515`\
-`#> Phi for ..domain_id..        0.4755909 0.2611461 0.05377634  0.4645349`\
-`#>                             0.975quant       mode`\
-`#> Precision for ..domain_id.. 27.7457544 15.4389788`\
-`#> Phi for ..domain_id..        0.9367355  0.2292976`\
+`#>                                   mean       sd 0.025quant   0.5quant`\
+`#> Precision for ..domain_id.. 17.0201186 4.670462 9.50752941 16.4615886`\
+`#> Phi for ..domain_id..        0.4755961 0.261137 0.05377607  0.4645501`\
+`#>                             0.975quant      mode`\
+`#> Precision for ..domain_id..  27.745714 15.439052`\
+`#> Phi for ..domain_id..         0.936717  0.229371`\
 `#> `\
 `#> Goodness of Fit:`\
 `#>                                                   DIC `\
 `#>                                             317.61486 `\
 `#>                                                    pD `\
-`#>                                              31.75465 `\
+`#>                                              31.75464 `\
 `#>                                                  WAIC `\
-`#>                                             309.63789 `\
+`#>                                             309.63790 `\
 `#>                                                 pWAIC `\
 `#>                                              17.13688 `\
 `#> Marginal_LogLik.log marginal-likelihood (integration) `\
@@ -347,9 +420,9 @@ population offsets:
 `#>  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  `\
 `#>  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  `\
 `#>  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  `\
-`#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665243  `\
+`#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665241  `\
 `#>  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  `\
-`#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683086  `\
+`#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683065  `\
 `#>       rse        `\
 `#>  Min.   : 2.790  `\
 `#>  1st Qu.: 5.156  `\

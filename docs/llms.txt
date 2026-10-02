@@ -156,18 +156,18 @@ High-performance C++ implementation of Fay-Herriot models
   : Empirical Best Linear Unbiased Prediction based on a Spatio-Temporal
   Fay-Herriot Model.
 
-## Bayesian Area-Level Models (INLA / HB)
+## Bayesian Area-Level Models (INLA)
 
-Hierarchical Bayesian Small Area Estimation using INLA across 6
-distributions with spatial and spatio-temporal effects
+Hierarchical Bayesian SAE using Integrated Nested Laplace Approximations
+(INLA) across 6 distributions with spatial and spatio-temporal effects
 
 - [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
   : Hierarchical Bayes for Area-Level Small Area Estimation
 
-## Subarea-Level Models (Two-Fold)
+## Two-Fold Subarea Models
 
-Nested two-fold sub-area level models (Torabi & Rao, 2014) via REML
-EBLUP and Bayesian INLA
+Nested area-subarea level models (Torabi & Rao, 2014) with both area and
+subarea random effects via REML EBLUP and Bayesian INLA
 
 - [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
   : Empirical Best Linear Unbiased Prediction under a Two-fold

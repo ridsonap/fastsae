@@ -205,6 +205,129 @@ variance</td>
 <hr>
 </div>
 <div class="section level2">
+<h2 id="mathematical-formulation">Mathematical Formulation<a class="anchor" aria-label="anchor" href="#mathematical-formulation"></a>
+</h2>
+<p>The hierarchical Bayesian model underlying <code><a href="../reference/hb_area.html">hb_area()</a></code>
+extends the classical Fay-Herriot framework to handle non-Gaussian
+responses and structured random effects. The model comprises three
+levels:</p>
+<div class="section level3">
+<h3 id="level-1-sampling-model-likelihood">Level 1: Sampling Model (Likelihood)<a class="anchor" aria-label="anchor" href="#level-1-sampling-model-likelihood"></a>
+</h3>
+<p>For domain
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math>
+with direct estimator
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>d</mi></msub><annotation encoding="application/x-tex">y_d</annotation></semantics></math>
+and known sampling variance
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>d</mi></msub><annotation encoding="application/x-tex">D_d</annotation></semantics></math>:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>y</mi><mi>d</mi></msub><mo>∣</mo><msub><mi>η</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mtext mathvariant="normal">ExpFamily</mtext><mo stretchy="false" form="prefix">(</mo><msub><mi>y</mi><mi>d</mi></msub><mo>∣</mo><msub><mi>η</mi><mi>d</mi></msub><mo>,</mo><msub><mi>D</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\pi(y_d \mid \eta_d) = \text{ExpFamily}(y_d \mid \eta_d, D_d)</annotation></semantics></math></p>
+<p>The link function connects the linear predictor
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>η</mi><mi>d</mi></msub><annotation encoding="application/x-tex">\eta_d</annotation></semantics></math>
+to the mean
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>d</mi></msub><mo>=</mo><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>y</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mu_d = E(y_d)</annotation></semantics></math>:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Family</th>
+<th align="left">Link Function</th>
+<th align="left">Linear Predictor</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Gaussian</td>
+<td align="left">Identity:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><msub><mi>μ</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">\eta_d = \mu_d</annotation></semantics></math>
+</td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">\eta_d = x_d^\top \beta + u_d</annotation></semantics></math></td>
+</tr>
+<tr class="even">
+<td align="left">Beta</td>
+<td align="left">Logit:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>d</mi></msub><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>μ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_d = \log(\mu_d / (1-\mu_d))</annotation></semantics></math>
+</td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">\eta_d = x_d^\top \beta + u_d</annotation></semantics></math></td>
+</tr>
+<tr class="odd">
+<td align="left">Poisson</td>
+<td align="left">Log:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_d = \log(\mu_d)</annotation></semantics></math>
+</td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub><mo>+</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>E</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_d = x_d^\top \beta + u_d + \log(E_d)</annotation></semantics></math></td>
+</tr>
+<tr class="even">
+<td align="left">Binomial</td>
+<td align="left">Logit:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>d</mi></msub><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>μ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_d = \log(\mu_d / (1-\mu_d))</annotation></semantics></math>
+</td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">\eta_d = x_d^\top \beta + u_d</annotation></semantics></math></td>
+</tr>
+<tr class="odd">
+<td align="left">Negative Binomial</td>
+<td align="left">Log:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_d = \log(\mu_d)</annotation></semantics></math>
+</td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub><mo>+</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>E</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_d = x_d^\top \beta + u_d + \log(E_d)</annotation></semantics></math></td>
+</tr>
+<tr class="even">
+<td align="left">Gamma</td>
+<td align="left">Log:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_d = \log(\mu_d)</annotation></semantics></math>
+</td>
+<td align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>d</mi></msub><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">\eta_d = x_d^\top \beta + u_d</annotation></semantics></math></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="level-2-prior-on-fixed-effects">Level 2: Prior on Fixed Effects<a class="anchor" aria-label="anchor" href="#level-2-prior-on-fixed-effects"></a>
+</h3>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>τ</mi><mi>β</mi><mn>2</mn></msubsup><msub><mi>I</mi><mi>p</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\beta \sim N(0, \tau_\beta^2 I_p)</annotation></semantics></math></p>
+<p>A weakly informative normal prior with large variance
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>τ</mi><mi>β</mi><mn>2</mn></msubsup><annotation encoding="application/x-tex">\tau_\beta^2</annotation></semantics></math>
+is placed on regression coefficients.</p>
+</div>
+<div class="section level3">
+<h3 id="level-3-prior-on-random-effects">Level 3: Prior on Random Effects<a class="anchor" aria-label="anchor" href="#level-3-prior-on-random-effects"></a>
+</h3>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi mathvariant="normal">Σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">u \sim N(0, \Sigma)</annotation></semantics></math></p>
+<p>The random effects
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>u</mi><mi>m</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mi>⊤</mi></msup></mrow><annotation encoding="application/x-tex">u = (u_1, \ldots, u_m)^\top</annotation></semantics></math>
+follow a zero-mean Gaussian Markov Random Field (GMRF) with precision
+matrix
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi mathvariant="normal">Σ</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><annotation encoding="application/x-tex">\Sigma^{-1}</annotation></semantics></math>
+encoding the chosen spatial or temporal structure (BYM2, Besag ICAR,
+RW1, etc.).</p>
+</div>
+<div class="section level3">
+<h3 id="inla-approximation">INLA Approximation<a class="anchor" aria-label="anchor" href="#inla-approximation"></a>
+</h3>
+<p>Rather than MCMC sampling, INLA approximates the posterior
+marginals:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>∣</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo></mrow><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>∣</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">\pi(\theta \mid y) \approx \tilde{\pi}(\theta \mid y) = \frac{\pi(\theta) \pi(y \mid \theta)}{\pi(y \mid \theta)}</annotation></semantics></math></p>
+<p>and</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>d</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>d</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><munder><mo>∑</mo><mi>k</mi></munder><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>d</mi></msub><mo>∣</mo><msub><mi>θ</mi><mi>k</mi></msub><mo>,</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>θ</mi><mi>k</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><msub><mi mathvariant="normal">Δ</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">\pi(u_d \mid y) \approx \tilde{\pi}(u_d \mid y) = \sum_k \tilde{\pi}(u_d \mid \theta_k, y) \tilde{\pi}(\theta_k \mid y) \Delta_k</annotation></semantics></math></p>
+<p>where the integrals are evaluated using <strong>Laplace
+approximations</strong> and <strong>numerical integration</strong>.
+Three computational strategies are available:</p>
+<ul>
+<li>
+<strong><code>strategy = "gaussian"</code></strong>: Fastest, best
+for well-behaved problems</li>
+<li>
+<strong><code>strategy = "laplace"</code></strong>: Default, good
+accuracy/speed balance</li>
+<li>
+<strong><code>strategy = "simplified.laplace"</code></strong>:
+Slightly faster Laplace, good for large models</li>
+</ul>
+<hr>
+</div>
+</div>
+<div class="section level2">
 <h2 id="spatial-and-spatio-temporal-structures">Spatial and Spatio-Temporal Structures<a class="anchor" aria-label="anchor" href="#spatial-and-spatio-temporal-structures"></a>
 </h2>
 <div class="section level3">
@@ -336,30 +459,30 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00</span></span>
-<span><span class="co">#&gt; x            4.0612e-01  6.4372e-02  6.3090e+00  2.8084e-10  2.7947e-01</span></span>
+<span><span class="co">#&gt; x            4.0613e-01  6.4372e-02  6.3090e+00  2.8081e-10  2.7947e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)  -2.2218</span></span>
 <span><span class="co">#&gt; x             0.5321</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  18.22307  6.626532   8.634569  17.10219    34.3505</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   172.31221 78.434145  72.154753 155.44927   373.0483</span></span>
+<span><span class="co">#&gt;                                  mean       sd 0.025quant  0.5quant 0.975quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  18.22296  6.62633   8.634528  17.10218    34.3497</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   172.31261 78.43491  72.152963 155.44977   373.0499</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.06357</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   127.08259</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.06372</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   127.08334</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -976.34166 </span></span>
+<span><span class="co">#&gt;                                            -976.34160 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              56.02386 </span></span>
+<span><span class="co">#&gt;                                              56.02359 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -984.78987 </span></span>
+<span><span class="co">#&gt;                                            -984.78963 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              38.70815 </span></span>
+<span><span class="co">#&gt;                                              38.70809 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                             439.32542 </span></span>
+<span><span class="co">#&gt;                                             439.32543 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; HB Summary Statistics:</span></span>
 <span><span class="co">#&gt;        hb           linear_pred           sd                mse           </span></span>
@@ -385,19 +508,19 @@ standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                domain time      y         hb          sd       rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554640 0.006127610 11.031517 0.04408725</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131567  7.453981 0.07068300</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343262 0.010214743 10.932738 0.07511425</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509827 0.006294797  9.669684 0.05342022</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112654 0.007870670 11.065728 0.05671270</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608738 0.012916482 13.442434 0.07314336</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05554648 0.006127591 11.031465 0.04408737</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131555  7.453966 0.07068304</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09343257 0.010214708 10.932706 0.07511426</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509829 0.006294779  9.669652 0.05342028</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112657 0.007870648 11.065693 0.05671277</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608722 0.012916432 13.442403 0.07314329</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06810568</span></span>
-<span><span class="co">#&gt; 2 0.09473235</span></span>
-<span><span class="co">#&gt; 3 0.11517443</span></span>
-<span><span class="co">#&gt; 4 0.07814090</span></span>
-<span><span class="co">#&gt; 5 0.08759940</span></span>
-<span><span class="co">#&gt; 6 0.12376161</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 0.06810573</span></span>
+<span><span class="co">#&gt; 2 0.09473234</span></span>
+<span><span class="co">#&gt; 3 0.11517430</span></span>
+<span><span class="co">#&gt; 4 0.07814089</span></span>
+<span><span class="co">#&gt; 5 0.08759939</span></span>
+<span><span class="co">#&gt; 6 0.12376134</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -881,28 +1004,28 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01</span></span>
-<span><span class="co">#&gt; x1           3.8369e-01  4.9804e-02  7.7040e+00  1.3187e-14  2.8563e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4859e-19 -3.6363e-01</span></span>
+<span><span class="co">#&gt; x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3186e-14  2.8563e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4852e-19 -3.6363e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4120</span></span>
 <span><span class="co">#&gt; x1            0.4820</span></span>
 <span><span class="co">#&gt; x2           -0.2317</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                   mean        sd 0.025quant   0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 17.0200956 4.6704720 9.50753133 16.4615515</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.4755909 0.2611461 0.05377634  0.4645349</span></span>
-<span><span class="co">#&gt;                             0.975quant       mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 27.7457544 15.4389788</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.9367355  0.2292976</span></span>
+<span><span class="co">#&gt;                                   mean       sd 0.025quant   0.5quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 17.0201186 4.670462 9.50752941 16.4615886</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.4755961 0.261137 0.05377607  0.4645501</span></span>
+<span><span class="co">#&gt;                             0.975quant      mode</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  27.745714 15.439052</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..         0.936717  0.229371</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
 <span><span class="co">#&gt;                                             317.61486 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              31.75465 </span></span>
+<span><span class="co">#&gt;                                              31.75464 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.63789 </span></span>
+<span><span class="co">#&gt;                                             309.63790 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              17.13688 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
@@ -913,9 +1036,9 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  </span></span>
 <span><span class="co">#&gt;  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665243  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665241  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  </span></span>
-<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683086  </span></span>
+<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683065  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.790  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.156  </span></span>

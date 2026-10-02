@@ -1,30 +1,28 @@
 Package: fastsae
 Type: Package
-Title: Fast Frequentist and Bayesian Small Area Estimation
+Title: Fast Frequentist and Bayesian Small Area Estimation in R
 Version: 1.0.0
 Authors@R: c(
       person("Ridson", "Al Farizal P", role = c("aut", "cre","cph"), email = "alfrzlp@gmail.com", comment = c(ORCID = "0000-0003-0617-0214")),
       person("Azka", "Ubaidillah", role = "aut", email = "azka@stis.ac.id", comment = c(ORCID = "0000-0002-3597-0459")) 
     )
-Description: Small area estimation (SAE) methods for survey data, covering both
-    frequentist and Bayesian approaches. Frequentist models are fitted with
-    compiled C++ code ('Rcpp', 'RcppArmadillo') and optional 'OpenMP'
-    multi-threading. They include the area-level Fay-Herriot model (Fay and
-    Herriot, 1979 <doi:10.1080/01621459.1979.10482505>), the spatial
-    Fay-Herriot model (Pratesi and Salvati, 2008
-    <doi:10.1007/s10260-007-0061-9>), the spatio-temporal Fay-Herriot model
-    (Marhuenda et al., 2013 <doi:10.1016/j.csda.2012.09.002>), the unit-level
-    Battese-Harter-Fuller model (Battese et al., 1988
-    <doi:10.1080/01621459.1988.10478561>) and the two-fold subarea model
-    (Torabi and Rao, 2014 <doi:10.1016/j.jmva.2014.02.001>). Bayesian models
-    are fitted with Integrated Nested Laplace Approximations ('INLA'), which
-    must be installed separately. The Empirical Best Predictor (EBP) is
-    available for generalized linear area-level models (Gaussian, Binomial,
-    Poisson, Negative Binomial, Beta, and Gamma). Further features include
-    analytical and bootstrap mean squared error estimation, external and
-    internal benchmarking of estimates to aggregate population targets (Rao
-    and Molina, 2015 <doi:10.1002/9781118735855>), automatic handling of
-    unsampled domains, and S3 methods for summaries, diagnostics and plots.
+Description: High-performance Small Area Estimation (SAE) in R, implementing
+    frequentist EBLUP models via compiled C++ and Bayesian hierarchical models
+    via INLA (Integrated Nested Laplace Approximations). Frequentist models
+    include the area-level Fay-Herriot model (Fay and Herriot, 1979
+    <doi:10.1080/01621459.1979.10482505>), spatial Fay-Herriot (Pratesi and
+    Salvati, 2008 <doi:10.1007/s10260-007-0061-9>), spatio-temporal
+    Fay-Herriot (Marhuenda et al., 2013 <doi:10.1016/j.csda.2012.09.002>),
+    unit-level Battese-Harter-Fuller (Battese et al., 1988
+    <doi:10.1080/01621459.1988.10478561>), and two-fold subarea models (Torabi
+    and Rao, 2014 <doi:10.1016/j.jmva.2014.02.001>) for nested area-subarea
+    hierarchies. Bayesian models use INLA (Rue et al., 2009), supporting 6
+    likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial,
+    Gamma), spatial structures (BYM2, Besag ICAR), temporal dynamics (RW1, RW2,
+    AR1), and spatio-temporal interactions. Key features include analytical and
+    bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina,
+    2015 <doi:10.1002/9781118735855>), automatic handling of unsampled domains,
+    and S3 methods for summaries, diagnostics and plots.
 License: GPL (>= 3)
 URL: https://ridsonap.github.io/fastsae/, https://github.com/ridsonap/fastsae
 BugReports: https://github.com/ridsonap/fastsae/issues
