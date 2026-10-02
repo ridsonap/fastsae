@@ -3,7 +3,7 @@
 
 <img src="man/figures/logo.png" alt="fastsae logo" align="right" height="139"/>
 
-# fastsae: Fast Frequentist and Bayesian Small Area Estimation in R
+# fastsae: Frequentist and Bayesian Small Area Estimation in R
 
 <!-- badges: start -->
 

@@ -12,12 +12,12 @@
 Source:
 [`DESCRIPTION`](https://github.com/ridsonap/fastsae/blob/HEAD/DESCRIPTION)
 
-Al Farizal P R, Ubaidillah A (2026). *fastsae: Fast Frequentist and
+Al Farizal P R, Ubaidillah A (2026). *fastsae: Frequentist and
 Bayesian Small Area Estimation in R*. R package version 1.0.0,
 <https://ridsonap.github.io/fastsae/>.
 
 @Manual{,\
-  title = {fastsae: Fast Frequentist and Bayesian Small Area Estimation in R},\
+  title = {fastsae: Frequentist and Bayesian Small Area Estimation in R},\
   author = {Ridson {Al Farizal P} and Azka Ubaidillah},\
   year = {2026},\
   note = {R package version 1.0.0},\

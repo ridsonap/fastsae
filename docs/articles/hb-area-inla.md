@@ -222,34 +222,34 @@ and known sampling variances `vars`:
 [`summary`](https://rdrr.io/r/base/summary.html)`(``fit_beta_st``)`\
 `#> `\
 `#> Variance Components:`\
-`#> sigma2_u: 0.054876 `\
+`#> sigma2_u: 0.054875 `\
 `#> sigma2_t (temporal): 0.005803 `\
 `#> `\
 `#> Coefficients:`\
 `#>                    beta   std.error      zvalue      pvalue    ci_lower`\
 `#> (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00`\
-`#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8081e-10  2.7947e-01`\
+`#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8082e-10  2.7947e-01`\
 `#>             ci_upper`\
 `#> (Intercept)  -2.2218`\
 `#> x             0.5321`\
 `#> `\
 `#> Hyperparameters:`\
-`#>                                  mean       sd 0.025quant  0.5quant 0.975quant`\
-`#> Precision for ..domain_id..  18.22296  6.62633   8.634528  17.10218    34.3497`\
-`#> Precision for ..time_id..   172.31261 78.43491  72.152963 155.44977   373.0499`\
+`#>                                  mean        sd 0.025quant  0.5quant 0.975quant`\
+`#> Precision for ..domain_id..  18.22309  6.626598    8.63438  17.10224   34.35056`\
+`#> Precision for ..time_id..   172.31402 78.436807   72.15362 155.45038  373.05719`\
 `#>                                  mode`\
-`#> Precision for ..domain_id..  15.06372`\
-`#> Precision for ..time_id..   127.08334`\
+`#> Precision for ..domain_id..  15.06366`\
+`#> Precision for ..time_id..   127.08281`\
 `#> `\
 `#> Goodness of Fit:`\
 `#>                                                   DIC `\
-`#>                                            -976.34160 `\
+`#>                                            -976.34164 `\
 `#>                                                    pD `\
-`#>                                              56.02359 `\
+`#>                                              56.02364 `\
 `#>                                                  WAIC `\
-`#>                                            -984.78963 `\
+`#>                                            -984.78967 `\
 `#>                                                 pWAIC `\
-`#>                                              38.70809 `\
+`#>                                              38.70813 `\
 `#> Marginal_LogLik.log marginal-likelihood (integration) `\
 `#>                                             439.32543 `\
 `#> `\
@@ -259,7 +259,7 @@ and known sampling variances `vars`:
 `#>  1st Qu.:0.08271   1st Qu.:-2.413   1st Qu.:0.007702   1st Qu.:5.932e-05  `\
 `#>  Median :0.09635   Median :-2.244   Median :0.009371   Median :8.781e-05  `\
 `#>  Mean   :0.09802   Mean   :-2.251   Mean   :0.009566   Mean   :9.767e-05  `\
-`#>  3rd Qu.:0.11011   3rd Qu.:-2.095   3rd Qu.:0.011051   3rd Qu.:1.221e-04  `\
+`#>  3rd Qu.:0.11010   3rd Qu.:-2.095   3rd Qu.:0.011051   3rd Qu.:1.221e-04  `\
 `#>  Max.   :0.15657   Max.   :-1.687   Max.   :0.016768   Max.   :2.812e-04  `\
 `#>       rse        `\
 `#>  Min.   : 6.370  `\
@@ -277,19 +277,19 @@ standard errors, and 95% Credible Intervals:
 \
 [`head`](https://rdrr.io/r/utils/head.html)`(``fit_beta_st``$``df_hb``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"domain"``, ``"time"``, ``"y"``, ``"hb"``, ``"sd"``, ``"rse"``, ``"ci_lower"``, ``"ci_upper"``)``]``)`\
 `#>                domain time      y         hb          sd       rse   ci_lower`\
-`#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554648 0.006127591 11.031465 0.04408737`\
-`#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131555  7.453966 0.07068304`\
-`#> 3               IMOLA 2014 0.1033 0.09343257 0.010214708 10.932706 0.07511426`\
-`#> 4         PIANURA EST 2014 0.0633 0.06509829 0.006294779  9.669652 0.05342028`\
-`#> 5       PIANURA OVEST 2014 0.0625 0.07112657 0.007870648 11.065693 0.05671277`\
-`#> 6      PORRETTA TERME 2014 0.1276 0.09608722 0.012916432 13.442403 0.07314329`\
+`#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554648 0.006127614 11.031507 0.04408731`\
+`#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131560  7.453972 0.07068302`\
+`#> 3               IMOLA 2014 0.1033 0.09343261 0.010214719 10.932714 0.07511429`\
+`#> 4         PIANURA EST 2014 0.0633 0.06509829 0.006294786  9.669664 0.05342025`\
+`#> 5       PIANURA OVEST 2014 0.0625 0.07112657 0.007870653 11.065701 0.05671275`\
+`#> 6      PORRETTA TERME 2014 0.1276 0.09608721 0.012916443 13.442417 0.07314330`\
 `#>     ci_upper`\
-`#> 1 0.06810573`\
+`#> 1 0.06810575`\
 `#> 2 0.09473234`\
-`#> 3 0.11517430`\
-`#> 4 0.07814089`\
+`#> 3 0.11517437`\
+`#> 4 0.07814090`\
 `#> 5 0.08759939`\
-`#> 6 0.12376134`
+`#> 6 0.12376140`
 
 ------------------------------------------------------------------------
 
@@ -388,20 +388,20 @@ population offsets:
 `#> Coefficients:`\
 `#>                    beta   std.error      zvalue      pvalue    ci_lower`\
 `#> (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01`\
-`#> x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3186e-14  2.8563e-01`\
-`#> x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4852e-19 -3.6363e-01`\
+`#> x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3185e-14  2.8563e-01`\
+`#> x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4845e-19 -3.6363e-01`\
 `#>             ci_upper`\
 `#> (Intercept)   0.4120`\
 `#> x1            0.4820`\
 `#> x2           -0.2317`\
 `#> `\
 `#> Hyperparameters:`\
-`#>                                   mean       sd 0.025quant   0.5quant`\
-`#> Precision for ..domain_id.. 17.0201186 4.670462 9.50752941 16.4615886`\
-`#> Phi for ..domain_id..        0.4755961 0.261137 0.05377607  0.4645501`\
-`#>                             0.975quant      mode`\
-`#> Precision for ..domain_id..  27.745714 15.439052`\
-`#> Phi for ..domain_id..         0.936717  0.229371`\
+`#>                                   mean        sd 0.025quant   0.5quant`\
+`#> Precision for ..domain_id.. 17.0201085 4.6704422 9.50750546 16.4615957`\
+`#> Phi for ..domain_id..        0.4755951 0.2611309 0.05378062  0.4645498`\
+`#>                             0.975quant       mode`\
+`#> Precision for ..domain_id.. 27.7456117 15.4391024`\
+`#> Phi for ..domain_id..        0.9367095  0.2294104`\
 `#> `\
 `#> Goodness of Fit:`\
 `#>                                                   DIC `\
@@ -409,9 +409,9 @@ population offsets:
 `#>                                                    pD `\
 `#>                                              31.75464 `\
 `#>                                                  WAIC `\
-`#>                                             309.63790 `\
+`#>                                             309.63792 `\
 `#>                                                 pWAIC `\
-`#>                                              17.13688 `\
+`#>                                              17.13689 `\
 `#> Marginal_LogLik.log marginal-likelihood (integration) `\
 `#>                                            -169.74605 `\
 `#> `\
@@ -420,9 +420,9 @@ population offsets:
 `#>  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  `\
 `#>  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  `\
 `#>  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  `\
-`#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665241  `\
+`#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665238  `\
 `#>  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  `\
-`#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683065  `\
+`#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683045  `\
 `#>       rse        `\
 `#>  Min.   : 2.790  `\
 `#>  1st Qu.: 5.156  `\

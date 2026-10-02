@@ -1,63 +1,83 @@
-# fastsae: Fast Small Area Estimation in R
+# fastsae: Frequentist and Bayesian Small Area Estimation in R
 
-**fastsae** is a high-performance R package for **Small Area Estimation
-(SAE)**. It re-engineers classic and contemporary area-level and
-unit-level SAE models using **C++ (`RcppArmadillo`)** and **OpenMP
-multi-threading**, providing massive speedups (up to **12,000x faster**)
-and radical memory reductions (up to **20,000x lower memory**) while
-maintaining **exact numerical equivalence** with gold-standard
-implementations.
+**fastsae** implements widely used Small Area Estimation (SAE) models
+for survey data. Frequentist estimation runs in compiled **C++**
+(`RcppArmadillo`) with **OpenMP** multi-threading, and Bayesian
+estimation uses **INLA** (Integrated Nested Laplace Approximations). It
+provides massive speedups (up to **6,400x faster**) while maintaining
+**exact numerical equivalence** with gold-standard implementations.
 
 ------------------------------------------------------------------------
 
 ## Why fastsae?
 
-### 1. High-Performance C++ Core
+- ⚡ **Speed**: optimized C++ Fisher-scoring algorithms turn fits that
+  take seconds in other R packages into milliseconds.
+- 🎯 **Numerical agreement**: point estimates ($`\hat{\beta}`$,
+  $`\hat{\theta}`$) and variance components ($`\hat{\sigma}_u^2`$,
+  $`\hat{\rho}`$) match `sae` (Molina & Marhuenda) to numerical
+  tolerance.
+- 🔀 **Frequentist and Bayesian in one package**: EBLUP models in C++
+  and hierarchical Bayesian models through INLA.
+- 🧵 **Parallel bootstrap**: multi-core OpenMP parametric and
+  non-parametric bootstrap MSE estimation.
+- 🗺️ **Unsampled areas**: domains with missing observations (`y = NA`)
+  are predicted automatically.
+- 💾 **Low memory**: avoids unnecessary $`O(m^2)`$ / $`O(m^3)`$
+  allocations.
+- 📊 **Standard R interface**: S3 methods (`summary`, `coef`, `fitted`,
+  `residuals`) and publication-ready
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html).
 
-Core Fisher-scoring iterative routines and Woodbury matrix solvers run
-in compiled C++ via `RcppArmadillo`, directly utilizing optimized BLAS
-and LAPACK routines. Computational bottlenecks that previously required
-minutes in pure R complete in milliseconds.
+------------------------------------------------------------------------
 
-### 2. Minimal Memory Footprint
+## Understanding INLA: Fast Bayesian Inference without MCMC
 
-Standard packages often allocate dense $`O(m^2)`$ and $`O(m^3)`$
-covariance matrices on the R heap. `fastsae` avoids heap bloat through
-zero-copy matrix views and in-place algebra, keeping peak memory
-consumption under 25 MB even for thousands of domains where existing
-packages consume gigabytes.
+**INLA** (Integrated Nested Laplace Approximations; Rue et al., 2009)
+provides a deterministic alternative to Markov Chain Monte Carlo (MCMC)
+for Bayesian inference in latent Gaussian models. Instead of drawing
+thousands of samples, INLA:
 
-### 3. Exact Numerical Equivalence
+- **Approximates** posterior marginals analytically using Laplace
+  approximations
+- **Integrates** out non-Gaussian observations analytically
+- **Delivers** results in seconds rather than hours
 
-High computational speed does not come at the expense of statistical
-fidelity. Point estimates ($`\hat{\beta}`$, $`\hat{\theta}`$) and
-variance components ($`\hat{\sigma}_u^2`$, $`\hat{\rho}`$) are identical
-to machine precision ($`< 10^{-13}`$) compared to published benchmarks
-in the `sae` package (Molina & Rao).
+`fastsae` uses INLA through the
+[`INLA`](https://www.r-inla-download.org) R package to fit hierarchical
+Bayesian small area models with:
 
-### 4. Native Multi-Threaded Bootstrap
+- **6 likelihood families**: Gaussian, Beta, Binomial, Poisson, Negative
+  Binomial, Gamma
+- **Spatial random effects**: BYM2, Besag ICAR, Spatial Lag
+- **Temporal random effects**: RW1, RW2, AR(1)
+- **Spatio-temporal interactions**: separable and non-separable
+  structures
 
-Parametric and Non-Parametric Bootstrap MSE estimation are parallelized
-natively across CPU cores using `#pragma omp parallel for`. This
-eliminates the process-forking and serialization overhead associated
-with traditional R parallel clusters.
+**Key advantage over MCMC**: No convergence diagnostics, no burn-in,
+reproducible results, and 10–100× speedups.
 
-### 5. Automatic Spatial Kriging for Unsampled Domains
+------------------------------------------------------------------------
 
-When geographic domains have missing response data (`y = NA`),
-`eblup_sfh` automatically performs full-spatial synthetic prediction
-(kriging) borrowing strength from neighboring areas, without requiring
-manual subsetting or data partitioning.
+## Two-Fold Subarea Models: Nested Hierarchical Structure
 
-### 6. Modern S3 Interface and Diagnostics
+The two-fold subarea model (Torabi & Rao, 2014) extends the standard
+Fay-Herriot model to hierarchical data where **subareas are nested
+within areas**:
 
-Designed for standard R workflows: full support for
-[`summary()`](https://rdrr.io/r/base/summary.html),
-[`coef()`](https://rdrr.io/r/stats/coef.html),
-[`fitted()`](https://rdrr.io/r/stats/fitted.values.html), and
-[`residuals()`](https://rdrr.io/r/stats/residuals.html), alongside
-diagnostic and model-comparison visualization via
-[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html).
+``` math
+y_{ij} = x_{ij}^\top \beta + v_i + u_{ij} + e_{ij}
+```
+
+where: - $`v_i \sim N(0, \sigma_v^2)`$: **Area-level random effect** -
+$`u_{ij} \sim N(0, \sigma_u^2)`$: **Subarea-level random effect** -
+$`e_{ij} \sim N(0, D_{ij})`$: Sampling error with known variance
+
+**Available implementations:** -
+[`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
+Frequentist EBLUP via REML Fisher-scoring (C++) -
+[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md):
+Bayesian hierarchical model via INLA with spatial support
 
 ------------------------------------------------------------------------
 
@@ -77,12 +97,35 @@ diagnostic and model-comparison visualization via
 
 ## Supported Models
 
-| Model | Function | Random Effect Structure | MSE Estimation Methods |
+### Frequentist Models (EBLUP, C++)
+
+| Model | Function | Random Effect Structure | MSE Estimation |
 |:---|:---|:---|:---|
-| **Fay-Herriot** (Area-level) | [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md) | Independent area effects ($`u_d \sim N(0, \sigma_u^2)`$) | Analytical (Prasad-Rao) |
-| **Spatial Fay-Herriot** | [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md) | Simultaneous Autoregressive (SAR(1)) | Analytical, Parametric Bootstrap (`pbmse`), Non-Parametric Bootstrap (`npbmse`) |
-| **Spatio-Temporal Fay-Herriot** | [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md) | Spatial SAR(1) + Temporal AR(1) | Parametric Bootstrap (`pbmse`) |
-| **Battese-Harter-Fuller** (Unit-level) | [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md) | Random intercept nested in domains | Parametric Bootstrap (`pbmse`) |
+| **Fay-Herriot** (Area-level) | [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md) | Independent area effects | Analytical (Prasad-Rao) |
+| **Spatial Fay-Herriot** | [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md) | SAR(1) spatial autocorrelation | Analytical, Bootstrap |
+| **Spatio-Temporal Fay-Herriot** | [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md) | SAR(1) + Temporal AR(1) | Bootstrap |
+| **Battese-Harter-Fuller** (Unit-level) | [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md) | Random intercept nested in domains | Bootstrap |
+| **Two-Fold Subarea** | [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md) | Area + Subarea nested effects | Analytical, Bootstrap |
+
+### Bayesian Models (INLA)
+
+| Model | Function | Distributions | Spatial/Temporal |
+|:---|:---|:---|:---|
+| **Area-level HB** | [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md) | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Full support |
+| **Unit-level HB** | [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md) | Gaussian | ✓ Via nested error |
+| **Two-Fold HB** | [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
+
+------------------------------------------------------------------------
+
+## Performance at a Glance
+
+Benchmark across $`n = 1,000`$ areas (5 covariates):
+
+| Task | `fastsae` | `sae` | `emdi` |
+|:---|:--:|:--:|:--:|
+| **Standard Fay-Herriot** | **0.0015 s** | 0.291 s (~190x slower) | 9.64 s (~6,400x slower) |
+| **Spatial Fay-Herriot** | **0.165 s** | 12.60 s (~76x slower) | 8.69 s (~53x slower) |
+| **Peak RAM usage** | **\< 10 MB** | ~400 MB | ~800 MB |
 
 ------------------------------------------------------------------------
 
@@ -106,10 +149,17 @@ Explore detailed guides, worked examples, and performance analyses:
   fastsae**](https://ridsonap.github.io/fastsae/articles/getting-started.md):
   Step-by-step walkthrough of model fitting, diagnostics, and S3
   extraction.
-- [**Spatial & Spatio-Temporal
-  Models**](https://ridsonap.github.io/fastsae/articles/spatial-temporal.md):
+- [**Spatial & Spatio-Temporal Models
+  (EBLUP)**](https://ridsonap.github.io/fastsae/articles/spatial-temporal.md):
   Working with spatial weights matrices, spatial kriging, and
   spatio-temporal panels.
+- [**Bayesian Area-Level Models
+  (INLA)**](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md):
+  Hierarchical Bayesian SAE using INLA with 6 distributions and
+  spatial-temporal effects.
+- [**Model Diagnostics &
+  Calibration**](https://ridsonap.github.io/fastsae/articles/model-diagnostics.md):
+  Diagnostics and benchmarking to aggregate targets.
 - [**Unit-Level Estimation
   (BHF)**](https://ridsonap.github.io/fastsae/articles/unit-level-bhf.md):
   Fitting the Battese-Harter-Fuller model with individual survey data.
@@ -137,5 +187,12 @@ Explore detailed guides, worked examples, and performance analyses:
 - Pratesi, M., & Salvati, N. (2008). Small area estimation for spatially
   correlated data: A Fay-Herriot with the spatial linear spline model.
   *Journal of Applied Statistics*, 35(7), 781–794.
+- Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a
+  semi-parametric mixed model. *Journal of Multivariate Analysis*, 124,
+  226–236.
+- Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian
+  inference for latent Gaussian models using integrated nested Laplace
+  approximations (with discussion). *Journal of the Royal Statistical
+  Society: Series B*, 71(2), 319–392.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
   John Wiley & Sons.
