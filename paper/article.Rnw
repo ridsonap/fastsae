@@ -23,8 +23,8 @@ library("fastsae")
    \And Azka Ubaidillah~\orcidlink{0000-0002-3597-0459}\\Politeknik Statistika STIS}
 \Plainauthor{Ridson Al Farizal P., Azka Ubaidillah}
 
-\title{\pkg{fastsae}: Frequentist and Bayesian Small Area Estimation in \proglang{R}}
-\Plaintitle{fastsae: Frequentist and Bayesian Small Area Estimation in R}
+\title{\pkg{fastsae}: High-Performance Frequentist and Bayesian Small Area Estimation in \proglang{R}}
+\Plaintitle{fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R}
 \Shorttitle{\pkg{fastsae}: High-Performance Small Area Estimation in \proglang{R}}
 
 \Abstract{

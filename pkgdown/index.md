@@ -1,4 +1,4 @@
-# fastsae: Frequentist and Bayesian Small Area Estimation in R
+# fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R
 
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/fastsae)](https://CRAN.R-project.org/package=fastsae)

@@ -1,4 +1,4 @@
-# fastsae: Frequentist and Bayesian Small Area Estimation in R
+# fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R
 
 **fastsae** implements widely used Small Area Estimation (SAE) models
 for survey data. Frequentist estimation runs in compiled **C++**

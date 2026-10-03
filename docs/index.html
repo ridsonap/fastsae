@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Frequentist and Bayesian Small Area Estimation in R • fastsae</title>
+<title>High-Performance Frequentist and Bayesian Small Area Estimation in R • fastsae</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -16,7 +16,7 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
-<script src="extra.js"></script><meta property="og:title" content="Frequentist and Bayesian Small Area Estimation in R">
+<script src="extra.js"></script><meta property="og:title" content="High-Performance Frequentist and Bayesian Small Area Estimation in R">
 <meta name="description" content="High-performance Small Area Estimation (SAE) in R, implementing frequentist EBLUP models via compiled C++ and Bayesian hierarchical models via INLA (Integrated Nested Laplace Approximations). Frequentist models include the area-level Fay-Herriot model (Fay and Herriot, 1979 &lt;doi:10.1080/01621459.1979.10482505&gt;), spatial Fay-Herriot (Pratesi and Salvati, 2008 &lt;doi:10.1007/s10260-007-0061-9&gt;), spatio-temporal Fay-Herriot (Marhuenda et al., 2013 &lt;doi:10.1016/j.csda.2012.09.002&gt;), unit-level Battese-Harter-Fuller (Battese et al., 1988 &lt;doi:10.1080/01621459.1988.10478561&gt;), and two-fold subarea models (Torabi and Rao, 2014 &lt;doi:10.1016/j.jmva.2014.02.001&gt;) for nested area-subarea hierarchies. Bayesian models use INLA (Rue et al., 2009), supporting 6 likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), spatial structures (BYM2, Besag ICAR), temporal dynamics (RW1, RW2, AR1), and spatio-temporal interactions. Key features include analytical and bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina, 2015 &lt;doi:10.1002/9781118735855&gt;), automatic handling of unsampled domains, and S3 methods for summaries, diagnostics and plots.">
 <meta property="og:description" content="High-performance Small Area Estimation (SAE) in R, implementing frequentist EBLUP models via compiled C++ and Bayesian hierarchical models via INLA (Integrated Nested Laplace Approximations). Frequentist models include the area-level Fay-Herriot model (Fay and Herriot, 1979 &lt;doi:10.1080/01621459.1979.10482505&gt;), spatial Fay-Herriot (Pratesi and Salvati, 2008 &lt;doi:10.1007/s10260-007-0061-9&gt;), spatio-temporal Fay-Herriot (Marhuenda et al., 2013 &lt;doi:10.1016/j.csda.2012.09.002&gt;), unit-level Battese-Harter-Fuller (Battese et al., 1988 &lt;doi:10.1080/01621459.1988.10478561&gt;), and two-fold subarea models (Torabi and Rao, 2014 &lt;doi:10.1016/j.jmva.2014.02.001&gt;) for nested area-subarea hierarchies. Bayesian models use INLA (Rue et al., 2009), supporting 6 likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), spatial structures (BYM2, Besag ICAR), temporal dynamics (RW1, RW2, AR1), and spatio-temporal interactions. Key features include analytical and bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina, 2015 &lt;doi:10.1002/9781118735855&gt;), automatic handling of unsampled domains, and S3 methods for summaries, diagnostics and plots.">
 <meta property="og:image" content="https://ridsonap.github.io/fastsae/logo.png">
@@ -89,7 +89,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header">
-<img src="logo.png" class="logo" alt=""><h1 id="fastsae-frequentist-and-bayesian-small-area-estimation-in-r">fastsae: Frequentist and Bayesian Small Area Estimation in R<a class="anchor" aria-label="anchor" href="#fastsae-frequentist-and-bayesian-small-area-estimation-in-r"></a>
+<img src="logo.png" class="logo" alt=""><h1 id="fastsae-high-performance-frequentist-and-bayesian-small-area-estimation-in-r">fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R<a class="anchor" aria-label="anchor" href="#fastsae-high-performance-frequentist-and-bayesian-small-area-estimation-in-r"></a>
 </h1>
 </div>
 <!-- badges: start -->

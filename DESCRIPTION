@@ -1,6 +1,6 @@
 Package: fastsae
 Type: Package
-Title: Frequentist and Bayesian Small Area Estimation in R
+Title: High-Performance Frequentist and Bayesian Small Area Estimation in R
 Version: 1.0.0
 Authors@R: c(
       person("Ridson", "Al Farizal P", role = c("aut", "cre","cph"), email = "alfrzlp@gmail.com", comment = c(ORCID = "0000-0003-0617-0214")),
