@@ -49,19 +49,101 @@ test_that("benchmark finds weight in df_eblup when not in object$data", {
   expect_s3_class(bm, "fastsae_benchmark")
 })
 
-# ── benchmark.R L270, L275 ──────────────────────────────────────────────────
-test_that("benchmark alias dispatches correctly via S3 methods", {
+# ── benchmark.R L182 ────────────────────────────────────────────────────────
+test_that("benchmark finds group in df_eblup when not in object$data", {
   data(mys, package = "fastsae")
   fit <- eblup_fh(y ~ x1, vardir = "vardir", data = mys, print_result = FALSE)
+  fit$data <- NULL
+  fit$df_eblup$Prov <- rep(c("P1", "P2"), length.out = nrow(fit$df_eblup))
+  bm <- benchmark_sae(fit, group = "Prov", target = c(P1 = 7.0, P2 = 8.0))
+  expect_s3_class(bm, "fastsae_benchmark")
+})
 
-  # L270: benchmark.fastsae -> benchmark_sae.fastsae
-  bm1 <- benchmark(fit, target = 7.0, method = "ratio")
+# ── benchmark.R L270, L275 ──────────────────────────────────────────────────
+test_that("benchmark.fastsae and benchmark.default direct invocation", {
+  data(mys, package = "fastsae")
+  fit <- eblup_fh(y ~ x1, vardir = "vardir", data = mys, print_result = FALSE)
+  # Direct call to S3 methods to guarantee line coverage
+  bm1 <- fastsae:::benchmark.fastsae(fit, target = 7.0, method = "ratio")
   expect_s3_class(bm1, "fastsae_benchmark")
 
-  # L275: benchmark.default -> benchmark_sae.default
   y <- runif(10, 0.2, 0.8)
-  bm2 <- benchmark(y, target = 0.5, method = "ratio")
+  bm2 <- fastsae:::benchmark.default(y, target = 0.5, method = "ratio")
   expect_s3_class(bm2, "fastsae_benchmark")
+})
+
+# ── benchmark.R L375 (unnamed numeric vector of length == n_groups) ─────────
+test_that("benchmark unnamed numeric vector matching n_groups length", {
+  y <- runif(20, 5, 15)
+  grp <- rep(c("Region_A", "Region_B"), each = 10)
+  # unnamed vector of length 2 matching 2 groups
+  bm <- benchmark_sae(y, target = c(8.0, 12.0), group = grp, method = "ratio")
+  expect_s3_class(bm, "fastsae_benchmark")
+})
+
+# ── benchmark.R L504-505 (logit uniroot fallback wider interval) ─────────────
+test_that("benchmark logit adjusts search interval when initial bracket fails", {
+  # Extreme estimates near 0 combined with high target forces f_low * f_upp > 0
+  y <- rep(1e-10, 5)
+  target <- 0.99
+  bm <- benchmark_sae(y, target = target, method = "logit")
+  expect_s3_class(bm, "fastsae_benchmark")
+  expect_equal(mean(bm$benchmarked), target, tolerance = 1e-4)
+})
+
+# ── hb_area.R L482 (slm prior_phi fallback to rho hyper) ────────────────────
+test_that("hb_area slm with prior_phi non-pc", {
+  skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
+  data(mys, package = "fastsae")
+  data(mys_proxmat, package = "fastsae")
+  fit <- hb_area(y ~ x1, data = mys, W = mys_proxmat, spatial = "slm",
+                 prior_phi = list(prior = "normal", param = c(0, 1)))
+  expect_s3_class(fit, "fastsae")
+})
+
+# ── inla_utils.R L258 (purely temporal random effect) ───────────────────────
+test_that(".extract_inla_results handles temporal-only random effect", {
+  mock_fit_temp <- list(
+    summary.fixed = data.frame(mean = 1, sd = 0.1, "0.025quant" = 0.8, "0.975quant" = 1.2, row.names = "(Intercept)", check.names = FALSE),
+    summary.hyperpar = data.frame(mean = 2, row.names = "Precision for ..time_id.."),
+    summary.random = list(`..time_id..` = data.frame(mean = c(0.1, 0.2, 0.3))),
+    summary.fitted.values = data.frame(mean = c(1, 2, 3), sd = c(0.1, 0.1, 0.1), "0.025quant" = c(0.8, 1.8, 2.8), "0.975quant" = c(1.2, 2.2, 3.2), check.names = FALSE),
+    summary.linear.predictor = data.frame(mean = c(1, 2, 3), sd = c(0.1, 0.1, 0.1), "0.025quant" = c(0.8, 1.8, 2.8), "0.975quant" = c(1.2, 2.2, 3.2), check.names = FALSE)
+  )
+  res_t <- fastsae:::.extract_inla_results(
+    fit = mock_fit_temp, data = data.frame(y = 1:3), y = 1:3, domain = 1:3,
+    family = "gaussian", spatial = "none", temporal = "rw1", time = 1:3,
+    time_id = 1:3, unique_times = 1:3
+  )
+  expect_equal(res_t$df_hb$random_effect, c(0.1, 0.2, 0.3))
+})
+
+# ── map_sae.R L457 (extract_model_data error when no table) ──────────────────
+test_that(".extract_model_data_for_map errors when no table in object", {
+  skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
+  data(mys, package = "fastsae")
+  grid_sf <- sf::st_make_grid(
+    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    cellsize = c(1, 1), what = "polygons"
+  )[seq_len(nrow(mys))]
+  sf_geom <- sf::st_sf(domain = mys$area, geometry = grid_sf)
+
+  empty_mod <- structure(list(model = "FH"), class = "fastsae")
+  expect_error(map_sae(empty_mod, sf_geom = sf_geom), "does not contain estimation data")
+})
+
+# ── methods.R L248 (summary with eblup-only df) ─────────────────────────────
+test_that("print.summary.fastsae falls back to eblup-only columns", {
+  obj <- structure(
+    list(
+      model = "FH",
+      coefficients = data.frame(beta = 1, std.error = 0.1),
+      df_eblup = data.frame(domain = 1:3, eblup = c(1, 2, 3))
+    ),
+    class = "summary.fastsae"
+  )
+  out <- capture.output(print(obj))
+  expect_true(any(grepl("EBLUP Summary Statistics", out)))
 })
 
 # ── benchmark.R L366 (single numeric target with n_groups > 1, not hierarchical)
@@ -840,11 +922,141 @@ test_that("sim_series_data cmdscale fallback for D=2", {
   expect_equal(dim(sim$coords), c(2, 2))
 })
 
-# ── sim_spatial_weights.R L113-118 (grid isolated node fix)
-test_that("sim_spatial_weights grid fixes isolated nodes for non-square D", {
-  # D=5, grid is 2x3 lattice -> corner nodes that are isolated get nearest neighbor
-  W_grid5 <- sim_spatial_weights(D = 5, type = "grid", style = "B", seed = 1)
-  expect_equal(dim(W_grid5), c(5, 5))
-  # After fix, no node should have 0 neighbors
-  expect_true(all(rowSums(W_grid5) > 0))
+# ── sim_spatial_weights.R grid: contiguous prefix always has rook neighbors
+test_that("sim_spatial_weights grid never yields isolated nodes", {
+  for (D in c(2, 3, 5, 7, 10, 13)) {
+    Wg <- sim_spatial_weights(D = D, type = "grid", style = "B", seed = 1)
+    expect_equal(dim(Wg), c(D, D))
+    expect_true(all(rowSums(Wg) > 0))
+  }
+})
+
+# ── diagnose.R L342/L348 (PASS + WARNING statuses) ───────────────────────────
+test_that("diagnose returns PASS and WARNING statuses", {
+  mk_obj <- function(seed, rse_val) {
+    set.seed(seed)
+    N <- 25
+    t <- seq(10, 30, length.out = N)
+    vd <- runif(N, 1, 4)
+    df <- data.frame(
+      domain = seq_len(N),
+      y = t + rnorm(N, 0, sqrt(vd)),
+      eblup = t + rnorm(N, 0, sqrt(vd / 4) * 0.5),
+      vardir = vd, mse = vd / 4, rse = rse_val
+    )
+    structure(list(model = "FH", df_eblup = df), class = "fastsae")
+  }
+  d_pass <- diagnose(mk_obj(2, rep(5, 25)))
+  expect_true(grepl("^PASS", d_pass$status))
+  d_warn <- diagnose(mk_obj(2, rep(50, 25)))
+  expect_true(grepl("^WARNING", d_warn$status))
+})
+
+# ── eblup_bhf.R L249 (.pbmse_unit cbind intercept: factor level missing) ──────
+test_that(".pbmse_unit prepends intercept when Xpop drops a factor level", {
+  suppressMessages(library(sae))
+  data(cornsoybean, package = "sae")
+  data(cornsoybeanmeans, package = "sae")
+  Xpop <- merge(
+    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
+               CornPix = cornsoybeanmeans$MeanCornPixPerSeg),
+    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
+               PopnSegments = cornsoybeanmeans$PopnSegments),
+    by = "CountyIndex"
+  )
+  df <- cornsoybean
+  df$CountyIndex <- df$County
+  df$County <- NULL
+  # factor predictor with a level absent from Xpop -> model.matrix(Xpop)
+  # has one column fewer than Xs, triggering the cbind
+  df$f <- factor(rep(c("a", "b", "c"), length.out = nrow(df)))
+  # NOTE: keep Xpop levels implicit so model.matrix(Xpop) drops the absent
+  # level "c" and has one column fewer than Xs, triggering the cbind
+  Xpop$f <- factor(rep(c("a", "b"), length.out = nrow(Xpop)))
+  res <- fastsae:::.pbmse_unit(
+    CornHec ~ CornPix + f, unit_data = df, Xpop = Xpop,
+    domain_var = "CountyIndex", popsize_var = "PopnSegments",
+    method = "REML", B = 3, seed = 1
+  )
+  expect_type(res, "list")
+  expect_true(all(c("eblup", "mse", "B") %in% names(res)))
+})
+
+# ── hb_twofold.R L394 (posterior sample names mismatch -> FALSE) ─────────────
+test_that("hb_twofold falls back when posterior latent names mismatch", {
+  skip_if_not_installed("INLA")
+  dat <- data.frame(
+    area = rep(c("A1", "A2"), each = 3),
+    subarea = paste0("sub_", 1:6),
+    x = rnorm(6),
+    vardir = rep(0.5, 6),
+    y = rnorm(6, 5, 1)
+  )
+  testthat::with_mocked_bindings(
+    `inla.posterior.sample` = function(n, fit, ...) {
+      lapply(seq_len(n), function(i) list(latent = matrix(rnorm(3), 3, 1,
+        dimnames = list(paste0("wrong:", 1:3), NULL))))
+    },
+    .package = "INLA",
+    {
+      fit <- hb_twofold(
+        y ~ x, vardir = "vardir", domain = "area", subarea = "subarea",
+        data = dat, compute_area = TRUE, n_samples = 5, print_result = FALSE
+      )
+      expect_s3_class(fit, "fastsae_hb_twofold")
+      # fallback path still yields finite area uncertainties
+      expect_true(all(is.finite(fit$df_area$hb)))
+    }
+  )
+})
+
+# ── hb_unit.R L408 (vardir NA fallback when residual var missing) ────────────
+test_that("hb_unit vardir falls back to NA when residual variance is missing", {
+  skip_if_not_installed("INLA")
+  data("cornsoybean", package = "fastsae")
+  data("cornsoybeanmeans", package = "fastsae")
+  df_cs <- cornsoybean
+  df_cs$CountyIndex <- df_cs$County
+  df_cs$County <- NULL
+  df_pop <- cornsoybeanmeans
+  names(df_pop)[names(df_pop) == "MeanCornPixPerSeg"] <- "CornPix"
+  names(df_pop)[names(df_pop) == "MeanSoyBeansPixPerSeg"] <- "SoyBeansPix"
+
+  real_inla <- INLA::inla
+  testthat::with_mocked_bindings(
+    # Canned INLA fit (no real INLA call: forwarding `...` to the real
+    # INLA::inla breaks its internal match.call handling). The hyperpar
+    # table omits the Gaussian observation precision, so sigma2_e stays
+    # NA and vardir falls back to rep(NA) (L408).
+    inla = function(...) {
+      dat <- list(...)$data
+      n <- nrow(dat)
+      mk_q <- function(v, s) {
+        data.frame(mean = v, sd = s, "0.025quant" = v - 1.96 * s,
+                   "0.975quant" = v + 1.96 * s, check.names = FALSE)
+      }
+      list(
+        summary.fitted.values = mk_q(rep(50, n), rep(1, n)),
+        summary.linear.predictor = mk_q(rep(3, n), rep(0.5, n)),
+        summary.random = list(`..dom_id..` = data.frame(mean = rep(0.1, n))),
+        summary.fixed = data.frame(mean = c(10, 0.5), sd = c(1, 0.1),
+          "0.025quant" = c(8, 0.3), "0.975quant" = c(12, 0.7),
+          row.names = c("(Intercept)", "CornPix"), check.names = FALSE),
+        summary.hyperpar = data.frame(mean = 2,
+          row.names = "Precision for ..dom_id.."),
+        dic = list(dic = 100, p.eff = 5),
+        waic = list(waic = 101, p.eff = 5),
+        mlik = matrix(-50, 1, 1)
+      )
+    },
+    .package = "INLA",
+    {
+      fit <- hb_unit(
+        CornHec ~ CornPix, unit_data = df_cs, Xpop = df_pop,
+        domain_var = "CountyIndex", print_result = FALSE
+      )
+      expect_s3_class(fit, "fastsae")
+      expect_true(all(is.na(fit$df_hb$vardir)))
+    }
+  )
 })

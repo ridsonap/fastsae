@@ -106,19 +106,6 @@ sim_spatial_weights <- function(D = 40,
     A[dmat_m == 1] <- 1
     diag(A) <- 0
 
-    # Ensure no isolated domains if D is not a multiple of r
-    rs <- rowSums(A)
-    isolated <- which(rs == 0)
-    if (length(isolated) > 0) {
-      dmat_e <- as.matrix(stats::dist(coords, method = "euclidean"))
-      for (iso in isolated) {
-        order_idx <- order(dmat_e[iso, ])
-        nearest <- order_idx[order_idx != iso][1]
-        A[iso, nearest] <- 1
-        A[nearest, iso] <- 1
-      }
-    }
-
   } else if (type == "ring") {
     angles <- seq(0, 2 * pi, length.out = D + 1L)[seq_len(D)]
     coords <- cbind(x = cos(angles), y = sin(angles))
