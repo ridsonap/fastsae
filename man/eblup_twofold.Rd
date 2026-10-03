@@ -2,7 +2,6 @@
 % Please edit documentation in R/eblup_twofold.R
 \name{eblup_twofold}
 \alias{eblup_twofold}
-\alias{eblup_tfh}
 \title{Empirical Best Linear Unbiased Prediction under a Two-fold Fay-Herriot Model.}
 \usage{
 eblup_twofold(

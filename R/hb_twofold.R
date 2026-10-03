@@ -112,7 +112,6 @@
 #' }
 #'
 #' @export
-#' @aliases hb_tfh
 #' @examples
 #' \donttest{
 #' if (requireNamespace("INLA", quietly = TRUE)) {
@@ -509,6 +508,3 @@ hb_twofold <- function(
 
   return(invisible(result))
 }
-
-#' @export
-hb_tfh <- hb_twofold

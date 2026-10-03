@@ -28,7 +28,7 @@ test_that("eblup_twofold recovers two-fold parameters from simulated data", {
 
   expect_true(fit$convergence)
   expect_equal(class(fit), "fastsae")
-  expect_true(fit$model %in% c("TWOFOLD", "TFH"))
+  expect_equal(fit$model, "TWOFOLD")
 
   s2 <- fit$random_effect_var
   expect_named(s2, c("sigma2_v", "sigma2_u"))
@@ -149,8 +149,8 @@ test_that("eblup_twofold REML variance components match pure-R profile REML opti
   }))
   dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit_tfh <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                           data = dat, method = "REML", print_result = FALSE)
+  fit_twofold <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
+                               data = dat, method = "REML", print_result = FALSE)
 
   # Exact profile REML log-likelihood
   areas <- unique(dat$area)
@@ -199,8 +199,8 @@ test_that("eblup_twofold REML variance components match pure-R profile REML opti
   s2v_opt <- exp(opt$par[1])
   s2u_opt <- exp(opt$par[2])
 
-  expect_equal(unname(fit_tfh$random_effect_var["sigma2_v"]), s2v_opt, tolerance = 1e-4)
-  expect_equal(unname(fit_tfh$random_effect_var["sigma2_u"]), s2u_opt, tolerance = 1e-4)
+  expect_equal(unname(fit_twofold$random_effect_var["sigma2_v"]), s2v_opt, tolerance = 1e-4)
+  expect_equal(unname(fit_twofold$random_effect_var["sigma2_u"]), s2u_opt, tolerance = 1e-4)
 })
 
 test_that("eblup_twofold matches Bayesian two-fold hierarchical model via INLA", {
@@ -218,8 +218,8 @@ test_that("eblup_twofold matches Bayesian two-fold hierarchical model via INLA",
   dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
   dat$sub_id <- seq_len(nrow(dat))
 
-  fit_tfh <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                           data = dat, print_result = FALSE)
+  fit_twofold <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
+                               data = dat, print_result = FALSE)
 
   form_inla <- y ~ x1 + f(area, model = "iid") + f(sub_id, model = "iid")
   prec_obs <- 1 / dat$vardir
@@ -233,7 +233,7 @@ test_that("eblup_twofold matches Bayesian two-fold hierarchical model via INLA",
     num.threads = 1
   )
 
-  eb_pred <- fit_tfh$df_eblup$eblup
+  eb_pred <- fit_twofold$df_eblup$eblup
   inla_pred <- fit_inla$summary.fitted.values[seq_len(nrow(dat)), "mean"]
 
   expect_gt(stats::cor(eb_pred, inla_pred), 0.95)
@@ -251,15 +251,11 @@ test_that("eblup_twofold is consistent with standard Fay-Herriot on single-subar
   dat$y <- 2 + 1.5 * dat$x1 + rnorm(n, sd = 0.6) + rnorm(n, sd = sqrt(dat$vardir))
 
   fit_fh <- eblup_fh(y ~ x1, vardir = "vardir", data = dat, print_result = FALSE)
-  fit_tfh <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                           data = dat, print_result = FALSE)
+  fit_twofold <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
+                               data = dat, print_result = FALSE)
 
-  expect_gt(stats::cor(fit_fh$df_eblup$eblup, fit_tfh$df_eblup$eblup), 0.97)
-  expect_lt(max(abs(fit_fh$estcoef$beta - fit_tfh$estcoef$beta)), 0.05)
-})
-
-test_that("eblup_tfh alias is identical to eblup_twofold", {
-  expect_identical(eblup_tfh, eblup_twofold)
+  expect_gt(stats::cor(fit_fh$df_eblup$eblup, fit_twofold$df_eblup$eblup), 0.97)
+  expect_lt(max(abs(fit_fh$estcoef$beta - fit_twofold$estcoef$beta)), 0.05)
 })
 
 test_that("eblup_twofold validation and edge cases", {

@@ -41,7 +41,6 @@
 #' with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
 #' g1+g2+g3 with exact matrix derivation for g3) or by parametric bootstrap.
 #'
-#' @aliases eblup_tfh
 #' @export
 #' @examples
 #' library(fastsae)
@@ -108,7 +107,7 @@ eblup_twofold <- function(
 
   if (!is.null(seed)) set.seed(seed)
 
-  res <- .eblup_tfh_core(
+  res <- .eblup_twofold_core(
     Xall = X,
     yall = y,
     vardirall = vardir,
@@ -146,7 +145,3 @@ eblup_twofold <- function(
   }
   return(res)
 }
-
-#' @export
-eblup_tfh <- eblup_twofold
-

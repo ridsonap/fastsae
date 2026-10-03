@@ -1,12 +1,12 @@
 # fastsae 1.0.0
 
 ### Major New Features & Enhancements
-* **Two-Fold Subarea EBLUP (`eblup_twofold`, alias `eblup_tfh`)**:
+* **Two-Fold Subarea EBLUP (`eblup_twofold`)**:
   * Implements nested two-fold sub-area level models (Torabi & Rao, 2014) with area effects $v_i$ and sub-area effects $u_{ij}$.
   * Ultra-fast Fisher-scoring algorithms in C++ for REML and ML estimation.
   * Analytical Prasad-Rao MSE ($g_1 + g_2 + g_3$) with exact matrix derivation and multi-threaded parametric bootstrap MSE.
   * Automatic prediction for non-sampled subareas using area-level random effects and regression synthetic estimation.
-* **Hierarchical Bayes Two-Fold Subarea Models (`hb_twofold`, alias `hb_tfh`)**:
+* **Hierarchical Bayes Two-Fold Subarea Models (`hb_twofold`)**:
   * Bayesian nested two-fold sub-area models via `INLA`.
   * Supports Gaussian, Binomial (logit link), and Poisson (log rate) likelihoods.
   * Area-level random effects support IID or spatial structures (BYM2, Besag).

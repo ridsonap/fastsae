@@ -65,14 +65,14 @@
 <div class="section level4">
 <h4 id="major-new-features--enhancements-1-0-0">Major New Features &amp; Enhancements<a class="anchor" aria-label="anchor" href="#major-new-features--enhancements-1-0-0"></a></h4>
 <ul><li>
-<strong>Two-Fold Subarea EBLUP (<code>eblup_twofold</code>, alias <code>eblup_tfh</code>)</strong>:
+<strong>Two-Fold Subarea EBLUP (<code>eblup_twofold</code>)</strong>:
 <ul><li>Implements nested two-fold sub-area level models (Torabi &amp; Rao, 2014) with area effects <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>v</mi><mi>i</mi></msub><annotation encoding="application/x-tex">v_i</annotation></semantics></math> and sub-area effects <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">u_{ij}</annotation></semantics></math>.</li>
 <li>Ultra-fast Fisher-scoring algorithms in C++ for REML and ML estimation.</li>
 <li>Analytical Prasad-Rao MSE (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mn>1</mn></msub><mo>+</mo><msub><mi>g</mi><mn>2</mn></msub><mo>+</mo><msub><mi>g</mi><mn>3</mn></msub></mrow><annotation encoding="application/x-tex">g_1 + g_2 + g_3</annotation></semantics></math>) with exact matrix derivation and multi-threaded parametric bootstrap MSE.</li>
 <li>Automatic prediction for non-sampled subareas using area-level random effects and regression synthetic estimation.</li>
 </ul></li>
 <li>
-<strong>Hierarchical Bayes Two-Fold Subarea Models (<code>hb_twofold</code>, alias <code>hb_tfh</code>)</strong>:
+<strong>Hierarchical Bayes Two-Fold Subarea Models (<code>hb_twofold</code>)</strong>:
 <ul><li>Bayesian nested two-fold sub-area models via <code>INLA</code>.</li>
 <li>Supports Gaussian, Binomial (logit link), and Poisson (log rate) likelihoods.</li>
 <li>Area-level random effects support IID or spatial structures (BYM2, Besag).</li>

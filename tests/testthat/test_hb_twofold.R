@@ -1,7 +1,7 @@
 library(testthat)
 library(fastsae)
 
-test_that("hb_twofold works for Gaussian two-fold model and matches eblup_tfh", {
+test_that("hb_twofold works for Gaussian two-fold model and matches eblup_twofold", {
   skip_if_not_installed("INLA")
 
   set.seed(42)
@@ -241,10 +241,6 @@ test_that("hb_twofold integrates with compare_sae() and diagnose()", {
   expect_s3_class(comp, "fastsae_comparison")
   cor_val <- as.numeric(comp$metrics[comp$metrics$Metric == "Pearson Correlation (r)", "Value"])
   expect_gt(cor_val, 0.90)
-})
-
-test_that("hb_tfh alias is identical to hb_twofold", {
-  expect_identical(hb_tfh, hb_twofold)
 })
 
 test_that("hb_twofold handles besag spatial and subarea = NULL", {

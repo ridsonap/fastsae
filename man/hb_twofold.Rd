@@ -2,7 +2,6 @@
 % Please edit documentation in R/hb_twofold.R
 \name{hb_twofold}
 \alias{hb_twofold}
-\alias{hb_tfh}
 \title{Two-Fold Hierarchical Bayes for Sub-Area Level Small Area Estimation}
 \usage{
 hb_twofold(

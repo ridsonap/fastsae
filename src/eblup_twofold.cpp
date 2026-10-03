@@ -1,4 +1,4 @@
-// src/eblup_tfh.cpp
+// src/eblup_twofold.cpp
 // Two-fold Fay-Herriot model (area-level with subareas), Torabi & Rao (2014).
 //
 //   Level 1 (sampling): y_ij = theta_ij + e_ij,  e_ij ~ N(0, psi_ij)
@@ -24,7 +24,7 @@
 // rejected as dimensionally wrong.
 //
 // REVISION NOTES (this file):
-//  [bug]  beta/Q returned by tfh_fit now correspond to the FINAL (s2v, s2u)
+//  [bug]  beta/Q returned by twofold_fit now correspond to the FINAL (s2v, s2u)
 //         (before: they came from the last iterate's variances).
 //  [bug]  MSE of non-sampled subareas in sampled areas: g1*/g2* were wrong
 //         (missing -s2v^2 * 1'V^{-1}1 and +s2v^2 (X'w)'Q(X'w)); fixed and
@@ -36,7 +36,7 @@
 //  [bug]  log-likelihood now includes the 2*pi constant (ML) / REML terms.
 //  [stat] Inverse information for g3 now uses the method-specific (ML or
 //         REML) Fisher information at the final estimates (before: always
-//         ML-type). Effect is second order; see comment in tfh_fit.
+//         ML-type). Effect is second order; see comment in twofold_fit.
 //  [misc] area index validation; v/u variable names aligned with the paper.
 #include <RcppArmadillo.h>
 #ifdef _OPENMP
@@ -58,7 +58,7 @@ struct AreaScratch {
   vec viny;    // V_d^{-1} y_d
 };
 
-struct TfhFit {
+struct TwofoldFit {
   vec beta;
   double s2v = 0.0, s2u = 0.0;  // paper notation: v=area, u=subarea
   mat Q;      // (X'V^{-1}X)^{-1}
@@ -70,18 +70,18 @@ struct TfhFit {
 
 // Everything that depends on (s2v, s2u) in one pass over the areas:
 // beta, Q, score vector and Fisher information (ML or REML).
-struct TfhPass {
+struct TwofoldPass {
   vec beta;
   mat Q;
   vec sc;     // (score_v, score_u)
   mat Info;   // 2x2, order (v, u)
 };
 
-TfhPass tfh_pass(const mat& Xs, const vec& ys, const vec& psis,
-                 const std::vector<uvec>& sidx, int m_all, bool is_ml,
-                 double s2v, double s2u) {
+TwofoldPass twofold_pass(const mat& Xs, const vec& ys, const vec& psis,
+                         const std::vector<uvec>& sidx, int m_all, bool is_ml,
+                         double s2v, double s2u) {
   const int p = Xs.n_cols;
-  TfhPass o;
+  TwofoldPass o;
 
   mat XtVX(p, p, fill::zeros);
   vec Xty(p, fill::zeros);
@@ -170,13 +170,13 @@ TfhPass tfh_pass(const mat& Xs, const vec& ys, const vec& psis,
 
 // Fisher-scoring for (s2v, s2u). sidx[d] = row positions of area d.
 // want_loglik = false skips the log-likelihood (used inside the bootstrap).
-TfhFit tfh_fit(const mat& Xs, const vec& ys, const vec& psis,
-               const std::vector<uvec>& sidx, int m_all,
-               const std::string& method, int maxiter, double precision,
-               bool want_loglik = true) {
+TwofoldFit twofold_fit(const mat& Xs, const vec& ys, const vec& psis,
+                     const std::vector<uvec>& sidx, int m_all,
+                     const std::string& method, int maxiter, double precision,
+                     bool want_loglik = true) {
   const int p = Xs.n_cols;
   const bool is_ml = (method == "ML");
-  TfhFit f;
+  TwofoldFit f;
 
   const double med = median(psis);
   double s2v = 0.5 * med, s2u = 0.5 * med;
@@ -184,7 +184,7 @@ TfhFit tfh_fit(const mat& Xs, const vec& ys, const vec& psis,
   double diff = precision + 1.0;
   int k = 0;
   while ((diff > precision) && (k < maxiter)) {
-    const TfhPass o = tfh_pass(Xs, ys, psis, sidx, m_all, is_ml, s2v, s2u);
+    const TwofoldPass o = twofold_pass(Xs, ys, psis, sidx, m_all, is_ml, s2v, s2u);
     const double Ivv = o.Info(0, 0), Iuu = o.Info(1, 1), Ivu = o.Info(0, 1);
     const double sv = o.sc(0), su = o.sc(1);
 
@@ -220,7 +220,7 @@ TfhFit tfh_fit(const mat& Xs, const vec& ys, const vec& psis,
 
   // Final pass at the FINAL (s2v, s2u): beta, Q and information are now
   // consistent with the reported variance components.
-  const TfhPass fin = tfh_pass(Xs, ys, psis, sidx, m_all, is_ml, s2v, s2u);
+  const TwofoldPass fin = twofold_pass(Xs, ys, psis, sidx, m_all, is_ml, s2v, s2u);
 
   f.s2v = s2v;
   f.s2u = s2u;
@@ -270,11 +270,11 @@ TfhFit tfh_fit(const mat& Xs, const vec& ys, const vec& psis,
 
 }  // namespace
 
-// [[Rcpp::export(.eblup_tfh_core)]]
-List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
-                    const arma::vec& vardirall, const arma::ivec& area,
-                    std::string method = "REML", std::string mse_type = "analytical",
-                    int B = 200, int maxiter = 100, double precision = 1e-4) {
+// [[Rcpp::export(.eblup_twofold_core)]]
+List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
+                        const arma::vec& vardirall, const arma::ivec& area,
+                        std::string method = "REML", std::string mse_type = "analytical",
+                        int B = 200, int maxiter = 100, double precision = 1e-4) {
   const int N = Xall.n_rows;
   const int p = Xall.n_cols;
 
@@ -318,7 +318,7 @@ List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
   }
 
   // ---- main fit (paper notation: s2v=area, s2u=subarea)
-  TfhFit f = tfh_fit(Xs, ys, psis, sidx, m_all, method, maxiter, precision);
+  TwofoldFit f = twofold_fit(Xs, ys, psis, sidx, m_all, method, maxiter, precision);
   const vec& beta = f.beta;
   const double s2v = f.s2v, s2u = f.s2u;
   const double var_v = f.InfoInv(0,0), var_u = f.InfoInv(1,1), cov_vu = f.InfoInv(0,1);
@@ -487,8 +487,8 @@ List eblup_tfh_core(const arma::mat& Xall, const arma::vec& yall,
         theta_star(i) = Xbeta_all(i) + v_star(area(i)) + u_star(i);
       vec y_star = theta_star.elem(idx_s) + E_star.col(b);
 
-      TfhFit fb = tfh_fit(Xs, y_star, psis, sidx, m_all, method, maxiter, precision,
-                          false);
+      TwofoldFit fb = twofold_fit(Xs, y_star, psis, sidx, m_all, method, maxiter, precision,
+                                  false);
       vec eb_star(N);
       vec Xb = Xall * fb.beta;
       const double bs2v = fb.s2v, bs2u = fb.s2u;
