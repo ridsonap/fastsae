@@ -63,17 +63,17 @@ editor_options:
 
 | Task | `fastsae` | `sae` (Molina & Marhuenda) | `emdi` |
 |:---|:--:|:--:|:--:|
-| **Standard Fay-Herriot** | **0.0015 s** | 0.291 s (~190x slower) | 9.64 s (~6,400x slower) |
-| **Spatial Fay-Herriot** | **0.165 s** | 12.60 s (~76x slower) | 8.69 s (~53x slower) |
-| **Peak RAM Usage** | **< 10 MB** | ~400 MB | ~800 MB |
+| **Standard Fay-Herriot** | $\color{#2ea44f}{\mathbf{0.0015\text{ s}}}$ | 0.291 s (~190x slower) | 9.64 s (~6,400x slower) |
+| **Spatial Fay-Herriot** | $\color{#2ea44f}{\mathbf{0.165\text{ s}}}$ | 12.60 s (~76x slower) | 8.69 s (~53x slower) |
+| **Peak RAM Usage** | $\color{#2ea44f}{\mathbf{< 10\text{ MB}}}$ | ~400 MB | ~800 MB |
 
 #### 2. Bayesian Beta SAE Benchmark ($n = 1,000$ areas, compared against Stan MCMC)
 
 | Model Specification | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan HMC) | Speedup & Efficiency |
 |:---|:--:|:--:|:--:|
-| **Standard Beta** | **1.64 s** (134 MB) | 187.16 s (18.3 GB) | **~114× faster**, **>135× less RAM** |
-| **Spatial Beta (Besag ICAR)** | **1.73 s** (161 MB) | 412.39 s (22.9 GB) | **~238× faster**, **>140× less RAM** |
-| **Concordance vs MCMC** | **r = 0.9893** | Baseline | MAE = 0.003 (Exact match) |
+| **Standard Beta** | $\color{#2ea44f}{\mathbf{1.64\text{ s (134 MB)}}}$ | 187.16 s (18.3 GB) | $\color{#2ea44f}{\mathbf{\sim 114\times\text{ faster, } >135\times\text{ less RAM}}}$ |
+| **Spatial Beta (Besag ICAR)** | $\color{#2ea44f}{\mathbf{1.73\text{ s (161 MB)}}}$ | 412.39 s (22.9 GB) | $\color{#2ea44f}{\mathbf{\sim 238\times\text{ faster, } >140\times\text{ less RAM}}}$ |
+| **Concordance vs MCMC** | $\color{#2ea44f}{\mathbf{r = 0.9893}}$ | Baseline | $\color{#2ea44f}{\mathbf{\text{MAE} = 0.003\text{ (Exact match)}}}$ |
 
 ---
 

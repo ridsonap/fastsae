@@ -300,26 +300,26 @@
 </colgroup>
 <thead><tr>
 <th align="left">Task</th>
-<th align="center"><code>fastsae</code></th>
+<th align="center" style="color: #198754; font-weight: bold;"><code>fastsae</code></th>
 <th align="center"><code>sae</code></th>
 <th align="center"><code>emdi</code></th>
 </tr></thead>
 <tbody>
 <tr>
 <td align="left"><strong>Standard Fay-Herriot</strong></td>
-<td align="center"><strong>0.0015 s</strong></td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">0.0015 s</td>
 <td align="center">0.291 s (~190x slower)</td>
 <td align="center">9.64 s (~6,400x slower)</td>
 </tr>
 <tr>
 <td align="left"><strong>Spatial Fay-Herriot</strong></td>
-<td align="center"><strong>0.165 s</strong></td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">0.165 s</td>
 <td align="center">12.60 s (~76x slower)</td>
 <td align="center">8.69 s (~53x slower)</td>
 </tr>
 <tr>
 <td align="left"><strong>Peak RAM usage</strong></td>
-<td align="center"><strong>&lt; 10 MB</strong></td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">&lt; 10 MB</td>
 <td align="center">~400 MB</td>
 <td align="center">~800 MB</td>
 </tr>
@@ -329,35 +329,35 @@
 <h4>2. Bayesian Beta SAE Benchmark (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math> areas, compared against Stan MCMC / <code>tipsae</code>)</h4>
 <table class="table">
 <colgroup>
-<col width="30%">
-<col width="23%">
-<col width="23%">
+<col width="28%">
+<col width="24%">
+<col width="24%">
 <col width="24%">
 </colgroup>
 <thead><tr>
 <th align="left">Model Specification</th>
-<th align="center"><code>fastsae::hb_area</code> (INLA)</th>
+<th align="center" style="color: #198754; font-weight: bold;"><code>fastsae::hb_area</code> (INLA)</th>
 <th align="center"><code>tipsae::fit_sae</code> (Stan HMC)</th>
-<th align="center">Speedup &amp; Efficiency</th>
+<th align="center" style="color: #198754; font-weight: bold;">Speedup &amp; Efficiency</th>
 </tr></thead>
 <tbody>
 <tr>
 <td align="left"><strong>Standard Beta</strong></td>
-<td align="center"><strong>1.64 s</strong> (134 MB)</td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">1.64 s (134 MB)</td>
 <td align="center">187.16 s (18.3 GB)</td>
-<td align="center"><strong>~114× faster</strong>, <strong>&gt;135× less RAM</strong></td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">~114× faster, &gt;135× less RAM</td>
 </tr>
 <tr>
 <td align="left"><strong>Spatial Beta (Besag ICAR)</strong></td>
-<td align="center"><strong>1.73 s</strong> (161 MB)</td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">1.73 s (161 MB)</td>
 <td align="center">412.39 s (22.9 GB)</td>
-<td align="center"><strong>~238× faster</strong>, <strong>&gt;140× less RAM</strong></td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">~238× faster, &gt;140× less RAM</td>
 </tr>
 <tr>
 <td align="left"><strong>Concordance vs MCMC</strong></td>
-<td align="center"><strong>r = 0.9893</strong></td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">r = 0.9893</td>
 <td align="center">Baseline</td>
-<td align="center">MAE = 0.003 (Exact match)</td>
+<td align="center" class="text-success fw-bold" style="color: #198754; font-weight: bold; background-color: rgba(25, 135, 84, 0.08);">MAE = 0.003 (Exact match)</td>
 </tr>
 </tbody>
 </table>
