@@ -12,7 +12,9 @@
 #' @param vardir vector or column names from data that contain variance sampling from the direct estimator.
 #' @param domain vector, column name or one-sided formula referencing a domain names column
 #'   in \code{data}. If NULL, the domains are numbered consecutively.
-#' @param method Fitting method can be chosen between 'ML' and 'REML'.
+#' @param transform Character string specifying data transformation for the response:
+#'   \code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model with Slud & Maiti 2006
+#'   second-order bias-corrected back-transformation).
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
 #' @param print_result print coefficient or not, default value is TRUE.
@@ -49,6 +51,7 @@
 #' @references
 #' \enumerate{
 #'  \item Rao, J. N. K., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
+#'  \item Slud, E. V., & Maiti, T. (2006). Small-area estimation via Fay-Herriot models with logit and log transformations. \emph{Communications in Statistics - Theory and Methods}, 35(10), 1957-1971.
 #'  \item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
 #'    \emph{Survey Methodology}, 34(1), 29-36.
 #' }
@@ -62,6 +65,14 @@
 #'   y ~ x1 + x2 + x3,
 #'   data = mys,
 #'   vardir = "vardir"
+#' )
+#'
+#' # Log-Fay-Herriot with Slud-Maiti bias correction
+#' m_log <- eblup_fh(
+#'   y ~ x1 + x2 + x3,
+#'   data = mys,
+#'   vardir = "vardir",
+#'   transform = "log"
 #' )
 #'
 #' # Self-benchmarking Fay-Herriot model
@@ -80,6 +91,7 @@ eblup_fh <- function(
   domain = NULL,
   data,
   method = c("REML", "ML"),
+  transform = c("none", "log"),
   maxiter = 100,
   precision = 1e-4,
   print_result = TRUE,
@@ -89,6 +101,8 @@ eblup_fh <- function(
   benchmark_group = NULL
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
+  transform <- match.arg(transform, choices = c("none", "log"))
+
   if (is.null(domain)) {
     domain <- 1:nrow(data)
   } else {
@@ -97,13 +111,30 @@ eblup_fh <- function(
 
   # model frame & validasi
   mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
-  vardir <- .get_variable(data, vardir)
+
+  if (inherits(vardir, "gvf_smooth") || inherits(vardir, "fastsae_gvf")) {
+    vardir <- vardir$smooth_vardir
+  } else {
+    vardir <- .get_variable(data, vardir)
+  }
 
   if (nrow(mf) != length(vardir)) {
     cli::cli_abort("Length of 'vardir' must equal number of observations in data ({nrow(mf)} vs {length(vardir)}).")
   }
 
   y <- stats::model.response(mf, "numeric")
+  y_orig <- y
+  vardir_orig <- vardir
+
+  if (transform == "log") {
+    if (any(y[!is.na(y)] <= 0)) {
+      cli::cli_abort("Log transformation requires strictly positive response values (y > 0).")
+    }
+    y_log <- ifelse(is.na(y), NA_real_, log(y))
+    vardir_log <- ifelse(is.na(y), vardir, vardir / (y^2))
+    y <- y_log
+    vardir <- vardir_log
+  }
 
   # Self-benchmarking setup (Wang, Fuller, and Qu, 2008)
   sb_info <- NULL
@@ -111,7 +142,7 @@ eblup_fh <- function(
     sb_info <- .setup_self_benchmark(
       data = data,
       formula = formula,
-      y = y,
+      y = if (transform == "log") y_orig else y,
       vardir = vardir,
       weight = benchmark_weight,
       target = benchmark_target,
@@ -120,7 +151,7 @@ eblup_fh <- function(
     data <- sb_info$data_aug
     formula <- sb_info$formula_aug
     mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
-    y <- stats::model.response(mf, "numeric")
+    y <- if (transform == "log") ifelse(is.na(stats::model.response(mf, "numeric")), NA_real_, log(stats::model.response(mf, "numeric"))) else stats::model.response(mf, "numeric")
   }
 
   X <- stats::model.matrix(attr(mf, "terms"), mf)
@@ -142,11 +173,33 @@ eblup_fh <- function(
   # attach metadata
   row.names(res$estcoef) <- colnames(X)
   res$formula <- formula
-  res$model <- "FH"
+  res$model <- if (transform == "log") "Log-FH" else "FH"
+  res$transform <- transform
+
+  if (transform == "log") {
+    # Slud-Maiti (2006) second-order bias-corrected back-transformation
+    sigma2_u <- res$random_effect_var
+    mu_star <- res$df_eblup$eblup
+    mse_star <- res$df_eblup$mse
+    gamma_star <- ifelse(is.na(vardir) | vardir <= 0, 0.0, sigma2_u / (sigma2_u + vardir))
+
+    eblup_orig <- exp(mu_star + 0.5 * sigma2_u * (1.0 - gamma_star))
+    mse_orig <- (eblup_orig^2) * mse_star
+    rse_orig <- ifelse(eblup_orig < .Machine$double.eps, NA_real_, sqrt(mse_orig) / eblup_orig * 100)
+
+    res$df_eblup$eblup_log <- mu_star
+    res$df_eblup$mse_log <- mse_star
+    res$df_eblup$eblup <- eblup_orig
+    res$df_eblup$mse <- mse_orig
+    res$df_eblup$rse <- rse_orig
+    res$df_eblup$y <- y_orig
+    res$df_eblup$vardir <- vardir_orig
+  }
 
   # Add domain identifier as first column in df_eblup
   res$df_eblup$domain <- domain
-  res$df_eblup <- res$df_eblup[, c("domain", "y", "eblup", "vardir", "random_effect","mse", "rse")]
+  cols_order <- c("domain", "y", "eblup", "vardir", "random_effect", "mse", "rse", "eblup_log", "mse_log")
+  res$df_eblup <- res$df_eblup[, intersect(cols_order, names(res$df_eblup))]
 
   if (!is.null(sb_info)) {
     res$self_benchmark <- TRUE

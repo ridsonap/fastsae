@@ -38,10 +38,12 @@
 #'   the variance/autocorrelation components. Defaults mirror \code{eblupSTFH()}:
 #'   \code{0.5 * median(vardir)} for the variances and \code{0.5} for the
 #'   autocorrelations. \code{rho2_start} is ignored when \code{model = "S"}.
-#' @param compute_mse logical, if \code{TRUE} computes parametric bootstrap MSE
-#'   using \code{B} bootstrap replicates. Default \code{FALSE}.
+#' @param compute_mse logical, if \code{TRUE} computes MSE. Default \code{FALSE}.
+#' @param mse_type character, method for MSE estimation: \code{"analytical"} (fast Prasad-Rao /
+#'   Marhuenda et al. 2013 analytical MSE, default when \code{compute_mse = TRUE}) or
+#'   \code{"bootstrap"} (parametric bootstrap).
 #' @param B number of bootstrap replicates for MSE computation. Only used when
-#'   \code{compute_mse = TRUE}. Default \code{100}.
+#'   \code{compute_mse = TRUE} and \code{mse_type = "bootstrap"}. Default \code{100}.
 #' @param n_threads number of threads for parallel bootstrap MSE computation.
 #'   Use \code{0} for all available cores. Default \code{1}.
 #' @param seed random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.
@@ -68,7 +70,7 @@
 #'     \item{\code{model}}{model type ("ST" or "S").}
 #'     \item{\code{convergence}}{logical, whether the algorithm converged.}
 #'     \item{\code{n_iter}}{number of iterations.}
-#'     \item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE).}
+#'     \item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE and mse_type = "bootstrap").}
 #'   }
 #'
 #' @details
@@ -95,7 +97,7 @@
 #'   model = "ST"
 #' )
 #'
-#' # EBLUP with parametric bootstrap MSE
+#' # Fast Analytical Prasad-Rao MSE (< 0.05 seconds)
 #' m2 <- eblup_stfh(
 #'   y ~ x1 + x2 + x3,
 #'   data = mys_panel_nona,
@@ -105,8 +107,7 @@
 #'   W = mys_proxmat[-c(21, 25), -c(21, 25)],
 #'   model = "ST",
 #'   compute_mse = TRUE,
-#'   B = 100,
-#'   seed = 42
+#'   mse_type = "analytical"
 #' )
 #'
 #' @md
@@ -125,6 +126,7 @@ eblup_stfh <- function(
   sigma22_start = NULL,
   rho2_start = 0.5,
   compute_mse = FALSE,
+  mse_type = c("analytical", "bootstrap"),
   B = 100,
   n_threads = 1,
   seed = -1,
@@ -135,6 +137,15 @@ eblup_stfh <- function(
   print_result = TRUE
 ) {
   model <- match.arg(model, choices = c("ST", "S"))
+  if (missing(mse_type)) {
+    if (!missing(B)) {
+      mse_type <- "bootstrap"
+    } else {
+      mse_type <- "analytical"
+    }
+  } else {
+    mse_type <- match.arg(mse_type, choices = c("analytical", "bootstrap"))
+  }
 
   # ---- model frame & matrix design ----
   # Use na.pass to detect NA values first
@@ -269,33 +280,42 @@ eblup_stfh <- function(
     return(res)
   }
 
-  # ---- compute PBMSE if requested ----
+  # ---- compute MSE if requested ----
   if (compute_mse) {
-    if (print_result) {
-      cli::cli_alert_info("Computing parametric bootstrap MSE with B = {B} replicates...")
+    if (mse_type == "analytical") {
+      res$df_eblup$mse <- as.numeric(res$mse_analytical)
+      res$df_eblup$rse <- as.numeric(res$rse_analytical)
+      res$df_eblup$mse_pb <- NA_real_
+      res$mse_type <- "analytical"
+      res$B <- NA_integer_
+    } else {
+      if (print_result) {
+        cli::cli_alert_info("Computing parametric bootstrap MSE with B = {B} replicates...")
+      }
+
+      # Call C++ PBMSE function
+      pbmse_res <- .pbmse_stfh(
+        Xall = X,
+        yall = y,
+        vardirall = vardir,
+        proxmat = W,
+        D = as.integer(n_domain),
+        Tt = as.integer(n_time),
+        model = model,
+        maxiter = as.integer(maxiter),
+        precision = precision,
+        B = as.integer(B),
+        n_threads = as.integer(n_threads),
+        seed = as.integer(seed)
+      )
+
+      # Update df_eblup with MSE
+      res$df_eblup$mse_pb <- as.numeric(pbmse_res$mse_pb)
+      res$df_eblup$mse <- as.numeric(pbmse_res$mse_pb)
+      res$df_eblup$rse <- ifelse(abs(res$df_eblup$eblup) < .Machine$double.eps, NA_real_, sqrt(as.numeric(pbmse_res$mse_pb)) / abs(res$df_eblup$eblup) * 100)
+      res$mse_type <- "bootstrap"
+      res$B <- pbmse_res$B
     }
-
-    # Call C++ PBMSE function
-    pbmse_res <- .pbmse_stfh(
-      Xall = X,
-      yall = y,
-      vardirall = vardir,
-      proxmat = W,
-      D = as.integer(n_domain),
-      Tt = as.integer(n_time),
-      model = model,
-      maxiter = as.integer(maxiter),
-      precision = precision,
-      B = as.integer(B),
-      n_threads = as.integer(n_threads),
-      seed = as.integer(seed)
-    )
-
-    # Update df_eblup with MSE
-    res$df_eblup$mse_pb <- as.numeric(pbmse_res$mse_pb)
-    res$df_eblup$mse <- as.numeric(pbmse_res$mse_pb)
-    res$df_eblup$rse <- ifelse(abs(res$df_eblup$eblup) < .Machine$double.eps, NA_real_, sqrt(as.numeric(pbmse_res$mse_pb)) / abs(res$df_eblup$eblup) * 100)
-    res$B <- pbmse_res$B
   } else {
     # Add NA columns for mse and rse
     res$df_eblup$mse_pb <- NA_real_

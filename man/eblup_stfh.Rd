@@ -19,6 +19,7 @@ eblup_stfh(
   sigma22_start = NULL,
   rho2_start = 0.5,
   compute_mse = FALSE,
+  mse_type = c("analytical", "bootstrap"),
   B = 100,
   n_threads = 1,
   seed = -1,
@@ -63,11 +64,14 @@ the variance/autocorrelation components. Defaults mirror \code{eblupSTFH()}:
 \code{0.5 * median(vardir)} for the variances and \code{0.5} for the
 autocorrelations. \code{rho2_start} is ignored when \code{model = "S"}.}
 
-\item{compute_mse}{logical, if \code{TRUE} computes parametric bootstrap MSE
-using \code{B} bootstrap replicates. Default \code{FALSE}.}
+\item{compute_mse}{logical, if \code{TRUE} computes MSE. Default \code{FALSE}.}
+
+\item{mse_type}{character, method for MSE estimation: \code{"analytical"} (fast Prasad-Rao /
+Marhuenda et al. 2013 analytical MSE, default when \code{compute_mse = TRUE}) or
+\code{"bootstrap"} (parametric bootstrap).}
 
 \item{B}{number of bootstrap replicates for MSE computation. Only used when
-\code{compute_mse = TRUE}. Default \code{100}.}
+\code{compute_mse = TRUE} and \code{mse_type = "bootstrap"}. Default \code{100}.}
 
 \item{n_threads}{number of threads for parallel bootstrap MSE computation.
 Use \code{0} for all available cores. Default \code{1}.}
@@ -102,7 +106,7 @@ When \code{compute_mse = FALSE}, mse and rse are \code{NA}.
 \item{\code{model}}{model type ("ST" or "S").}
 \item{\code{convergence}}{logical, whether the algorithm converged.}
 \item{\code{n_iter}}{number of iterations.}
-\item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE).}
+\item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE and mse_type = "bootstrap").}
 }
 }
 \description{
@@ -136,7 +140,7 @@ m1 <- eblup_stfh(
   model = "ST"
 )
 
-# EBLUP with parametric bootstrap MSE
+# Fast Analytical Prasad-Rao MSE (< 0.05 seconds)
 m2 <- eblup_stfh(
   y ~ x1 + x2 + x3,
   data = mys_panel_nona,
@@ -146,8 +150,7 @@ m2 <- eblup_stfh(
   W = mys_proxmat[-c(21, 25), -c(21, 25)],
   model = "ST",
   compute_mse = TRUE,
-  B = 100,
-  seed = 42
+  mse_type = "analytical"
 )
 
 }

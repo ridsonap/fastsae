@@ -71,13 +71,11 @@ eblup_bhf <- function(
 
   # --- fit linear mixed model with method (REML vs ML) ---
   term_labels <- attr(stats::terms(formula), "term.labels")
-  lmer_data <- data.frame(
-    y = ys,
-    formuladata[, term_labels, drop = FALSE],
-    dom = dom
-  )
-  fixed_part <- paste(term_labels, collapse = " + ")
-  formula_lmer <- stats::as.formula(paste("y ~", fixed_part, "+ (1 | dom)"))
+  lmer_data <- as.data.frame(formuladata)
+  lmer_data$dom <- dom
+  lmer_data$..y_var.. <- ys
+  fixed_part <- if (length(term_labels) > 0) paste(term_labels, collapse = " + ") else "1"
+  formula_lmer <- stats::as.formula(paste("..y_var.. ~", fixed_part, "+ (1 | dom)"))
 
   fit <- lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML"))
   betaest <- matrix(lme4::fixef(fit), ncol = 1)
@@ -251,13 +249,11 @@ eblup_bhf <- function(
 
   # --- initial fit ---
   term_labels <- attr(stats::terms(formula), "term.labels")
-  lmer_data <- data.frame(
-    y = ys,
-    formuladata[, term_labels, drop = FALSE],
-    dom = dom
-  )
-  fixed_part <- paste(term_labels, collapse = " + ")
-  formula_lmer <- stats::as.formula(paste("y ~", fixed_part, "+ (1 | dom)"))
+  lmer_data <- as.data.frame(formuladata)
+  lmer_data$dom <- dom
+  lmer_data$..y_boot.. <- ys
+  fixed_part <- if (length(term_labels) > 0) paste(term_labels, collapse = " + ") else "1"
+  formula_lmer <- stats::as.formula(paste("..y_boot.. ~", fixed_part, "+ (1 | dom)"))
 
   fit <- lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML"))
   betaest <- matrix(lme4::fixef(fit), ncol = 1)
@@ -285,10 +281,13 @@ eblup_bhf <- function(
   if (seed >= 0) set.seed(seed)
 
   mse <- numeric(length(selectdom))
+  valid_B <- 0L
 
   # Group indices by domain
   dom_factor <- factor(dom, levels = as.character(selectdom))
   dom_idx <- split(seq_along(dom), dom_factor)
+  Xbeta_pop <- as.numeric(Xs %*% betaest)
+  dom_char <- as.character(dom)
 
   for (b in seq_len(B)) {
     # Generate bootstrap sample
@@ -297,21 +296,13 @@ eblup_bhf <- function(
 
     e_boot <- stats::rnorm(length(ys), sd = sqrt(sigma2_e))
 
-    # y_boot = X * beta + u_boot[dom] + e_boot
-    y_boot <- numeric(length(ys))
-    for (i in seq_along(ys)) {
-      d <- as.character(dom[i])
-      y_boot[i] <- as.numeric(Xs[i, ] %*% betaest) + u_boot[d] + e_boot[i]
-    }
+    # Fast vectorized y_boot: X * beta + u_boot[dom] + e_boot
+    y_boot <- Xbeta_pop + u_boot[dom_char] + e_boot
 
     # Fit bootstrap model
-    lmer_data_boot <- data.frame(
-      y = y_boot,
-      formuladata[, term_labels, drop = FALSE],
-      dom = dom
-    )
+    lmer_data$..y_boot.. <- y_boot
     fit_boot <- tryCatch(
-      lme4::lmer(formula_lmer, data = lmer_data_boot, REML = (method == "REML")),
+      lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML")),
       error = function(e) NULL
     )
     if (is.null(fit_boot)) next
@@ -355,15 +346,20 @@ eblup_bhf <- function(
 
     # Accumulate MSE: (eblup_boot - truemean_boot)^2
     mse <- mse + (eblup_boot - truemean_boot)^2
+    valid_B <- valid_B + 1L
   }
 
-  mse <- mse / B
+  if (valid_B > 0L) {
+    mse <- mse / valid_B
+  } else {
+    mse <- rep(NA_real_, length(selectdom))
+  }
   names(mse) <- as.character(selectdom)
 
   return(list(
     eblup = eblup_init,
     mse = mse,
     method = method,
-    B = B
+    B = valid_B
   ))
 }

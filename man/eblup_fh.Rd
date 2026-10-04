@@ -10,6 +10,7 @@ eblup_fh(
   domain = NULL,
   data,
   method = c("REML", "ML"),
+  transform = c("none", "log"),
   maxiter = 100,
   precision = 1e-04,
   print_result = TRUE,
@@ -29,7 +30,9 @@ in \code{data}. If NULL, the domains are numbered consecutively.}
 
 \item{data}{a data frame or a data frame extension (e.g. a tibble).}
 
-\item{method}{Fitting method can be chosen between 'ML' and 'REML'.}
+\item{transform}{Character string specifying data transformation for the response:
+\code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model with Slud & Maiti 2006
+second-order bias-corrected back-transformation).}
 
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm.}
 
@@ -86,6 +89,14 @@ m1 <- eblup_fh(
   vardir = "vardir"
 )
 
+# Log-Fay-Herriot with Slud-Maiti bias correction
+m_log <- eblup_fh(
+  y ~ x1 + x2 + x3,
+  data = mys,
+  vardir = "vardir",
+  transform = "log"
+)
+
 # Self-benchmarking Fay-Herriot model
 m1_bench <- eblup_fh(
   y ~ x1 + x2 + x3,
@@ -103,6 +114,7 @@ m1_bench <- eblup_fh(
 
 \enumerate{
 \item Rao, J. N. K., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
+\item Slud, E. V., & Maiti, T. (2006). Small-area estimation via Fay-Herriot models with logit and log transformations. \emph{Communications in Statistics - Theory and Methods}, 35(10), 1957-1971.
 \item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
 \emph{Survey Methodology}, 34(1), 29-36.
 }

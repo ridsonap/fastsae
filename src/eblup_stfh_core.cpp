@@ -72,18 +72,19 @@ static ModelPieces compute_pieces(
   const int M = D * Tt;
 
   arma::mat ImrW = Id - rho1 * W;
-  arma::mat A1 = ImrW.t() * ImrW;
+  arma::mat A1 = arma::symmatu(ImrW.t() * ImrW);
   bool ok1 = arma::inv_sympd(mp.Omega1, A1);
   if (!ok1) ok1 = arma::inv(mp.Omega1, A1);
   if (!ok1) { mp.ok = false; return mp; }
 
-  mp.Vu1 = sigma21 * mp.Omega1;
+  mp.Vu1 = arma::symmatu(sigma21 * mp.Omega1);
   if (sigma21 == 0.0) {
     mp.hasVu1 = false;
   } else {
     mp.hasVu1 = true;
-    bool okVu1 = arma::inv_sympd(mp.invVu1, mp.Vu1);
-    if (!okVu1) okVu1 = arma::inv(mp.invVu1, mp.Vu1);
+    arma::mat symVu1 = arma::symmatu(mp.Vu1);
+    bool okVu1 = arma::inv_sympd(mp.invVu1, symVu1);
+    if (!okVu1) okVu1 = arma::inv(mp.invVu1, symVu1);
     if (!okVu1) { mp.ok = false; return mp; }
   }
 
@@ -106,7 +107,7 @@ static ModelPieces compute_pieces(
       mp.logdetA += arma::sum(arma::log(block_diag));
     } else {
       arma::mat Ved = arma::diagmat(vardir.subvec(first, last));
-      arma::mat Ad = sigma22 * mp.Omega2 + Ved;
+      arma::mat Ad = arma::symmatu(sigma22 * mp.Omega2 + Ved);
       arma::mat invAd;
       bool okAd = arma::inv_sympd(invAd, Ad);
       if (!okAd) okAd = arma::inv(invAd, Ad);
@@ -116,7 +117,7 @@ static ModelPieces compute_pieces(
       bool okld = arma::log_det(ld, sign_, Ad);
       if (!okld || sign_ <= 0) { mp.ok = false; return mp; }
 
-      mp.invA.submat(first, first, last, last) = invAd;
+      mp.invA.submat(first, first, last, last) = arma::symmatu(invAd);
       mp.diagC(d) = arma::accu(invAd);
       mp.logdetA += ld;
     }
@@ -143,12 +144,12 @@ static bool build_invV(const ModelPieces& mp, const arma::mat& invAZ1, int D,
     Cmat_out.zeros();
     return true;
   }
-  Cmat_out = mp.invVu1 + arma::diagmat(mp.diagC);
+  Cmat_out = arma::symmatu(mp.invVu1 + arma::diagmat(mp.diagC));
   arma::mat Cinv;
   bool okC = arma::inv_sympd(Cinv, Cmat_out);
   if (!okC) okC = arma::inv(Cinv, Cmat_out);
   if (!okC) return false;
-  invV_out = mp.invA - invAZ1 * Cinv * invAZ1.t();
+  invV_out = arma::symmatu(mp.invA - invAZ1 * Cinv * invAZ1.t());
   return true;
 }
 
@@ -263,7 +264,7 @@ List eblup_stfh_core(
     if (!build_invV(mp, invAZ1, D, invV, Cmat)) return make_fail_result(false);
 
     arma::mat tXinvV = tX * invV;
-    arma::mat tXinvVX = tXinvV * X;
+    arma::mat tXinvVX = arma::symmatu(tXinvV * X);
     arma::mat Q;
     bool okQ = arma::inv_sympd(Q, tXinvVX);
     if (!okQ) okQ = arma::inv(Q, tXinvVX);
@@ -316,8 +317,9 @@ List eblup_stfh_core(
       for (int b = 0; b < a; ++b) F(a, b) = F(b, a);
 
     // Update theta
-    bool okF = arma::inv_sympd(Finv, F);
-    if (!okF) okF = arma::inv(Finv, F);
+    arma::mat symF = arma::symmatu(F);
+    bool okF = arma::inv_sympd(Finv, symF);
+    if (!okF) okF = arma::inv(Finv, symF);
     if (!okF) return make_fail_result(false);
 
     thetak1 = thetak + Finv * S;
@@ -416,7 +418,7 @@ List eblup_stfh_core(
 
   // Beta and residuals
   arma::mat tXinvV = tX * invV;
-  arma::mat tXinvVX = tXinvV * X;
+  arma::mat tXinvVX = arma::symmatu(tXinvV * X);
   arma::mat Q;
   bool okQ = arma::inv_sympd(Q, tXinvVX);
   if (!okQ) okQ = arma::inv(Q, tXinvVX);
@@ -516,19 +518,89 @@ List eblup_stfh_core(
     _["std.error"] = NumericVector(stderr_theta.begin(), stderr_theta.end())
   );
 
+  // ================================================================
+  // Analytical MSE (Prasad-Rao / Marhuenda et al. 2013: g1 + g2 + 2*g3)
+  // ================================================================
+  // g1 component: uncertainty from random effects
+  arma::vec invV_diag = invV.diag();
+  arma::vec g1 = vardir - (arma::square(vardir) % invV_diag);
+  for (uword i = 0; i < g1.n_elem; ++i) {
+    if (g1(i) < 0.0) g1(i) = 0.0;
+  }
+
+  // g2 component: uncertainty from beta estimation
+  arma::mat R_mat = arma::diagmat(vardir) * (invV * X);
+  arma::vec g2 = arma::sum((R_mat * Q) % R_mat, 1);
+  for (uword i = 0; i < g2.n_elem; ++i) {
+    if (g2(i) < 0.0) g2(i) = 0.0;
+  }
+
+  // g3 component: uncertainty from variance component estimation
+  arma::vec g3(M, fill::zeros);
+  arma::mat V_mat;
+  bool okV = arma::inv_sympd(V_mat, invV);
+  if (!okV) V_mat = arma::pinv(invV);
+
+  // Reconstruct final Va derivatives
+  arma::mat derivrho1 = -WpWt + 2.0 * rho1_f * WtW;
+  arma::mat sigmaOmegaderivrho1Omega = (-sigma21_f) * (mpf.Omega1 * derivrho1 * mpf.Omega1);
+
+  std::vector<arma::mat> Va(nparam);
+  Va[0] = arma::kron(mpf.Omega1, OnesT);
+  Va[1] = arma::kron(sigmaOmegaderivrho1Omega, OnesT);
+  if (!isST) {
+    Va[2] = arma::eye<arma::mat>(M, M);
+  } else {
+    Va[2] = arma::kron(EyeD, mpf.Omega2);
+    arma::mat sigma22dOmega2 = sigma22_f * mpf.dOmega2;
+    Va[3] = arma::kron(EyeD, sigma22dOmega2);
+  }
+
+  std::vector<arma::mat> Ma(nparam);
+  std::vector<arma::mat> Ha(nparam);
+  for (int a = 0; a < nparam; ++a) {
+    arma::mat Ka = invV * Va[a] * invV;
+    Ma[a] = arma::diagmat(vardir) * Ka;
+    Ha[a] = V_mat * Ma[a];
+  }
+
+  for (int a = 0; a < nparam; ++a) {
+    for (int b = a; b < nparam; ++b) {
+      arma::vec c_ab = arma::sum(Ma[a] % Ha[b], 0).t();
+      double weight = (a == b) ? Finv(a, b) : 2.0 * Finv(a, b);
+      g3 += weight * c_ab;
+    }
+  }
+  for (uword i = 0; i < g3.n_elem; ++i) {
+    if (g3(i) < 0.0) g3(i) = 0.0;
+  }
+
+  arma::vec mse_anal = g1 + g2 + 2.0 * g3;
+  arma::vec rse_anal(M);
+  for (int i = 0; i < M; ++i) {
+    rse_anal(i) = (std::abs(eblup(i)) < 1e-12) ? NA_REAL : (std::sqrt(mse_anal(i)) / std::abs(eblup(i)) * 100.0);
+  }
+
   // df_eblup with random effects
   DataFrame df_eblup = DataFrame::create(
     _["eblup"] = NumericVector(eblup.begin(), eblup.end()),
+    _["mse"] = NumericVector(mse_anal.begin(), mse_anal.end()),
+    _["rse"] = NumericVector(rse_anal.begin(), rse_anal.end()),
     _["random_effect_u1"] = NumericVector(u1dt.begin(), u1dt.end()),
     _["random_effect_u2"] = NumericVector(u2dt.begin(), u2dt.end())
   );
 
-  // Return structure matching seblup_area + estvarcomp
+  // Return structure matching seblup_area + estvarcomp + analytical MSE
   return List::create(
     _["estcoef"] = estcoef,
     _["estvarcomp"] = estvarcomp,
     _["goodness"] = goodness,
     _["df_eblup"] = df_eblup,
+    _["mse_analytical"] = NumericVector(mse_anal.begin(), mse_anal.end()),
+    _["rse_analytical"] = NumericVector(rse_anal.begin(), rse_anal.end()),
+    _["g1"] = NumericVector(g1.begin(), g1.end()),
+    _["g2"] = NumericVector(g2.begin(), g2.end()),
+    _["g3"] = NumericVector(g3.begin(), g3.end()),
     _["model"] = model,
     _["convergence"] = true,
     _["n_iter"] = k

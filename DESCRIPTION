@@ -73,6 +73,7 @@ Collate:
     data.R
     methods.R
     autoplot.R
+    gvf.R
     eblup_fh.R
     eblup_sfh.R
     eblup_stfh.R
