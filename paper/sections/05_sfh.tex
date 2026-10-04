@@ -1,0 +1,278 @@
+% ===========================================================================
+%  Bagian 5.2 -- eblup_sfh
+% ===========================================================================
+\section{Model Fay--Herriot spasial: \texttt{eblup\_sfh}}\label{sec:sfh}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:sfh-setting}
+
+Bentuk datanya sama dengan FH (satu baris per domain: $y_d$, $\psi_d$, kovariat
+$x_d$) tetapi ditambah satu objek wajib: matriks tetangga $W$ berdimensi
+$m\times m$ \emph{termasuk} baris/kolom domain tanpa sampel
+(\code{R/eblup\_sfh.R:131-141}). Model ini dipakai bila residual direktor
+mengandung korelasi spasial, misalnya karena faktor geografis yang tidak
+terukur; ekuivalennya adalah model \emph{spatial error}/SAR pada data area-level
+\citep{pratesi2008small, rao2015small}. Karena $W$ dari pengguna, fungsi ini
+tidak pernah membangun struktur tetangga sendiri; pembuat tetangga rook/queen
+tersedia lewat \fct{sim\_spatial\_weights} (bagian~\ref{sec:utilitas}).
+
+\subsection{Persamaan model}\label{sec:sfh-model}
+
+\begin{equation}
+  y_d=x_d'\beta+u_d+e_d,\qquad
+  u\sim N\bigl(0,\;\sigma^2 A^{-1}\bigr),\qquad
+  e_d\sim N(0,\psi_d),
+  \label{eq:sfh-model}
+\end{equation}
+dengan matriks presisi spasial (kode: \code{eblup\_sfh\_core.cpp:311})
+\begin{equation}
+  A=(\Imat-\rho \Wmat')(\Imat-\rho \Wmat)
+   =\Imat-\rho(\Wmat+\Wmat')+\rho^2\Wmat'\Wmat,
+  \qquad \abs{\rho}<1.
+  \label{eq:sfh-A}
+\end{equation}
+Karena $A$ adalah presisi, \eqref{eq:sfh-model} ekuivalen dengan bentuk
+autoregresi spasial serentak $u=\rho \Wmat u+\varepsilon$, $\varepsilon\sim
+N(0,\sigma^2\Imat)$; dalam arti ini efek spasialnya \emph{SAR/err\-or-compo\-nents},
+bukan CAR proper (perbandingan kedua notasi ada pada bagian~\ref{sec:car}).
+Kovarians total $\Vm=G+\mathrm{diag}(\psi)$ dengan
+$G=\sigma^2 A^{-1}$ (baris 318, 401). Turunan yang dibutuhkan skoring
+(derifasi lengkap di lampiran~\ref{sec:derivasi}) adalah
+\begin{equation}
+  \frac{\partial A}{\partial\rho}=-(\Wmat+\Wmat')+2\rho\,\Wmat'\Wmat,
+  \qquad
+  \frac{\partial \Vm}{\partial\rho}
+  =-\sigma^2 A^{-1}\frac{\partial A}{\partial\rho}A^{-1},
+  \label{eq:sfh-deriv}
+\end{equation}
+persis kode \code{eblup\_sfh\_core.cpp:315-316} (matriks $W'W$ dan $W+W'$
+di-pra-hitung sekali di luar loop, baris 283-284).
+
+\subsection{Prediktor titik}\label{sec:sfh-prediktor}
+
+Dengan $Q=(\Xmat'\Vm^{-1}\Xmat)^{-1}$ dan
+$\betah=(\Xmat'\Vm^{-1}\Xmat)^{-1}\Xmat'\Vm^{-1}y$ (baris 407-414),
+prediktor adalah EBLUP matriks persis \eqref{eq:blup}:
+\begin{equation}
+  \hat\theta=\Xmat\betah+G\,\Vm^{-1}\bigl(y-\Xmat\betah\bigr)
+  \quad(\texttt{eblup\_sfh\_core.cpp:462}),
+  \qquad
+  \hat u=G\Vm^{-1}(y-\Xmat\betah).
+  \label{eq:sfh-pred}
+\end{equation}
+Pada domain tanpa sampel prediktor berubah menjadi \emph{kriging simpel}
+(baris 576-591): dengan $G$ dihitung dari $W$ penuh,
+\begin{equation}
+  \hat u_{ns}=G_{rs}\,\Vm^{-1}\bigl(y_s-\Xmat_s\betah\bigr),
+  \qquad
+  \hat\theta_{ns}=x_{ns}'\betah+\hat u_{ns}.
+  \label{eq:sfh-kriging}
+\end{equation}
+\implnote{Baris 580-587 memakai sub-blok dari $A_{\text{full}}^{-1}$, sedangkan
+pass fit memakai $W_{ss}$; keduanya tidak setara, $[A_{\text{full}}^{-1}]_{ss}
+\neq[(\Imat-\rho W_{ss})'(\Imat-\rho W_{ss})]^{-1}$ (SFH-8). Selain itu
+dokumentasi menyebut ``analytical MSE approximation'' untuk area tak-sampel,
+padahal yang dihitung hanya $g_1+g_2$ tanpa $g_3,g_4$ (SFH-7).}
+
+\subsection{Estimasi komponen varians}\label{sec:sfh-varians}
+
+Parameter yang diiterasikan dua: $\theta=(\sigma_u^2,\rho)$, nilai awal
+$\sigma_u^{2(0)}=\mathrm{median}(\psi)$ dan $\rho^{(0)}=0.5$
+(baris 288-289), toleransi relatif $10^{-4}$, maksimum 100 iterasi
+(baris 307). Per iterasi (baris 308-383):
+\begin{enumerate}[label=\arabic*.]
+  \item bangun $A$, $A^{-1}$ (\code{inv\_sympd}, fallback \code{pinv}),
+        $\Vm$, $\Vm^{-1}$, $Q$, $P=\Vm^{-1}-\Vm^{-1}\Xmat Q\Xmat'\Vm^{-1}$;
+  \item skor dan informasi --- untuk REML (baris 349-357)
+        \begin{equation}
+          s_a=-\tfrac12\tr(P D_a)+\tfrac12 y'P D_a P y,
+          \qquad
+          \mathcal I_{ab}=\tfrac12\tr(P D_a P D_b),
+          \label{eq:sfh-score-reml}
+        \end{equation}
+        dengan $D_1=A^{-1}=\partial\Vm/\partial\sigma^2$ (kode: \code{derSigma}) dan $D_2=\partial\Vm/\partial\rho$; untuk ML
+        (baris 338-348) baris pertama skor memakai $\Vm^{-1}$ tetapi
+        kuadratiknya tetap $y'PDPy$;
+  \item langkah Newton--Fisher $\Delta=\mathcal I^{-1}s$ lewat \code{solve};
+        kegagalan memutus loop dengan \code{convergence = FALSE};
+  \item batas: $|\rho|<0.999$ (baris 371-374); $\sigma_u^2$ \emph{tidak}
+        dibatasi selama iterasi, hanya $\sigma^2=\max(0,\cdot)$ pada hasil
+        akhir (baris 394);
+  \item konvergensi $\texttt{diff}=\max_a\abs{\Delta\theta_a/(\theta_a+10^{-12})}$
+        (baris 376-383).
+\end{enumerate}
+Galat baku kedua komponen $\sqrt{\mathrm{diag}(\mathcal I^{-1})}$ dihitung
+dari $\mathcal I$ berbentuk REML tanpa memeriksa \code{method} (baris 502-510,
+647-653), dan \code{loglikelihood/AIC/BIC} selalu memakai bentuk ML
+(baris 464-476).
+
+\implnote{Tiga hal pada penutup paragraf di atas terdaftar sebagai SFH-1
+(skor ML setengah REML), SFH-2 (SE dari informasi REML pada fit ML), dan
+SFH-3 (loglik ML walau REML) di \code{DISCREPANCIES.md}. Batas akhir
+$\rho=\pm0.999$ dipetakan ke $\pm1.0$ persis tempat $A$ singular lalu jatuh ke
+\code{pinv} (baris 389-399), sedangkan jalur bootstrap mempertahankan
+$\pm0.999$ --- dua perilaku berbeda untuk kasus yang sama (SFH-4).}
+
+\subsection{Estimasi MSE}\label{sec:sfh-mse}
+
+Empat suku dihitung setelah loop konvergen (baris 481-543). Dengan
+$R=\Xmat-G\Vm^{-1}\Xmat$ (kode: \code{mat R = X - Gb}):
+\begin{align}
+  g_1 &= \diag\bigl(G-G\Vm^{-1}G\bigr),
+    \label{eq:sfh-g1}\\
+  g_2 &= \diag\bigl(R\,Q\,R'\bigr),
+    \label{eq:sfh-g2}\\
+  g_3(i) &= \tr\bigl(L_i\,\Vm L_i'\,\mathcal I^{-1}\bigr),
+    \label{eq:sfh-g3}\\
+  g_4(i) &= \tfrac12\,D_{ii},
+    \label{eq:sfh-g4}
+\end{align}
+dengan $L_i=(l_{1i}',\,l_{2i}')'$,
+$l_1=\Vm^{-1}D_1-\sigma^2\Vm^{-1}D_1\Vm^{-1}D_1$,
+$l_2=\Vm^{-1}D_2-\sigma^2\Vm^{-1}D_2\Vm^{-1}D_1$,
+$D=\bigl(\Psi V^{-1}D_{12}V^{-1}\Psi\bigr)(\mathcal I^{-1}_{01}+\mathcal
+I^{-1}_{10})+\bigl(\Psi V^{-1}D_{22}V^{-1}\Psi\bigr)\mathcal I^{-1}_{11}$,
+$\Psi=\mathrm{diag}(\psi)$ (baris 512-541). Lalu
+\begin{equation}
+  \widehat{\mathrm{MSE}}(\hat\theta_d)=g_1+g_2+2g_3-g_4
+  \quad(\texttt{baris 543}),
+  \qquad
+  \text{dan bila \code{method = "ML":}\ }
+  \widehat{\mathrm{MSE}}\mathrel{-}=\mathbf{b}_{\text{ML}}'
+  \nabla g_1 .
+  \label{eq:sfh-mse}
+\end{equation}
+Koreksi bias ML (baris 546-571) memakai
+$b_a=-\tr(Q\Xmat'\Vm^{-1}D_a\Vm^{-1}\Xmat)$ dan $b_{\text{ML}}
+=\tfrac12\mathcal I^{-1}b$, tetapi hanya menurunkan $g_1$ --- suku lain
+tidak dikoreksi. Pada area tak-tersampel berlaku
+$\mathrm{MSE}=g_1+g_2$ saja (baris 596-599).
+
+\paragraph{Varian bootstrap.} Dua pilihan tambahan lewat
+\code{mse\_method}:
+\begin{itemize}
+  \item \code{"pbmse"}: bootstrap parametrik
+        \eqref{eq:pbmse} --- replikat $y^\ast=X\hat\beta+v^\ast+e^\ast$,
+        $v^\ast=(\Imat-\rho W)^{-1}u^\ast$, $u^\ast\sim N(0,\hat\sigma^2)$;
+        refit Fisher scoring penuh per replikat dalam region OpenMP
+        (algoritme~\ref{alg:bootstrap}); skema batch menjamin tepat $B$
+        replikat valid (\code{eblup\_sfh\_pbmse.cpp:77-88}).
+        Versi bias-koreksi \eqref{eq:pbbc} dihitung bersamaan.
+        Kerangka bootstrap untuk EBLUP spasial dirujuk ke
+        \citet{molina2009bootstrap}.
+  \item \code{"npbmse"}: bootstrap nonparametrik atas residual
+        terstandarisasi; error sampling dan efek acak dipisahkan lewat
+        eigen-dekomposisi $\Psi_e$ dan $\Psi_u$ (membuang $p$ eigen
+        terkecil, sesuai proyeksi desain), lalu indeks residual
+        diresample; hanya untuk \code{method = "REML"} --- pemeriksaannya
+        berada di C++, bukan di R (\code{eblup\_sfh\_npbmse.cpp:32-34};
+        SFH-9).
+\end{itemize}
+Kedua bootstrap berjalan pada subset area tersampel, lalu hasil fit ulang
+penuh ditimpa (baris tersampel) oleh hasil bootstrap
+(\code{R/eblup\_sfh.R:155-200}).
+
+\subsection{Pseudo-code}\label{sec:sfh-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{eblup\_sfh} --- alur sebenarnya (\texttt{R/eblup\_sfh.R:85-239}, \texttt{src/eblup\_sfh\_core.cpp:210-670})}
+\label{alg:sfh}
+\KwIn{formula, \code{vardir}, \code{data}, $W$ (wajib), \code{method},
+  \code{mse\_method}, \code{B}, \code{n\_threads}, \code{seed}}
+\KwOut{\code{df\_eblup} (+ kolom bootstrap bila ada), \code{rho},
+  \code{estvarcomp}, \code{goodness}}
+\tcp*{\emph{Lapis R}}
+\code{method} $\leftarrow$ \texttt{match.arg(toupper(...))} (100-101)\;
+\textbf{gagal} bila \code{W} kosong atau bukan $n\times n$ (131-141)\;
+\code{y} $\leftarrow$ respons (\code{na.pass}, 109); $I_s\leftarrow$ \texttt{!is.na(y)} (144)\;
+\uIf{\code{mse\_method} $\in$ \{pbmse, npbmse\}}{
+  subset $X_s,y_s,\psi_s,W_{ss}$ (155-158)\;
+  $r_b\leftarrow$ \texttt{.seblup\_pbmse}/\texttt{.seblup\_npbmse} (161, 167)\;
+  bila ada area tak-sampel: \texttt{.seblup\_core} penuh, timpa baris $I_s$
+  dengan hasil bootstrap, kolom bootstrap area tak-sampel $\leftarrow$ \texttt{NA} (179-200)
+}
+\uElse{\texttt{.seblup\_core($\Xmat,y,\psi,W$, method, maxiter, precision)} penuh (205-213)}\;
+\caption*{}
+\tcp*{\emph{Lapis C++}}
+\textbf{gagal} bila $W$ bukan bujur sangkar vs \code{nrow(X)} (223-225)\;
+$I_{ns}\leftarrow$ \texttt{find\_nonfinite}(y); $W\leftarrow W[I_s,I_s]$ (240-257)\;
+pra-hitung $W',\Imat,W'W,W+W'$ (279-284)\;
+$\sigma_u^2\leftarrow\mathrm{median}(\psi)$;\quad $\rho\leftarrow0.5$ (286-289)\;
+\While{\texttt{diff} $>$ \code{precision} \textbf{dan} $k<$ \code{maxiter}}{
+  $A\leftarrow(\Imat-\rho W')'(\Imat-\rho W)$;\ $A^{-1}\leftarrow$ \texttt{inv\_sympd}, fallback \texttt{pinv} (308-313)\;
+  $\partial A/\partial\rho$, $\partial V/\partial\rho\leftarrow$ \eqref{eq:sfh-deriv} (315-316)\;
+  $V\leftarrow\sigma^2A^{-1}+\diag(\psi)$;\ $V^{-1}\leftarrow$ \texttt{inv\_sympd}, fallback \texttt{pinv} (318-320)\;
+  $Q\leftarrow(\Xmat'V^{-1}\Xmat)^{-1}$;\ $P\leftarrow V^{-1}-V^{-1}\Xmat Q\Xmat'V^{-1}$ (323-331)\;
+  \uIf{ML}{$s_a\leftarrow-\tfrac12\tr(V^{-1}D_a)+\tfrac12 y'PDPy$;
+    $\mathcal I_{ab}\leftarrow\tfrac12\tr(V^{-1}D_aV^{-1}D_b)$ (338-348)}
+  \uElse{$s_a,\mathcal I_{ab}\leftarrow$ \eqref{eq:sfh-score-reml} (349-357)}\;
+  $\Delta\leftarrow\mathcal I^{-1}s$; bila gagal: \texttt{convergence = FALSE}, hentikan (365-369)\;
+  $\rho\leftarrow\mathrm{clamp}(\rho+\Delta_\rho,\,-0.999,\,0.999)$;\quad
+  $\sigma_u^2\leftarrow\sigma_u^2+\Delta_{\sigma}$ (371-374)\;
+  $\texttt{diff}\leftarrow\max_a\abs{\Delta\theta_a/(\theta_a+10^{-12})}$; non-finite $\to$ gagal (376-383)\;
+}
+$\rho_{\text{fix}}\leftarrow\rho$; bila $=\pm0.999\to\pm1.0$;\quad $\sigma^2\leftarrow\max(0,\sigma_u^2)$ (389-394)\;
+bangun ulang $A^{-1},G,V,V^{-1},Q,\betah$ (396-416)\;
+galat baku, $z$, $p$ (normal), $\text{resid}\leftarrow y-\Xmat\betah$ (451-460),
+$\hat\theta\leftarrow$ \eqref{eq:sfh-pred} (462)\;
+loglik ML, AIC, BIC (464-476)\;
+$g_1,g_2,g_3,g_4\leftarrow$ \eqref{eq:sfh-g1}--\eqref{eq:sfh-g4};
+  $\mathrm{MSE}\leftarrow g_1+g_2+2g_3-g_4$ (481-543)\;
+\If{\code{method} $=$ ML}{koreksi $\mathrm{MSE}\mathrel{-}=\mathbf b_{\text{ML}}'\nabla g_1$ (546-571)}\;
+\For{$d\in I_{ns}$}{kriging \eqref{eq:sfh-kriging};\ $\mathrm{MSE}\leftarrow g_1+g_2$ (576-604)}\;
+$\mathrm{RSE}\leftarrow100\sqrt{\mathrm{MSE}}/\abs{\hat\theta}$; susun keluaran (621-669)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:sfh-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_sfh} (\texttt{R/eblup\_sfh.R:85-99}).}]
+eblup_sfh(formula, vardir, domain = NULL, data,
+          method = c("REML", "ML"),
+          mse_method = c("analytical", "pbmse", "npbmse"),
+          W = NULL, B = 100, n_threads = 1, seed = -1,
+          maxiter = 100, precision = 1e-4, print_result = TRUE)
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{W} --- matriks tetangga $n_{\text{total}}\times n_{\text{total}}$
+        (row-standar/sesuai skala yang diinginkan pengguna); \emph{wajib},
+        tidak ada default.
+  \item \code{mse\_method} --- \code{"analytical"} (default), \code{"pbmse"},
+        \code{"npbmse"}.
+  \item \code{B} --- jumlah replikat bootstrap (default 100);
+        \code{n\_threads} --- $>0$ memakai \texttt{omp\_set\_num\_threads},
+        $\le0$ memakai semua core; \code{seed = -1} hanya melewatkan
+        penyetelan ulang benih (\code{if (seed >= 0) set\_r\_seed(seed)},
+        \code{eblup\_sfh\_pbmse.cpp:29}), sehingga draw bootstrap tetap
+        memakai RNG R yang sedang berjalan walau dokumentasi menyebutnya
+        ``leaves the current R RNG state unchanged''.
+  \item \code{method} --- REML (default) atau ML.
+\end{itemize}
+
+Objek keluaran: \code{"fastsae"} dengan \code{estcoef}
+(\code{beta, std.error, stderr\_beta, zvalue, pvalue}), \code{random\_effect\_var},
+\code{rho}, \code{estvarcomp} (2 baris: \code{sigma2\_u}, \code{rho} ---
+keduanya dari informasi REML), \code{goodness}
+(\code{loglikelihood, AIC, BIC}), \code{df\_eblup} (\code{y, vardir, eblup,
+random\_effect, mse, rse} + kolom bootstrap), \code{W}, \code{n\_iter},
+\code{convergence}, \code{model = "SFH"}, \code{level = "area"}.
+Kolom galat baku namanya \code{zvalue}, bukan \code{tvalue} seperti tertulis
+di dokumentasi (SFH-6).
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_sfh.Rd}).}]
+library(fastsae)
+m1 <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = ~vardir,
+                W = mys_proxmat)
+m1$rho                       # autoregressive spatial parameter
+m1$estvarcomp                # sigma2_u and rho with std.error
+
+m2 <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = ~vardir,
+                W = mys_proxmat, mse_method = "pbmse", B = 50)
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:sfh-ref}
+
+\citet{pratesi2008small} mengembangkan FH spasial; \citet{rao2015small}
+menyajikan kerangka EBLUP yang dipakai untuk semua suku $g$;
+blok \code{@references} fungsi ini hanya memuat \citet{rao2015small}
+(\code{R/eblup\_sfh.R:5-8}). Referensi pembanding implementasi:
+\pkg{sae} \citep{molina2015sae}.

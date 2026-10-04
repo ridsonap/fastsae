@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{Waktu median per iterasi (detik) menurut jumlah area $n$. Sumber: file \texttt{seblup\_benchmark.rds} di \texttt{inst/extdata} (repo \texttt{fastsae}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}, ditampilkan hingga 6 digit signifikan.}
+\label{tab:time-sfh}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+$n$ & fastsae & emdi & sae \\
+\midrule
+30 & 0.000734618 & 0.0107105 & 0.00410111 \\
+50 & 0.00114812 & 0.0180005 & 0.00967977 \\
+100 & 0.00472576 & 0.05299 & 0.0705356 \\
+250 & 0.0238317 & 0.843782 & 1.07476 \\
+500 & 0.142051 & 3.13662 & 7.11793 \\
+1000 & 0.832158 & 51.0593 & 67.1518 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

@@ -1,0 +1,268 @@
+
+==============================
+FILE: comparison_beta_truth_results.rds  size: 12226 bytes
+class: list 
+nama elemen: param_recovery, metrics_cs, metrics_sp, data_cs, data_sp, runtimes 
+-- comparison_beta_truth_results.rds$param_recovery : data.frame 6 x 9 
+   kolom: Scenario [character]; Parameter [character]; True Value [numeric]; FastSAE Est [numeric]; FastSAE SE [numeric]; FastSAE Bias [numeric]; TipSAE Est [numeric]; TipSAE SD [numeric]; TipSAE Bias [numeric] 
+         Scenario   Parameter True Value   FastSAE Est    FastSAE SE    FastSAE Bias    TipSAE Est     TipSAE SD   TipSAE Bias
+1 Cross-Sectional (Intercept)       -1.5 -1.3563837574 0.14720318181  0.143616242578 -1.0314170257 0.05050922412  0.4685829743
+2 Cross-Sectional          x1        0.6  0.5972853042 0.08515008783 -0.002714695817  0.3525889384 0.05450482627 -0.2474110616
+3 Cross-Sectional          x2       -0.4 -0.5056119134 0.08781446626 -0.105611913353 -0.2896039040 0.05198808335  0.1103960960
+4         Spatial (Intercept)       -1.5 -1.4625989534 0.17366814075  0.037401046632 -1.0695934744 0.05279845333  0.4304065256
+5         Spatial          x1        0.6  0.7146422493 0.10026951594  0.114642249332  0.4457184020 0.06670240545 -0.1542815980
+6         Spatial          x2       -0.4 -0.6047632299 0.10633420518 -0.204763229887 -0.3439145220 0.06387194660  0.0560854780
+-- comparison_beta_truth_results.rds$metrics_cs : data.frame 3 x 11 
+   kolom: Method [character]; RMSE [numeric]; MAE [numeric]; RRMSE (%) [numeric]; RB (%) [numeric]; Cor (Pearson) [numeric]; Cor (Spearman) [numeric]; 95% CrI Coverage (%) [numeric]; Mean CrI Width [numeric]; Efficiency Gain (vs Direct) [numeric]; Runtime (s) [numeric] 
+             Method          RMSE           MAE   RRMSE (%)      RB (%) Cor (Pearson) Cor (Spearman) 95% CrI Coverage (%) Mean CrI Width Efficiency Gain (vs Direct) Runtime (s)
+1  Direct Estimator 0.04791038289 0.03345747003 15.49570318 3.298351419  0.8866504807   0.8644623507                   NA             NA                 1.000000000          NA
+2 fastsae::ebp_area 0.03644664141 0.02503107613 11.90431895 6.622256263  0.9250969095   0.8889691581          93.33333333   0.1182795816                 1.728002058 1.997771025
+3   tipsae::fit_sae 0.03517727549 0.02460030637 11.47347166 4.165664826  0.9272829987   0.8934148375          95.00000000   0.1187316111                 1.854961429 2.080733061
+-- comparison_beta_truth_results.rds$metrics_sp : data.frame 3 x 11 
+   kolom: Method [character]; RMSE [numeric]; MAE [numeric]; RRMSE (%) [numeric]; RB (%) [numeric]; Cor (Pearson) [numeric]; Cor (Spearman) [numeric]; 95% CrI Coverage (%) [numeric]; Mean CrI Width [numeric]; Efficiency Gain (vs Direct) [numeric]; Runtime (s) [numeric] 
+             Method          RMSE           MAE    RRMSE (%)        RB (%) Cor (Pearson) Cor (Spearman) 95% CrI Coverage (%) Mean CrI Width Efficiency Gain (vs Direct) Runtime (s)
+1  Direct Estimator 0.03032174371 0.02374328141 11.456311844 -1.1339373365  0.9738260800   0.9599333148                   NA             NA                 1.000000000          NA
+2 fastsae::ebp_area 0.02999753938 0.02116144191 10.657143683  3.8976900973  0.9706746241   0.9450958600          93.33333333   0.1233651382                 1.021732202  1.13122797
+3   tipsae::fit_sae 0.02899834595 0.02090890235  9.801165994  0.9158871607  0.9726191170   0.9492081134          96.66666667   0.1250850653                 1.093356754 20.56911492
+-- comparison_beta_truth_results.rds$data_cs : data.frame 60 x 14 
+   kolom: domain [character]; y [numeric]; vardir [numeric]; x1 [numeric]; x2 [numeric]; theta_true [numeric]; ebp [numeric]; sd_fast [numeric]; ci_lower [numeric]; ci_upper [numeric]; tip_ebp [numeric]; tip_sd [numeric]; tip_lower [numeric]; tip_upper [numeric] 
+   head:
+   domain            y          vardir          x1           x2   theta_true          ebp       sd_fast     ci_lower     ci_upper      tip_ebp        tip_sd    tip_lower    tip_upper
+1 area_01 0.2781380968 0.0012823460795 2.185479224 0.7134439987 0.3165065317 0.3101290340 0.03170584609 0.2500105989 0.3741940952 0.3040708930 0.02961438590 0.2475812710 0.3615338509
+2 area_02 0.2263719887 0.0006960773379 1.217650914 0.8212702516 0.2479989654 0.2338134297 0.02350304564 0.1899626954 0.2820433411 0.2312031645 0.02358764343 0.1856001298 0.2754733410
+3 area_03 0.2355068317 0.0007837320592 1.681564206 1.1469517979 0.2003233342 0.2472976273 0.02491539995 0.2006934299 0.2983074428 0.2425865374 0.02517189290 0.1939681205 0.2891396153
+4 area_04 0.4228994339 0.0013724110357 1.816431302 1.1793566071 0.3646874522 0.3927629435 0.03307517262 0.3297585133 0.4592992696 0.3927156850 0.03523357730 0.3248394235 0.4576474214
+   tail:
+    domain            y         vardir             x1          x2    theta_true          ebp       sd_fast      ci_lower     ci_upper      tip_ebp        tip_sd     tip_lower    tip_upper
+58 area_58 0.2234572354 0.001341842744 1.544916443290 1.184608485 0.22364958345 0.2374667972 0.03004299586 0.18200467772 0.2996737156 0.2341492409 0.02983389593 0.17593518781 0.2949345473
+59 area_59 0.1266869585 0.001554355275 0.003454958424 1.588793955 0.08101911365 0.1163686378 0.02600192918 0.07282897821 0.1743769992 0.1098929733 0.02807086974 0.05733273596 0.1667286872
+60 area_60 0.2144156462 0.002049681532 1.642441476765 1.538064851 0.21239159573 0.2276601393 0.03398056906 0.16583639554 0.2988973843 0.2226306766 0.03351982446 0.15566001982 0.2891596912
+-- comparison_beta_truth_results.rds$data_sp : data.frame 60 x 14 
+   kolom: domain [character]; y [numeric]; vardir [numeric]; x1 [numeric]; x2 [numeric]; theta_true [numeric]; ebp [numeric]; sd_fast [numeric]; ci_lower [numeric]; ci_upper [numeric]; tip_ebp [numeric]; tip_sd [numeric]; tip_lower [numeric]; tip_upper [numeric] 
+   head:
+   domain            y          vardir          x1           x2   theta_true          ebp       sd_fast     ci_lower     ci_upper      tip_ebp        tip_sd    tip_lower    tip_upper
+1 area_01 0.3188085253 0.0012823460795 2.185479224 0.7134439987 0.3386340454 0.3252545638 0.03410206050 0.2610978388 0.3946030855 0.3244264188 0.03186851674 0.2627735482 0.3849264125
+2 area_02 0.2350812161 0.0006960773379 1.217650914 0.8212702516 0.2231756704 0.2318473913 0.02473548033 0.1860472850 0.2829091259 0.2322380516 0.02583911464 0.1817258006 0.2791550991
+3 area_03 0.1465169934 0.0007837320592 1.681564206 1.1469517979 0.1725279991 0.1724959464 0.02565443708 0.1261923948 0.2265711011 0.1642481554 0.02289454803 0.1215346159 0.2064249976
+4 area_04 0.4565433686 0.0013724110357 1.816431302 1.1793566071 0.4245679320 0.4281089050 0.03504387073 0.3606486672 0.4978787286 0.4291128597 0.03667704311 0.3551992975 0.5042303895
+   tail:
+    domain             y         vardir             x1          x2    theta_true          ebp       sd_fast      ci_lower     ci_upper      tip_ebp        tip_sd     tip_lower    tip_upper
+58 area_58 0.41280934153 0.001341842744 1.544916443290 1.184608485 0.43654221623 0.3979491464 0.03428139480 0.33233091053 0.4665802106 0.3951849512 0.03669490087 0.32189309188 0.4652345866
+59 area_59 0.03984272019 0.001554355275 0.003454958424 1.588793955 0.07913023947 0.0987295268 0.03052442852 0.05017667161 0.1688645485 0.0716727299 0.01921077324 0.03802651296 0.1118034658
+60 area_60 0.26685469169 0.002049681532 1.642441476765 1.538064851 0.25321285695 0.2760124947 0.04136475579 0.20047321028 0.3621907670 0.2651839140 0.04268060302 0.18016284336 0.3461579092
+-- comparison_beta_truth_results.rds$runtimes : list ( 2 ) nama: cs, sp 
+-- comparison_beta_truth_results.rds$runtimes$cs : numeric len 3 
+   nilai: 1.997771025, 2.080733061, 1.041527300 
+-- comparison_beta_truth_results.rds$runtimes$sp : numeric len 3 
+   nilai:  1.13122797, 20.56911492, 18.18299712 
+
+==============================
+FILE: finite_population_simulation_results.rds  size: 12031 bytes
+class: list 
+nama elemen: eval_cs, eval_sp, data_cs, data_sp, pop_summary, smp_summary 
+-- finite_population_simulation_results.rds$eval_cs : data.frame 3 x 11 
+   kolom: Method [character]; RMSE [numeric]; MAE [numeric]; RRMSE (%) [numeric]; RB (%) [numeric]; Cor (Pearson) [numeric]; Cor (Spearman) [numeric]; 95% CrI Coverage (%) [numeric]; Mean CrI Width [numeric]; Efficiency Gain (vs Direct) [numeric]; Runtime (s) [numeric] 
+                           Method          RMSE           MAE   RRMSE (%)        RB (%) Cor (Pearson) Cor (Spearman) 95% CrI Coverage (%) Mean CrI Width Efficiency Gain (vs Direct) Runtime (s)
+1 Direct Estimator (Sample p_dir) 0.07425625139 0.05574532723 21.27665991  0.8175020628  0.6999763838   0.7408096921                   NA             NA                 1.000000000          NA
+2        fastsae::ebp_area (INLA) 0.04894784345 0.03914341876 15.93418788  4.9992837640  0.7433056208   0.7691580995          93.33333333   0.1976192117                 2.301436084 1.878211975
+3     tipsae::fit_sae (Stan MCMC) 0.05071599951 0.03855703180 14.88948474 -0.4182899281  0.7387301896   0.7776604612          90.00000000   0.2092997004                 2.143759514 1.738312006
+-- finite_population_simulation_results.rds$eval_sp : data.frame 3 x 11 
+   kolom: Method [character]; RMSE [numeric]; MAE [numeric]; RRMSE (%) [numeric]; RB (%) [numeric]; Cor (Pearson) [numeric]; Cor (Spearman) [numeric]; 95% CrI Coverage (%) [numeric]; Mean CrI Width [numeric]; Efficiency Gain (vs Direct) [numeric]; Runtime (s) [numeric] 
+                             Method          RMSE           MAE   RRMSE (%)        RB (%) Cor (Pearson) Cor (Spearman) 95% CrI Coverage (%) Mean CrI Width Efficiency Gain (vs Direct)  Runtime (s)
+1   Direct Estimator (Sample p_dir) 0.07425625139 0.05574532723 21.27665991  0.8175020628  0.6999763838   0.7408096921                   NA             NA                 1.000000000           NA
+2 fastsae::ebp_area (Spatial Besag) 0.04663916326 0.03713629469 15.10950727  4.2225033516  0.7699484026   0.7881633787                   95   0.1838808273                 2.534921659  1.158098936
+3   tipsae::fit_sae (Spatial Besag) 0.04868198486 0.03681269441 14.34715395 -0.5460562902  0.7618188463   0.7994998611                   90   0.2097113523                 2.326641599 18.698998928
+-- finite_population_simulation_results.rds$data_cs : data.frame 60 x 18 
+   kolom: domain [character]; n_smp [integer]; y_raw [numeric]; N_d [integer]; True_P_d [numeric]; x1_pop_mean [numeric]; x2_pop_mean [numeric]; p_dir [numeric]; fpc [numeric]; vardir [numeric]; fast_ebp [numeric]; fast_sd [numeric]; fast_lower [numeric]; fast_upper [numeric]; tip_ebp [numeric]; tip_sd [numeric]; tip_lower [numeric]; tip_upper [numeric] 
+   head:
+   domain n_smp        y_raw N_d     True_P_d x1_pop_mean x2_pop_mean        p_dir          fpc         vardir     fast_ebp       fast_sd   fast_lower   fast_upper      tip_ebp        tip_sd    tip_lower    tip_upper
+1 area_01    51 0.2549019608 415 0.2578313253 1.869806541 1.077825369 0.2597078047 0.8771084337 0.003372651400 0.2807084187 0.04618935884 0.1963228450 0.3770756026 0.2692751282 0.04699311367 0.1774319455 0.3570645836
+2 area_02    52 0.2692307692 386 0.2564766839 1.884235930 1.148660788 0.2736686391 0.8652849741 0.003372475588 0.2818241036 0.04645744612 0.1973479301 0.3790848850 0.2720391538 0.04920817089 0.1759094821 0.3686317522
+3 area_03    26 0.3461538462 394 0.3375634518 1.654454619 1.073057476 0.3520710059 0.9340101523 0.008522544231 0.3153336238 0.06065728800 0.2070657878 0.4444243285 0.3067245730 0.06722481292 0.1807458230 0.4421733297
+4 area_04    36 0.2222222222 537 0.1955307263 1.403738674 1.067979178 0.2299382716 0.9329608939 0.004719893487 0.2464384218 0.04900752650 0.1591843564 0.3509148452 0.2373603068 0.05340830674 0.1343513154 0.3418919129
+   tail:
+    domain n_smp        y_raw N_d     True_P_d x1_pop_mean x2_pop_mean        p_dir          fpc         vardir     fast_ebp       fast_sd   fast_lower   fast_upper      tip_ebp        tip_sd    tip_lower    tip_upper
+58 area_58    51 0.4901960784 554 0.4007220217 1.888810661 1.114334422 0.4903883122 0.9079422383 0.004538033595 0.4153012109 0.05633695733 0.3102292389 0.5301638578 0.4183038186 0.06685946441 0.2838267323 0.5433794610
+59 area_59    54 0.2962962963 703 0.2603129445 1.794820890 1.116134156 0.3000685871 0.9231863442 0.003658385951 0.2989277674 0.04744335655 0.2124703095 0.3981635993 0.2881082917 0.05206003755 0.1810834380 0.3836524409
+60 area_60    30 0.2333333333 535 0.2504672897 1.502246704 1.086900489 0.2422222222 0.9439252336 0.005974415838 0.2571328853 0.05184679996 0.1647642000 0.3677519738 0.2473035308 0.05417549223 0.1475894590 0.3601997739
+-- finite_population_simulation_results.rds$data_sp : data.frame 60 x 18 
+   kolom: domain [character]; n_smp [integer]; y_raw [numeric]; N_d [integer]; True_P_d [numeric]; x1_pop_mean [numeric]; x2_pop_mean [numeric]; p_dir [numeric]; fpc [numeric]; vardir [numeric]; fast_ebp [numeric]; fast_sd [numeric]; fast_lower [numeric]; fast_upper [numeric]; tip_ebp [numeric]; tip_sd [numeric]; tip_lower [numeric]; tip_upper [numeric] 
+   head:
+   domain n_smp        y_raw N_d     True_P_d x1_pop_mean x2_pop_mean        p_dir          fpc         vardir     fast_ebp       fast_sd   fast_lower   fast_upper      tip_ebp        tip_sd    tip_lower    tip_upper
+1 area_01    51 0.2549019608 415 0.2578313253 1.869806541 1.077825369 0.2597078047 0.8771084337 0.003372651400 0.2856194239 0.04887749712 0.1959864260 0.3871190188 0.2730588841 0.04834809951 0.1798568134 0.3658423433
+2 area_02    52 0.2692307692 386 0.2564766839 1.884235930 1.148660788 0.2736686391 0.8652849741 0.003372475588 0.2965519591 0.04686381048 0.2102478674 0.3936976172 0.2808385862 0.04818618156 0.1812738517 0.3695430993
+3 area_03    26 0.3461538462 394 0.3375634518 1.654454619 1.073057476 0.3520710059 0.9340101523 0.008522544231 0.3405135063 0.05928519851 0.2322872450 0.4650147186 0.3267290778 0.07079734588 0.1911793601 0.4599063372
+4 area_04    36 0.2222222222 537 0.1955307263 1.403738674 1.067979178 0.2299382716 0.9329608939 0.004719893487 0.2841274450 0.05012923167 0.1916342692 0.3881622738 0.2548498737 0.04994212892 0.1588586267 0.3542233809
+   tail:
+    domain n_smp        y_raw N_d     True_P_d x1_pop_mean x2_pop_mean        p_dir          fpc         vardir     fast_ebp       fast_sd   fast_lower   fast_upper      tip_ebp        tip_sd    tip_lower    tip_upper
+58 area_58    51 0.4901960784 554 0.4007220217 1.888810661 1.114334422 0.4903883122 0.9079422383 0.004538033595 0.4060869867 0.05656479464 0.3018207415 0.5222957140 0.4199388144 0.07179071713 0.2905482240 0.5545996567
+59 area_59    54 0.2962962963 703 0.2603129445 1.794820890 1.116134156 0.3000685871 0.9231863442 0.003658385951 0.3056339317 0.04657635693 0.2201468171 0.4026781365 0.2911391903 0.05147829997 0.1891833626 0.3887500392
+60 area_60    30 0.2333333333 535 0.2504672897 1.502246704 1.086900489 0.2422222222 0.9439252336 0.005974415838 0.2604199161 0.05706953074 0.1594613964 0.3826690520 0.2504325954 0.05995871105 0.1400006073 0.3741874970
+-- finite_population_simulation_results.rds$pop_summary : data.frame 60 x 5 
+   kolom: domain [character]; N_d [integer]; True_P_d [numeric]; x1_pop_mean [numeric]; x2_pop_mean [numeric] 
+   head:
+   domain N_d     True_P_d x1_pop_mean x2_pop_mean
+1 area_01 415 0.2578313253 1.869806541 1.077825369
+2 area_02 386 0.2564766839 1.884235930 1.148660788
+3 area_03 394 0.3375634518 1.654454619 1.073057476
+4 area_04 537 0.1955307263 1.403738674 1.067979178
+   tail:
+    domain N_d     True_P_d x1_pop_mean x2_pop_mean
+58 area_58 554 0.4007220217 1.888810661 1.114334422
+59 area_59 703 0.2603129445 1.794820890 1.116134156
+60 area_60 535 0.2504672897 1.502246704 1.086900489
+-- finite_population_simulation_results.rds$smp_summary : data.frame 60 x 10 
+   kolom: domain [character]; n_smp [integer]; y_raw [numeric]; N_d [integer]; True_P_d [numeric]; x1_pop_mean [numeric]; x2_pop_mean [numeric]; p_dir [numeric]; fpc [numeric]; vardir [numeric] 
+   head:
+   domain n_smp        y_raw N_d     True_P_d x1_pop_mean x2_pop_mean        p_dir          fpc         vardir
+1 area_01    51 0.2549019608 415 0.2578313253 1.869806541 1.077825369 0.2597078047 0.8771084337 0.003372651400
+2 area_02    52 0.2692307692 386 0.2564766839 1.884235930 1.148660788 0.2736686391 0.8652849741 0.003372475588
+3 area_03    26 0.3461538462 394 0.3375634518 1.654454619 1.073057476 0.3520710059 0.9340101523 0.008522544231
+4 area_04    36 0.2222222222 537 0.1955307263 1.403738674 1.067979178 0.2299382716 0.9329608939 0.004719893487
+   tail:
+    domain n_smp        y_raw N_d     True_P_d x1_pop_mean x2_pop_mean        p_dir          fpc         vardir
+58 area_58    51 0.4901960784 554 0.4007220217 1.888810661 1.114334422 0.4903883122 0.9079422383 0.004538033595
+59 area_59    54 0.2962962963 703 0.2603129445 1.794820890 1.116134156 0.3000685871 0.9231863442 0.003658385951
+60 area_60    30 0.2333333333 535 0.2504672897 1.502246704 1.086900489 0.2422222222 0.9439252336 0.005974415838
+
+==============================
+FILE: mc_finite_population_results_D500_R25.rds  size: 120956 bytes
+class: list 
+nama elemen: R, D, summary_table, dom_dir, dom_fast, dom_tip, True_P, pop_summary, mc_elapsed_sec 
+-- mc_finite_population_results_D500_R25.rds$R : integer len 1 
+   nilai: 25 
+-- mc_finite_population_results_D500_R25.rds$D : integer len 1 
+   nilai: 500 
+-- mc_finite_population_results_D500_R25.rds$summary_table : data.frame 3 x 9 
+   kolom: Method [character]; Empirical RMSE [numeric]; Empirical RRMSE (%) [numeric]; Empirical MARB (%) [numeric]; Empirical Relative Bias (%) [numeric]; Empirical 95% CrI Coverage (%) [numeric]; Empirical Mean CrI Width [numeric]; Empirical Efficiency Gain [numeric]; Avg Runtime (s/fit) [numeric] 
+                             Method Empirical RMSE Empirical RRMSE (%) Empirical MARB (%) Empirical Relative Bias (%) Empirical 95% CrI Coverage (%) Empirical Mean CrI Width Empirical Efficiency Gain Avg Runtime (s/fit)
+1   Direct Estimator (Sample p_dir)  0.07188462525         27.14221817        21.74596148                 2.963387978                             NA                       NA               1.000000000                  NA
+2 fastsae::ebp_area (Spatial Besag)  0.04808948333         19.12882131        16.94912598                 6.701177018                         88.968             0.1725414864               1.916835009         4.169782906
+3   tipsae::fit_sae (Spatial Besag)  0.04870320281         18.67636169        15.65518290                 1.997219231                         93.688             0.2017463501               2.013649168        36.864327745
+-- mc_finite_population_results_D500_R25.rds$dom_dir : data.frame 500 x 11 
+   kolom: domain [character]; True_P [numeric]; Emp_Mean [numeric]; Emp_Bias [numeric]; Emp_RB [numeric]; Emp_MARB [numeric]; Emp_MSE [numeric]; Emp_RMSE [numeric]; Emp_RRMSE [numeric]; Emp_CR [numeric]; Emp_Width [numeric] 
+   head:
+           domain       True_P     Emp_Mean       Emp_Bias       Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR Emp_Width
+area_001 area_001 0.4458483755 0.4357962790 -0.01005209641 -2.254599761 12.27779190 0.004096094058 0.06400073482 14.35482069     NA        NA
+area_002 area_002 0.2655246253 0.2816584645  0.01613383919  6.076212017 19.88063327 0.003673345430 0.06060813006 22.82580382     NA        NA
+area_003 area_003 0.3130434783 0.3016152271 -0.01142825112 -3.650691331 17.85984127 0.004379102350 0.06617478636 21.13916786     NA        NA
+area_004 area_004 0.3808510638 0.3630066518 -0.01784441198 -4.685404264 16.83650820 0.006269951690 0.07918302653 20.79107400     NA        NA
+   tail:
+           domain       True_P     Emp_Mean        Emp_Bias       Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR Emp_Width
+area_498 area_498 0.3599137931 0.3521363619 -0.007777431247 -2.160915029 11.82328125 0.002855050880 0.05343267614 14.84596511     NA        NA
+area_499 area_499 0.1762652705 0.1820492467  0.005783976237  3.281404341 25.33887829 0.002816746156 0.05307302664 30.10974679     NA        NA
+area_500 area_500 0.2439862543 0.2284621675 -0.015524086757 -6.362689079 24.93730156 0.005751596091 0.07583927802 31.08342240     NA        NA
+-- mc_finite_population_results_D500_R25.rds$dom_fast : data.frame 500 x 11 
+   kolom: domain [character]; True_P [numeric]; Emp_Mean [numeric]; Emp_Bias [numeric]; Emp_RB [numeric]; Emp_MARB [numeric]; Emp_MSE [numeric]; Emp_RMSE [numeric]; Emp_RRMSE [numeric]; Emp_CR [numeric]; Emp_Width [numeric] 
+   head:
+           domain       True_P     Emp_Mean       Emp_Bias         Emp_RB     Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_001 area_001 0.4458483755 0.3686111075 -0.07723726797 -17.3236625322 17.323662532 0.007361782158 0.08580082842 19.24439633     92 0.2486615238
+area_002 area_002 0.2655246253 0.3067487739  0.04122414859  15.5255462844 16.292858229 0.002572835922 0.05072313005 19.10298527    100 0.2008745596
+area_003 area_003 0.3130434783 0.3113776926 -0.00166578564  -0.5321259684  8.557276953 0.001006570741 0.03172649904 10.13485386    100 0.2014581308
+area_004 area_004 0.3808510638 0.3425399325 -0.03831113130 -10.0593473251 11.642231316 0.002702482362 0.05198540528 13.64979915    100 0.2135922223
+   tail:
+           domain       True_P     Emp_Mean         Emp_Bias          Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_498 area_498 0.3599137931 0.3061153537 -0.0537984393805 -14.94759034284 14.94759034 0.003581452031 0.05984523399 16.62765783     96 0.2038972662
+area_499 area_499 0.1762652705 0.2334583121  0.0571930415877  32.44714141558 32.44714142 0.003899555145 0.06244641819 35.42752240     88 0.1743649597
+area_500 area_500 0.2439862543 0.2440946763  0.0001084219775   0.04443774008 14.63126176 0.001828844963 0.04276499693 17.52762550     96 0.2009758979
+-- mc_finite_population_results_D500_R25.rds$dom_tip : data.frame 500 x 11 
+   kolom: domain [character]; True_P [numeric]; Emp_Mean [numeric]; Emp_Bias [numeric]; Emp_RB [numeric]; Emp_MARB [numeric]; Emp_MSE [numeric]; Emp_RMSE [numeric]; Emp_RRMSE [numeric]; Emp_CR [numeric]; Emp_Width [numeric] 
+   head:
+           domain       True_P     Emp_Mean       Emp_Bias       Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_001 area_001 0.4458483755 0.3600608734 -0.08578750204 -19.24140734 19.24140734 0.008808271856 0.09385239398 21.05029403     92 0.2809784556
+area_002 area_002 0.2655246253 0.2947675495  0.02924292426  11.01326260 14.87702004 0.002149076412 0.04635813210 17.45907072    100 0.2103432640
+area_003 area_003 0.3130434783 0.3015569050 -0.01148657325  -3.66932201 10.17888267 0.001382218600 0.03717820060 11.87636964     96 0.2182052758
+area_004 area_004 0.3808510638 0.3366733541 -0.04417770973 -11.59973384 13.39662705 0.003624826902 0.06020653538 15.80841990     92 0.2411311046
+   tail:
+           domain       True_P     Emp_Mean        Emp_Bias        Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_498 area_498 0.3599137931 0.2997547278 -0.060159065333 -16.714854081 16.71485408 0.004389535319 0.06625356835 18.40817707     88 0.2395900861
+area_499 area_499 0.1762652705 0.2133892552  0.037123984682  21.061428933 22.71589408 0.002428526251 0.04928007966 27.95790658    100 0.1589614970
+area_500 area_500 0.2439862543 0.2350854632 -0.008900791053  -3.648070699 15.03252984 0.002193668327 0.04683661311 19.19641467     88 0.1964607125
+-- mc_finite_population_results_D500_R25.rds$True_P : numeric len 500 
+   head: 0.4458483755, 0.2655246253, 0.3130434783, 0.3808510638, 0.3412698413 
+-- mc_finite_population_results_D500_R25.rds$pop_summary : data.frame 500 x 5 
+   kolom: domain [character]; N_d [integer]; True_P_d [numeric]; x1_pop_mean [numeric]; x2_pop_mean [numeric] 
+   head:
+           domain N_d     True_P_d x1_pop_mean x2_pop_mean
+area_001 area_001 554 0.4458483755 1.576757249 1.089121294
+area_002 area_002 467 0.2655246253 1.677657293 1.051181944
+area_003 area_003 460 0.3130434783 1.657486697 1.052343021
+area_004 area_004 470 0.3808510638 1.691600898 1.066408200
+   tail:
+           domain N_d     True_P_d x1_pop_mean x2_pop_mean
+area_498 area_498 464 0.3599137931 1.512150357 1.082609144
+area_499 area_499 573 0.1762652705 1.544755239 1.110651325
+area_500 area_500 582 0.2439862543 1.563582594 1.109685183
+-- mc_finite_population_results_D500_R25.rds$mc_elapsed_sec : numeric len 1 
+   nilai: 225.4484899 
+
+==============================
+FILE: mc_finite_population_results_R100.rds  size: 13682 bytes
+class: list 
+nama elemen: R, D, summary_table, dom_dir, dom_fast, dom_tip, True_P, pop_summary, mc_elapsed_sec 
+-- mc_finite_population_results_R100.rds$R : integer len 1 
+   nilai: 100 
+-- mc_finite_population_results_R100.rds$D : integer len 1 
+   nilai: 60 
+-- mc_finite_population_results_R100.rds$summary_table : data.frame 3 x 9 
+   kolom: Method [character]; Empirical RMSE [numeric]; Empirical RRMSE (%) [numeric]; Empirical MARB (%) [numeric]; Empirical Relative Bias (%) [numeric]; Empirical 95% CrI Coverage (%) [numeric]; Empirical Mean CrI Width [numeric]; Empirical Efficiency Gain [numeric]; Avg Runtime (s/fit) [numeric] 
+                             Method Empirical RMSE Empirical RRMSE (%) Empirical MARB (%) Empirical Relative Bias (%) Empirical 95% CrI Coverage (%) Empirical Mean CrI Width Empirical Efficiency Gain Avg Runtime (s/fit)
+1   Direct Estimator (Sample p_dir)  0.06806426846         26.26855565        20.71190871                 2.274400360                             NA                       NA               1.000000000                  NA
+2 fastsae::ebp_area (Spatial Besag)  0.04848092753         19.55850813        17.04101551                 5.814177095                    88.26666667             0.1717325445               1.736748339         3.248251057
+3   tipsae::fit_sae (Spatial Besag)  0.04910608407         19.16481902        15.89185260                 1.055479948                    93.18333333             0.1978812060               1.806045509         9.689840672
+-- mc_finite_population_results_R100.rds$dom_dir : data.frame 60 x 11 
+   kolom: domain [character]; True_P [numeric]; Emp_Mean [numeric]; Emp_Bias [numeric]; Emp_RB [numeric]; Emp_MARB [numeric]; Emp_MSE [numeric]; Emp_RMSE [numeric]; Emp_RRMSE [numeric]; Emp_CR [numeric]; Emp_Width [numeric] 
+   head:
+         domain       True_P     Emp_Mean        Emp_Bias       Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR Emp_Width
+area_01 area_01 0.2578313253 0.2644094852  0.006578159948  2.551342410 21.94686653 0.005201562791 0.07212186070 27.97249737     NA        NA
+area_02 area_02 0.2564766839 0.2514318672 -0.005044816716 -1.966968942 20.69818078 0.004218993829 0.06495378225 25.32541409     NA        NA
+area_03 area_03 0.3375634518 0.3389121756  0.001348723868  0.399546770 15.31021790 0.004626416239 0.06801776415 20.14962336     NA        NA
+area_04 area_04 0.1955307263 0.2077028540  0.012172127784  6.225173924 24.05284218 0.003818956192 0.06179770378 31.60511136     NA        NA
+   tail:
+         domain       True_P     Emp_Mean       Emp_Bias       Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR Emp_Width
+area_58 area_58 0.4007220217 0.4027953053 0.002073283632 0.5173869964 12.54208838 0.004155723955 0.06446490483 16.08718796     NA        NA
+area_59 area_59 0.2603129445 0.2798479838 0.019535039279 7.5044440507 23.51010016 0.005499043958 0.07415553896 28.48707316     NA        NA
+area_60 area_60 0.2504672897 0.2600361432 0.009568853526 3.8204004748 20.18392368 0.004035968010 0.06352926892 25.36429767     NA        NA
+-- mc_finite_population_results_R100.rds$dom_fast : data.frame 60 x 11 
+   kolom: domain [character]; True_P [numeric]; Emp_Mean [numeric]; Emp_Bias [numeric]; Emp_RB [numeric]; Emp_MARB [numeric]; Emp_MSE [numeric]; Emp_RMSE [numeric]; Emp_RRMSE [numeric]; Emp_CR [numeric]; Emp_Width [numeric] 
+   head:
+         domain       True_P     Emp_Mean       Emp_Bias      Emp_RB     Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_01 area_01 0.2578313253 0.2968743224  0.03904299714 15.14284469 17.957856035 0.003117493221 0.05583451639 21.65544327     93 0.2029069834
+area_02 area_02 0.2564766839 0.2879066437  0.03142995976 12.25450956 14.821450419 0.002256796052 0.04750574757 18.52244299     96 0.1908664647
+area_03 area_03 0.3375634518 0.3220567553 -0.01550669644 -4.59371308  8.288010983 0.001270035137 0.03563755234 10.55728994     99 0.1912409850
+area_04 area_04 0.1955307263 0.2668658251  0.07133509883 36.48280769 36.706829427 0.006006762646 0.07750330733 39.63740575     66 0.1738392263
+   tail:
+         domain       True_P     Emp_Mean       Emp_Bias        Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_58 area_58 0.4007220217 0.3440419246 -0.05668009707 -14.144492691 14.51864593 0.004396201764 0.06630385935 16.54609823     87 0.2044709025
+area_59 area_59 0.2603129445 0.3002095441  0.03989659953  15.326398616 16.51864029 0.002654694285 0.05152372546 19.79299399     93 0.1884940935
+area_60 area_60 0.2504672897 0.2722234240  0.02175613424   8.686217776 13.33620334 0.001748205844 0.04181155156 16.69341797     99 0.1986782910
+-- mc_finite_population_results_R100.rds$dom_tip : data.frame 60 x 11 
+   kolom: domain [character]; True_P [numeric]; Emp_Mean [numeric]; Emp_Bias [numeric]; Emp_RB [numeric]; Emp_MARB [numeric]; Emp_MSE [numeric]; Emp_RMSE [numeric]; Emp_RRMSE [numeric]; Emp_CR [numeric]; Emp_Width [numeric] 
+   head:
+         domain       True_P     Emp_Mean       Emp_Bias       Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_01 area_01 0.2578313253 0.2824882307  0.02465690543  9.563192294 16.61312603 0.002797611835 0.05289245537 20.51436353     96 0.2062403916
+area_02 area_02 0.2564766839 0.2723828981  0.01590621415  6.201816831 13.97902119 0.002061400503 0.04540264864 17.70244684     97 0.1982319723
+area_03 area_03 0.3375634518 0.3166430373 -0.02092041450 -6.197476174 10.03341067 0.001906898204 0.04366804557 12.93624809     97 0.2207506591
+area_04 area_04 0.1955307263 0.2399422053  0.04441147905 22.713299285 25.62478238 0.003669700928 0.06057805649 30.98134889     85 0.1730228735
+   tail:
+         domain       True_P     Emp_Mean        Emp_Bias        Emp_RB    Emp_MARB        Emp_MSE      Emp_RMSE   Emp_RRMSE Emp_CR    Emp_Width
+area_58 area_58 0.4007220217 0.3457544664 -0.054967555218 -13.717128644 14.50172932 0.004517412793 0.06721170131 16.77264979     92 0.2469767431
+area_59 area_59 0.2603129445 0.2842759662  0.023963021688   9.205466801 14.72047800 0.002223708791 0.04715621688 18.11520244     99 0.2066470192
+area_60 area_60 0.2504672897 0.2593108019  0.008843512144   3.530805222 12.33973819 0.001428562072 0.03779632353 15.09032320    100 0.2094347256
+-- mc_finite_population_results_R100.rds$True_P : numeric len 60 
+   head: 0.2578313253, 0.2564766839, 0.3375634518, 0.1955307263, 0.3509933775 
+-- mc_finite_population_results_R100.rds$pop_summary : data.frame 60 x 5 
+   kolom: domain [character]; N_d [integer]; True_P_d [numeric]; x1_pop_mean [numeric]; x2_pop_mean [numeric] 
+   head:
+         domain N_d     True_P_d x1_pop_mean x2_pop_mean
+area_01 area_01 415 0.2578313253 1.869806541 1.077825369
+area_02 area_02 386 0.2564766839 1.884235930 1.148660788
+area_03 area_03 394 0.3375634518 1.654454619 1.073057476
+area_04 area_04 537 0.1955307263 1.403738674 1.067979178
+   tail:
+         domain N_d     True_P_d x1_pop_mean x2_pop_mean
+area_58 area_58 554 0.4007220217 1.888810661 1.114334422
+area_59 area_59 703 0.2603129445 1.794820890 1.116134156
+area_60 area_60 535 0.2504672897 1.502246704 1.086900489
+-- mc_finite_population_results_R100.rds$mc_elapsed_sec : numeric len 1 
+   nilai: 269.121217 

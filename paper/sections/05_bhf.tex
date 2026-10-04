@@ -1,0 +1,226 @@
+% ===========================================================================
+%  Bagian 5.4 -- eblup_bhf
+% ===========================================================================
+\section{Model unit-level Battese--Harter--Fuller: \texttt{eblup\_bhf}}\label{sec:bhf}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:bhf-setting}
+
+Model ini membutuhkan dua sumber data yang berbeda:
+\begin{itemize}
+  \item \code{unit\_data} --- satu baris per unit sampel: respons $y_j$,
+        kovariat $x_j$, dan label domain;
+  \item \code{Xpop} --- \emph{rata-rata kovariat populasi} per domain
+        ($\bar x_{\text{pop},d}$) beserta ukuran populasi \code{popsize\_var}
+        ($N_d$).
+\end{itemize}
+Cocok ketika tersedia mikrodata survei (unit) dan ringkasan populasi per
+domain. Dataset contoh \code{cornsoybean} (37 unit di 12 kabupaten Iowa)
+bersama \code{cornsoybeanmeans} adalah data klasik BHF
+\citep{battese1988error}. Catatan penting: \code{Xpop} harus berisi
+\emph{semua} domain pada sampel --- bila ada domain sampel yang tidak ada di
+\code{Xpop}, C++ melempar error, berbeda dengan \pkg{sae::eblupBHF} yang
+mengembalikan \code{NA} disertai peringatan (BHF-6).
+
+\subsection{Persamaan model}\label{sec:bhf-model}
+
+\begin{equation}
+  y_{ij}=x_{ij}'\beta+u_i+e_{ij},\qquad
+  u_i\overset{\text{iid}}{\sim}N(0,\sigma_u^2),\qquad
+  e_{ij}\sim N(0,\sigma_e^2),
+  \label{eq:bhf-model}
+\end{equation}
+dengan $i=1,\dots,D$ domain, $j=1,\dots,n_i$ unit sampel, dan
+$N_i$ unit populasi. Model ini model komponen-kesalahan (\emph{error
+components}) --- tanpa struktur spasial --- yang diperkenalkan
+\citet{battese1988error}. Penting: karena hanya \emph{ringkasan} populasi
+yang masuk ($\bar x_{\text{pop},d}$ dan $N_d$), model tidak membutuhkan
+mikrodata populasi.
+
+\subsection{Prediktor titik}\label{sec:bhf-prediktor}
+
+Estimasi komponen varian tidak ditulis sendiri: \fct{eblup\_bhf} memanggil
+\code{lme4::lmer} \citep{bates2015lme4} dengan formula campuran
+\code{y \textasciitilde{} x1 + x2 + ... + (1|dom)} dan
+\code{REML = (method == "REML")} (\code{R/eblup\_bhf.R:73-82}):
+\begin{equation}
+\begin{aligned}
+  \betah&=\texttt{fixef(fit)}, &
+  \hat\sigma_u^2&=\texttt{VarCorr(fit)\$dom[1,1]},\\
+  \hat\sigma_e^2&=\texttt{attr(VarCorr(fit), "sc")\textasciicircum2}, &
+  \hat u_d&=\texttt{ranef(fit)\$dom}.
+\end{aligned}
+  \label{eq:bhf-lmer}
+\end{equation}
+Setelah itu seluruh penyusunan prediktor ada di C++ dengan fraksi sampel
+$f_d=n_d/N_d$ (baris 64):
+\begin{equation}
+  \hat\theta_d
+  = f_d\,\bar y_{s,d}
+  + \bigl(\bar x_{\text{pop},d}-f_d\,\bar x_{s,d}\bigr)'\betah
+  + (1-f_d)\hat u_d,
+  \label{eq:bhf-pred}
+\end{equation}
+untuk domain dengan $n_d>0$ (baris 80-91), dan prediktor sintetis murni
+\begin{equation}
+  \hat\theta_d=\bar x_{\text{pop},d}'\betah,
+  \qquad \texttt{samp\_size}=0,\ \texttt{peringatan}
+  \label{eq:bhf-unsampled}
+\end{equation}
+untuk domain tanpa unit sampel (baris 94-100, lalu \code{cli\_warn} di R,
+baris 128-132).
+
+\implnote{\eqref{eq:bhf-pred} identik dengan rumus yang dipakai
+\code{sae::eblupBHF} dan ekuivalen dengan
+$f_d\bar y_s+(1-f_d)\bigl(\bar x_{\text{unsamp}}'\betah+\hat u_d\bigr)$
+--- \emph{bukan} bentuk alternatif $f_d\bar y+(1-f_d)
+(\bar x_{\text{pop}}'\betah+\hat u_d)$ yang kadang dipakai ketika seluruh
+populasi dianggap tersensus (BHF-9). Pilihan ini masuk akal untuk BHF asli
+di mana hanya $n_d$ unit yang disurvei.}
+
+\subsection{Estimasi komponen varians}\label{sec:bhf-varians}
+
+Fisher scoring tidak dipakai di sini; estimasi dilakukan penuh oleh
+\code{lme4} (Newton-type pada likelihood campuran), sesuai
+\code{method} ML atau REML. Konsekuensi terhadap objek keluaran:
+\begin{itemize}
+  \item \code{estcoef} memuat kolom \code{beta, std.error, stderr\_beta,
+        tvalue, zvalue, pvalue}, di mana \code{zvalue} = t-value \code{lmer}
+        dan \code{pvalue} $=2\,\Phi(-\abs{t})$ --- \code{lmer} sendiri tidak
+        menyediakan p-value (BHF-8).
+  \item Tidak ada \code{goodness} (loglik/AIC/BIC) dan tidak ada
+        \code{n\_iter}; \code{convergence} di-hardcode \code{TRUE} bila tidak
+        ada error, karena kegagalan \code{lmer} melempar error langsung
+        (BHF-7).
+\end{itemize}
+
+\subsection{Estimasi MSE}\label{sec:bhf-mse}
+
+MSE \emph{hanya} bootstrap parametrik dan hanya bila
+\code{compute\_mse = TRUE} (default \code{FALSE} $\to$
+\code{mse = rse = NA}). Skemanya ada di R (\code{R/eblup\_bhf.R:215-369}),
+serial, tanpa OpenMP (BHF-1): tiap replikat
+\begin{enumerate}[label=\arabic*.]
+  \item bangkitkan $u_i^\ast\sim N(0,\hat\sigma_u^2)$ untuk semua domain dan
+        $e_{ij}^\ast\sim N(0,\hat\sigma_e^2)$ untuk semua unit sampel, lalu
+        $y_{ij}^\ast=x_{ij}'\betah+u_{i}^\ast+e_{ij}^\ast$ (baris 295-305);
+  \item refit \code{lmer} pada $y^\ast$; bila gagal, replikat dilewati
+        \emph{tanpa mengurangi pembagi} (baris 308-320); EBLUP ulang lewat
+        \code{.eblup\_bhf\_cpp} (baris 323-332);
+  \item nilai ``kebenaran'' populasi replikat (baris 335-354):
+        $\mu_d=\bar x_{\text{pop},d}'\betah$ dan $u^\ast_d\sim
+        N(0,\hat\sigma_u^2)$ (baris 295) dijumlahkan pada \emph{ketiga}
+        cabang; bila $r_d=N_d-n_d>0$,
+        $\theta^{\ast,\text{true}}_d=\mu_d+u^\ast_d+\tfrac{n_d}{N_d}\bar e^\ast_{s,d}
+        +\tfrac{r_d}{N_d}\mathcal N(0,\hat\sigma_e^2/r_d)$;
+        bila $r_d=0$ (enumerasi penuh) hanya $\bar e^\ast_{s,d}$ ditambahkan;
+        bila
+        $n_d=0$, $\mu_d+u^\ast_d+\mathcal N(0,\hat\sigma_e^2/N_d)$;
+  \item akumulasi $(\hat\theta_d^\ast-\theta_d^{\ast,\text{true}})^2$ dan
+        bagi dengan $B$ (baris 356-360).
+\end{enumerate}
+\implnote{Pembagi selalu $B$ meski ada replikat yang dilewati, sehingga MSE
+ter-bias ke bawah ketika \code{lmer} gagal; \code{sae::pbmseBHF} hanya
+menaikkan penghitung bila refit sukses (BHF-4). Default juga berbeda:
+$B=100$ di sini, $B=200$ pada \pkg{sae} (BHF-2). \code{seed = -1} (default)
+artinya tanpa seed (BHF-3), dan argumen \code{popnmean\_xpop} tidak
+diteruskan ke bootstrap, sehingga matriks rata-rata populasi untuk titik
+estimasi bisa berbeda dari yang dipakai bootstrap (BHF-5).}
+
+RSE dihitung $100\sqrt{\mathrm{MSE}}/\abs{\hat\theta}$ dengan guard
+$\abs{\hat\theta}<\texttt{.Machine\$double.eps}\to\texttt{NA}$
+(baris 162-165).
+
+\subsection{Pseudo-code}\label{sec:bhf-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{eblup\_bhf} --- alur sebenarnya (\texttt{R/eblup\_bhf.R:44-212}, \texttt{src/eblup\_unit.cpp:8-108})}
+\label{alg:bhf}
+\KwIn{formula, \code{unit\_data}, \code{Xpop}, \code{domain\_var},
+  \code{popsize\_var}, \code{method}, \code{compute\_mse}, \code{B}, \code{seed}}
+\KwOut{\code{df\_eblup} (domain, eblup, samp\_size, mse, rse), \code{fit} (objek \code{lmer})}
+\code{mf} $\leftarrow$ \texttt{model.frame(formula, na.action = na.omit)}; \code{dom} dipotong mengikuti baris ter-omit (61-65)\;
+\code{selectdom} $\leftarrow$ \texttt{unique(dom)} (66); digabung dengan domain \code{Xpop} lalu \code{Xpop} diurutkan sebaris (88-89)\;
+$\Xmat_s\leftarrow$ \texttt{model.matrix} (70); \code{NA} respons/predictor sudah dibuang diam-diam oleh \texttt{na.omit} (61) --- tidak ada pemeriksaan \code{NA} tersendiri\;
+\code{fit} $\leftarrow$ \texttt{lme4::lmer(y \textasciitilde{} ..., (1|dom), REML = (method == "REML"))} (73-82)\;
+$\betah,\hat u_d,\hat\sigma_u^2,\hat\sigma_e^2\leftarrow$ \eqref{eq:bhf-lmer} (83-108)\;
+\texttt{meanxpop} $\leftarrow$ \code{model.matrix} atas \code{Xpop}, atau argumen \code{popnmean\_xpop} (92-104)\;
+$\hat\theta\leftarrow$ \texttt{.eblup\_bhf\_cpp(selectdom, dom, Xs, meanxpop, ys, popnsize, betah, upred)} (111-121)\;
+\If{domain sampel tidak ada di \code{Xpop}}{\textbf{gagal} (C++, \code{src/eblup\_unit.cpp:23-31})}\;
+\If{\code{compute\_mse}}{$\mathrm{MSE}\leftarrow$ \texttt{.pbmse\_unit(...)} (140-151)}
+\uElse{\texttt{mse = rse = NA}}\;
+perakitan \code{df\_eblup}, \code{estcoef}, kelas \code{c("fastsae","fastsae\_unit")} (156-211)\;
+\caption*{}
+\KwData{}
+\tcp*{\emph{Bootstrap parametrik} --- \code{R/eblup\_bhf.R:215-369}, serial}
+\If{\code{seed} $\ge0$}{\texttt{set.seed(seed)} (285)}\;
+\For{$b=1,\dots,B$}{
+  $u^\ast\sim N(0,\hat\sigma_u^2)$ semua domain;\quad
+    $e^\ast\sim N(0,\hat\sigma_e^2)$ semua unit sampel (295-298)\;
+  $y^\ast\leftarrow\Xmat\betah+u^\ast_{d(j)}+e^\ast_j$ (301-305)\;
+  \texttt{fit\*} $\leftarrow$ \texttt{lmer(...)} pada $y^\ast$\;
+  \If{\texttt{fit\*} gagal}{\texttt{next} \tcp*{317: tanpa mengurangi pembagi}}
+  $\betah^\ast,\hat u^\ast\leftarrow$ \texttt{fit*};\quad
+    $\hat\theta^\ast\leftarrow$ \texttt{.eblup\_bhf\_cpp} dengan $y^\ast$ (319-332)\;
+  $\theta^{\ast,\text{true}}_d\leftarrow$ tiga kasus pada langkah~3
+    bagian~\ref{sec:bhf-mse} (335-354)\;
+  akumulasi $(\hat\theta^\ast_d-\theta^{\ast,\text{true}}_d)^2$ (356-357)\;
+}
+$\mathrm{MSE}\leftarrow$ akumulasi$/B$ (360);\quad
+  $\mathrm{RSE}\leftarrow100\sqrt{\mathrm{MSE}}/\abs{\hat\theta}$ (161-164)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:bhf-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_bhf} (\texttt{R/eblup\_bhf.R:44-57}).}]
+eblup_bhf(formula, unit_data, Xpop, domain_var, popsize_var,
+          method = c("REML", "ML"), popnmean_xpop = NULL,
+          B = 100, compute_mse = FALSE, n_threads = 1,
+          seed = -1, print_result = TRUE)
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{Xpop} --- \code{data frame} berisi kolom domain (sebagai
+        \code{domain\_var}, bukan nama kolom) dan kolom kovariat yang sama
+        dengan formula; nilainya rata-rata populasi.
+  \item \code{popsize\_var} --- nama kolom ukuran populasi $N_d$ pada
+        \code{Xpop}.
+  \item \code{popnmean\_xpop} --- matriks alternatif rata-rata populasi
+        (opsional).
+  \item \code{n\_threads} --- didokumentasikan tetapi tidak pernah dipakai
+        (BHF-1).
+  \item \code{compute\_mse} --- \code{FALSE} (default): kolom \code{mse},
+        \code{rse} diisi \code{NA}.
+\end{itemize}
+
+Objek keluaran: \code{list} berkelas \code{c("fastsae", "fastsae\_unit")} berisi
+\code{df\_eblup} (\code{domain, eblup, samp\_size, mse, rse}), \code{estcoef},
+\code{random\_effect\_var} ($\hat\sigma_u^2$), \code{fit} berisi
+\code{method, random\_effect\_var, sigma2\_e, beta, random\_effect, lme}
+(objek \code{lmer} asli), \code{formula}, \code{model = "BHF"},
+\code{level = "unit"}, \code{convergence = TRUE}, \code{data}, \code{call}.
+\emph{Tidak ada} \code{goodness} dan \code{n\_iter}.
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_bhf.Rd}).}]
+library(dplyr)
+df_meanpop <- cornsoybeanmeans |>
+  rename(CornPix = MeanCornPixPerSeg, SoyBeansPix = MeanSoyBeansPixPerSeg)
+df_cornsoybean <- cornsoybean |>
+  rename(CountyIndex = County)
+
+res <- eblup_bhf(
+  formula = CornHec ~ CornPix + SoyBeansPix,
+  Xpop = df_meanpop,
+  unit_data = df_cornsoybean,
+  domain_var = "CountyIndex",
+  popsize_var = "PopnSegments"
+)
+head(res$df_eblup)
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:bhf-ref}
+
+Blok roxygen fungsi ini memuat \citet{battese1988error}
+(\code{R/eblup\_bhf.R:22-25}); kerangka EBLUP unit-level dan MSE
+dibahas di \citet{rao2015small}; pembanding numeriknya \pkg{sae}
+\citep{molina2015sae}; pemakaian \code{lme4} mengacu ke
+\citet{bates2015lme4}.

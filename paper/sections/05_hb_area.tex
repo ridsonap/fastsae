@@ -1,0 +1,251 @@
+% ===========================================================================
+%  Bagian 5.6 -- hb_area
+% ===========================================================================
+\section{Model hierarki Bayes area-level: \texttt{hb\_area}}\label{sec:hbarea}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:hbarea-setting}
+
+Data berbentuk FH (satu baris per domain: respons $y_d$, kovariat $x_d$, dan
+opsional $\psi_d$), tetapi estimasi dilakukan sepenuhnya dalam kerangka Bayes
+lewat \pkg{INLA} \citep{rue2009approximate, lindgren2015bayesian}. Fungsi ini
+paling luas cakupannya di paket ini: enam family likelihood, enam struktur
+spasial, lima struktur temporal, dan tujuh pilihan interaksi
+spatio-temporal. Cocok ketika (i) indikator non-Gaussian (rasio, proporsi,
+jumlah) perlu dimodelkan langsung, atau (ii) struktur spasial/temporal
+eksplisit diinginkan dengan ketidakpastian penuh posterior.
+
+\subsection{Persamaan model}\label{sec:hbarea-model}
+
+Kerangka umum yang dirangkai fungsi ini adalah model latent Gaussian:
+\begin{equation}
+  g(\mu_d)=x_d'\beta+\varphi_d,\qquad
+  y_d\mid\mu_d\sim\mathcal F(\mu_d;\tau),\qquad
+  \varphi\sim N\bigl(0,\;\tau^{-1}Q^{-1}\bigr),
+  \label{eq:hbarea-model}
+\end{equation}
+dengan $g$ link default family (identitas, logit, log) dan $Q$ struktur
+presisi yang dipilih lewat argumen \code{spatial}, \code{temporal}, dan
+\code{st\_interaction}. Struktur spasial yang tersedia persis seperti yang
+didefinisikan \pkg{INLA} (baris 411-488 \code{R/hb\_area.R}):
+\begin{itemize}
+  \item \code{"none"}: $\varphi_d$ i.i.d.\ --- hanya dibuat bila tidak ada
+        interaksi lain (baris 411-413);
+  \item \code{"bym2"}: BYM2 dengan presisi $Q=\tau\bigl(s\,\varphi_b Q_{\text{bym2}}+
+        (1-s)\Imat\bigr)$ pada skala parsimonius (bagian~\ref{sec:bym2});
+  \item \code{"bym"}: BYM klasik, dua parameter presisi
+        (\code{prec.unstruct}, \code{prec.spatial});
+  \item \code{"besag"}: ICAR murni $Q_{\text{ICAR}}$;
+  \item \code{"generic1"}: $Q=\tau\bigl(\Imat-(\beta/\lambda_{\max})C\bigr)$
+        dengan $C$ matriks ketetanggaan;
+  \item \code{"slm"}: model lag spasial $x=(\Imat-\rho\Wmat)^{-1}
+        (\Xmat\beta+\varepsilon)$ dengan $\rho$ dipetakan ke $[0,1]$ lewat
+        rentang akar eigen $\Wmat$.
+\end{itemize}
+Struktur temporal: \code{"none"}, \code{"rw1"}, \code{"rw2"}, \code{"ar1},
+\code{"iid"} pada indeks waktu \code{..time\_id..} (baris 494-498), dengan
+interaksi opsional yang dipetakan ke empat tipe Knorr--Held
+(Tabel~\ref{tab:kh}).
+
+\begin{table}[htbp]
+\centering
+\caption{Pemetaan \texttt{st\_interaction} ke bentuk interaksi Knorr--Held.
+Sumber: penyusunan string \texttt{f(...)} di \texttt{R/hb\_area.R:491-566}.}
+\label{tab:kh}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Pilihan kode & Bentuk presisi & Padanan KH \\
+\midrule
+\code{none}          & $Q_{\text{time}}$ saja (efek utama waktu) & --- \\
+\code{domain-specific} & grup per domain, model temporal & (dipakai \pkg{tipsae}) \\
+\code{separable}     & $Q_{\text{space}}\otimes Q_{\text{time}}$ & --- \\
+\code{type1}         & $\Imat_{DT}$ i.i.d.\ + efek waktu & KH I \\
+\code{type2}         & $Q_{\text{time}}$ per domain + efek waktu & KH II \\
+\code{type3}         & $Q_{\text{space}}$ per waktu + efek waktu & KH III \\
+\code{type4}         & $Q_{\text{space}}\otimes\Imat_T$ + efek waktu & KH IV \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\implnote{Tiga hal pada tabel di atas harus dibaca bersama temuan
+\code{DISCREPANCIES.md}: \code{type2} \emph{selalu gagal} karena dua
+\code{f()} memakai indeks waktu yang sama, yang ditolak \pkg{INLA}
+(HB-1); \code{type3}/\code{type4} dengan \code{spatial} $\ne$\code{"none"}
+\emph{selalu gagal} karena term spasial ditambah dua kali (HB-2); dan
+\code{type3}/\code{type4} dengan \code{spatial = "none"} diam-diam tidak
+membuat interaksi sama sekali (HB-3). Selain itu \code{spatial = "slm"}
+tidak punya penjaga \code{separable}, sehingga keduanya menggabungkan dua
+term spasial (HB-5).}
+
+\subsection{Prediktor titik}\label{sec:hbarea-prediktor}
+
+Prediksi diambil dari ringkasan nilai terpasang posterior (\code{inla\_utils.R:274-284}):
+\begin{equation}
+\begin{aligned}
+  \hat\theta_d&=\mathbb E[\mu_d\mid y]\ \text{(skala respons, lewat link invers)},
+  & \mathrm{sd}_d&=\sqrt{\Var(\mu_d\mid y)},\\
+  \mathrm{CI}_{95\%}&=\bigl(q_{0.025},q_{0.975}\bigr)
+    \ \text{(kuantil posterior)}.
+\end{aligned}
+  \label{eq:hbarea-pred}
+\end{equation}
+Untuk area-level, nilai terpasang INLA memang sudah mewakili rata-rata area,
+sehingga tidak ada transformasi skala tambahan. Kolom turunan
+dihitung sesuai family: \code{trials} $\to$ \code{estimated\_total}
+$=\hat\theta\times\text{trials}$; \code{exposure} $\to$ \code{rate} dan
+\code{estimated\_count} $=\hat\theta\times\text{exposure}$.
+
+\implnote{Domain tanpa sampel tidak pernah membuat baris baru: baris yang
+hilang dari \code{data} tidak dievaluasi INLA, sedangkan baris dengan
+\code{y = NA} tetap dievaluasi karena \code{na.pass} (HB-17). Jadi
+``unsampled'' di sini berarti \emph{baris ada tetapi responsnya NA}, bukan
+domain yang tidak ada dalam data --- kontras dengan \fct{hb\_unit} yang
+menambahkan satu baris \code{NA} per domain.}
+
+\subsection{Estimasi komponen varians}\label{sec:hbarea-varians}
+
+Tidak ada Fisher scoring: seluruh inferensi diserahkan ke
+\code{INLA::inla()} dengan pengaturan berikut (\code{R/hb\_area.R:578-609}):
+\begin{itemize}
+  \item \code{control.compute} $=$ \code{dic, waic, cpo, mlik, config}
+        semuanya \code{TRUE};
+  \item \code{control.inla} $=$ \code{strategy} pilihan pengguna
+        (\code{"laplace"} default);
+  \item \code{control.predictor} $=$ \code{compute = TRUE, link = 1}
+        --- argumen \code{link} pengguna \emph{tidak pernah dipakai}
+        (HB-6);
+  \item prior komponen acak spasial/temporal: \code{prior\_prec} default
+        \code{pc.prec(1, 0.01)}; prior korelasi spasial \code{prior\_phi}
+        default \code{pc(0.5, 0.5)}; \code{prior\_prec\_time} default juga
+        \code{pc.prec(1, 0.01)} (baris 399-405);
+  \item \code{control.fixed} \emph{tidak pernah diset paket}, sehingga
+        berlaku default \pkg{INLA}: rata-rata tetap $0$, presisi tetap
+        $0.001$ (intersep: presisi $0$, terbatas), strategi faktor
+        \code{model.matrix} (HB-21).
+\end{itemize}
+Likelihood Gaussian dengan \code{vardir} memakai \code{scale} $=1/\psi_d$
+dan presisi tetap $1$ sehingga $\Var(y_d)=\psi_d$ persis; family lain
+memakai \code{scale}/(\code{Ntrials}, \code{E}) sesuai parameterisasi
+\pkg{INLA} (baris 612-667). \code{method = "laplace"} berarti
+\code{strategy} dipaksa \code{"laplace"}, sedangkan jalur
+\code{lme4} (baris 258-267) hanya terbuka untuk
+binomial/poisson tanpa struktur spasial/temporal (HB-14) dan tidak
+menghasilkan ketidakpastian (HB-15).
+
+\subsection{Estimasi MSE}\label{sec:hbarea-mse}
+
+MSE dihitung analitik dari momen posterior (\code{hb\_area.R:280}):
+\begin{equation}
+  \widehat{\mathrm{MSE}}(\hat\theta_d)=\mathrm{sd}_d^2,\qquad
+  \mathrm{RSE}_d=100\,\mathrm{sd}_d/\abs{\hat\theta_d},\qquad
+  \mathrm{CI}=\hat\theta_d\pm z_{0.975}\,\mathrm{sd}_d\ \text{(jalur fallback)}.
+  \label{eq:hbarea-mse}
+\end{equation}
+Tidak ada \code{inla.posterior.sample} di \fct{hb\_area}; ketidakpastian
+murni analitik. Berbeda dengan \fct{hb\_twofold} yang menambahkan agregasi
+area dengan sampling posterior (bagian~\ref{sec:hbtwofold-mse}).
+
+\subsection{Pseudo-code}\label{sec:hbarea-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{hb\_area} --- alur sebenarnya (\texttt{R/hb\_area.R:148-314}, \texttt{.fit\_inla\_area:318-704})}
+\label{alg:hbarea}
+\KwIn{formula, \code{data}, \code{domain}, \code{time}, \code{family},
+  \code{spatial}, \code{temporal}, \code{st\_interaction}, $W$, \code{vardir},
+  \code{trials}, \code{exposure}, \code{method}, \code{strategy}, prior, \code{...}}
+\KwOut{objek \code{fastsae\_hb\_area} berisi \code{df\_hb}, \code{fit}, \code{hyperpar}}
+\code{match.arg} untuk 6 argumen pilihan (174-179)\;
+\code{domain\_vec} $\leftarrow$ \code{.get\_variable}; \code{time} wajib bila
+  \code{temporal} $\ne$ \code{"none"} (188-211)\;
+\code{mf} $\leftarrow$ \texttt{model.frame(na.pass)};\quad
+  $y\leftarrow$ respons (214-215)\;
+\uIf{family $=$ binomial}{\code{trials} wajib;\quad
+  $y\leftarrow\texttt{round}(y\cdot\text{trials})$ bila pecahan (224-240)}
+\uIf{family $=$ gamma}{$y>0$ wajib (242-247)}\;
+$W_{\text{obj}}\leftarrow$ \texttt{.convert\_spatial\_weights} bila
+  \code{spatial} $\ne$ \code{"none"} (250-253)\;
+\If{\code{method} $=$ laplace \textbf{dan} tanpa spasial/temporal \textbf{dan} family $\in$\{binomial, poisson\}}{
+  \KwRet \texttt{.fit\_glmm\_laplace} (258-267, tanpa ketidakpastian)}
+\If{\code{method} $=$ laplace}{\code{strategy} $\leftarrow$ \texttt{"laplace"} (269-276)}\;
+\caption*{}
+\tcp*{\emph{.fit\_inla\_area} (318-704)}
+indeks \code{..domain\_id..}, \code{..obs\_id..}, \code{..time\_id..} (363-377)\;
+$\texttt{hyper\_time}\leftarrow\{\texttt{prec}: \texttt{pc.prec}(1,0.01)\}$; tambah
+  \texttt{rho} bila \code{ar1} (399-405)\;
+baris spasial $\leftarrow$ Tabel~\ref{tab:kh}/teks bagian~\ref{sec:hbarea-model} (411-488)\;
+baris temporal + interaksi $\leftarrow$ Tabel~\ref{tab:kh} (491-566)\;
+susun formula \code{y \textasciitilde{} ...} (\code{"slm"}: tanpa intercept) (569-575)\;
+\code{control.compute} (dic, waic, cpo, mlik, config), \code{control.predictor}
+  (\code{link = 1}), \code{control.inla} (578-601)\;
+\For{family}{sesuaikan \code{scale}, \code{Ntrials}, \code{E},
+  \code{control.family} --- \eqref{eq:hbarea-model} (612-667)}\;
+\code{fit} $\leftarrow$ \texttt{tryCatch(do.call(INLA::inla, ...))} (670-678)\;
+$\hat\theta,\mathrm{sd},\mathrm{CI},\texttt{mse},\texttt{rse}\leftarrow$
+  \eqref{eq:hbarea-pred}--\eqref{eq:hbarea-mse} (681-701, 274-284)\;
+perakitan \code{df\_hb}, \code{hyperpar}, \code{goodness}
+  (DIC, WAIC, marginal likelihood), kelas \code{c("fastsae\_hb\_area","fastsae")} (394, 811)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:hbarea-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{hb\_area} (\texttt{R/hb\_area.R:148-148}).}]
+hb_area(formula, data, domain = NULL, time = NULL,
+        family = c("gaussian","binomial","poisson","nbinomial","beta","gamma"),
+        spatial  = c("none","bym2","bym","besag","generic1","slm"),
+        temporal = c("none","rw1","rw2","ar1","iid"),
+        st_interaction = c("none","domain-specific","separable",
+                           "type1","type2","type3","type4"),
+        W = NULL, vardir = NULL, trials = NULL, exposure = NULL,
+        method = c("inla","laplace"),
+        strategy = c("laplace","simplified.laplace","gaussian"),
+        link = NULL, scale_model = TRUE,
+        prior_prec  = list(prior = "pc.prec", param = c(1, 0.01)),
+        prior_phi   = list(prior = "pc",      param = c(0.5, 0.5)),
+        prior_rho = NULL, prior_prec_time = NULL, prior_rho_time = NULL,
+        print_result = TRUE, ...)
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{family} menentukan kolom pendukung yang wajib: Gaussian
+        $\to$ \code{vardir} (opsional; bila ada, dipakai sebagai
+        \code{scale}); Binomial $\to$ \code{trials}; Poisson/Negatif
+        Binomial $\to$ \code{exposure}; Beta $\to$ \code{vardir} atau
+        \code{trials} untuk presisi.
+  \item \code{W} --- matriks ketetanggaan (dapat berupa \code{listw},
+        \code{nb}, \code{matrix}, atau \code{inla.graph}); bobot dibakar ke
+        graf biner simetris (bagian~\ref{sec:bayes-w}).
+  \item \code{...} --- diteruskan ke \code{INLA::inla}, tetapi
+        \code{control.compute} tidak dapat ditimpa karena sudah dibuat
+        lebih dulu (HB-13).
+\end{itemize}
+
+Objek keluaran: \code{c("fastsae\_hb\_area", "fastsae")} berisi
+\code{df\_hb} (kolom \code{domain, y, hb, sd, mse, rse, ci\_lower,
+ci\_upper, linear\_pred} + kolom family), \code{fit} (objek \code{inla}).
+\code{hyperpar}, \code{goodness}, \code{random\_effect\_var},
+\code{W}, \code{n\_iter}, \code{convergence}, \code{formula},
+\code{method}, \code{call}, \code{data}.
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/hb\_area.Rd}).}]
+library(fastsae)
+if (requireNamespace("INLA", quietly = TRUE)) {
+  # Gaussian Fay-Herriot tanpa spasial
+  m_norm <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
+                    family = "gaussian")
+
+  # Gaussian dengan efek spasial BYM2
+  m_bym2 <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
+                    family = "gaussian", spatial = "bym2",
+                    W = mys_proxmat)
+  head(m_norm$df_hb)
+}
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:hbarea-ref}
+
+\citet{rue2009approximate} untuk metode INLA, \citet{lindgren2015bayesian}
+untuk implementasi \pkg{R-INLA}, \citet{riebler2016intuitive} untuk BYM2
+(blok roxygen fungsi ini memuat lima rujukan: \citet{rao2015small},
+\citet{riebler2016intuitive}, \citet{marhuenda2013small},
+\citet{denicolo2024tipsae}, \citet{rue2009approximate}; lihat
+\code{R/hb\_area.R:110-121}).

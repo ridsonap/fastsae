@@ -1,0 +1,169 @@
+% ===========================================================================
+%  Laporan teknis paket R fastsae
+%  Sumber klaim : kode paket (R/, src/, man/, vignettes/, tests/, inst/)
+%  Sumber angka : inst/extdata/*.rds lewat scripts/*.R  (tidak ada angka manual)
+%  Bahasa       : Indonesia
+%  Build        : latexmk -pdf main.tex     (lihat .latexmkrc)
+% ===========================================================================
+\documentclass[11pt,a4paper]{article}
+
+% ---- dasar teks -----------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[english,bahasa]{babel}
+
+% ---- matematika & tabel ---------------------------------------------------
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{siunitx}
+
+% ---- tampilan -------------------------------------------------------------
+\usepackage[margin=2.6cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{listings}
+
+% ---- tautan & sitasi ------------------------------------------------------
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,
+            urlcolor=blue!70!black,bookmarks=true]{hyperref}
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+% ---- algoritme (setelah hyperref) -----------------------------------------
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\SetKwComment{KwCom}{\% }{}
+\SetKw{KwIn}{Masukan}
+\SetKw{KwOut}{Keluaran}
+\SetKw{KwData}{Data}
+\SetKw{KwRet}{kembalikan}
+\SetKw{KwIf}{Jika}
+\SetKw{KwFor}{Untuk}
+\SetKw{KwRepeat}{Ulangi}
+\SetKw{KwWhile}{Selama}
+\SetKw{KwElse}{Selain itu}
+
+% ---- tikz -----------------------------------------------------------------
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,shapes.geometric,fit,backgrounds}
+
+% ---- gambar rentang -------------------------------------------------------
+\graphicspath{{figures/}}
+
+% ===========================================================================
+%  Makro notasi -- konsisten di seluruh bab
+% ===========================================================================
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{\textsf{#1}}
+\newcommand{\fct}[1]{\code{#1()}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\VarA}{\operatorname{Var}(\hat\sigma^{2})}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\Zmat}{\mathbf{Z}}
+\newcommand{\Rmat}{\mathbf{R}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\ones}{\mathbf{1}}
+\newcommand{\Xmat}{\mathbf{X}}
+\newcommand{\Wmat}{\mathbf{W}}
+\newcommand{\Imat}{\mathbf{I}}
+\newcommand{\Vm}{\mathbf{V}}
+\newcommand{\Qm}{\mathbf{Q}}
+\newcommand{\betah}{\hat\beta}
+\newcommand{\sighat}{\hat\sigma^2}
+\newcommand{\vardir}{\psi}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\implnote}[1]{\par\medskip\noindent\textit{Implementation note.} #1\medskip}
+
+% ---- daftar kode R --------------------------------------------------------
+\lstdefinestyle{rstyle}{language=R,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue!60!black}\bfseries,
+  commentstyle=\color{green!40!black}\itshape,
+  stringstyle=\color{red!60!black},
+  breaklines=true,showstringspaces=false,
+  columns=flexible,keepspaces=true,
+  literate={<-}{{$\leftarrow$}}2 {<=}{{$\le$}}2 {>=}{{$\ge$}}2 {!=}{{$\ne$}}2}
+\lstset{style=rstyle}
+
+% ---- caption --------------------------------------------------------------
+\captionsetup{font=small,labelfont=bf}
+\captionsetup[table]{position=top}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+
+% ---- manajemen overfull ---------------------------------------------------
+% Banyak istilah kode (mis. \code{eblup_sfh_pbmse.cpp:108}) tidak dapat
+% dipecah; emergencystretch + toleransi longgar menjaga paragraf tetap
+% selebar teks tanpa baris meluber ke margin.
+\emergencystretch=5em
+\tolerance=2000
+\hyphenpenalty=200
+\pretolerance=100
+
+\title{\bfseries Laporan Teknis Paket \pkg{fastsae}:\\[4pt]
+  \large Estimasi Area Kecil Frekuentis dan Bayes Berperforma Tinggi di \pkg{R}}
+\author{Laporan otomatis dari pembacaan kode sumber \pkg{fastsae}\\
+  \texttt{https://github.com/ridsonap/fastsae}}
+\date{Oktober 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Laporan ini mendokumentasikan paket R \pkg{fastsae} (v1.0.0) langsung dari
+kodenya: setiap persamaan, algoritma, dan klaim implementasi dibaca dari
+\code{R/}, \code{src/*.cpp}, \code{man/}, \code{vignettes/}, \code{tests/},
+\code{DESCRIPTION} dan \code{README.Rmd}. Bagian pendahuluan menjelaskan masalah
+estimasi area kecil (SAE) dan arsitektur paket; bagian 2 mendeskripsikan inti
+C++ (Fisher scoring, identitas Woodbury, bootstrap OpenMP); bagian 3 melaporkan
+benchmark yang seluruh angkanya dihitung ulang dari \code{inst/extdata/*.rds};
+bagian 4 menyajikan latar statistik; bagian 5 membedah sembilan fungsi model
+(\fct{eblup\_fh}, \fct{eblup\_sfh}, \fct{eblup\_stfh}, \fct{eblup\_bhf},
+\fct{eblup\_twofold}, \fct{hb\_area}, \fct{hb\_unit}, \fct{hb\_twofold} beserta
+utilitasnya) lengkap dengan pseudo-code yang dicocokkan baris demi baris
+terhadap sumber; bagian 6 menjelaskan kerangka Bayes--INLA (GMRF, CAR/ICAR,
+BYM/BYM2, prior PC); bagian 7 membahas utilitas diagnostik dan pemetaan; bagian
+8 berisi derivasi dan reproduktibilitas. Seluruh perbedaan antara implementasi
+dan rumus yang lazim dikutip didaftarkan dalam \code{DISCREPANCIES.md}, dan
+referensi yang tidak dapat diverifikasi didaftarkan dalam
+\code{TODO\_REFERENCES.md}.
+\end{abstract}
+
+\tableofcontents
+{\sloppy
+\listoffigures
+\listoftables}
+\newpage
+
+\input{sections/01_pendahuluan}
+\input{sections/02_desain}
+\input{sections/03_benchmark}
+\input{sections/04_latar_statistik}
+\input{sections/05_fh}
+\input{sections/05_sfh}
+\input{sections/05_stfh}
+\input{sections/05_bhf}
+\input{sections/05_twofold}
+\input{sections/05_hb_area}
+\input{sections/05_hb_unit}
+\input{sections/05_hb_twofold}
+\input{sections/06_bayes}
+\input{sections/07_utilitas}
+\input{sections/08_lampiran}
+
+\bibliography{references}
+
+\end{document}

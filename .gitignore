@@ -25,6 +25,11 @@ Rplots.pdf
 *.log
 *.out
 *.toc
+*.fls
+*.fdb_latexmk
+*.lof
+*.lot
+*.synctex.gz
 .playwright-mcp
 
 # Test & coverage artifacts

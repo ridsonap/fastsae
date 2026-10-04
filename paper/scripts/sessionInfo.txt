@@ -1,0 +1,55 @@
+Tanggal: 2026-10-03 12:36:49 WITA
+
+R version 4.6.1 (2026-06-24)
+Platform: aarch64-apple-darwin23
+Running under: macOS Tahoe 26.6.2
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+
+locale:
+[1] C.UTF-8/UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
+
+time zone: Asia/Makassar
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_4.6.1
+
+=== Versi paket terpasang yang relevan ===
+fastsae        : 1.0.0
+sae            : 1.3
+emdi           : 2.2.3
+tipsae         : 1.0.3
+INLA           : 26.8.7
+lme4           : 2.0.1
+Matrix         : 1.7.5
+Rcpp           : 1.1.2
+RcppArmadillo  : 15.4.2.1
+bench          : 1.1.4
+ggplot2        : 4.0.3
+sf             : 1.1.1
+cli            : 3.6.6
+testthat       : 3.3.2
+covr           : 3.6.5
+
+=== Compiler / platform ===
+               _                           
+platform       aarch64-apple-darwin23      
+arch           aarch64                     
+os             darwin23                    
+system         aarch64, darwin23           
+status                                     
+major          4                           
+minor          6.1                         
+year           2026                        
+month          06                          
+day            24                          
+svn rev        90187                       
+language       R                           
+version.string R version 4.6.1 (2026-06-24)
+nickname       Happy Hop                   

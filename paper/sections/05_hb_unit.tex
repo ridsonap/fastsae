@@ -1,0 +1,175 @@
+% ===========================================================================
+%  Bagian 5.7 -- hb_unit
+% ===========================================================================
+\section{Model hierarki Bayes unit-level: \texttt{hb\_unit}}\label{sec:hbunit}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:hbunit-setting}
+
+Mirip \fct{eblup\_bhf}: dua sumber data --- \code{unit\_data} (mikrodata
+survei) dan \code{Xpop} (ringkasan populasi per domain) --- tetapi inferensinya
+Bayes penuh lewat \pkg{INLA}. \code{popsize\_var} bersifat opsional; bila
+diberikan, prediksi dikombinasikan dengan rata-rata sampel (koreksi populasi
+hingga/fin population). Dibandingkan \fct{hb\_area}, fungsi ini secara eksplisit
+membangkitkan \emph{baris prediksi} untuk setiap domain, sehingga domain tanpa
+sampel selalu ikut dievaluasi. Family yang didukung hanya
+\code{gaussian}, \code{binomial}, \code{poisson}, dan struktur spasial hanya
+\code{none}, \code{bym2}, \code{besag}.
+
+\subsection{Persamaan model}\label{sec:hbunit-model}
+
+\begin{equation}
+  y_{ij}=x_{ij}'\beta+u_i+e_{ij},\qquad
+  u\sim N\bigl(0,\;\tau_u^{-1}Q_u^{-1}\bigr),\qquad
+  e_{ij}\sim\mathcal F,
+  \label{eq:hbunit-model}
+\end{equation}
+dengan $Q_u=\Imat$ (\code{spatial = "none"}, bimod 1), $Q_u=Q_{\text{bym2}}$,
+atau $Q_u=Q_{\text{ICAR}}$ (baris 253-263). Tidak ada \code{Ntrials} maupun
+\code{E} yang dikirim ke \pkg{INLA} (baris 274-282), sehingga binomial
+terbaca sebagai Bernoulli per unit dan Poisson tanpa offset/ekspresi.
+Formula acak yang dirangkai (baris 253-263):
+\begin{lstlisting}[language=R]
+y ~ <fixed_str> + f(..dom_id.., model = 'iid',
+                     hyper = list(prec = prior_prec))
+\end{lstlisting}
+
+\subsection{Prediktor titik}\label{sec:hbunit-prediktor}
+
+Data INLA disusun dari baris sampel ($y$ nyata) \emph{ditambah satu baris
+prediksi per domain dengan} \code{y = NA} (baris 244-249); prediksi dibaca dari
+indeks \code{(n\_sample+1):nrow(combined\_df)} (baris 298):
+\begin{equation}
+  \hat\theta_i=\mathbb E[\mu_i\mid y],\qquad
+  \mathrm{sd}_i=\sqrt{\Var(\mu_i\mid y)},
+  \label{eq:hbunit-pred}
+\end{equation}
+skala respons (superpopulation). Bila \code{popsize\_var} diberikan dan
+$f_d=n_d/N_d$ dihitung (dipangkas ke $[0,1]$, baris 317-319):
+\begin{equation}
+  \hat\theta_d^{\text{adj}}=f_d\,\bar y_{s,d}+(1-f_d)\,\hat\theta_d,
+  \qquad
+  \mathrm{sd}^{\text{adj}}=(1-f_d)\,\mathrm{sd}_d,
+  \qquad
+  \mathrm{CI}=\hat\theta_d^{\text{adj}}\pm1.96\,\mathrm{sd}^{\text{adj}},
+  \label{eq:hbunit-fpc}
+\end{equation}
+dengan penjagaan batas sesuai family (binomial $\to[0,1]$, Poisson $\ge0$;
+baris 322-338). Untuk domain tanpa sampel $f_d=0$, sehingga
+$\hat\theta_d^{\text{adj}}=\hat\theta_d$ --- prediktor murni. Tanpa
+\code{popsize\_var}, kuantil posterior INLA dipakai apa adanya (baris 344-350).
+
+\implnote{Pada jalur \code{popsize\_var}, kolom \code{linear\_pred} tetap
+memuat $\eta$ tanpa koreksi, sementara \code{hb} sudah tercampur
+$ f_d\bar y_s+(1-f_d)\hat\theta$, sehingga keduanya tidak lagi saling invers;
+\code{sd\_adj} dipangkas dengan faktor $(1-f_d)$ --- aproksimasi, bukan hasil
+posterior (HB-19). Jenis interval juga berubah-ubah: kuantil posterior bila
+tanpa \code{popsize\_var}, dan normal $\pm1.96$ bila ada (HB-18).}
+
+\subsection{Estimasi komponen varians}\label{sec:hbunit-varians}
+
+\begin{itemize}
+  \item Prior presisi komponen acak: \code{prior\_prec} default
+        \code{loggamma(0.01, 0.01)} --- \emph{berbeda} dari
+        \fct{hb\_area} dan \fct{hb\_twofold} yang memakai
+        \code{pc.prec(1, 0.01)} (HB-8).
+  \item \code{strategy} default \code{"laplace"}; \code{num.threads} dipaksa
+        \code{"1:1"} dengan pemulihan \code{on.exit} (baris 268-272),
+        sehingga fungsi ini selalu serial.
+  \item \code{control.compute} $=$ \code{dic, waic, cpo, mlik} tanpa
+        \code{config} (baris 280); \code{...} menimpa nama argumen yang sudah
+        ada (baris 283-284), berbeda dengan \fct{hb\_area} yang membentuk
+        daftar ganda dan bisa error (HB-13).
+\end{itemize}
+Estimasi $\hat\sigma_u^2=1/\text{prec}$ dan, untuk Gaussian,
+$\hat\sigma_e^2$ dari baris \code{"Gaussian"} pada
+\code{summary.hyperpar} (baris 378-390); \code{phi} diambil bila ada
+(baris 394-397).
+
+\subsection{Estimasi MSE}\label{sec:hbunit-mse}
+
+\begin{equation}
+  \widehat{\mathrm{MSE}}=\mathrm{sd}^2,
+  \qquad
+  \mathrm{RSE}=100\,\mathrm{sd}/\abs{\hat\theta},
+  \label{eq:hbunit-mse}
+\end{equation}
+dengan $\mathrm{sd}$ sudah melalui \eqref{eq:hbunit-fpc} bila
+\code{popsize\_var} diberikan (baris 412-413). Varian empiris direktor
+untuk keperluan pelaporan diestimasi dari data: Gaussian $\to$
+$\hat\sigma_e^2/n_d$, binomial $\to\bar p(1-\bar p)/n$, Poisson
+$\to\bar y/n$ (baris 401-409). Tidak ada posterior sampling di fungsi ini.
+
+\subsection{Pseudo-code}\label{sec:hbunit-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{hb\_unit} --- alur sebenarnya (\texttt{R/hb\_unit.R:124-480})}
+\label{alg:hbunit}
+\KwIn{formula, \code{unit\_data}, \code{Xpop}, \code{domain\_var},
+  \code{popsize\_var}, \code{family}, \code{spatial}, $W$,
+  \code{popnmean\_xpop}, \code{strategy}, prior, \code{...}}
+\KwOut{objek \code{fastsae\_hb\_unit} berisi \code{df\_hb}, \code{fit}, \code{goodness}}
+\texttt{.check\_inla\_installed()} (142);\quad \code{match.arg} (144-146)\;
+sampel $\leftarrow$ \texttt{model.frame(na.omit)}; $y_s\leftarrow$ respons (172-178)\;
+\code{all\_domains} $\leftarrow$ \texttt{unique(Xpop[[domain\_var]])}\;
+\textbf{gagal} bila ada domain sampel tanpa di \code{Xpop} (191-196)\;
+\code{unsampled\_domains} $\leftarrow$ \texttt{setdiff(all\_domains, unique(dom\_s))} (199)\;
+bila \code{nrow(Xpop)} $>$ jumlah domain: agregasi \code{mean} per domain (202-214)\;
+\code{meanxpop} $\leftarrow$ \texttt{model.matrix} atas ringkasan domain (217-224)\;
+$W\leftarrow$ \texttt{.convert\_spatial\_weights} (228-232)\;
+data INLA $\leftarrow$ baris sampel $+$ \textbf{1 baris \code{y = NA}} per domain (244-249)\;
+formula $\leftarrow$ \code{y \textasciitilde{} <fixed> + f(..dom\_id.., ...)} (253-263)\;
+\texttt{num.threads} $\leftarrow$ \code{"1:1"} (dipulihkan via \code{on.exit}) (268-272)\;
+\code{fit} $\leftarrow$ \texttt{do.call(INLA::inla, ...)} (287-295)\;
+$\hat\theta,\mathrm{sd},\mathrm{CI}\leftarrow$ prediksi indeks \code{(n\_sample+1):n} (298-306)\;
+\If{\code{popsize\_var} diberikan}{$f_d\leftarrow$ \eqref{eq:hbunit-fpc};
+  $\hat\theta^{\text{adj}},\mathrm{sd}^{\text{adj}},\mathrm{CI}\leftarrow$ (315-343)}
+\uElse{CI $\leftarrow$ kuantil INLA (344-350)}\;
+$\mathrm{MSE},\mathrm{RSE}\leftarrow$ \eqref{eq:hbunit-mse} (412-413)\;
+$\hat\sigma_u^2\leftarrow1/\text{prec}$; \code{phi}; \code{goodness} = list(DIC, WAIC, $mlik$) (378-477)\;
+kelas \code{c("fastsae\_hb\_unit","fastsae\_hb","fastsae")} (471)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:hbunit-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{hb\_unit} (\texttt{R/hb\_unit.R:124-140}).}]
+hb_unit(formula, unit_data, Xpop, domain_var, popsize_var = NULL,
+        family = c("gaussian","binomial","poisson"),
+        spatial = c("none","bym2","besag"),
+        W = NULL, popnmean_xpop = NULL,
+        strategy = c("laplace","simplified.laplace"),
+        scale_model = TRUE,
+        prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
+        prior_phi  = list(prior = "pc", param = c(0.5, 0.5)),
+        print_result = TRUE, ...)
+\end{lstlisting}
+
+Objek keluaran: \code{c("fastsae\_hb\_unit", "fastsae\_hb", "fastsae")} berisi
+\code{df\_hb} (termasuk \code{samp\_size}, \code{pop\_size}, \code{f},
+\code{hb\_adj}, \code{sd\_adj} bila \code{popsize\_var} ada), \code{fit},
+\code{hyperpar}, \code{goodness} berupa \code{list(dic, p\_eff\_dic, waic,
+p\_eff\_waic, mlik)}, \code{random\_effect\_var},
+\code{unsampled\_domains}, \code{method}, \code{call}, \code{data}.
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/hb\_unit.Rd}).}]
+library(fastsae)
+data(cornsoybean); data(cornsoybeanmeans)
+
+df_pop <- cornsoybeanmeans
+names(df_pop)[names(df_pop) == "MeanCornPixPerSeg"]   <- "CornPix"
+names(df_pop)[names(df_pop) == "MeanSoyBeansPixPerSeg"] <- "SoyBeansPix"
+df_sample <- cornsoybean
+names(df_sample)[names(df_sample) == "County"] <- "CountyIndex"
+
+fit_hb_u <- hb_unit(formula = CornHec ~ CornPix + SoyBeansPix,
+                    unit_data = df_sample, Xpop = df_pop,
+                    domain_var = "CountyIndex",
+                    popsize_var = "PopnSegments")
+print(fit_hb_u)
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:hbunit-ref}
+
+Blok roxygen fungsi ini memuat \citet{battese1988error} (struktur unit-level),
+\citet{rao2015small}, \citet{riebler2016intuitive}, dan
+\citet{rue2009approximate} (\code{R/hb\_unit.R:83-94}); kerangka INLA
+dirujuk ke \citet{lindgren2015bayesian}.

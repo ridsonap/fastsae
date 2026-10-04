@@ -1,0 +1,334 @@
+% ===========================================================================
+%  Bagian 8 -- Lampiran
+% ===========================================================================
+\appendix
+
+\section{Derivasi identitas Woodbury dan penerapannya}\label{app:woodbury}
+
+\paragraph{Identitas.} Untuk matriks yang saling kompatibel,
+\begin{equation}
+  (\Vm_A+\Zmat\mathbf G\Zmat')^{-1}
+  =\Vm_A^{-1}-\Vm_A^{-1}\Zmat
+   \bigl(\mathbf G^{-1}+\Zmat'\Vm_A^{-1}\Zmat\bigr)^{-1}
+   \Zmat'\Vm_A^{-1},
+  \label{eq:woodbury-gen}
+\end{equation}
+dan log-determinannya
+\begin{equation}
+  \log\abs{\Vm_A+\Zmat\mathbf G\Zmat'}
+  =\log\abs{\Vm_A}+\log\abs{\mathbf G}
+   +\log\abs{\mathbf G^{-1}+\Zmat'\Vm_A^{-1}\Zmat}.
+  \label{eq:woodbury-logdet}
+\end{equation}
+\emph{Bukti singkat:} tulis $\Vm_A+\Zmat\mathbf G\Zmat'=
+[\Imat\ \ \Zmat]\begin{pmatrix}\Vm_A&0\\0&\mathbf G\end{pmatrix}
+\begin{pmatrix}\Imat\\ \Zmat'\end{pmatrix}$ dan pakai rumus invers blok
+(\eqref{eq:woodbury-gen} adalah kasus $C=\mathbf G$, $U=\Zmat$); untuk
+\eqref{eq:woodbury-logdet} pakai determinan matriks blok pada representasi
+yang sama. Kasus khusus $\mathbf G=\gamma\Imat$ berkurang ke
+Sherman--Morrison,
+\begin{equation}
+  (\Vm_A+\gamma z z')^{-1}=\Vm_A^{-1}
+  -\frac{\gamma\,\Vm_A^{-1}zz'\Vm_A^{-1}}{1+\gamma z'\Vm_A^{-1}z}.
+  \label{eq:sm}
+\end{equation}
+
+\paragraph{Penerapan pada \texttt{fastsae}.} Tabel~\ref{tab:woodbury} mencatat
+persis di mana identitas ini dipakai, dan di mana ia \emph{tidak} dipakai
+(padahal strukturnya memungkinkan).
+
+\begin{table}[htbp]
+\centering
+\caption{Pemakaian identitas Woodbury di dalam paket. Sumber: baris kode
+yang dikutip pada kolom terakhir.}
+\label{tab:woodbury}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.4cm}
+  >{\raggedright\arraybackslash}X
+  >{\raggedright\arraybackslash}p{5.0cm}@{}}
+\toprule
+Fungsi & Bentuk pemakaian & Lokasi \\
+\midrule
+\code{eblup\_stfh} &
+  $\Vm_A=\diag$ blok $T\times T$ per domain, $\mathbf G=\sigma_1^2\Omega_1$,
+  $\Zmat=Z_1$; $\mathbf C$ berdimensi $D\times D$ &
+  \code{eblup\_stfh\_core.cpp:90-153} \\
+\code{eblup\_twofold} &
+  per blok area: $V_d=\sigma_v^2\ones\ones'+\diag(\sigma_u^2+\psi_d)$,
+  kasus \eqref{eq:sm} dengan $z=\ones$ &
+  \code{eblup\_twofold.cpp:98-108, 345-350} \\
+\code{eblup\_hb\_---} & --- (diatasi \pkg{INLA} lewat Cholesky sparse) & --- \\
+\code{eblup\_fh}, \code{eblup\_sfh} & \textbf{tidak dipakai}: $V$ diinversi
+  penuh $m\times m$ dengan \code{inv\_sympd}/\code{pinv} &
+  \code{eblup\_fh.cpp}, \code{eblup\_sfh\_core.cpp:318-320} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{STFH.} Dengan $\Vm_A$ blok diagonal per domain,
+        $\Vm_A^{-1}Z_1$ dan $Z_1'\Vm_A^{-1}Z_1$ dihitung per blok, lalu
+        \eqref{eq:woodbury-gen} dengan $\mathbf G=\sigma_1^2\Omega_1$ memberi
+        $\Vm^{-1}$ dengan biaya $O(D\,T^2)+O(D^3)$ alih-alih $O((DT)^3)$;
+        \eqref{eq:woodbury-logdet} menurunkan $\log\abs{\Vm}$ dari
+        $O((DT)^3)$ menjadi $O(D\,T^3)+O(D^3)$. Catatan: $\mathbf C$ yang
+        muncul di kode adalah
+        $\mathbf C=\sigma_1^{-2}\Omega_1^{-1}+\diag(Z_1'\Vm_A^{-1}Z_1)$,
+        ekuivalen dengan \eqref{eq:woodbury-gen} setelah kedua sisi
+        dikalikan $\sigma_1^2$.
+  \item \textbf{Two-fold.} Karena $\sigma_v^2\ones\ones'$ berderajat 1,
+        \eqref{eq:sm} dipakai per area dengan
+        $d=1/(\sigma_u^2+\psi_d)$, $s=\sum_i d_i$ dan
+        $c=\sigma_v^2/(1+\sigma_v^2 s)$ (kode \code{dd}, \code{s},
+        \code{c}), sehingga $V_d^{-1}a=d\odot a-c\,d(d'a)$ --- biaya
+        $O(n_d)$ per blok.
+  \item \textbf{Memori.} Bahkan dengan Woodbury, $\Vm^{-1}$, $P$, dan
+        matriks turunan disimpan penuh, sehingga jejak memori tetap
+        $O(M^2)$; yang dihemat hanyalah flops inversi dan log-determinan.
+\end{itemize}
+
+\section{Derivasi skor dan informasi Fisher (ML dan REML)}\label{app:score}\label{sec:derivasi}
+
+Misalkan $y\sim N(\Zmat\beta,\Vm(\theta))$ dengan
+$\theta\in\{\sigma^2,\rho,\ldots\}$ dan
+$D_a=\partial\Vm/\partial\theta_a$. Dari
+$\ell=-\tfrac12\bigl[n\log2\pi+\log\abs{\Vm}
++(\beta-\beta)'\Xmat'\Vm^{-1}\Xmat(\ldots)+r'\Vm^{-1}r\bigr]$ dengan
+$r=y-\Xmat\betah$ dan
+$\betah=(\Xmat'\Vm^{-1}\Xmat)^{-1}\Xmat'\Vm^{-1}y$, turunan parsial memakai
+$\partial\Vm^{-1}/\partial\theta_a=-\Vm^{-1}D_a\Vm^{-1}$ memberi
+\begin{equation}
+  s_a=\frac{\partial\ell}{\partial\theta_a}
+  =-\tfrac12\tr(\Vm^{-1}D_a)+\tfrac12 r'\Vm^{-1}D_a\Vm^{-1}r
+  \qquad\text{(ML)}.
+  \label{eq:score-ml}
+\end{equation}
+Estimasi terbatas (REML) memakai residual berbentuk
+$P r$ dengan $P=\Vm^{-1}-\Vm^{-1}\Xmat Q\Xmat'\Vm^{-1}$ (yang membatalkan
+komponen desain), sehingga
+\begin{equation}
+  s_a^{\text{REML}}
+  =-\tfrac12\tr(P D_a)+\tfrac12 y'P D_a P y,
+  \qquad
+  \mathcal I_{ab}^{\text{REML}}=\tfrac12\tr(P D_a P D_b),
+  \label{eq:score-reml}
+\end{equation}
+dan $\mathcal I_{ab}^{\text{ML}}=\tfrac12\tr(\Vm^{-1}D_a\Vm^{-1}D_b)$.
+Yang dikodekan: untuk \code{eblup\_sfh} dan \code{eblup\_stfh},
+\eqref{eq:score-reml} dipakai apa adanya bila \code{method = "REML"};
+untuk \code{method = "ML"} pada SFH, baris tracenya memakai $\Vm^{-1}$
+tetapi kuadratiknya masih $y'PDPy$ --- persis implementasi yang menjadi
+temuan SFH-1. Untuk \code{eblup\_twofold} kedua bentuk ditulis
+terpisah dalam \eqref{eq:tf-score-reml} dan \eqref{eq:tf-info-reml}.
+
+\paragraph{Langkah iterasi.} Karena $\ell$ tidak konkav linear pada
+$\theta$, digunakan langkah Newton--Fisher
+$\Delta=\mathcal I^{-1}s$ (dengan pembakuan \code{solve} dan fallback
+\code{pinv} bila singular), diikuti pembatasan domain parameter
+($\rho$ diklem $\pm0.999$, $\sigma^2\ge0$) dan pemberhentian berdasarkan
+galat relatif $\max_a\abs{\Delta_a/(\theta_a+10^{-12})}\le10^{-4}$.
+Galat baku komponen ragam diambil dari $\sqrt{\mathrm{diag}(\mathcal I^{-1})}$
+pada informasi final.
+
+\paragraph{Turunan $D_a$ yang dipakai.} Untuk SFH/STFH dengan
+$A=(\Imat-\rho\Wmat')'(\Imat-\rho\Wmat)$,
+\begin{equation}
+  \frac{\partial A}{\partial\rho}=-(\Wmat+\Wmat')+2\rho\Wmat'\Wmat,
+  \qquad
+  \frac{\partial G}{\partial\rho}
+  =-\sigma^2A^{-1}\frac{\partial A}{\partial\rho}A^{-1},
+  \qquad
+  \frac{\partial G}{\partial\sigma^2}=A^{-1},
+  \label{eq:deriv-D}
+\end{equation}
+dan pada dua-fold dua turunan hanya terhadap $\sigma_v^2$ dan $\sigma_u^2$
+lewat $\partial V_d/\partial\sigma_v^2=\ones\ones'$,
+$\partial V_d/\partial\sigma_u^2=\Imat$ (matriks identitas pada blok $d$).
+
+\section{Derivasi suku-suku MSE (g1, g2, g3, g4)}\label{app:g}
+
+\paragraph{Dekomposisi galat prediktor.} Dengan $G=\sigma^2A^{-1}$,
+$\Vm=G+\Psi$ ($\Psi=\diag(\psi)$), dan prediktor
+$\hat\theta=\Zmat\betah+G\Vm^{-1}(y-\Zmat\betah)$, tulis
+$y=\Zmat\beta+\theta+e$. Menggunakan $\Vm^{-1}\Psi=\Imat-\Vm^{-1}G$ dan
+$\Psi\Vm^{-1}=\Imat-G\Vm^{-1}$:
+\begin{equation}
+  \hat\theta-\theta
+  =\underbrace{(\Imat-G\Vm^{-1})\Zmat(\betah-\beta)}_{\text{galat }\beta}
+   +\underbrace{G\Vm^{-1}e-\Psi\Vm^{-1}\theta}_{\text{galat }u,\,e}.
+  \label{eq:mse-decomp}
+\end{equation}
+\paragraph{$g_1$.} Dari suku kedua (kosinus nol karena $e\perp\theta$):
+\begin{align}
+  \Var(G\Vm^{-1}e-\Psi\Vm^{-1}\theta)
+  &=G\Vm^{-1}\Psi\Vm^{-1}G+\Psi\Vm^{-1}G\Vm^{-1}\Psi\notag\\
+  &=\underbrace{G\Vm^{-1}\Psi\Vm^{-1}G}_{A\Psi A',\ A=G\Vm^{-1}}
+    +\underbrace{(\Imat-A)G(\Imat-A)'}_{\text{perluasan}}\notag\\
+  &=G\Vm^{-1}G-G\Vm^{-1}G\Vm^{-1}G+G-2G\Vm^{-1}G+G\Vm^{-1}G\Vm^{-1}G\notag\\
+  &=G-G\Vm^{-1}G,
+  \label{eq:g1-deriv}
+\end{align}
+sehingga $g_1=\diag\bigl(G-G\Vm^{-1}G\bigr)$ --- bentuk yang persis
+dikodekan (\code{Ga = G - GVi * G}).
+
+\paragraph{$g_2$.} Dari suku pertama \eqref{eq:mse-decomp} dengan
+$\Var(\betah-\beta)=Q=(\Xmat'\Vm^{-1}\Xmat)^{-1}$:
+\begin{equation}
+  g_2=\diag\bigl(R\,Q\,R'\bigr),\qquad R=(\Imat-G\Vm^{-1})\Zmat
+  \quad(\text{kode: }R=X-GV^{-1}X).
+  \label{eq:g2-deriv}
+\end{equation}
+
+\paragraph{$g_3$ (ketidakpastian parameter ragam).} Karena $G$ bergantung
+pada $\theta$, tulis $\hat\theta_i(\hat\theta)\approx\hat\theta_i(\theta)
++\xi_i'(\hat\theta_{\text{param}}-\theta)$ dengan
+$\Var(\hat\theta_{\text{param}})\approx\mathcal I^{-1}$, sehingga
+\begin{equation}
+  g_3(i)=\xi_i'\mathcal I^{-1}\xi_i
+  =\sum_{a,b}(\mathcal I^{-1})_{ab}\,\xi_{ia}\xi_{ib}.
+  \label{eq:g3-structure}
+\end{equation}
+Kode SFH mengekspresikan bentuk ini lewat $l_1=\Vm^{-1}D_1-\sigma^2
+\Vm^{-1}D_1\Vm^{-1}D_1$ dan $l_2=\Vm^{-1}D_2-\sigma^2\Vm^{-1}D_2
+\Vm^{-1}D_1$ ($D_1=\Imat$, $D_2=\partial\Vm/\partial\rho$): dengan
+$L_i$ matriks $2\times m$ yang barisnya adalah $l_{1i}'$ dan $l_{2i}'$,
+\begin{equation}
+  g_3(i)=\tr\bigl(L_i\,\Vm\,L_i'\,\mathcal I^{-1}\bigr)
+  =\sum_{a,b}(\mathcal I^{-1})_{ab}\,l_{ai}'\Vm l_{bi},
+  \label{eq:g3-sfh}
+\end{equation}
+identik dengan \eqref{eq:g3-structure} melalui
+$\xi_{a}{}'\xi_{b}=l_{a}'\Vm l_{b}$. Untuk FH (satu parameter) ini
+meluruh menjadi $g_3=\VarA\cdot(\text{derivative-squared})$ seperti
+ditulis pada \eqref{eq:g1g2g3}.
+
+\paragraph{$g_4$ (koreksi orde keempat, hanya SFH).} Suku ini berasal dari
+estimasi $\Psi$ (varian direktor) yang juga tidak diketahui; kode
+membangun $D=\bigl(\Psi\Vm^{-1}D_{12}\bigr)(\mathcal I^{-1}_{01}
++\mathcal I^{-1}_{10})+\bigl(\Psi\Vm^{-1}D_{22}\bigr)\mathcal I^{-1}_{11}$
+dengan $D_{12}=-\partial^2A/\partial\rho^2\cdot$-faktor dan
+$D_{22}$ orde kedua pada $\rho$, lalu $g_4(i)=\tfrac12 D_{ii}$. Totalnya
+\eqref{eq:sfh-mse}: $g_1+g_2+2g_3-g_4$; untuk dua-fold faktor dua sudah
+termasuk di dalam $g_3$ sehingga totalnya $g_1+g_2+g_3$
+(\eqref{eq:tf-mse}), sesuai komentar kode.
+
+\paragraph{Domain tanpa sampel.} Karena tidak ada informasi langsung,
+$g_2$ menjadi $x_{ns}'Qx_{ns}$ (baris estimasi langsung dari $Q$) dan
+$g_3$ tidak dapat dihitung (tidak ada pasangan $y,\hat\theta$), sehingga
+\begin{equation}
+  \widehat{\mathrm{MSE}}(\hat\theta_{ns})=g_{1,ns}+g_{2,ns}
+  \quad\text{(FH/SFH)},
+  \label{eq:g-unsampled}
+\end{equation}
+sementara bentuk yang dikodekan dua-fold untuk sub-area tak-sampel adalah
+$g_1^\ast+g_2^\ast+g_3^\ast$ (baris 445-464) karena $g_3^\ast$ hanya
+bergantung pada parameter ragam yang tetap diketahui.
+
+\paragraph{Catatan dua-fold.} Komentar kode \code{eblup\_twofold.cpp:19-24}
+menyatakan bahwa pendekatan $g_3$ matriks menggantikan rumus tertutup
+\citet{torabi2014small} (persamaan 3.4) karena suku $[A][B]$ dianggap
+semu; pendekatan itu divalidasi dengan turunan beda pemisah (korelasi
+0,97/0,96/0,74 terhadap uji numerik). Laporan ini memperlakukannya sebagai
+perbedaan implementasi TFH-1, bukan sebagai kekeliruan yang diverifikasi
+ulang di sini.
+
+\section{Glosarium}\label{app:glosarium}
+
+Tabel~\ref{tab:glosarium} menautkan istilah, simbol, dan nama di kode.
+
+\begin{table}[htbp]
+\centering
+\caption{Glosarium tiga arah: istilah --- simbol --- nama di kode.}
+\label{tab:glosarium}
+\small
+\begin{tabular}{@{}p{3.2cm} p{3.4cm} p{7.4cm}@{}}
+\toprule
+Istilah & Simbol & Nama di kode \\
+\midrule
+Estimasi BLUP empirik & $\hat\theta_d$ & \code{eblup}, \code{hb}, \code{ebp} \\
+Varians direktor & $\psi_d$ & \code{vardir} \\
+Fungsi presisi spasial & $A$ & \code{A} (\code{eblup\_sfh\_core.cpp:311}) \\
+Matriks proyeksi & $P$ & \code{P} = \code{Vi - XtVi.t()*Q*XtVi} \\
+Matriks info Fisher & $\mathcal I$ & \code{Idev} (SFH), \code{F} (STFH), \code{I} (FH) \\
+Korelasi spasial (SAR) & $\rho$ & \code{rho}, \code{rho\_fix} \\
+Fraksi spasial BYM2 & $\varphi$ & \code{phi} (\code{hyperpar}) \\
+Fraksi sampel & $f_d=n_d/N_d$ & \code{f}, \code{ratio} (BHF) \\
+Suku $g$ MSE & $g_1,\ldots,g_4$ & \code{g1d}, \code{g2d}, \code{g3d}, \code{g4d} \\
+Galat mutlak relatif & RSE & \code{rse} ($100\sqrt{\mathrm{mse}}/\abs{\hat\theta}$) \\
+Domain tanpa sampel & $I_{ns}$ & \code{find\_nonfinite(y)}, \code{unsampled\_domains} \\
+Inversi Woodbury & \eqref{eq:woodbury-gen} & variabel \code{C} (STFH), \code{dd/s/c} (two-fold) \\
+Aproksimasi Laplace & --- & \code{strategy} pada \code{INLA::inla} \\
+Prior PC & \eqref{eq:pc-prec} & \code{prior\_prec = list(prior="pc.prec", ...)} \\
+Graf ketetanggaan & $W$, $Q$ & \code{W}, \code{graph} (\code{inla.graph}) \\
+Indeks domain (0-based) & --- & \code{domain\_idx}, \code{area\_idx} \\
+Kelas hasil & --- & \code{"fastsae"}, \code{"fastsae\_hb"}, \code{"fastsae\_benchmark"} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Reproduksi angka dan gambar dalam laporan ini}\label{app:repro}
+
+Seluruh tabel dan gambar di bagian~\ref{sec:benchmark} dihasilkan ulang
+dari data mentah di \code{inst/extdata} oleh dua skrip; tidak ada angka
+benchmark yang diketik manual.
+\begin{lstlisting}[language=R,caption={Perintah regenerasi (dikerjakan dari direktori \texttt{paper/}).}]
+# 1. tabel (.tex berisi lingkungan float lengkap) -> paper/tables/
+Rscript scripts/01_tables.R
+
+# 2. gambar log-scale -> paper/figures/
+Rscript scripts/02_figures.R
+
+# 3. laporan
+latexmk -pdf main.tex          # atau: latexmk -pdf -jobname=fastsae_technical_report main.tex
+\end{lstlisting}
+Setiap \code{\string\caption} hasil skrip menyertakan baris
+\emph{Sumber:} yang menunjuk berkas \code{.rds} sumber, dan
+setiap angka diformat \code{formatC(format="g", digits=6)}, sehingga
+perbedaan pembulatan antara laporan ini dan README dapat ditelusuri ke
+skrip, bukan ke pengetikan.
+
+\paragraph{Lingkungan eksekusi.} Kutipan \code{sessionInfo()} yang berlaku
+untuk pembuatan laporan ini tersimpan di
+\code{scripts/sessionInfo.txt}; ringkasannya:
+\begin{itemize}
+  \item R 4.6.1 (2026-06-24), \code{aarch64-apple-darwin23},
+        macOS Tahoe 26.6.2, zona waktu \code{Asia/Makassar};
+  \item paket: \code{fastsae} 1.0.0, \code{sae} 1.3, \code{emdi} 2.2.3,
+        \code{tipsae} 1.0.3, \code{INLA} 26.8.7, \code{lme4} 2.0.1,
+        \code{Matrix} 1.7.5, \code{Rcpp} 1.1.2,
+        \code{RcppArmadillo} 15.4.2.1, \code{bench} 1.1.4,
+        \code{ggplot2} 4.0.3, \code{sf} 1.1.1, \code{cli} 3.6.6,
+        \code{testthat} 3.3.2, \code{covr} 3.6.5.
+\end{itemize}
+
+\paragraph{Yang tidak dapat direproduksi dari repo.}
+Berdasarkan pemeriksaan terhadap \code{inst/extdata} dan
+\code{benchmarks/} (bagian~\ref{sec:benchmark}, temuan DOC-11):
+\begin{itemize}
+  \item empat berkas --- \code{eblup\_benchmark.rds},
+        \code{seblup\_benchmark.rds}, \code{steblup\_benchmark.rds},
+        \code{beta\_estimates\_n1000.rds} --- tidak memiliki skrip
+        pembuat di repo, sehingga isinya tidak dapat dibangkitkan ulang;
+  \item jumlah iterasi nyata sebagian besar run tidak tercatat di dalam
+        berkas (hanya \code{n\_iter} hasil \code{bench::mark});
+  \item jenis CPU, jumlah thread, dan \code{OMP\_NUM\_THREADS} tidak pernah
+        direkam oleh skrip mana pun, sehingga angka waktu hanya dapat
+        dibandingkan \emph{di dalam} satu berkas yang sama;
+  \item memori yang dilaporkan adalah total alokasi \code{bench::mark()\$mem\_alloc},
+        bukan puncak RSS (label ``Peak'' pada dokumen lain salah).
+\end{itemize}
+Untuk pengujian unit dan cakupan kode, perintah yang dipakai pada
+pengembangan paket adalah:
+\begin{lstlisting}[language=R]
+# unit test (membutuhkan GCC/Homebrew untuk gcov bila ingin cakupan)
+R CMD build . && R CMD check fastsae_*.tar.gz
+# cakupan: hasilnya disimpan sebagai cov_res.rds, lalu
+# covr::tally_coverage(readRDS("cov_res.rds"))
+\end{lstlisting}
+
+\paragraph{Referensi yang tidak dapat diverifikasi.}
+Daftar lengkap entri yang ada di blok \code{@references} kode tetapi tidak
+dapat diverifikasi (Steorts et al.\ 2014; Brown et al.\ 2001; Cliff \&
+Ord 1981) beserta dua koreksi judul/tahun terhadap teks kode terdapat di
+\code{TODO\_REFERENCES.md}; seluruh perbedaan implementasi terkumpul di
+\code{DISCREPANCIES.md}.

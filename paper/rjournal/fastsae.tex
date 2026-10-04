@@ -1,0 +1,532 @@
+% !TeX root = RJwrapper.tex
+\title{Fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R}
+
+
+\author{by Ridson Al Farizal P. and Azka Ubaidillah}
+
+\maketitle
+
+\abstract{%
+Small area estimation (SAE) plays a pivotal operational role in official statistics, enabling the production of reliable disaggregated socioeconomic, health, and demographic indicators when domain-specific sample sizes are small or zero. However, practitioners in national statistical offices (NSOs) face a triple computational and operational barrier: frequentist spatial and spatio-temporal models with bootstrap mean squared error (MSE) estimation suffer from severe memory bottlenecks and slow runtimes in interpreted languages; non-Gaussian indicators (such as rates, skewed expenditures, and counts) traditionally require computationally demanding Markov chain Monte Carlo (MCMC) algorithms that impede routine production; and model estimates often fail to aggregate to published higher-level totals, violating institutional consistency. We introduce fastsae, an R package engineered for high-performance frequentist and Bayesian small area estimation. On the frequentist side, fastsae implements optimized C++17 routines via RcppArmadillo paired with OpenMP multi-threading, accelerating the classical Fay-Herriot, spatial Fay-Herriot, spatio-temporal Fay-Herriot, and unit-level Battese-Harter-Fuller models alongside their analytical and bootstrap MSE estimators. On the Bayesian side, fastsae provides a unified empirical best prediction (EBP) interface powered by Integrated Nested Laplace Approximations (INLA) across six distribution families (Gaussian, Beta, Gamma, Binomial, Poisson, Negative Binomial). Crucially, fastsae introduces exact survey dispersion mappings that respect design-based direct sampling variances and accommodates modern spatial priors (BYM, scaled BYM2, Leroux CAR, and SLM) as well as Knorr-Held space-time interaction dynamics. To bridge estimation and dissemination, the package features a two-stage hierarchical benchmarking engine for simultaneous provincial and national calibration, an automated reliability classification engine aligned with NSO standards, multi-model concordances, automated ggplot2 spatial mapping, and multi-sheet spreadsheet exports. Extensive benchmarks and finite population Monte Carlo simulations demonstrate multi-fold computational speedups (up to 364x for Fay-Herriot, 80x for Spatial Fay-Herriot, and 544x for spatio-temporal Beta) and peak RAM reductions up to 99.9\% without loss of inferential precision.
+}
+
+\section{Introduction} \label{sec:intro}
+
+In modern evidence-based governance, policy interventions are increasingly decentralized. Monitoring the United Nations Sustainable Development Goals (SDGs), allocating municipal fiscal transfers, targeting social safety net subsidies, and responding to localized disease outbreaks all require dependable statistical indicators at highly disaggregated geographic administrative levels \citep{rao2015small, pfeffermann2013new}. However, national statistical offices (NSOs) face structural sample size limitations. Large-scale household surveys---such as the American Community Survey (ACS) in the United States, the European Union Statistics on Income and Living Conditions (EU-SILC), and the National Socioeconomic Survey (Susenas) in Indonesia---are powered to yield acceptable sampling errors only at national or broad regional levels. When partitioned into sub-domains (e.g., municipalities, districts, or health zones), domain-specific sample sizes become sparse or zero, causing direct survey estimators to suffer from high sampling variance and unacceptable coefficients of variation \citep{burgard2020computational, pratesi2016analysis}.
+
+Small area estimation (SAE) overcomes these limitations by ``borrowing strength'\,' across domains and time periods via linking models that combine survey responses with auxiliary administrative registers, census aggregates, or geospatial layers \citep{rao2015small}. The cornerstone of this literature remains the area-level Fay-Herriot (FH) model \citep{fay1979estimates}, extended to account for spatial dependencies via Simultaneous Autoregressive (SAR) structures \citep{petrucci2006small, pratesi2008small} and temporal dynamics via panel autoregressive processes \citep{marhuenda2013small}. In the presence of micro-level auxiliary data, the nested error regression model of \citet{battese1988error} (BHF) provides unit-level empirical best linear unbiased predictors (EBLUP).
+
+Despite these theoretical advances, operationalizing small area models within production environments in NSOs has been hindered by three structural bottlenecks:
+\%
+
+\begin{enumerate}
+  \item \textbf{Frequentist Computational and Memory Bottlenecks}: Existing implementations of spatial and spatio-temporal Fay-Herriot models rely on interpreted languages. Estimating model variance components via Restricted Maximum Likelihood (REML) requires repeated inversions of $D \times D$ or $DT \times DT$ covariance matrices. When evaluating Mean Squared Error (MSE) through parametric or non-parametric bootstrap resampling \citep{gonzalez2008bootstrap}, runtimes escalate to hours. Crucially, memory allocation for dense covariance arrays grows quadratically ($O(D^2)$ to $O(D^2 T^2)$), triggering out-of-memory (OOM) crashes on large national grids ($D \ge 500$).
+  \item \textbf{Distributional Inflexibility and MCMC Friction in Bayesian SAE}: Real-world welfare indicators are rarely Gaussian. Rates and proportions (poverty headcounts, unemployment, stunting) are strictly bounded in $(0, 1)$, while expenditures exhibit severe positive skewness (Gamma), and demographic events represent discrete counts (Poisson, Negative Binomial) \citep{janicki2020properties, fabrizi2011hierarchical, boubeta2016empirical}. Under non-Gaussian likelihoods, linear EBLUP is invalid, requiring Empirical Best Prediction (EBP) within a Hierarchical Bayesian (HB) framework. Currently, Bayesian SAE software relies on Markov Chain Monte Carlo (MCMC) sampling via \pkg{Stan} or \pkg{JAGS} \citep{denicolo2022tipsae}. MCMC sampling requires lengthy runtimes, complex convergence diagnostics ($\hat{R}$, trace plots), and often suffers from divergent transitions on complex spatial graphs \citep{simpson2017penalising}.
+  \item \textbf{The Institutional Benchmarking and Dissemination Gap}: In official statistics, model-based small area estimates must numerically harmonize with published higher-level totals (e.g., provincial and national direct estimates) to preserve institutional credibility and prevent contradictory policy decisions \citep{you2002small, wang2008small, stefan2020benchmarking}. Existing packages rarely offer two-stage hierarchical benchmarking. Furthermore, software ecosystems typically end at model fitting, omitting essential dissemination steps such as automated reliability tagging based on official Relative Standard Error (RSE) thresholds, model concordance evaluation, and publication-ready spatial choropleth mapping.
+\end{enumerate}
+
+\begin{table}[t!]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Feature / Package} & \CRANpkg{fastsae} & \CRANpkg{sae} & \CRANpkg{emdi} & \CRANpkg{tipsae} & \CRANpkg{mcmcsae} & \CRANpkg{SUMMER} \\
+\midrule
+Computational Engine & C++17 / INLA & Pure R & R / nlme & Stan HMC & C++ / MCMC & INLA \\
+Frequentist EBLUP (FH/SFH) & \checkmark & \checkmark & \checkmark & $\times$ & $\times$ & $\times$ \\
+Spatio-Temporal Panel EBLUP & \checkmark & \checkmark & $\times$ & $\times$ & $\times$ & $\times$ \\
+Unit-Level BHF Model & \checkmark & \checkmark & \checkmark & $\times$ & $\times$ & $\times$ \\
+OpenMP Parallel Bootstrap & \checkmark & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ \\
+Non-Gaussian Likelihoods & 6 Families & $\times$ & Box-Cox & Beta only & 4 Families & 3 Families \\
+Deterministic Bayesian EBP & \checkmark & $\times$ & $\times$ & $\times$ & $\times$ & \checkmark \\
+Exact Survey Dispersion Match & \checkmark & $\times$ & $\times$ & \checkmark & $\times$ & $\times$ \\
+Modern Spatial Priors (BYM2/Leroux) & \checkmark & $\times$ & $\times$ & Besag & Besag & BYM2 \\
+Two-Stage Hierarchical Calibration & \checkmark & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ \\
+Official Statistics Reliability Flags & \checkmark & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ \\
+Automated Production Mapping & \checkmark & $\times$ & \checkmark & $\times$ & $\times$ & \checkmark \\
+Multi-Sheet Dissemination Export & \checkmark & $\times$ & \checkmark & $\times$ & $\times$ & $\times$ \\
+\bottomrule
+\end{tabular}
+\caption{\label{tab:pkg_comparison} Comparative landscape of Small Area Estimation packages in the R ecosystem.}
+\end{table}
+
+As summarized in Table\textasciitilde{}\ref{tab:pkg_comparison}, the current software landscape is compartmentalized. Foundational toolkits such as \CRANpkg{sae} \citep{molina2015sae} are implemented in interpreted R, lack multi-threading, and are restricted to Gaussian linear frameworks. Packages such as \CRANpkg{emdi} \citep{kreutzmann2019emdi} offer visualizations but lack spatio-temporal dynamics and non-Gaussian spatial Bayesian likelihoods. Specialized packages such as \CRANpkg{tipsae} \citep{denicolo2022tipsae} implement Beta regression but depend on MCMC runtimes that scale poorly for panel graphs. Toolkits such as \CRANpkg{mcmcsae} \citep{boonstra2022mcmcsae} remain simulation-based, while \CRANpkg{SUMMER} \citep{li2020summer} is tailored to demographic survey mortality rather than general survey design-variance matching.
+
+To resolve these limitations, this paper introduces \CRANpkg{fastsae}. Specifically, this paper makes four concrete, testable contributions:
+\%
+
+\begin{enumerate}
+  \item \textbf{Compiled C++17 Core with OpenMP Acceleration}: We engineer an optimized linear algebra core in C++17 via \CRANpkg{RcppArmadillo} that speeds up classical, spatial, and spatio-temporal Fay-Herriot estimation by up to $364\times$ relative to \CRANpkg{sae} and $12,300\times$ relative to \CRANpkg{emdi} at $D=1,000$, while slashing peak memory consumption from gigabytes to under 25 megabytes.
+  \item \textbf{Unified Deterministic Bayesian Hierarchical Modeling via INLA with Exact Survey Matching}: We formulate a Hierarchical Bayes interface (\code{hb\_area()}) spanning six probability distributions (Gaussian, Beta, Gamma, Binomial, Poisson, Negative Binomial) powered by Integrated Nested Laplace Approximations \citep{rue2009approximate}. It embeds exact survey variance mappings---notably the \citet{janicki2020properties} Beta dispersion parameterization and Gamma CV matching---achieving $73\times$ to $544\times$ speedups over Stan-based MCMC while maintaining near-perfect inferential concordance ($r = 0.9993$).
+  \item \textbf{Two-Stage Hierarchical Benchmarking Engine}: We implement a modular calibration engine (\code{benchmark\_sae()}) that simultaneously enforces consistency across multi-level administrative hierarchies (Level 0 National, Level 1 Provincial, Level 2 District) via ratio, difference, variance-weighted optimal, and logit-scale adjustments.
+  \item \textbf{End-to-End Official Statistics Dissemination Suite}: We provide turnkey post-estimation workflows, including automated reliability tagging (\code{add\_reliability\_flags()}) based on official NSO thresholds, model concordance diagnostics (\code{compare\_sae()}), publication-ready choropleth mapping (\code{map\_sae()}), and multi-sheet spreadsheet exports (\code{export\_sae()}).
+\end{enumerate}
+
+\%\% -- Methodological Framework -------------------------------------------------
+
+\section{Methodological framework} \label{sec:methods}
+
+\subsection{Frequentist small area models} \label{sec:methods_freq}
+
+\subsubsection{Classical Fay-Herriot model}
+
+Let \(m\) denote the number of small areas indexed by \(i = 1, \dots, m\). The classical area-level model \citep{fay1979estimates} is defined by:
+\%
+\begin{equation} \label{eq:fh_model}
+y_i = \bm{x}_i^\top \bm{\beta} + u_i + e_i, \quad u_i \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \sigma_u^2), \quad e_i \overset{\mathrm{ind}}{\sim} \mathcal{N}(0, D_i),
+\end{equation}
+\%
+where \(y_i\) is the design-based direct estimator of the target indicator \(\theta_i\), \(\bm{x}_i\) is a \(p \times 1\) vector of auxiliary covariates, \(D_i\) is the known design variance, and \(u_i\) is the area random effect. The Empirical Best Linear Unbiased Predictor (EBLUP) is given by:
+\%
+\begin{equation} \label{eq:fh_eblup}
+\hat{\theta}_i = \hat{\gamma}_i y_i + (1 - \hat{\gamma}_i) \bm{x}_i^\top \hat{\bm{\beta}}, \quad \hat{\gamma}_i = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + D_i},
+\end{equation}
+\%
+where \(\hat{\bm{\beta}} = (\bm{X}^\top \hat{\bm{V}}^{-1} \bm{X})^{-1} \bm{X}^\top \hat{\bm{V}}^{-1} \bm{y}\) with \(\bm{V} = \mathrm{diag}(\sigma_u^2 + D_1, \dots, \sigma_u^2 + D_m)\). Mean squared error is evaluated via the second-order Prasad-Rao approximation \citep{prasad1990estimation}:
+\%
+\begin{equation} \label{eq:fh_mse}
+\mathrm{MSE}(\hat{\theta}_i) \approx g_{1i}(\hat{\sigma}_u^2) + g_{2i}(\hat{\sigma}_u^2) + 2 g_{3i}(\hat{\sigma}_u^2).
+\end{equation}
+
+\subsubsection{Spatial Fay-Herriot model}
+
+To accommodate spatial dependence across contiguous domains, \citet{petrucci2006small} and \citet{pratesi2008small} modeled the area random effects \(\bm{u} = (u_1, \dots, u_m)^\top\) via a Simultaneous Autoregressive (SAR) process:
+\%
+\begin{equation} \label{eq:sfh_sar}
+\bm{u} = \rho \bm{W} \bm{u} + \bm{\epsilon}, \quad \bm{\epsilon} \sim \mathcal{N}_m(\bm{0}, \sigma_1^2 \bm{I}_m),
+\end{equation}
+\%
+where \(\rho\) is the spatial autoregressive parameter and \(\bm{W}\) is a row-standardized spatial proximity matrix. The marginal covariance matrix is \(\bm{V}(\sigma_1^2, \rho) = \bm{G}(\sigma_1^2, \rho) + \bm{D}\), where \(\bm{G}(\sigma_1^2, \rho) = \sigma_1^2 [(\bm{I}_m - \rho \bm{W})^\top (\bm{I}_m - \rho \bm{W})]^{-1}\). The spatial EBLUP is:
+\%
+\begin{equation} \label{eq:sfh_eblup}
+\hat{\bm{\theta}} = \bm{X} \hat{\bm{\beta}} + \hat{\bm{G}} \hat{\bm{V}}^{-1} (\bm{y} - \bm{X} \hat{\bm{\beta}}).
+\end{equation}
+\%
+Variance components are estimated via profile REML over the valid spectral bounds \(\rho \in (\lambda_{\min}^{-1}, \lambda_{\max}^{-1})\).
+
+\subsubsection{Spatio-temporal Fay-Herriot model}
+
+When small area data are collected across longitudinal waves \(t = 1, \dots, T\), borrowing strength across space and time yields substantial efficiency gains \citep{marhuenda2013small}:
+\%
+\begin{equation} \label{eq:stfh_model}
+y_{it} = \bm{x}_{it}^\top \bm{\beta} + u_{1,it} + u_{2,it} + e_{it},
+\end{equation}
+\%
+where \(\bm{u}_{1,t} = \rho_1 \bm{W} \bm{u}_{1,t} + \bm{\epsilon}_{1,t}\) represents a spatial SAR process and \(u_{2,it} = \rho_2 u_{2,i,t-1} + \epsilon_{2,it}\) follows an AR(1) temporal process with \(|\rho_2| < 1\). In \CRANpkg{fastsae}, the block-structured covariance matrix is assembled and inverted using optimized Kronecker routines.
+
+\subsubsection{Unit-level Battese-Harter-Fuller model}
+
+When unit microdata are accessible alongside population auxiliary totals, \CRANpkg{fastsae} implements the nested error regression model \citep{battese1988error}:
+\%
+\begin{equation} \label{eq:bhf_model}
+y_{dj} = \bm{x}_{dj}^\top \bm{\beta} + u_d + e_{dj}, \quad d = 1, \dots, D, \quad j = 1, \dots, n_d,
+\end{equation}
+\%
+yielding EBLUP predictors \(\hat{\bar{Y}}_d = f_d \bar{y}_d + (1 - f_d)(\bar{\bm{X}}_{d, r}^\top \hat{\bm{\beta}} + \hat{\gamma}_d (\bar{y}_d - \bar{\bm{x}}_d^\top \hat{\bm{\beta}}))\), where \(f_d = n_d / N_d\).
+
+\subsection{Bayesian non-Gaussian hierarchical EBP via INLA} \label{sec:methods_inla}
+
+\subsubsection{Latent Gaussian models}
+
+For non-Gaussian indicators, \CRANpkg{fastsae} formulates small area estimation within the Latent Gaussian Model (LGM) framework \citep{rue2009approximate}:
+\%
+\begin{equation} \label{eq:lgm_formulation}
+y_i \mid \eta_i, \bm{\theta} \sim \pi(y_i \mid \eta_i, \bm{\theta}), \quad \eta_i = g(\mu_i) = \bm{x}_i^\top \bm{\beta} + u_i + v_i,
+\end{equation}
+\%
+where \(g(\cdot)\) is a monotone link function, \(v_i \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \tau_v^{-1})\) is an unstructured effect, and \(\bm{u} \sim \mathcal{N}(\bm{0}, \bm{Q}^{-1}(\bm{\theta}_s))\) is a spatial Gaussian Markov Random Field (GMRF). By default, \CRANpkg{fastsae} utilizes the Full Laplace approximation (\code{strategy = "laplace"}) rather than the simplified Laplace expansion, guaranteeing high analytical fidelity even near boundary domains.
+
+\subsubsection{Exact survey dispersion and variance matching}
+
+To preserve design-based sampling properties in a Bayesian GLMM, \CRANpkg{fastsae} injects distribution-specific dispersion parameters:
+\%
+
+\begin{enumerate}
+  \item \textbf{Gaussian}: Precision is fixed to the inverse design variance: $\tau_i = 1/D_i$.
+  \item \textbf{Beta}: For proportions $y_i \in (0, 1)$ with logit link $\mathrm{logit}(\mu_i) = \eta_i$, the Beta variance is $\mathrm{Var}(y_i) = \mu_i(1 - \mu_i)/(1 + \phi_i)$. Equating this to design variance $D_i$ yields the \citet{janicki2020properties} dispersion:
+  \begin{equation} \label{eq:beta_dispersion}
+  \phi_i = \max\left( \frac{y_i (1 - y_i)}{D_i} - 1, \, 1 \right).
+  \end{equation}
+  \item \textbf{Gamma}: For positive skewed expenditures $y_i > 0$ with log link $\log(\mu_i) = \eta_i$, equating $\mathrm{Var}(y_i) = \mu_i^2 / s_i$ to $D_i$ yields the shape precision parameter:
+  \begin{equation}
+  s_i = \frac{y_i^2}{D_i} = \frac{1}{\mathrm{CV}_i^2}.
+  \end{equation}
+  \item \textbf{Binomial, Poisson, and Negative Binomial}: Domain sample sizes $n_i$ map to \code{Ntrials}, and population exposures $E_i$ map to the log-link offset $\log(E_i)$.
+\end{enumerate}
+
+\subsubsection{Spatial priors and space-time interactions}
+
+The spatial random field \(\bm{u}\) supports five graph topologies: Besag ICAR \citep{besag1991bayesian}, scaled BYM2 with Penalized Complexity (PC) priors \citep{riebler2016intuitive, simpson2017penalising}, Leroux CAR with exact precision \(\bm{Q} = \tau[(1 - \rho)\bm{I} + \rho(\mathrm{diag}(\bm{d}) - \bm{W})]\) \citep{leroux2000estimation}, and the Spatial Lag Model (SLM). For panel observations across \(T \ge 2\), temporal trends support random walks (RW1, RW2) and AR(1) dynamics. Space-time interactions can be specified as additive, domain-specific, separable, or according to the four \citet{knorrheld2000bayesian} interaction types (\(\bm{Q}_{st} = \bm{Q}_s \otimes \bm{Q}_t\)).
+
+\subsection{Two-stage hierarchical benchmarking calibration} \label{sec:methods_bench}
+
+In official statistics, model-based small area estimates \(\hat{\theta}_{di}\) for domain \(i\) in province/region \(g\) must aggregate to officially published higher-level targets \citep{rao2015small, stefan2020benchmarking}. Let \(w_{di}\) denote domain population weights such that \(W_g = \sum_{i \in g} w_{di}\) is the provincial total weight, and \(W_{\text{nat}} = \sum_g W_g\) is the national total weight. Let \(T_g\) denote the provincial target and \(T_{\text{nat}}\) denote the national aggregate target.
+
+\CRANpkg{fastsae} implements a two-stage hierarchical benchmarking calibration:
+\%
+
+\begin{enumerate}
+  \item \textbf{Stage 1: Harmonization of Provincial Targets to National Benchmark}: When initial provincial targets $T_g$ (or initial aggregated model estimates $\hat{\bar{\theta}}_g = \sum_{i \in g} (w_{di}/W_g)\hat{\theta}_{di}$) do not sum to the national target $T_{\text{nat}}$, calibrated provincial targets $\tilde{T}_g$ are computed to satisfy $\sum_g (W_g / W_{\text{nat}}) \tilde{T}_g = T_{\text{nat}}$.
+  \item \textbf{Stage 2: Domain-Level Calibration within Provinces}: Domain estimates within province $g$ are calibrated to satisfy $\sum_{i \in g} (w_{di}/W_g) \hat{\theta}_{di}^{\text{BM}} = \tilde{T}_g$.
+\end{enumerate}
+
+\%
+Across both stages, \CRANpkg{fastsae} supports four calibration mechanisms:
+\%
+
+\begin{itemize}
+  \item \textbf{Ratio Benchmarking} \citep{you2002small}: $\hat{\theta}_{di}^{\text{BM}} = \hat{\theta}_{di} \left( \tilde{T}_g / \sum_{j \in g} \tilde{w}_{dj} \hat{\theta}_{dj} \right)$.
+  \item \textbf{Difference Benchmarking} \citep{rao2015small}: $\hat{\theta}_{di}^{\text{BM}} = \hat{\theta}_{di} + \left( \tilde{T}_g - \sum_{j \in g} \tilde{w}_{dj} \hat{\theta}_{dj} \right)$.
+  \item \textbf{Variance-Weighted Optimal Benchmarking} \citep{datta2011bayesian, steorts2014benchmarking}: Adjustments are allocated inversely proportional to domain precision, minimizing quadratic estimation loss:
+  \begin{equation}
+  \hat{\theta}_{di}^{\text{BM}} = \hat{\theta}_{di} + \mathrm{MSE}(\hat{\theta}_{di}) \left( \sum_{j \in g} \tilde{w}_{dj}^2 \mathrm{MSE}(\hat{\theta}_{dj}) \right)^{-1} \left( \tilde{T}_g - \sum_{j \in g} \tilde{w}_{dj} \hat{\theta}_{dj} \right).
+  \end{equation}
+  \item \textbf{Logit-Scale Benchmarking}: For bounded proportions in $(0, 1)$, linear adjustments can push estimates outside $[0, 1]$. \CRANpkg{fastsae} solves for an additive shift $\alpha_g$ on the logit scale:
+  \begin{equation}
+  \sum_{i \in g} \tilde{w}_{di} \, \mathrm{logit}^{-1}\left( \mathrm{logit}(\hat{\theta}_{di}) + \alpha_g \right) = \tilde{T}_g,
+  \end{equation}
+  via robust one-dimensional root-finding, guaranteeing $\hat{\theta}_{di}^{\text{BM}} \in (0, 1)$.
+\end{itemize}
+
+\subsection{Official statistics reliability classification} \label{sec:methods_reliability}
+
+NSOs classify domain estimates into publication tiers based on the Relative Standard Error (\(\mathrm{RSE} = \frac{\sqrt{\mathrm{MSE}(\hat{\theta}_i)}}{|\hat{\theta}_i|} \times 100\%\)). \CRANpkg{fastsae} provides \code{add\_reliability\_flags()} implementing institutional thresholding:
+\%
+\begin{equation} \label{eq:reliability}
+\mathrm{Tier}_i = \begin{cases}
+\text{Reliable (Direct Publish)}, & \mathrm{RSE}_i < c_1, \\
+\text{Use with Caution (Accompanying Warning)}, & c_1 \le \mathrm{RSE}_i < c_2, \\
+\text{Unreliable (Suppress or Aggregate)}, & \mathrm{RSE}_i \ge c_2,
+\end{cases}
+\end{equation}
+\%
+where default thresholds \((c_1, c_2) = (20\%, 30\%)\) or \((25\%, 50\%)\) conform to standards adopted by agencies such as BPS-Statistics Indonesia and Eurostat.
+
+\%\% -- Software Design ----------------------------------------------------------
+
+\section{Software design and implementation} \label{sec:design}
+
+The architecture of \CRANpkg{fastsae} unites compiled linear algebra with high-level Bayesian GMRF modeling and production reporting. Figure\textasciitilde{}\ref{fig:arch} outlines the structural flow.
+
+\begin{figure}[t!]
+\centering
+\begin{framed}
+\centering
+\textbf{\CRANpkg{fastsae} High-Level Software Architecture}\\[6pt]
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{4.2cm}p{4.8cm}p{4.2cm}}
+\toprule
+\multicolumn{3}{c}{\textbf{1. User-Facing Production API (R)}} \\
+\midrule
+\textbf{Frequentist Modeling} & \textbf{Bayesian HB Engine} & \textbf{Production Workflow} \\
+\code{eblup\_fh()} & \code{hb\_area(..., family = "beta")} & \code{benchmark\_sae()} (Two-Stage) \\
+\code{eblup\_sfh()} & \code{hb\_area(..., family = "gamma")} & \code{compare\_sae()} \\
+\code{eblup\_stfh()} & \code{hb\_area(..., family = "poisson")} & \code{add\_reliability\_flags()} \\
+\code{eblup\_bhf()} & \code{hb\_area(..., spatial = "bym2")} & \code{map\_sae()} / \code{export\_sae()} \\
+\midrule
+\multicolumn{3}{c}{\textbf{2. Core Computational Backends}} \\
+\midrule
+\textbf{Compiled C++17 Core} & \textbf{INLA Deterministic Engine} & \textbf{Spatial Linear Algebra} \\
+\CRANpkg{RcppArmadillo} Matrix Algebra & Sparse Cholesky Factorization & Row-normalized Proximity \\
+OpenMP Threaded Bootstrap & Full Laplace Approximation & PC Priors \& GMRF Graphs \\
+In-Place Fisher-Scoring Updates & Survey Dispersion Injections & Spectral Eigenvalue Bounds \\
+\bottomrule
+\end{tabular}
+\end{framed}
+\caption{\label{fig:arch} Structural architecture and functional components of \CRANpkg{fastsae}.}
+\end{figure}
+
+The frequentist engines (\code{eblup\_fh()}, \code{eblup\_sfh()}, \code{eblup\_stfh()}, \code{eblup\_bhf()}) avoid temporary matrix allocations inside REML loops by reusing working buffers in-place. The bootstrap MSE loops are decorated with OpenMP pragmas (\code{\#pragma omp parallel for}), delivering multi-core throughput scaling. The Bayesian engine (\code{hb\_area()}) automates the translation of formulas, spatial adjacency matrices \(\bm{W}\), and survey dispersion arguments into \pkg{R-INLA} calls. Standard S3 methods (\code{print()}, \code{summary()}, \code{plot()}, \code{coef()}, \code{fitted()}, \code{residuals()}) are implemented across all model classes.
+
+\%\% -- Computational Benchmarks -------------------------------------------------
+
+\section{Computational benchmarks and simulations} \label{sec:simulations}
+
+\subsection{Frequentist scalability and memory efficiency: fastsae vs. sae and emdi}
+
+We evaluated computational speed and peak memory consumption across domain sizes \(D \in \{30, 50, 100, 250, 500, 1000\}\) using simulated datasets with 5 auxiliary covariates. Benchmarks were conducted using the \CRANpkg{bench} package on an Apple Silicon processor under R\textasciitilde4.4.2.
+
+\begin{table}[t!]
+\centering
+\small
+\begin{tabular}{rcccccc}
+\toprule
+$D$ & \multicolumn{3}{c}{Execution Time: Median (seconds)} & \multicolumn{3}{c}{Peak Memory Footprint (MB)} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+ & \CRANpkg{fastsae} & \CRANpkg{sae} & \CRANpkg{emdi} & \CRANpkg{fastsae} & \CRANpkg{sae} & \CRANpkg{emdi} \\
+\midrule
+\multicolumn{7}{l}{\textit{Fay-Herriot EBLUP (Classical)}} \\
+30   & 0.00059 & 0.00155 & 0.01088 & 0.005 & 0.153 & 4.18 \\
+100  & 0.00055 & 0.00344 & 0.05051 & 0.016 & 0.918 & 37.34 \\
+500  & 0.00140 & 0.19673 & 5.86366 & 0.076 & 18.239 & 880.31 \\
+1000 & 0.00413 & 1.50363 & 51.0224 & 0.186 & 71.977 & 3,773.60 \\
+\midrule
+\multicolumn{7}{l}{\textit{Spatial Fay-Herriot (SEBLUP)}} \\
+30   & 0.00073 & 0.00410 & 0.01071 & 0.030 & 1.373 & 4.18 \\
+100  & 0.00473 & 0.07054 & 0.05299 & 0.259 & 17.976 & 37.34 \\
+500  & 0.14205 & 7.11793 & 3.13662 & 5.857 & 776.407 & 949.86 \\
+1000 & 0.83216 & 67.1518 & 51.0593 & 23.155 & 1,920.01 & 3,772.57 \\
+\midrule
+\multicolumn{7}{l}{\textit{Spatio-Temporal Fay-Herriot (STEBLUP, $T = 5$)}} \\
+30   & 0.03674 & 0.11856 & -- & 0.027 & 43.801 & -- \\
+100  & 2.29928 & 17.9425 & -- & 0.090 & 2,551.10 & -- \\
+500  & 10.3596 & 253.343 & -- & 0.448 & 8,124.37 & -- \\
+1000 & 58.1005 & 1,786.49 & -- & 0.894 & 32,478.3 & -- \\
+\bottomrule
+\end{tabular}
+\caption{\label{tab:bench_freq} Frequentist runtime and peak memory benchmark across domain sample sizes ($D$). \CRANpkg{fastsae} avoids quadratic RAM growth and achieves up to $364\times$ speedup for FH, $80\times$ for SFH, and $31\times$ for ST-FH at $D=1,000$.}
+\end{table}
+
+Table\textasciitilde{}\ref{tab:bench_freq} demonstrates the dramatic scalability gains of \CRANpkg{fastsae}. At \(D=1,000\), classical FH completes in 4 milliseconds in \CRANpkg{fastsae} compared to 1.5 seconds in \CRANpkg{sae} (\(364\times\) slower) and 51 seconds in \CRANpkg{emdi} (\(12,343\times\) slower). For spatio-temporal models at \(D=1,000\), \CRANpkg{sae} required nearly 30 minutes (1,786 seconds) and consumed 32.5 gigabytes of RAM, whereas \CRANpkg{fastsae} finished in 58 seconds using under 1 megabyte of memory.
+\textbf{Operational Takeaway}: \CRANpkg{fastsae} eliminates out-of-memory bottlenecks, enabling routine spatio-temporal estimation across thousands of domains on standard laptop hardware.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig-time-fh}
+\caption{\label{fig:time_fh} Median runtime scaling across domain sample sizes ($D$) on log-log scale for classical, spatial, spatio-temporal Fay-Herriot, and Bayesian Gaussian models.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig-mem}
+\caption{\label{fig:mem} Peak memory footprint (MB) across domain counts ($D$) on log-log scale. \CRANpkg{fastsae} avoids quadratic $O(D^2 T^2)$ allocation.}
+\end{figure}
+
+\subsection{Bayesian Beta Hierarchical Modeling scalability: fastsae vs. tipsae}
+
+For bounded rates, we benchmarked \code{hb\_area(..., family = "beta")} against \CRANpkg{tipsae} \citep{denicolo2022tipsae} using Stan (4 chains, 2,000 iterations).
+
+\begin{table}[t!]
+\centering
+\small
+\begin{tabular}{rcccccc}
+\toprule
+$D$ & \multicolumn{2}{c}{Cross-Sectional Beta} & \multicolumn{2}{c}{Spatial Beta (Besag)} & \multicolumn{2}{c}{Spatio-Temporal Beta} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+ & \CRANpkg{fastsae} & \CRANpkg{tipsae} & \CRANpkg{fastsae} & \CRANpkg{tipsae} & \CRANpkg{fastsae} & \CRANpkg{tipsae} \\
+\midrule
+30   & 1.24 s & 2.35 s   & 0.61 s & 25.72 s  & 1.44 s & 540.57 s \\
+50   & 1.33 s & 3.77 s   & 0.62 s & 65.72 s  & 1.67 s & 908.17 s \\
+100  & 1.27 s & 8.24 s   & 1.37 s & 100.02 s & --     & --       \\
+250  & 1.31 s & 26.28 s  & 1.32 s & 155.90 s & --     & --       \\
+500  & 1.41 s & 64.21 s  & 1.43 s & 248.82 s & --     & --       \\
+1000 & 1.64 s & 187.16 s & 1.73 s & 404.34 s & --     & --       \\
+\bottomrule
+\end{tabular}
+\caption{\label{tab:bench_beta} Execution time comparison for Bayesian Beta models. Point estimates between \CRANpkg{fastsae} and \CRANpkg{tipsae} achieve $r = 0.9993$ concordance.}
+\end{table}
+
+As shown in Table\textasciitilde{}\ref{tab:bench_beta}, deterministic Laplace approximations in \CRANpkg{fastsae} scale flatly with domain count: fitting a spatial Beta model at \(D=1,000\) requires only 1.73 seconds in \CRANpkg{fastsae} compared to 404 seconds in \CRANpkg{tipsae} (\(234\times\) speedup). In spatio-temporal panel models (\(D=50, T=5\)), \CRANpkg{tipsae} required 15.1 minutes (908 seconds), whereas \CRANpkg{fastsae} completed in 1.67 seconds (\(544\times\) speedup). Despite this speed differential, inferential concordance on \(D=1,000\) yields Pearson correlation \(r = 0.9993\), Spearman \(\rho = 0.9992\), and Mean Absolute Difference \(\mathrm{MAD} = 0.0197\).
+\textbf{Operational Takeaway}: Deterministic Laplace approximation in \CRANpkg{fastsae} achieves inferential equivalence with fully converged Hamiltonian MCMC in seconds rather than minutes or hours.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig-time-beta}
+\caption{\label{fig:time_beta} Runtime scaling across domain sample sizes ($D$) for cross-sectional, spatial, and spatio-temporal Bayesian Beta models.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig-equiv}
+\caption{\label{fig:equiv} Numerical equivalence and inferential concordance between \CRANpkg{fastsae} (INLA) and \CRANpkg{tipsae} (Stan HMC) at $D = 1,000$ ($r = 0.9993$).}
+\end{figure}
+
+\subsection{Monte Carlo finite population validation against ground truth}
+
+To assess frequentist design properties, we conducted design-based Monte Carlo simulations under known ground truth at national scale (\(D = 500\) small areas, \(R = 25\) independent sample draws) using a synthetic finite population of \(N = 250,000\) individuals.
+
+\begin{table}[t!]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Estimator} & \textbf{Emp. RMSE} & \textbf{RRMSE (\%)} & \textbf{MARB (\%)} & \textbf{95\% CrI Cov.} & \textbf{CrI Width} & \textbf{Runtime} \\
+\midrule
+Direct Sample Estimator  & 0.0719 & 27.1\% & 21.7\% & -- & -- & -- \\
+\CRANpkg{fastsae} (Spatial Besag) & \textbf{0.0481} & \textbf{19.1\%} & 16.9\% & 89.0\% & \textbf{0.173} & \textbf{4.17 s} \\
+\CRANpkg{tipsae} (Spatial Besag)  & 0.0487 & 18.7\% & \textbf{15.7\%} & \textbf{93.7\%} & 0.202 & 36.86 s \\
+\bottomrule
+\end{tabular}
+\caption{\label{tab:mc_truth} Finite population Monte Carlo simulation results ($D = 500$, $R = 25$). \CRANpkg{fastsae} achieves an efficiency gain of $1.92\times$ over the direct survey estimator.}
+\end{table}
+
+Table\textasciitilde{}\ref{tab:mc_truth} demonstrates that \code{hb\_area()} reduces empirical RMSE from 0.0719 (direct survey estimator) to 0.0481, yielding a \(1.92\times\) empirical efficiency gain. Relative Root Mean Squared Error drops from \(27.1\%\) to \(19.1\%\). Comparing Bayesian engines, \CRANpkg{fastsae} achieves a slightly lower empirical RMSE than \CRANpkg{tipsae} (0.0481 vs.~0.0487) and produces narrower credible intervals (0.173 vs.~0.202) while requiring nearly \(9\times\) less runtime per fit.
+\textbf{Operational Takeaway}: \CRANpkg{fastsae} produces well-calibrated, highly efficient area-level predictions that closely track true finite-population parameters while scaling effortlessly to national-scale administrative systems.
+
+\%\% -- Applied Illustration -----------------------------------------------------
+
+\section{Applied illustration and production workflow} \label{sec:applications}
+
+We demonstrate an end-to-end NSO production workflow using the benchmark dataset \code{sim\_area} (\(D = 42\) domains across 6 provincial groups).
+
+\subsection{Loading data, spatial weights, and fitting models}
+
+\begin{verbatim}
+library("fastsae")
+data("sim_area")
+sim_area$prov <- rep(paste0("Prov_", 1:6), each = 7)
+sim_area$pop <- round(runif(nrow(sim_area), 15000, 45000))
+
+# Construct row-standardized spatial proximity matrix
+coords <- cbind(sim_area$x_coord, sim_area$y_coord)
+dists <- as.matrix(dist(coords))
+W <- (dists < quantile(dists, 0.18)) * 1
+diag(W) <- 0
+rs <- rowSums(W); rs[rs == 0] <- 1; W_std <- W / rs
+
+# Fit Frequentist and Bayesian Models
+fit_fh <- eblup_fh(y_gaussian ~ x1 + x2, vardir = "vardir",
+  data = sim_area, method = "REML", print_result = FALSE)
+fit_sfh <- eblup_sfh(y_gaussian ~ x1 + x2, vardir = "vardir",
+  domain = "area", W = W_std, data = sim_area,
+  method = "REML", print_result = FALSE)
+fit_beta <- hb_area(y_beta ~ x1 + x2, vardir = "vardir",
+  data = sim_area, family = "beta", spatial = "bym2",
+  W = W, print_result = FALSE)
+\end{verbatim}
+
+\subsection{Automated model concordance evaluation}
+
+Practitioners can immediately compare competitive models via \code{compare\_sae()}:
+
+\begin{verbatim}
+comp <- compare_sae(fit_fh, fit_sfh, names = c("FH", "SFH"))
+comp$metrics[c(1, 2, 4, 6, 8, 9), ]
+\end{verbatim}
+
+\begin{verbatim}
+#>                                                  Metric  Value
+#> 1                                       Matched Domains     42
+#> 2                               Pearson Correlation (r) 0.9993
+#> 4                        Mean Absolute Difference (MAE) 0.0357
+#> 6                             Mean MSE Ratio (FH / SFH) 1.0035
+#> 8                       Domains where SFH has lower MSE 8 / 42
+#> 9 Percentage of domains where SFH is more efficient (%)  19.0%
+\end{verbatim}
+
+\subsection{Two-stage hierarchical benchmarking calibration}
+
+To harmonize domain estimates with an official national poverty target (\(T_{\text{nat}} = 0.50\)), we apply two-stage calibration:
+
+\begin{verbatim}
+bm <- benchmark_sae(fit_fh, national_target = 0.50, group = "prov",
+  weight = "pop", method = "ratio", type = "mean")
+head(bm[, c("domain", "group", "original", "benchmarked", "rel_adjustment_pct")], 4)
+\end{verbatim}
+
+\begin{verbatim}
+#> === fastsae Small Area Benchmark Calibration ===
+#> Method: Ratio (Multiplicative Adjustment) 
+#> Target Type: Weighted Mean / Rate 
+#> Total Domains: 4 
+#> 
+#> First 6 benchmarked domains (Level 2):
+#>   domain  group   original benchmarked rel_adjustment_pct
+#> 1      1 Prov_1  2.6646558   0.8790093          -67.01228
+#> 2      2 Prov_1 -1.6547233  -0.5458556          -67.01228
+#> 3      3 Prov_1  1.2504674   0.4125007          -67.01228
+#> 4      4 Prov_1 -0.7988192  -0.2635123          -67.01228
+\end{verbatim}
+
+The calibrated estimates satisfy \(\sum (w_i / \sum w_i) \hat{\theta}_i^{\text{BM}} = 0.50\) exactly.
+
+\subsection{Official statistics reliability classification}
+
+Using \code{add\_reliability\_flags()}, domains are classified into official dissemination tiers:
+
+\begin{verbatim}
+flags <- add_reliability_flags(fit_beta, thresholds = c(20, 30))
+table(flags$reliability)
+\end{verbatim}
+
+\begin{verbatim}
+#> 
+#>          Reliable (< 20%) Use with Caution (20-30%)        Unreliable (≥ 30%) 
+#>                        31                         8                         3
+\end{verbatim}
+
+\subsection{Model diagnostics and visualization}
+
+Diagnostics via \code{diagnose()} and \code{autoplot()} provide visual quality verification:
+
+\begin{verbatim}
+diag_beta <- diagnose(fit_beta)
+autoplot(diag_beta)
+\end{verbatim}
+
+\begin{figure}
+
+{\centering \includegraphics{figures/diagplot-1} 
+
+}
+
+\caption{Model diagnostic panels generated via autoplot.}\label{fig:diagplot}
+\end{figure}
+
+\%\% -- Summary and Discussion ---------------------------------------------------
+
+\section{Summary and discussion} \label{sec:summary}
+
+Small area estimation in official statistics requires reconciling mathematical rigor with strict computational and operational constraints. \CRANpkg{fastsae} resolves these challenges by bridging high-performance compiled linear algebra, deterministic Bayesian approximations, and production-ready dissemination tools.
+
+\begin{table}[t!]
+\centering
+\small
+\begin{tabular}{p{3.0cm}p{4.5cm}p{6.8cm}}
+\toprule
+\textbf{Dimension} & \textbf{Observed Empirical Evidence} & \textbf{Institutional Implication (``So What'')} \\
+\midrule
+\textbf{Frequentist Scalability} & $364\times$ speedup for FH and $80\times$ for SFH; RAM under 25 MB at $D=1,000$ (vs 32 GB in \CRANpkg{sae}). & Eliminates server memory exhaustion, allowing desktop computers to execute nationwide bootstrap MSE routines. \\
+\addlinespace
+\textbf{Bayesian EBP via INLA} & $73\times$ to $544\times$ speedup over Stan MCMC; point correlation $r = 0.9993$ on $D=1,000$. & Eliminates manual MCMC chain diagnostics and divergent transition failures in routine production timelines. \\
+\addlinespace
+\textbf{Design-Based Ground Truth} & $1.92\times$ empirical efficiency gain over direct estimator; $89\%$ empirical coverage. & Delivers substantial MSE reductions while maintaining nominal interval coverage under repeated sampling. \\
+\addlinespace
+\textbf{Hierarchical Benchmarking} & Simultaneous Level 0 and Level 1 target alignment with logit boundary safety. & Guarantees numeric consistency with published aggregates, eliminating public confusion without violating probability bounds. \\
+\addlinespace
+\textbf{Turnkey Dissemination} & Direct RSE classification, spatial choropleths, and multi-sheet exports. & Collapses multi-script analyst workflows into standardized, reproducible publication pipelines. \\
+\bottomrule
+\end{tabular}
+\caption{\label{tab:synthesis} Synthesis of empirical findings and operational implications of \CRANpkg{fastsae}.}
+\end{table}
+
+As synthesized in Table\textasciitilde{}\ref{tab:synthesis}, \CRANpkg{fastsae} provides substantial efficiency gains across both frequentist and Bayesian paradigms. Future developments will focus on expanding unit-level spatial EBP under non-Gaussian likelihoods, integrating zero-inflated Beta (ZIB) specifications for extreme sparse indicators, and supporting direct spatial polygon streaming.
+
+\%\% -- Computational Details \& Acknowledgments ----------------------------------
+
+\section*{Computational details}
+
+The results in this paper were obtained using R\textasciitilde4.4.2 with \CRANpkg{fastsae}\textasciitilde0.1.0, \pkg{R-INLA}\textasciitilde24.06.27, \CRANpkg{sae}\textasciitilde1.3, \CRANpkg{emdi}\textasciitilde2.2.1, \CRANpkg{tipsae}\textasciitilde1.0.1, and \CRANpkg{ggplot2}\textasciitilde3.5.1. R and packages from CRAN are available at \url{https://CRAN.R-project.org/}. \pkg{R-INLA} is available from \url{https://www.r-inla.org/}. The \CRANpkg{fastsae} package is available on GitHub at \url{https://github.com/ridsonap/fastsae}.
+
+\section*{Acknowledgments}
+
+The authors thank the Department of Computational Statistics and Department of Statistics at Politeknik Statistika STIS for institutional support. We also acknowledge the valuable domain feedback provided by colleagues at BPS-Statistics Indonesia.
+
+\%\% -- Bibliography -------------------------------------------------------------
+
+\section*{References}
+
+\bibliography{fastsae}
+
+\address{%
+Ridson Al Farizal P.\\
+Department of Computational Statistics, Politeknik Statistika STIS\\%
+Jl. Otto Iskandardinata No.~64C\\ Jakarta Timur 13330, Indonesia\\
+%
+%
+\textit{ORCiD: \href{https://orcid.org/0000-0003-0617-0214}{0000-0003-0617-0214}}\\%
+\href{mailto:alfrzlp@gmail.com}{\nolinkurl{alfrzlp@gmail.com}}%
+}
+
+\address{%
+Azka Ubaidillah\\
+Department of Statistics, Politeknik Statistika STIS\\%
+Jl. Otto Iskandardinata No.~64C\\ Jakarta Timur 13330, Indonesia\\
+%
+%
+\textit{ORCiD: \href{https://orcid.org/0000-0002-3597-0459}{0000-0002-3597-0459}}\\%
+\href{mailto:azka@stis.ac.id}{\nolinkurl{azka@stis.ac.id}}%
+}

@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{Waktu median per iterasi (detik) menurut jumlah area $n$. Model area-level beta dengan efek spasial. Sumber: file \texttt{spatial\_beta\_benchmark.rds} di \texttt{inst/extdata} (repo \texttt{fastsae}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}, ditampilkan hingga 6 digit signifikan.}
+\label{tab:time-sbeta}
+\small
+\begin{tabular}{lrrr}
+\toprule
+$n$ & fastsae & tipsae \\
+\midrule
+30 & 0.613834 & 25.7233 \\
+50 & 0.620765 & 65.7235 \\
+100 & 1.37316 &  100.02 \\
+250 & 1.31548 & 155.898 \\
+500 & 1.43413 & 248.821 \\
+1000 & 1.72812 & 404.342 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

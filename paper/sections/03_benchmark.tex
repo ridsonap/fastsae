@@ -1,0 +1,321 @@
+% ===========================================================================
+%  Bagian 3 -- Benchmark
+% ===========================================================================
+\section{Benchmark}\label{sec:benchmark}
+
+Seluruh angka pada bagian ini dihitung ulang oleh
+\code{scripts/01\_tables.R} dan \code{scripts/02\_figures.R} langsung dari
+sembilan berkas \code{inst/extdata/*.rds}. Tidak ada angka yang diketik tangan,
+dan setiap tabel/figur mencantumkan file sumbernya pada caption. Bila klaim di
+\code{README.Rmd} atau vignette bertolak belakang dengan file data, laporan ini
+memakai data dan mencatat kontradiksinya pada bagian~\ref{sec:kontradiksi}
+(daftar lengkap: \code{DISCREPANCIES.md} bagian H).
+
+\subsection{Metodologi}\label{sec:metodologi-bench}
+
+\paragraph{Apa yang diukur.}
+Semua file benchmark berformat sama: kolom \code{Method},
+\code{Min (s)}, \code{Median (s)}, \code{Iterations/sec},
+\code{Memory (MB)}, \code{n\_iter}, \code{n}. Dua kolom waktu berasal dari
+\code{bench::mark()\$min} dan \code{\$median}; \code{Memory (MB)} =
+\code{as.numeric(res\$mem\_alloc)/1024\textasciicircum2}, yaitu \emph{total alokasi memori
+selama run}, bukan puncak RSS (lihat \code{benchmarks/bench\_beta\_tipsae.R:92-98}).
+\code{n\_iter} mencatat jumlah iterasi aktual yang benar-benar dijalankan.
+
+\paragraph{Skrip, pembanding, ukuran, iterasi, seed.}
+Tabel~\ref{tab:skrip-bench} disusun dari pembacaan langsung 11 skrip di
+\code{benchmarks/}.
+
+\begin{table}[htbp]
+\centering
+\caption{Skrip benchmark: pembanding, ukuran masalah, iterasi, dan seed. Sumber:
+pembacaan \code{benchmarks/*.R} (lihat \code{\_notes/bench\_methodology.md}).}
+\label{tab:skrip-bench}
+\small
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.9cm}
+  >{\raggedright\arraybackslash}X
+  l
+  >{\raggedright\arraybackslash}p{4.6cm}@{}}
+\toprule
+Skrip & Pembanding (dari kode) & $n$ & Iterasi / seed \\
+\midrule
+\code{bench\_beta\_tipsae.R} &
+  \code{fastsae::hb\_area} vs \code{tipsae::fit\_sae} &
+  250, 500 & 20; data \code{seed = 42+n}; tipsae \code{seed = 42} \\
+\code{bench\_spatial\_beta.R} &
+  \code{fastsae} vs \code{tipsae} (+ \code{sf}, \code{spdep}) &
+  30, 50, 100 & 20; data \code{42+n} \\
+\code{bench\_spatio\_temporal\_beta.R} &
+  \code{fastsae} vs \code{tipsae} ($T=5$) &
+  30\,--\,1000 & 5; data \code{42+n} \\
+\code{bench\_hb\_normal.R} &
+  \code{fastsae::hb\_area} vs \code{hbsae::fSAE.Area} &
+  30, 50, 100, 250 & 10; data \code{42+n} \\
+\code{update\_hb\_benchmark.R} &
+  \code{fastsae} vs \code{hbsae} &
+  500, 1000 & 10; data \code{42+n} \\
+\code{run\_hb\_area\_full\_benchmark.R} &
+  \code{fastsae} vs \code{fastsaehb} vs \code{tipsae} (Stan HMC) &
+  skenario tunggal & \code{set.seed(123/42)}; tidak menulis file \\
+\code{run\_\allowbreak{}multipackage\_\allowbreak{}hb\_\allowbreak{}benchmark.R} &
+  \code{fastsae} vs \code{hbsae}, \code{CARBayes}, \code{fastsaehb},
+  \code{tipsae} &
+  --- & 5 iterasi; tidak menulis file \\
+\code{compare\_ebp\_tipsae\_truth.R},
+\code{sim\_finite\_population\_beta.R},
+\code{sim\_mc\_finite\_population.R},
+\code{sim\_mc\_finite\_pop\_d500.R} &
+  \code{fastsae} vs \code{tipsae} vs estimasi langsung (akurasi terhadap
+  kebenaran model) &
+  $D=60$/$500$ &
+  $R=100$ (seed 2024) dan $R=25$ (seed 999); \code{mclapply} 5--6 core \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Apa yang tidak tercatat.}
+Model CPU, jumlah inti, RAM, sistem operasi, tanggal run, versi \pkg{R} pada
+saat run, dan versi paket pembanding \emph{tidak ada} di dalam file
+\code{.rds}. Satu-satunya pernyataan hardware di repo adalah
+\code{paper/article.tex:277} (``Apple Silicon processor under R 4.4.2'').
+Tidak ada skrip yang mengatur \code{OMP\_NUM\_THREADS}; \code{README.Rmd:126}
+hanya menulis bahwa ``timings depend on hardware and the number of threads''.
+Empat file (\code{eblup\_benchmark.rds}, \code{seblup\_benchmark.rds},
+\code{steblup\_benchmark.rds}, \code{beta\_estimates\_n1000.rds}) \emph{tidak
+punya skrip pembuat} di repo mana pun (terverifikasi dengan
+\code{git log -S}); karenanya hasilnya tidak dapat direproduksi dari repo.
+
+\paragraph{Keadilan perbandingan.}
+Pada skrip yang ada, kedua metode menerima \emph{data simulasi yang sama}
+(\code{sim\_area\_data(D = n\_val, seed = 42 + n\_val)}), formula yang sama,
+dan kolom \code{vardir} yang sama; \code{bench::mark(..., check = FALSE,
+filter\_gc = FALSE, memory = TRUE, time\_unit = "s")}. Perbedaan yang tetap
+ada dan harus dibaca sebagai \emph{caveat}:
+
+\begin{itemize}
+  \item \code{tipsae} dijalankan sebagai pemanggilan MCMC/Stan dengan
+        \code{seed = 42} dan \code{refresh = 0}, sedangkan \pkg{fastsae}
+        memakai aproksimasi Laplace INLA --- dua algoritme yang berbeda
+        secara mendasar, bukan dua implementasi algoritme yang sama.
+  \item \code{hbsae::fSAE.Area} adalah pemanggilan langsung tanpa
+        penyetelan iterasi; \code{fastsae::hb\_area} memakai default
+        \code{strategy = "laplace"}.
+  \item Untuk tiga file pertama (\code{eblup}, \code{seblup},
+        \code{steblup}) skrip pembuatnya tidak ada, sehingga kesetaraan
+        pengaturan awal, kriteria konvergensi, dan jumlah thread tidak dapat
+        diverifikasi dari repo.
+  \item Beberapa \code{n\_iter} aktual berbeda dari nilai yang diminta
+        (lihat kolom \code{n\_iter} di file), tanda run besar memakai argumen
+        \code{--iter} yang tidak tercatat di file mana pun.
+\end{itemize}
+
+\subsection{Waktu komputasi}\label{sec:waktu}
+
+Tabel~\ref{tab:time-fh}--\ref{tab:time-stfh} memuat waktu median per iterasi
+untuk tiga keluarga Fay--Herriot frekuentis; Tabel~\ref{tab:time-beta}
+sampai Tabel~\ref{tab:time-hb} untuk model beta dan model hierarki Bayes.
+Pembandingnya: \pkg{sae} dan \pkg{emdi} untuk FH, \pkg{tipsae} untuk beta,
+\pkg{hbsae} untuk Bayes Gaussian.
+
+Perlu ditegaskan apa yang dimaksud ``keluarga beta'' di sini: \pkg{fastsae}
+tidak mengekspor fungsi khusus beta --- yang dijalankan adalah
+\code{fastsae::hb\_area} dengan \code{family = "beta"}, sedangkan
+pembandingnya \code{tipsae::fit\_sae} (\code{benchmarks/bench\_beta\_tipsae.R:9-10}).
+Rumus regresi beta yang mendasari pembanding itu dibahas
+\citet{ferrari2004beta} dan \citet{janicki2020beta}, perluasannya ke SAE
+area-level oleh \citet{esteban2019compositional} dan ke campuran beta oleh
+\citet{denicolo2024betamixture}; rujukan paketnya \citet{denicolo2024tipsae}.
+
+\input{tables/tab-time-fh}
+\input{tables/tab-time-sfh}
+\input{tables/tab-time-stfh}
+
+\input{tables/tab-time-beta}
+\input{tables/tab-time-sbeta}
+\input{tables/tab-time-stbeta}
+\input{tables/tab-time-hb}
+
+Tiga pengamatan yang terbaca langsung dari tabel:
+
+\begin{enumerate}[label=\arabic*.]
+  \item Pada masalah kecil ($n=30$) selisih antar paket kecil bahkan untuk
+        FH, sebab biaya tetap (parsing, pembangunan matriks desain) masih
+        dominan.
+  \item Pada FH area-level, waktu pembanding tumbuh jauh lebih cepat
+        daripada \pkg{fastsae} seiring $n$; pada $n$ terbesar pada file,
+        \pkg{emdi} membutuhkan waktu dua orde magnitudo lebih besar.
+  \item Pada model Bayes Gaussian justru \pkg{hbsae} yang lebih cepat
+        di seluruh $n$ pada file --- tidak ada pembanding lain pada skenario
+        ini, dan temuan ini dibahas pada bagian~\ref{sec:kaveat}.
+\end{enumerate}
+
+\subsection{Penggunaan memori}\label{sec:memori-bench}
+
+\input{tables/tab-mem-fh}
+\input{tables/tab-mem-sfh}
+\input{tables/tab-mem-stfh}
+\input{tables/tab-mem-hb}
+\input{tables/tab-mem-summary}
+
+Kolom \code{Memory (MB)} adalah total alokasi selama run (bagian
+\ref{sec:metodologi-bench}), sehingga angkanya lebih besar daripada puncak RSS
+yang dilaporkan \code{bench::mark()} sebagai \code{mem\_usage}. Klaim
+\code{README.Rmd:124} (``$\mathtt{<10}$ MB'' untuk \pkg{fastsae}) dan label
+``Peak Memory'' terbantahkan oleh file data pada beberapa baris; rinciannya di
+bagian~\ref{sec:kontradiksi}.
+
+\subsection{Skala terhadap jumlah area}\label{sec:skala}
+
+Gambar~\ref{fig:time-fh} dan Gambar~\ref{fig:time-beta} menampilkan waktu
+median terhadap $n$ pada skala log--log untuk seluruh keluarga model;
+Gambar~\ref{fig:mem} menampilkan memori; Gambar~\ref{fig:ratio} merangkum
+rasio waktu pembanding/tes terhadap $n$.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig-time-fh.pdf}
+  \caption{Waktu median per iterasi terhadap jumlah area $n$ (skala log pada
+  kedua sumbu). Sumber: \texttt{inst/extdata/eblup\_benchmark.rds},
+  \texttt{seblup\_benchmark.rds}, \texttt{steblup\_benchmark.rds},
+  \texttt{hb\_benchmark.rds}; digambar oleh \texttt{scripts/02\_figures.R}.}
+  \label{fig:time-fh}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig-time-beta.pdf}
+  \caption{Waktu median untuk tiga varian model beta (skala log--log).
+  Sumber: \texttt{inst/extdata/beta\_benchmark.rds},
+  \texttt{spatial\_beta\_benchmark.rds},
+  \texttt{spatio\_temporal\_beta\_benchmark.rds}; \texttt{scripts/02\_figures.R}.
+  Panel (c) hanya memiliki $n=30$ dan $n=50$.}
+  \label{fig:time-beta}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig-mem.pdf}
+  \caption{Alokasi memori total per iterasi terhadap $n$ (skala log--log).
+  Sumber: file \texttt{inst/extdata/*\_benchmark.rds} sebagaimana tercantum pada
+  tiap panel; \texttt{scripts/02\_figures.R}.}
+  \label{fig:mem}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig-ratio.pdf}
+  \caption{Rasio waktu (pembanding/tes) terhadap $n$; garis putus-putus
+  menandai rasio $=1$. Sumber: file \texttt{inst/extdata/*\_benchmark.rds};
+  \texttt{scripts/02\_figures.R}.}
+  \label{fig:ratio}
+\end{figure}
+
+Tabel~\ref{tab:ratio} merangkum seluruh rasio per $n$. Rentangnya
+jauh lebih lebar daripada klaim di \code{README.Rmd}: pada ujung bawah ada
+skenario tempat pembanding lebih cepat dari \pkg{fastsae}, dan pada ujung
+atas rasio mencapai empat orde magnitudo --- karenanya laporan memilih
+menampilkan rentang, bukan satu angka tunggal.
+
+\input{tables/tab-ratio}
+
+\subsection{Ekuivalensi numerik terhadap pembanding}\label{sec:ekuivalensi}
+
+File \code{beta\_estimates\_n1000.rds} memuat pasangan estimasi dan MSE untuk
+1000 area antara \pkg{fastsae} dan \pkg{tipsae} pada model beta yang sama.
+Tabel~\ref{tab:equiv} menghitung metrik kesesuaian dari pasangan kolom itu;
+Gambar~\ref{fig:equiv} menampilkannya secara grafis.
+
+\input{tables/tab-equiv}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig-equiv.pdf}
+  \caption{Ekuivalensi numerik \texttt{fastsae} vs \texttt{tipsae} untuk
+  $n=1000$ area: (a) prediktor area terhadap garis identitas;
+  (b) MSE pada skala log. Sumber: \texttt{inst/extdata/beta\_estimates\_n1000.rds};
+  \texttt{scripts/02\_figures.R}.}
+  \label{fig:equiv}
+\end{figure}
+
+Kedua paket memprediksi indikator yang sama dengan selisih kecil pada prediktor
+(korelasi sangat tinggi; Tabel~\ref{tab:equiv}), sedangkan MSE berbeda lebih
+nyata karena kedua paket memakai pendekatan ketidakpastian yang berbeda (INLA
+Laplace vs posterior MCMC). Angka MSE tidak boleh dibaca sebagai ``satu paket
+lebih benar'' tanpa rujukan kebenaran; pembanding terhadap kebenaran model
+tersedia pada skrip \code{benchmarks/compare\_ebp\_tipsae\_truth.R} dan
+\code{sim\_mc\_finite\_population.R} (hasil tersimpan di
+\code{benchmarks/output/}, di luar cakupan \code{inst/extdata}).
+
+\subsection{Kaveat dan keadilan}\label{sec:kaveat}
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Beda algoritme, bukan beda implementasi.} \pkg{tipsae} adalah
+        Bayes MCMC/Stan \citep{denicolo2024tipsae}, \pkg{hbsae} memakai
+        pendekatan Bayesnya sendiri, \pkg{emdi} dan \pkg{sae} memakai
+        \pkg{lme4}/aljabar \pkg{Matrix} di R, sedangkan \pkg{fastsae} memakai
+        C++ + INLA. Selisih waktu mencerminkan perbedaan ini sekaligus.
+  \item \textbf{Tanpa penetapan thread.} Tidak ada skrip yang mengunci
+        \code{OMP\_NUM\_THREADS}; bootstrap paralel (bagian
+        \ref{sec:bootstrap-paralel}) dapat memakai seluruh core mesin,
+        sedangkan pembanding berjalan serial. Ini membuat perbandingan
+        \emph{memihak} ke \pkg{fastsae} pada skala besar, dan dilaporkan apa
+        adanya.
+  \item \textbf{Kriteria konvergensi tidak disamakan.} \pkg{fastsae} memakai
+        toleransi $10^{-4}$ dan 100 iterasi (Tabel~\ref{tab:konvergensi});
+        pengaturan pembanding tidak tercatat di file.
+  \item \textbf{Memori bukan puncak.} Kolom memori adalah akumulasi alokasi,
+        sehingga tidak setara dengan \emph{peak RSS} yang lazim dilaporkan.
+  \item \textbf{Empat file tanpa skrip.} Hasil FH (tiga file) dan
+        \code{beta\_estimates\_n1000} tidak dapat direproduksi dari repo;
+        laporan memakainya apa adanya dan menandainya.
+  \item \textbf{Run inkremental.} Skrip 1--5 menulis file secara inkremental
+        (baris lama per $n$ diganti), sehingga file bisa berisi campuran run
+        dari waktu yang berbeda.
+\end{enumerate}
+
+\subsection{Kontradiksi klaim dokumentasi terhadap data}\label{sec:kontradiksi}
+
+Aturan laporan: data menang. Temuan berikut berasal dari perbandingan langsung
+klaim \code{README.Rmd}/\code{vignettes/benchmarks.Rmd}/\code{paper/article.tex}
+dengan isi \code{inst/extdata} (perhitungan lengkap:
+\code{\_notes/bench\_methodology.md} bagian 6 dan 8).
+
+\begin{table}[htbp]
+\centering
+\caption{Klaim dokumentasi yang bertolak belakang dengan file data. Sumber:
+\texttt{README.Rmd}, \texttt{vignettes/benchmarks.Rmd}, \texttt{paper/article.tex}
+vs \texttt{inst/extdata/*.rds} (butir DOC-1\,--\,DOC-11 di \texttt{DISCREPANCIES.md}).}
+\label{tab:kontradiksi}
+\small
+\begin{tabularx}{\textwidth}{@{}l X X@{}}
+\toprule
+Butir & Klaim dokumentasi & Fakta dari data \\
+\midrule
+DOC-1 & \code{README.Rmd:118} menandai tabel ``Benchmark across $n=1000$
+  areas'' & angka tabel adalah rata-rata lintas $n=30\ldots1000$ \\
+DOC-2 & \code{README.Rmd:122} ``$\sim$190$\times$'' dan ``$\sim$6400$\times$'' &
+  rasio yang benar tidak cocok dengan salah satunya (lihat Tabel~\ref{tab:ratio}) \\
+DOC-3 & \code{README.Rmd:124} fastsae ``$<$ 10 MB'' &
+  beberapa baris \pkg{fastsae} melebihi 10 MB (Tabel~\ref{tab:mem-summary}) \\
+DOC-4 & \code{README.Rmd:124} pembanding ``$\sim$400 MB''/``$\sim$800 MB'' &
+  campuran dua file; untuk FH angkanya jauh di bawah itu \\
+DOC-5/6 & \code{README.Rmd:34-35} ``50 to 6{,}000$\times$'' dan
+  \code{:87} ``10--100$\times$'' &
+  rentang teramati lebih lebar di kedua ujung (Tabel~\ref{tab:ratio}) \\
+DOC-7 & \code{vignettes/benchmarks.Rmd:39} emdi spasial ``8{,}69 s'' &
+  nilai pada file berbeda (Tabel~\ref{tab:time-sfh}) \\
+DOC-8 & label ``\emph{Peak} Memory'' di README, vignette, dan artikel &
+  nilai adalah rerata \code{mem\_alloc}, bukan puncak \\
+DOC-9 & \code{paper/article.tex:100,480} ``73$\times$ to 544$\times$'' &
+  ada nilai serendah $1{,}887\times$ (Tabel~\ref{tab:ratio}) \\
+DOC-10 & \code{vignettes/}\allowbreak{}\code{benchmarks.Rmd:407-414,}\allowbreak{}\code{634-639} kolom Spatial/ST
+  $n\ge100$ & tidak ada data pendukung di \code{inst/extdata} \\
+DOC-11 & reproduksi hasil & empat file tidak punya skrip pembuat di repo \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Implikasinya langsung: laporan ini tidak mengutip satu pun angka kecepatan
+dari README. Angka yang dipakai seluruhnya berasal dari tabel dan gambar di
+atas, yang kesemuanya dihasilkan ulang dari file data.

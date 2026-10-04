@@ -1,0 +1,204 @@
+% ===========================================================================
+%  Bagian 1 -- Pendahuluan
+% ===========================================================================
+\section{Pendahuluan}\label{sec:intro}
+
+\subsection{Masalah estimasi area kecil}
+
+Banyak keputusan publik membutuhkan indikator pada unit geografis yang kecil:
+kabupaten, kecamatan, desa, sekolah, atau rumah sakit. Survei nasional yang
+dirancang untuk tingkat nasional atau provinsi biasanya menghasilkan sampel yang
+terlalu kecil pada unit-unit tersebut, sehingga \emph{estimasi langsung}
+(\emph{direct estimator}) menjadi tidak stabil atau bahkan tidak terdefinisi.
+Estimasi langsung
+\begin{equation}
+  \hat y_d^{\,\mathrm{dir}}=\frac{1}{n_d}\sum_{i\in s_d} y_{id},
+  \qquad
+  \Var\!\left(\hat y_d^{\,\mathrm{dir}}\right)=\psi_d=\frac{S_d^2}{n_d},
+  \label{eq:direct}
+\end{equation}
+hanya memakai informasi dari domain $d$ itu sendiri; ketika $n_d$ kecil, galat
+baku $\sqrt{\psi_d}$ melebihi toleransi keandalan yang lazim (misalnya
+kamuflase RSE di atas $25\%$; lihat bagian~\ref{sec:diagnose}). Beberapa domain
+bahkan tidak tersampel sama sekali ($n_d=0$), dan \eqref{eq:direct} tidak
+terdefinisi di sana.
+
+\emph{Estimasi berbasis model} (\emph{model-based estimation}) menyiasati hal
+tersebut dengan memodelkan domain kecil sebagai bagian dari satu himpunan data
+bersama. Informasi dari domain lain ``dipinjamkan'' melalui model, sehingga
+estimasi menjadi lebih halus (\emph{shrinkage}) dan domain tanpa sampel tetap
+dapat diprediksi. Biayanya adalah asumsi model. Pendahuluan metode ini dalam
+literatur SAE dibahas oleh \citet{pfeffermann2013new} dan
+\citet{rao2015small}.
+
+\subsection{Estimasi langsung, sintetis, dan EBLUP}
+
+Tiga kelas prediktor membedah literatur SAE \citep{rao2015small}:
+
+\begin{enumerate}[label=(\alph*)]
+  \item \textbf{Prediktor sintetis} memakai hanya kovariat domain:
+        $\hat\theta_d^{\,\mathrm{syn}}=\bar x_d'\hat\beta$. Kuat pada domain
+        tanpa sampel, tetapi mengabaikan data domain itu sendiri bila ada.
+  \item \textbf{EBLUP} (\emph{empirical best linear unbiased predictor})
+        menggabungkan kovariat dan data domain melalui model campuran linear:
+        $\hat\theta_d=x_d'\betah+\hat u_d$. Perkiraan komponen varians
+        $\sigma^2$ dari data membuatnya ``empiris''. Model Fay--Herriot
+        \citep{fay1979small} adalah contoh kanoniknya.
+  \item \textbf{EBP} (\emph{empirical best predictor}) dan pendekatan Bayes
+        memperluas gagasan yang sama ke indikator non-Gaussian (rasio,
+        proporsi, jumlah) dan ke pemodelan penuh atas komponen varians
+        \citep{molina2010small, molina2015sae}.
+\end{enumerate}
+
+\subsection{Apa yang ditawarkan \pkg{fastsae}}
+
+\pkg{fastsae} v1.0.0 (deskripsi diambil dari \code{DESCRIPTION}) adalah paket
+\pkg{R} untuk estimasi area kecil yang membagi dua jalur: model frekuentis
+EBLUP yang dikompilasi ke C++ lewat \pkg{Rcpp}/\pkg{RcppArmadillo}, dan model
+Bayes hierarki yang diserahkan ke \pkg{INLA}. Tabel~\ref{tab:fungsi} meringkas
+fungsi yang diekspor (daftar lengkap menurut \code{NAMESPACE}; peta file,
+metode estimasi, dan metode MSE ada di \code{CODE\_MAP.md}).
+
+\begin{table}[htbp]
+\centering
+\caption{Fungsi yang diekspor \pkg{fastsae} dan perannya. Sumber: \code{NAMESPACE} dan
+kode masing-masing fungsi di \code{R/}.}
+\label{tab:fungsi}
+\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+Fungsi & Jenis & Peran \\
+\midrule
+\code{eblup\_fh}      & frekuentis & Fay--Herriot area-level \\
+\code{eblup\_sfh}      & frekuentis & Fay--Herriot spasial (SAR/error-components) \\
+\code{eblup\_stfh}     & frekuentis & Fay--Herriot spasio-temporal \\
+\code{eblup\_bhf}      & frekuentis & Battese--Harter--Fuller unit-level \\
+\code{eblup\_twofold} & frekuentis & model sub-area \emph{two-fold} \\
+\code{hb\_area}        & Bayes      & hierarki Bayes area-level, 6 family likelihood \\
+\code{hb\_unit}        & Bayes      & hierarki Bayes unit-level \\
+\code{hb\_twofold} & Bayes & hierarki Bayes sub-area \\
+\code{benchmark}, \code{benchmark\_sae} & utilitas & kalibrasi ke agregat target \\
+\code{diagnose}       & utilitas & uji kecocokan, uji bias, Moran's I, flag keandalan \\
+\code{compare\_sae}   & utilitas & perbandingan dua model \\
+\code{export\_sae}, \code{map\_sae} & utilitas & ekspor tabel dan peta choropleth \\
+\code{sim\_spatial\_weights}, \code{sim\_area\_data}, \code{sim\_series\_data} & utilitas & pembangkit data dan matriks tetangga \\
+\code{add\_reliability\_flags} & utilitas & flag RSE \\
+\code{autoplot} (S3)  & utilitas & grafik model, benchmark, diagnosis \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Empat pilar yang membedakan paket ini, semuanya terverifikasi dari kode:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Inti numerik di C++/Armadillo.} Fisher scoring untuk model
+        area-level, sub-area, spasial, dan spasio-temporal ditulis dalam
+        \code{src/*.cpp} (bagian~\ref{sec:desain}).
+  \item \textbf{Bootstrap paralel OpenMP.} Empat berkas sumber memakai
+        \code{\#pragma omp parallel for}
+        (\code{eblup\_twofold.cpp:481}, \code{eblup\_sfh\_pbmse.cpp:108},
+        \code{eblup\_sfh\_npbmse.cpp:159}, \code{eblup\_stfh\_pbmse.cpp:352}).
+  \item \textbf{Lapisan INLA untuk model Bayes.} Enam family likelihood
+        (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), enam
+        struktur spasial, lima struktur temporal, dan interaksi
+        spatio-temporal (bagian~\ref{sec:bayes}).
+  \item \textbf{Domain tanpa sampel ditangani eksplisit} di setiap fungsi
+        model: FH memprediksi $x_{ns}'\betah$, BHF menghasilkan prediktor
+        sintetis, dan \fct{hb\_unit} menambahkan baris \code{y = NA} per
+        domain (lihat tiap bagian model).
+\end{enumerate}
+
+\subsection{Arsitektur paket}\label{sec:arsitektur}
+
+Secara arsitektur \pkg{fastsae} terdiri atas lima lapis:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Lapis pemanggilan R} — parsing formula, validasi argumen,
+        pembangunan \code{model.frame}/\code{model.matrix}, pelabelan domain,
+        dan perakitan objek keluaran berkelas S3. Semua file berada di
+        \code{R/} mengikuti urutan \code{Collate} pada \code{DESCRIPTION}.
+  \item \textbf{Lapis C++} — delapan berkas \code{src/*.cpp} yang mengekspor
+        delapan fungsi Rcpp (Tabel~\ref{tab:cpp}); semua dikompilasi dengan
+        \code{CXX17} dan tautan LAPACK/BLAS serta OpenMP melalui
+        \code{src/Makevars}.
+  \item \textbf{Lapis INLA} — \code{R/inla\_utils.R} merangkai formula
+        \code{f(...)} dan mengekstrak hasil; tidak diekspor (semua
+        \code{@noRd}).
+  \item \textbf{Lapis \pkg{lme4}} — hanya untuk BHF dan jalur \code{glmm}
+        \fct{hb\_area}.
+  \item \textbf{Metode S3} — kelas \code{fastsae} beserta turunannya
+        (\code{fastsae\_unit}, \code{fastsae\_hb*}, \code{fastsae\_diagnose},
+        \code{fastsae\_benchmark}, \code{fastsae\_comparison}) memiliki method
+        \code{print}, \code{summary}, \code{plot}, \code{autoplot},
+        \code{coef}, \code{fitted}, \code{residuals}.
+\end{enumerate}
+
+\begin{table}[htbp]
+\centering
+\caption{Fungsi Rcpp dan OpenMP. Sumber: \code{src/RcppExports.cpp},
+\code{src/Makevars}, dan grep \code{\#pragma omp} pada \code{src/*.cpp}.}
+\label{tab:cpp}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Berkas sumber & Fungsi Rcpp & OpenMP \\
+\midrule
+\code{eblup\_fh.cpp}        & \code{.eblup\_core}        & --- \\
+\code{eblup\_unit.cpp}      & \code{.eblup\_bhf\_cpp}     & --- \\
+\code{eblup\_twofold.cpp}       & \code{.eblup\_twofold\_core}    & baris 481 \\
+\code{eblup\_sfh\_core.cpp} & \code{.seblup\_core}        & --- \\
+\code{eblup\_sfh\_pbmse.cpp}& \code{.seblup\_pbmse}       & baris 108 \\
+\code{eblup\_sfh\_npbmse.cpp} & \code{.seblup\_npbmse}   & baris 159 \\
+\code{eblup\_stfh\_core.cpp}& \code{.eblup\_stfh\_core}   & --- \\
+\code{eblup\_stfh\_pbmse.cpp}& \code{.pbmse\_stfh}        & baris 352 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Instalasi, termasuk \pkg{INLA}}
+
+Paket berada di CRAN dan dapat dipasang bersama versi pengembangannya
+(petunjuk di \code{README.Rmd:131-154}):
+\begin{lstlisting}[language={},caption={Perintah instalasi sebagaimana terdokumentasi di \texttt{README.Rmd}.}]
+install.packages("fastsae")                      # rilis stabil
+# install.packages("remotes")
+remotes::install_github("ridsonap/fastsae")      # versi pengembang
+
+# model Bayes memerlukan INLA (tidak ada di CRAN)
+install.packages("INLA",
+  repos = c(getOption("repos"),
+            INLA = "https://inla.r-inla-download.org/R/stable"),
+  dep = TRUE)
+\end{lstlisting}
+Repo INLA pada baris terakhir identik dengan \code{Additional\_repositories}
+di \code{DESCRIPTION}. \pkg{INLA} berada pada \code{Suggests}, sehingga fungsi
+frekuentis tetap dapat dipakai tanpanya; \fct{hb\_area} memeriksanya lebih dulu
+melalui \code{.check\_inla\_installed()} (\code{R/inla\_utils.R:8-15}) dan
+melempar \code{cli\_abort} dengan instruksi repo bila tidak ada.
+
+\subsection{Struktur repositori dan cara membaca laporan ini}
+
+\begin{lstlisting}[language={},caption={Struktur repositori (pilihan relevan).}]
+R/          22 berkas R     : lapis pemanggilan, utilitas, data
+src/         9 berkas C++   : inti numerik + RcppExports
+man/        38 berkas Rd    : dokumentasi (sumber sitasi roxygen)
+vignettes/   7 Rmd           : pengantar, benchmark, diagnosis, model Bayes
+tests/       testthat        : 1.063 tes lulus (lihat bagian 8.3)
+inst/extdata/ 9 file .rds    : hasil benchmark (satu-satunya sumber angka)
+benchmarks/ 11 skrip         : pembangkit hasil benchmark
+\end{lstlisting}
+
+Laporan ini disusun agar setiap klaim dapat ditelusuri: nomor baris dalam teks
+mengacu ke berkas sumber, seluruh angka berasal dari \code{inst/extdata/*.rds}
+lewat skrip di \code{scripts/}, dan seluruh perbedaan antara kode dan rumus
+publik dikumpulkan di \code{DISCREPANCIES.md}. Referensi dikutip dengan
+penulis--tahun (\pkg{natbib}) dan hanya entri yang lolos verifikasi DOI yang
+masuk ke \code{references.bib} (lihat \code{TODO\_REFERENCES.md} untuk yang
+tidak lolos).
+
+Referensi utama pendahuluan: \citet{fay1979small} untuk model area-level,
+\citet{rao2015small} untuk kerangka umum, \citet{pfeffermann2013new} untuk
+perkembangan mutakhir, \citet{rue2009approximate} untuk INLA, serta tiga
+paket pembanding pada benchmark: \pkg{sae}
+\citep{molina2015sae}, \pkg{emdi} \citep{kreutzmann2019emdi}, dan
+\pkg{tipsae} \citep{denicolo2024tipsae}.

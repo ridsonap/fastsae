@@ -1,0 +1,363 @@
+% ===========================================================================
+%  Bagian 7 -- Utilitas (benchmark, diagnose, compare, export, map, simulasi)
+% ===========================================================================
+\section{Lapisan utilitas: benchmarking, diagnostik, perbandingan, ekspor, peta}\label{sec:utilitas}
+
+Kelima kelompok fungsi di bawah ini bekerja pada objek apa pun berkelas
+\code{fastsae} (atau turunannya) dan membentuk ``alur kerja'' setelah sebuah
+model selesai dipasang pada data: \emph{kalibrasi} $\to$ \emph{diagnosis}
+$\to$ \emph{perbandingan} $\to$ \emph{pelaporan/pemetaan}. Semua
+rumus adalah rumus persis yang dikodekan; selisih terhadap rujukan ditandai
+\emph{implementation note} dan dikumpulkan di \code{DISCREPANCIES.md}
+bagian~G (ID \texttt{UT-1}--\texttt{UT-16}).
+
+\subsection{Benchmarking: \texttt{benchmark\_sae}}\label{sec:bm-sae}
+
+\paragraph{Definisi.} Agregat per grup dihitung dari bobot yang sudah
+disterilkan oleh \code{type}:
+\begin{equation}
+  w^{\text{calc}}_{ig}=
+  \begin{cases}
+    w_{ig}/\sum_{k\in g}w_{ik} & \text{\code{type = "mean"}}\\
+    w_{ig} & \text{\code{type = "total"}}
+  \end{cases}
+  \qquad
+  A_g=\sum_{i\in g}w^{\text{calc}}_{ig}\,y_i,
+  \label{eq:bm-agg}
+\end{equation}
+dan target $T_g$ dipaksa tercapai lewat empat metode
+(\code{R/benchmark.R:451-512}):
+\begin{align}
+  \text{\textbf{ratio:}}\quad
+    &\lambda_g=\frac{T_g}{A_g},\qquad \tilde y_i=y_i\,\lambda_g;
+    \label{eq:bm-ratio}\\
+  \text{\textbf{difference:}}\quad
+    &\delta_g=T_g-A_g,\qquad
+      \tilde y_i=y_i+\frac{\delta_g}{\sum_i w^{\text{calc}}_{ig}};
+    \label{eq:bm-diff}\\
+  \text{\textbf{optimal:}}\quad
+    &\lambda_g=\frac{\delta_g}{\sum_i \tilde m_i},\qquad
+      \tilde y_i=y_i+\frac{\tilde m_i}{w^{\text{calc}}_{ig}}\,\lambda_g;
+    \label{eq:bm-opt}\\
+  \text{\textbf{logit:}}\quad
+    &\text{cari }\alpha\text{ dari }\textstyle
+      \sum_i w^{\text{calc}}_{ig}\,
+      \mathrm{logit}^{-1}\bigl(\mathrm{logit}(y_i)+\alpha\bigr)=T_g,\notag\\
+    &\tilde y_i=\mathrm{logit}^{-1}\bigl(\mathrm{logit}(y_i)+\hat\alpha\bigr),
+    \label{eq:bm-logit}
+\end{align}
+dengan $\tilde m_i=\max(\mathrm{mse}_i,10^{-8})$; galat
+\code{ratio} dicatat bila $\abs{A_g}<$ \code{double.eps}. Persamaan
+\eqref{eq:bm-logit} dicari lewat \code{uniroot} pada bracket
+$[-20,20]$, diperluas ke $[-50,50]$ bila tandanya sama, dengan
+\code{tol = 1e-9}; persyaratan $0<y<1$ (dan $0<T_g<1$ untuk
+\code{type = "mean"}) diperiksa lebih dulu. Kepatuhan constraint
+$\sum_i w^{\text{calc}}_{ig}\tilde y_i=T_g$ terverifikasi aljabar untuk
+keempat metode.
+
+\implnote{Metode \code{optimal} memakai alokasi
+$\delta_i=(\mathrm{mse}_i/w_i)\lambda$ sementara solusi KKT standar dari
+$\min\sum\delta_i^2/\mathrm{mse}_i$ s.t. $\sum w_i\delta_i=\Delta$ adalah
+$\delta_i\propto w_i\mathrm{mse}_i$. Constraint tetap tercapai, tetapi
+alokasinya berbeda ketika bobot tidak seragam (UT-6); variabelnya juga
+dinamai \code{inv\_prec} padahal isinya \code{mse}.}
+
+\paragraph{Dua tahap hierarkis.} Aktif bila \code{national\_target} diberikan
+dan ada $>1$ grup (\code{R/benchmark.R:318}): STAGE~1 menyetel target grup
+$T_g$ agar agregatnya menyamai target nasional (empat metode yang sama,
+\code{W\_share}=porsi bobot grup), STAGE~2 menyetel estimasi level kecil ke
+$T_g$; keduanya dicatat \code{stage\_1\_summary} dan diverifikasi ulang.
+\begin{algorithm}[htbp]
+\caption{\texttt{benchmark\_sae} --- alur sebenarnya (\texttt{R/benchmark.R:120-573})}\label{alg:bm}
+\KwIn{objek model (atau vektor numerik), \code{target}, \code{weight},
+  \code{method} $\in$\{ratio, difference, optimal, logit\}, \code{group},
+  \code{type}, \code{national\_target}, \code{outer\_target}, \code{mse}}
+\KwOut{data frame kelas \code{fastsae\_benchmark} + atribut verifikasi}
+estimasi $\leftarrow$ \texttt{df\_hb \%||\% df\_ebp \%||\% df\_eblup};
+  $y\leftarrow$ \code{hb/ebp/eblup/est}; $\mathrm{mse}\leftarrow$ \code{mse} atau $\mathrm{sd}^2$ (142-153)\;
+bobot $\leftarrow$ nama kolom / vektor / seragam $1$ (157-173)\;
+grup $\leftarrow$ nama kolom / vektor / \code{"All"} (178-191)\;
+$A_g,T_g\leftarrow$ \eqref{eq:bm-agg} + parsing target (328-393)\;
+\If{\code{national\_target} $\ne$ NULL \textbf{dan} $>1$ grup}{STAGE 1: setel $T_g$ agar $\sum_g W_{\text{share},g}T_g=T_{\text{nas}}$ (395-438)\;}
+STAGE 2: $\tilde y\leftarrow$ \eqref{eq:bm-ratio}--\eqref{eq:bm-logit} per grup (440-512)\;
+verifikasi $|\sum w^{\text{calc}}\tilde y-T_g|$; status \code{CONSISTENT} bila $<10^{-5}$ (534-560)\;
+susun \code{domain, weight, original, benchmarked, adjustment, rel\_adjustment\_pct, target} (515-531)\;
+\end{algorithm}
+
+\paragraph{Keluaran.} \code{data.frame} kelas \code{c("fastsae\_benchmark","data.frame")}
+dengan atribut \code{method}, \code{type}, \code{hierarchical},
+\code{stage1\_summary}, \code{verification}, \code{national\_verification};
+metode S3: \code{print} (status konsistensi per grup), \code{summary},
+\code{autoplot} (sebaran \code{original} vs \code{benchmarked} dengan garis 1:1),
+dan \code{plot} yang bila diberi \code{sf\_geom} meneruskan ke \fct{map\_sae}.
+Rujukan yang memverifikasi pendekatan restrisi/benchmarking di tingkat
+estimasi: \citet{rao2015small} (bab 10), \citet{you2002pseudo} dan
+\citet{wang2008small}.
+
+\subsection{Diagnostik: \texttt{diagnose}}\label{sec:diagnose}
+
+\code{diagnose()} adalah fungsi biasa (bukan generic S3) dan mensyaratkan
+objek \code{fastsae} (\code{R/diagnose.R:53-60}). Kuantitas dasar
+(\code{R/diagnose.R:84-130}):
+\begin{equation}
+  \mathrm{RSE}^{\text{direct}}_d=100\frac{\sqrt{\psi_d}}{\abs{y_d}},
+  \qquad
+  \mathrm{eff}_d=\frac{\psi_d}{\mathrm{mse}_d},
+  \qquad
+  r_d=\frac{y_d-\hat\theta_d}{\sqrt{\psi_d}},
+  \qquad
+  \widehat{\Pr}(\mathrm{RSE}<T)=\frac{\#\{\mathrm{RSE}<T\}}{n},
+  \label{eq:diag-basic}
+\end{equation}
+dengan ambang default $T=25$\,\% dan area tanpa sampel dihitung
+terpisahnya (\code{N\_sampled}/\code{N\_unsampled}).
+
+\paragraph{Kalibrasi Brown et al.\ (2001) (asal: kode).} Untuk
+minimal lima pasang $(y,\hat\theta)$ ter-sampel:
+\begin{align}
+  y_d&=\alpha+\beta\hat\theta_d+e_d \quad\text{(OLS polos)}, \label{eq:brown-reg}\\
+  F&=\frac{c'\,V^{-1}c}{2},\quad c=(\hat\alpha,\hat\beta)'-(0,1)',
+    \quad c\sim F_{2,\,n-2}, \label{eq:brown-wald}\\
+  W&=\sum_d\frac{(y_d-\hat\theta_d)^2}{\psi_d+\mathrm{mse}_d},
+    \quad W\sim\chi^2_{n_w} \text{ (asimptotik)}. \label{eq:brown-gof}
+\end{align}
+\code{is\_unbiased} diputuskan dari $p$-value $F$; \code{is\_good\_fit}
+diputuskan dari penerimaan interval dua sisi
+$\chi^2_{\alpha/2,n_w}\le W\le\chi^2_{1-\alpha/2,n_w}$.
+
+\implnote{Empat hal pada paragraf di atas adalah temuan lapangan dan dicatat
+sebagai UT-1--UT-3: regresi memakai OLS tanpa bobot (bukan WLS
+$\propto1/(\psi+\mathrm{mse})$ seperti yang lazim dikutip), statistik Wald
+dibagi $2$ lalu dibandingkan $F(2,n-2)$ (bukan $\chi^2(2)$), keputusan GOF
+memakai interval dua sisi sedangkan $p$-value yang dicetak ekor-atas tunggal
+sehingga status bisa \code{CAUTION} walau $p\ge\alpha$, dan tidak ada teks
+rujukan Brown et al.\ dalam repo --- dokumen resminya laporan internal ONS
+yang tidak dapat diverifikasi di Crossref (lihat \code{TODO\_REFERENCES.md}).}
+
+\paragraph{Moran's I residual} (\code{R/diagnose.R:193-246}) dihitung pada
+residual mentah area ter-sampel (bukan terstandarisasi), $W$ dipotong ke
+baris ter-sampel, minimal lima area:
+\begin{align}
+  I&=\frac{n}{S_0}\cdot\frac{\sum_{ij}w_{ij}z_iz_j}{\sum_i z_i^2},
+    \label{eq:moran-I}\\
+  \Var(I)&=\frac{
+    n\bigl[(n^2-3n+3)S_1-nS_2+3S_0^2\bigr]
+    -\kappa\bigl[(n^2-n)S_1-2nS_2+6S_0^2\bigr]}
+    {(n-1)(n-2)(n-3)S_0^2}-\bigl(\mathbb E I\bigr)^2,
+  \label{eq:moran-var}
+\end{align}
+dengan $S_0=\sum_{ij}w_{ij}$, $z=r-\bar r$,
+$S_1=\tfrac12\sum(w_{ij}+w_{ji})^2$, $S_2=\sum_i(\sum_jw_{ij}+\sum_jw_{ji})^2$,
+$\kappa=n\sum z^4/(\sum z^2)^2$, $\mathbb E I=-1/(n-1)$, dan
+$\Var\ge10^{-8}$; $z$-statistik dua sisi $2\Phi(-\abs{z})$.
+
+\paragraph{Metrik simulasi dan diagnostik Bayes.} Bila \code{truth} diberikan:
+$\mathrm{rb}=100(\hat\theta-\theta)/\theta$, $\mathrm{rrmse}=100\abs{\hat\theta-\theta}/\abs{\theta}$
+(dinamakan ``Mean Relative RMSE'' padahal ini rerata galat relatif absolut,
+UT-4), dan \code{coverage} dari kolom CI apa adanya (UT-5). Untuk model
+Bayes, DIC/WAIC/marginal likelihood diambil dari \code{goodness}, CPO/PIT dari
+\code{fit\$cpo}, jumlah \code{failure}, lalu uji KS
+\code{ks.test(pit, "punif")} (syarat lima nilai PIT di $(0,1)$).
+
+\paragraph{Status akhir} (\code{R/diagnose.R:334-349}) berurutan:
+\code{PASS} bila semua tes lolos, lalu \code{CAUTION} untuk bias, \code{CAUTION}
+untuk GOF, lalu \code{WARNING} bila proporsi RSE$\ge$ ambang terlalu besar.
+Bila suatu tes tidak tersedia dianggap lolos.
+
+\begin{algorithm}[htbp]
+\caption{\texttt{diagnose} --- alur sebenarnya (\texttt{R/diagnose.R:53-386})}\label{alg:diagnose}
+\KwIn{objek \code{fastsae}, \code{W}, \code{truth}, \code{rse\_threshold} $=25$, \code{alpha\_level} $=0.05$}
+\KwOut{list kelas \code{fastsae\_diagnose} + string \code{status}}
+ekstrak \code{df}, $y$, $\hat\theta$, $\psi$, $\mathrm{mse}$ (63-73)\;
+\eqref{eq:diag-basic}: RSE direct/SAE, efisiensi, residual, proporsi andal (84-130)\;
+\If{$n_{\text{pasang}}\ge5$}{regresi \eqref{eq:brown-reg}; Wald \eqref{eq:brown-wald}; GOF \eqref{eq:brown-gof} (133-191)}\;
+\If{\code{W} tersedia \textbf{dan} $n\ge5$}{Moran's I \eqref{eq:moran-I}--\eqref{eq:moran-var} pada residual terpotong (193-246)}\;
+\If{\code{truth} diberikan}{rb, rrmse, coverage (251-271)}\;
+\If{objek Bayes}{DIC/WAIC/CPO/PIT + uji KS (276-332)}\;
+\code{status} $\leftarrow$ aturan berurutan pada teks (341-349)\;
+susun \code{df\_diag} (\code{domain, direct\_y, sae\_pred, vardir, mse, direct\_rse, sae\_rse, eff\_ratio, residuals, std\_residuals, is\_sampled}[, \code{cpo, pit}]) (351-382)\;
+\end{algorithm}
+
+Keluaran dicetak \code{print.fastsae\_diagnose} dalam lima bagian (efisiensi,
+kalibrasi Brown, Moran's I, simulasi, Bayes) plus penilaian akhir; grafik
+lewat \code{autoplot} dengan tipe \code{all}, \code{calibration},
+\code{rse}, \code{residuals}, \code{qq}, \code{pit}, \code{cpo}.
+Tidak ada \code{summary} maupun \code{plot} untuk kelas ini (UT-13).
+
+\subsection{Perbandingan dua model: \texttt{compare\_sae}}\label{sec:compare}
+
+\code{compare\_sae(model1, model2, names, thresholds = c(20,30))} hanya
+memiliki method \code{.default} (UT-14); kunci gabung adalah
+\code{domain}, atau \code{c(domain, subarea)}, atau \code{c(domain, time)}
+(inner join; error bila tumpang tindih nol). Metrik yang dihitung
+(\code{R/compare\_sae.R:112-176}):
+\begin{equation}
+  r=\operatorname{cor}(\hat\theta_1,\hat\theta_2),\quad
+  \rho=\text{Spearman},\quad
+  \mathrm{MAE}=\overline{\abs{d}},\quad
+  \mathrm{RMSD}=\sqrt{\overline{d^{2}}},\quad
+  d=\hat\theta_2-\hat\theta_1,
+  \label{eq:compare-metrics}
+\end{equation}
+plus rasio $\mathrm{mse}_1/\mathrm{mse}_2$, jumlah domain dengan
+$\mathrm{mse}_2<\mathrm{mse}_1$, dan $\Delta\overline{\mathrm{RSE}}$.
+\emph{Tidak ada} argumen \code{truth}, sehingga RMSD/MAE di sini adalah
+selisih antarmodel, bukan galat terhadap kebenaran.
+\code{thresholds} hanya dipakai sebagai garis horizontal pada plot
+\code{rse} (UT-14). Lima tipe \code{autoplot}: \code{scatter} (garis 1:1),
+\code{comparison} (default, dodged), \code{difference} (lollipop),
+\code{mse} (bar dodged), \code{rse} (garis + ambang).
+
+\subsection{Flag reliabilitas dan ekspor: \texttt{export\_sae}}\label{sec:export}
+
+\code{add\_reliability\_flags} memotong RSE dengan
+$\texttt{cut}(\text{breaks}=(-\infty,20,30,\infty))$ menjadi tiga tingkat
+\emph{Reliable (\textless 20\%)}, \emph{Use with Caution (20--30\%)},
+\emph{Unreliable ($\ge$30\%)}; bila kolom RSE tidak ada, ia menghitung
+$100\sqrt{\mathrm{mse}}/\abs{\hat\theta}$. \implnote{Dokumen menyebut fungsi
+menerima ``objek atau data frame'' tetapi nilai kembalian selalu berupa
+data frame saja --- penugasan balik ke \code{object\$df\_*} tidak efektif
+karena aturan copy-on-modify R (UT-9).}
+
+\code{export\_sae(object, file, benchmark, thresholds, overwrite)} hanya
+menerima ekstensi \code{xlsx}/\code{csv}; sheet yang ditulis:
+\code{Estimates}, \code{Model\_Summary}, \code{Benchmarked} dan
+\code{Benchmarked\_Groups} (bila hierarkis) --- bisa empat, bukan ``hingga
+tiga'' seperti dokumentasi (UT-10). Penulisan xlsx memakai
+\pkg{writexl}, fallback \pkg{openxlsx}, fallback terakhir CSV berisi
+\code{Estimates} saja; sheet \code{Benchmarked} tidak pernah ikut pada mode
+csv. Sheet \code{Estimates} memuat
+$\mathrm{SE}=\sqrt{\mathrm{mse}}$, $\mathrm{CI}_{95\%}=\hat\theta\pm1.96\,\mathrm{SE}$
+(bila kolom CI tidak ada), serta flag reliabilitas; sheet
+\code{Model\_Summary} berupa pasangan \code{Parameter/Value} (paket, tipe
+model, method, konvergensi, komponen ragam, goodness of fit, koefisien
+$+$ SE $+$ $p$).
+
+\subsection{Peta choropleth: \texttt{map\_sae}}\label{sec:map}
+
+Empat method: \code{.fastsae}, \code{.fastsae\_benchmark}, \code{.list},
+\code{.default}; semuanya mensyaratkan \pkg{sf} dan menghasilkan
+\code{ggplot}. Lima tipe \code{type}:
+\begin{itemize}
+  \item \code{estimate} --- \code{geom\_sf} + viridis;
+  \item \code{rse} --- \code{option = "magma"}, arah terbalik;
+  \item \code{reliability} --- tiga warna manual
+        \texttt{\#198754} / \texttt{\#ffc107} / \texttt{\#dc3545}
+        sesuai tingkat \S\ref{sec:export};
+  \item \code{comparison} --- facet Direct Survey vs SAE (otomatis jatuh ke
+        \code{estimate} bila kolom direct seluruhnya \code{NA});
+  \item \code{difference} --- $\hat\theta-y$ dengan \code{gradient2}
+        \texttt{\#2b83ba}/\texttt{\#ffffbf}/\texttt{\#d7191c}.
+\end{itemize}
+Pencocokan kunci otomatis memakai daftar kandidat
+\code{domain, area, id, code, kd\_kab, kode, kabupaten, provinsi, district,
+region} dan mengadopsi pasangan dengan tumpang tindih terbesar
+\emph{bila mencapai} $40\%$ jumlah domain; gagal $\to$ error.
+
+\implnote{Argumen \code{thresholds = c(20,30)} diteruskan tetapi tidak pernah
+dipakai: pemotongan reliabilitas hard-coded di extractor (UT-12). Pemetaan
+dua model menyusun \code{data.frame(matched\_sf[, c("domain","geometry")],\dots)},
+yang akan gagal bila kolom geometri \code{sf} bukan \code{"geometry"}
+(UT-16).}
+
+\subsection{Metode S3 dan grafik}\label{sec:s3}
+
+Tabel~\ref{tab:s3} merangkum metode yang terdaftar di \code{NAMESPACE:23-52}.
+
+\begin{table}[htbp]
+\centering
+\caption{Metode S3 utama beserta file sumbernya.}
+\label{tab:s3}
+\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+Generic & Objek & Perilaku ringkas \\
+\midrule
+\code{print} & \code{fastsae} & Call, konvergensi + \code{n\_iter},
+  tipe model, komponen ragam, \code{printCoefmat(estcoef)},
+  \code{head(df,6)} \\
+\code{summary} & \code{fastsae} & list 20 komponen; dicetak
+  \code{print.summary.fastsae} \\
+\code{coef}, \code{fitted}, \code{residuals} & \code{fastsae} &
+  \code{estcoef\$beta}; \code{hb/ebp/eblup}; $y-\hat\theta$ \\
+\code{plot}, \code{autoplot} & \code{fastsae} & 7 tipe: \code{comparison},
+  \code{ribbon}, \code{mse}, \code{estimates}, \code{scatter}, \code{rse},
+  \code{map} \\
+\code{autoplot} & \code{list fastsae} & \code{comparison}, \code{mse},
+  \code{scatter} (butuh \code{names(x)} --- UT-15) \\
+\code{autoplot} & \code{fastsae\_diagnose} & \code{all},
+  \code{calibration}, \code{rse}, \code{residuals}, \code{qq},
+  \code{pit}, \code{cpo} \\
+\code{print}, \code{summary}, \code{autoplot}, \code{plot} &
+  \code{fastsae\_benchmark} & lihat \S\ref{sec:bm-sae} \\
+\code{print}, \code{summary}, \code{autoplot}, \code{plot} &
+  \code{fastsae\_comparison} & lihat \S\ref{sec:compare} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Pada \code{autoplot} model tunggal, bila kolom CI belum ada, pita dibuat
+$\hat\theta\pm1.96\sqrt{\mathrm{mse}}$; tipe \code{rse} membandingkan RSE
+SAE vs RSE direct dengan dua ambang \code{c(20,30)}.
+
+\subsection{Data simulasi}\label{sec:sim}
+
+Tiga pembangkit tersedia, semuanya menghasilkan matriks ketetanggaan lewat
+\fct{sim\_spatial\_weights} (tipe \code{knn}/\code{grid}/\code{ring}, gaya
+\code{B} biner atau \code{W} row-standar; kNN disimetrisasi
+$A\leftarrow\max(A,A')$).
+
+\paragraph{DGP area-level} (\code{sim\_area\_data}, \code{R/sim\_area\_data.R:63-166}):
+\begin{align}
+  v&=(\Imat-\rho W_{\text{std}})^{-1}\varepsilon,\quad
+    \tilde v=\text{standarisasi}(v),\quad
+    \tilde u=\text{standarisasi}(N(0,1)),\label{eq:sim-spatial}\\
+  u&=\sigma_u\bigl(\sqrt{\varphi}\,\tilde v+\sqrt{1-\varphi}\,\tilde u\bigr),
+    \qquad
+    \eta=x'\beta+u, \label{eq:sim-bym2}\\
+  y\mid\eta&\sim
+    \begin{cases}
+      \eta+\mathcal N(0,\psi) & \psi\sim U(0.04,\,0.16)\\
+      \text{Poisson}\bigl(\text{exposure}\cdot
+        e^{\operatorname{clip}(\eta/2-0.5,\,-4,\,4)}\bigr) & \text{offset}\\
+      \text{Binomial}\bigl(\text{trials},\ \mathrm{logit}^{-1}(\eta-1)\bigr) & \text{peluang}\\
+      \text{NB}\bigl(\theta=3,\ \mu=15\,e^{\operatorname{clip}(\eta/2,\,-3,\,4)}\bigr) &
+        \text{gamma-Poisson}\\
+      \text{Beta}\bigl(\mu\kappa,\ (1-\mu)\kappa\bigr) & \kappa=25\\
+      \text{Gamma}\bigl(k=5,\ \mu/k\bigr) & k=5
+    \end{cases}
+    \label{eq:sim-resp}
+\end{align}
+dengan $x_1\sim N(2,1)$, $x_2\sim U(0,5)$, parameter dipotong
+$\rho\in[-0.95,0.95]$, $\varphi\in[0,1]$, dan \code{n\_unsampled} domain
+diset \code{NA}; \code{exposure} $\sim\mathrm{round}\,U(80,400)$ dan
+\code{trials} $\sim\mathrm{round}\,U(50,250)$. Rata-rata pada Beta adalah
+$\mu=\operatorname{clip}\bigl(\mathrm{logit}^{-1}(\eta-1),\,0.02,\,0.98\bigr)$
+(dan $y$ dipotong ke $[0.001,0.999]$), pada Gamma
+$\mu=\exp\bigl(\operatorname{clip}(\eta/2,\,-3,\,3)\bigr)$, dan pada NB
+$\mu=15\exp\bigl(\operatorname{clip}(\eta/2,\,-3,\,4)\bigr)$. \eqref{eq:sim-bym2} adalah campuran gaya BYM2 yang sama
+dengan \eqref{eq:bym2}.
+
+\paragraph{DGP panel} (\code{sim\_series\_data}) menambah efek spasial
+$u_1=\sigma_s\,\text{standar}((\Imat-\rho_sW_{\text{std}})^{-1}\varepsilon)$,
+proses AR(1) per domain $u_2[d,t]=\rho_t u_2[d,t-1]+\mathcal N(0,\sigma_t\sqrt{1-\rho_t^2})$
+(varian stasioner $\sigma_t^2$), dan tren deterministik
+(\code{linear}/\code{random\_walk}/\code{ar1}/\code{none}); pengurutan baris
+\code{domain-major} memenuhi syarat \fct{eblup\_stfh}.
+
+\implnote{Dataset terlampir berbeda dari keluaran pembangkit: \code{sim\_area}
+memakai kolom \code{area} dengan 14 kolom tanpa \code{truth\_gaussian},
+sedangkan \code{sim\_area\_data()} menghasilkan 15 kolom dengan
+\code{domain} dan \code{truth\_gaussian} (UT-11); hal yang sama berlaku
+untuk \code{sim\_panel}.}
+
+\subsection{Rujukan lapisan utilitas}\label{sec:util-ref}
+
+Blok roxygen \code{R/benchmark.R:79-93} memuat lima rujukan dan
+\code{R/diagnose.R:27-33} memuat tiga; yang berhasil diverifikasi dipakai di
+sini: \citet{rao2015small} (bab benchmarking), \citet{you2002pseudo},
+\citet{datta2010bayesian} (benchmarking Bayes), dan \citet{berg2014small}.
+Rujukan yang tidak dapat diverifikasi (Steorts et al.\
+2014; Brown et al.\ 2001; Cliff \& Ord 1981) tidak dikutip sebagai
+referensi bibliografis dan didaftarkan di \code{TODO\_REFERENCES.md}
+bagian~5, termasuk dua koreksi judul/tahun terhadap teks kode.

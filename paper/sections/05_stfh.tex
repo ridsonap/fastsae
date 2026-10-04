@@ -1,0 +1,239 @@
+% ===========================================================================
+%  Bagian 5.3 -- eblup_stfh
+% ===========================================================================
+\section{Model Fay--Herriot spasio-temporal: \texttt{eblup\_stfh}}\label{sec:stfh}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:stfh-setting}
+
+Data harus berupa \emph{panel lengkap}: satu baris per (domain, waktu) dengan
+tidak ada \code{NA} pada respons (dan semestinya juga pada \code{vardir}).
+Secara teknis \fct{eblup\_stfh} menolak respons \code{NA} (\code{cli\_abort},
+\code{R/eblup\_stfh.R:129-139}) dan memeriksa \code{nrow(X) == D*T} ---
+berbeda dengan dua model FH sebelumnya yang justru memakai \code{NA} sebagai
+penanda domain tanpa sampel. \code{NA} pada \code{vardir} sendiri
+\emph{tidak} ditolak: pemeriksaan positivitas memakai
+\code{na.rm = TRUE} (\code{baris 152}), sehingga \code{NA} lolos dan baru
+menghasilkan \code{NA} di hasil akhir. Model ini dipakai bila estimasi tersedia untuk $T$ periode
+per domain dan kita ingin memakai kedua jenis korelasi: spasial antar domain dan
+temporal antar waktu dalam domain yang sama. Dokumentasi menyebutnya
+reimplementasi \code{sae::eblupSTFH} (\code{R/eblup\_stfh.R:3-8});
+rujukan utamanya \citet{marhuenda2013small}.
+
+\subsection{Persamaan model}\label{sec:stfh-model}
+
+\begin{equation}
+  y_{dt}=x_{dt}'\beta+u^{(1)}_d+u^{(2)}_{dt}+e_{dt},
+  \qquad e_{dt}\sim N(0,\psi_{dt}),
+  \label{eq:stfh-model}
+\end{equation}
+dengan dua komponen (penulisan \emph{domain-major}, $M=D\times T$):
+\begin{align}
+  u^{(1)} &\sim N\bigl(0,\;\sigma_1^2\,\Omega_1\otimes\mathbf 1_T\mathbf 1_T'\bigr),
+    &\Omega_1&=\bigl[(\Imat-\rho_1\Wmat)'(\Imat-\rho_1\Wmat)\bigr]^{-1},
+    \label{eq:stfh-spatial}\\
+  u^{(2)} &\sim N\bigl(0,\;\Imat_D\otimes\sigma_2^2\Omega_2\bigr),
+    &(\Omega_2)_{tt'}&=\frac{\rho_2^{\abs{t-t'}}}{1-\rho_2^2},
+    \label{eq:stfh-temporal}
+\end{align}
+yaitu (i) efek spasial yang \emph{konstan sepanjang waktu} dalam satu domain ---
+karena $\mathbf 1_T\mathbf 1_T'$, seluruh titik waktu pada domain $d$ berbagi
+$u^{(1)}_d$ yang sama --- dan (ii) proses AR(1) per domain untuk $u^{(2)}$.
+Implementasinya persis \code{Va[0] = kron(Omega1, OnesT)} dan
+\code{Va[2] = kron(I\_D, Omega2)} (baris 281, 286), sehingga setara dengan
+$Z_1\Omega_1 Z_1'$ pada \code{sae::eblupSTFH}.
+
+\implnote{Struktur ini \emph{bukan} salah satu interaksi Knorr--Held tipe
+I--IV: tidak ada interaksi spasial$\times$temporal di mana efek spasial
+berubah tiap waktu. Model \code{model = "S"} mematikan struktur temporal
+($\Omega_2=\Imat$, $A_d=(\sigma_2^2+\psi_{dt})$ diagonal). Perbedaan ini
+tercatat sebagai STFH-1 dan harus dipahami saat membaca hasil.}
+
+\subsection{Prediktor titik}\label{sec:stfh-prediktor}
+
+Dengan $r=y-\Xmat\betah$ (baris 426), kedua komponen acak diprediksi dari
+proyeksi spasial dan temporalnya (baris 430-453):
+\begin{equation}
+  \hat u^{(1)}=\bigl(\sigma_1^2\Omega_1\otimes\mathbf 1_T\mathbf 1_T'\bigr)
+  Z_1'\Vm^{-1}r,
+  \qquad
+  \hat u^{(2)}_d=\sigma_2^2\Omega_2\bigl(\Vm^{-1}r\bigr)_d,
+  \qquad
+  \hat\theta_{dt}=x_{dt}'\betah+\hat u^{(1)}_d+\hat u^{(2)}_{dt}.
+  \label{eq:stfh-pred}
+\end{equation}
+Karena eksistensi kuadrat kron tadi, $\hat u^{(1)}$ identik pada seluruh
+periode satu domain (kode memakai ekspansi konstan-waktu). Untuk
+\code{model = "S"} suku temporal menjadi $\sigma_2^2(\Vm^{-1}r)$ (baris 444).
+
+\subsection{Estimasi komponen varians}\label{sec:stfh-varians}
+
+Parameter: $\theta=(\sigma_1^2,\rho_1,\sigma_2^2,\rho_2)$ untuk
+\code{"ST"} ($n_{\text{param}}=4$) dan $(\sigma_1^2,\rho_1,\sigma_2^2)$ untuk
+\code{"S"} ($n_{\text{param}}=3$; baris 207-208). Nilai awal default
+$0.5\,\mathrm{median}(\psi)$ untuk varian dan $0.5$ untuk korelasi
+(baris 201-203), semua dapat dioverride lewat argumen \code{*\_start}.
+Skoring (baris 310-316) selalu berbentuk REML:
+\begin{equation}
+  S_a=-\tfrac12\tr(P V_a)+\tfrac12 y'P V_a P y,
+  \qquad
+  F_{ab}=\tfrac12\tr(P V_a P V_b),
+  \qquad P=\Vm^{-1}-\Vm^{-1}\Xmat Q\Xmat'\Vm^{-1},
+  \label{eq:stfh-score}
+\end{equation}
+dengan $V_a$ turunan parsial \eqref{eq:stfh-spatial}--\eqref{eq:stfh-temporal}
+(baris 276-289). Langkah $F^{-1}S$ (baris 319-323), $\rho_1,\rho_2$ dipetakan ke $\pm0.999$ hanya bila
+$|\rho|\ge1$ --- nilai di $(0.999,1)$ lolos (baris 326-331), $\sigma^2$ hanya dibatasi nonnegatif pada akhir
+(baris 346-347), konvergensi relatif $\le10^{-4}$ dengan maksimum 100 iterasi.
+Galat baku $\beta$ dari $\sqrt{\mathrm{diag}(Q)}$ dan galat baku komponen
+dari $\sqrt{\mathrm{diag}(F^{-1})}$; nilai $p$ dihitung dari distribusi
+\emph{normal} meski kolomnya bernama \code{tvalue} (STFH-6), dan $F^{-1}$
+dievaluasi pada iterate sebelum update terakhir (STFH-7).
+
+\paragraph{Inversi Woodbury.} Karena $\Vm_A=\diag$ blok per domain (temporal
+$T\times T$), inversi penuh $M\times M$ dihindari (baris 90-153):
+\begin{equation}
+  \Vm^{-1}=\Vm_A^{-1}-\Vm_A^{-1}Z_1\,\mathbf C^{-1}Z_1'\Vm_A^{-1},
+  \qquad
+  \mathbf C=\frac{\Omega_1^{-1}}{\sigma_1^2}+\diag\bigl(Z_1'\Vm_A^{-1}Z_1\bigr),
+  \label{eq:stfh-woodbury}
+\end{equation}
+dengan $\mathbf C$ berdimensi $D\times D$. Biaya inversi turun dari
+$O((DT)^3)$ menjadi $O(D\,T^3)+O(D^3)$, dan log-determinan memakai rantai
+setara $\log|\Vm|=\log|\Vm_A|+\log|\sigma_1^2\Omega_1|+\log|\mathbf C|$
+(baris 456-471). Memori tetap $O(M^2)$ karena $\Vm_A^{-1}$, $\Vm^{-1}$,
+$P$, dan $n_{\text{param}}$ matriks turunan disimpan penuh.
+
+\subsection{Estimasi MSE}\label{sec:stfh-mse}
+
+Tidak ada MSE analitik. Kolom \code{mse} dan \code{rse} diisi \code{NA}
+kecuali \code{compute\_mse = TRUE} (\code{R/eblup\_stfh.R:269-272}) --- kebalikan
+dari \fct{eblup\_sfh} yang selalu punya MSE analitik (STFH-2).
+
+Dengan \code{compute\_mse = TRUE}, bootstrap parametrik (STFH-3):
+\begin{enumerate}[label=\arabic*.]
+  \item fit awal penuh pada data asli (baris 257-266);
+  \item bangkitkan $u^{(1)\ast}\sim N(0,\sigma_1^2\Omega_1)$ lewat Cholesky
+        $\Omega_1$, $u^{(2)\ast}$ AR(1) ($u_{0}^\ast\sim N(0,\sigma_2^2/(1-\rho_2^2))$,
+        $u^\ast_t=\rho_2u^\ast_{t-1}+N(0,\sigma_2^2)$), dan
+        $\varepsilon^\ast\sim N(0,\psi)$ --- \emph{sekuensial, sebelum} region
+        paralel (baris 303-337);
+  \item dalam \texttt{\#pragma omp parallel for schedule(dynamic)}:
+        $y^\ast=\Xmat\hat\beta+u^{(1)\ast}+u^{(2)\ast}+\varepsilon^\ast$,
+        lalu \code{fit\_stfh\_eblup\_only} yang menghitung ulang $\beta$ dan
+        memakai Woodbury, tetapi \emph{komponen varian tidak diestimasi
+        ulang} (komentar baris 91, 368);
+  \item akumulasi $\widehat{\mathrm{MSE}}=\frac{1}{n_{\text{valid}}}
+        \sum_b\bigl(\hat\theta_b^\ast-\theta_b^\ast\bigr)^2$
+        (baris 386-412).
+\end{enumerate}
+\implnote{Pembagi adalah jumlah replikat valid, sehingga efektifnya bisa
+$<B$ yang diminta, dan \code{res\$B} dikembalikan sebagai $n_{\text{valid}}$
+(STFH-5); SFH sebaliknya memaksa tepat $B$ replikat valid. Skema ini juga
+\emph{fixed-$\theta$}: \code{sae::pbmseSTFH} mengestimasi ulang komponen
+varian tiap replikat, dan tidak ada versi bias-koreksi seperti SFH (STFH-3).}
+
+\subsection{Pseudo-code}\label{sec:stfh-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{eblup\_stfh} --- alur sebenarnya (\texttt{R/eblup\_stfh.R:103-292}, \texttt{src/eblup\_stfh\_core.cpp:161-536})}
+\label{alg:stfh}
+\KwIn{formula, \code{vardir}, \code{data}, \code{domain}, \code{time}, $W$ ($D\times D$),
+  \code{model} $\in$\{ST, S\}, nilai awal, \code{compute\_mse}, \code{B}, \code{n\_threads}, \code{seed}}
+\KwOut{\code{df\_eblup} (per domain $\times$ waktu), \code{estvarcomp}, \code{goodness}}
+\tcp*{\emph{Lapis R}}
+\textbf{gagal} bila respons mengandung \code{NA} (129-139);\ \code{vardir}$>0$
+  (152; \code{NA} lolos karena \code{na.rm = TRUE})\;
+\textbf{gagal} bila \code{nrow(X)} $\ne D\times T$ atau $W$ bukan $D\times D$ (163-181)\;
+validasi \code{sigma*\_start} $\ge0$ dan \code{rho\*\_start} $\in(-1,1)$ (184-195)\;
+$\theta^{(0)}\leftarrow$ argumen, atau $-1$ untuk ``pakai default'' (208-210)\;
+$\hat\theta,\ldots\leftarrow$ \texttt{.eblup\_stfh\_core} (198-212)\;
+\If{\code{compute\_mse}}{$\mathrm{MSE}\leftarrow$ \texttt{.pbmse\_stfh} (241-266)}
+\uElse{\texttt{mse = rse = NA}; \texttt{B = NA} (269-272)}\;
+\code{method} $\leftarrow$ \texttt{"REML"} \tcp*{hard-coded (225)}
+\caption*{}
+\tcp*{\emph{Lapis C++}}
+$\sigma_1^{2}\leftarrow0.5\,\mathrm{median}(\psi)$ (bila $<0$);\quad
+  $\rho_{1,2}\leftarrow$ argumen (201-205);\quad
+  $\theta_0\leftarrow(\sigma_1^2,\rho_1,\sigma_2^2[, \rho_2])$ (223-227)\;
+\While{\texttt{diff} $>$ \code{precision} \textbf{dan} $k<$ \code{maxiter}}{
+  $\Omega_1\leftarrow[(\Imat-\rho_1W)'(\Imat-\rho_1W)]^{-1}$;
+    $V_{u1}\leftarrow\sigma_1^2\Omega_1$ (74-80)\;
+  \For{domain $d$}{$A_d\leftarrow\sigma_2^2\Omega_2+\diag(\psi_d)$ ($T\times T$),
+    inversi; atau $1/(\sigma_2^2+\psi)$ untuk \code{"S"} (96-123)}\;
+  $V^{-1}\leftarrow V_A^{-1}-(V_A^{-1}Z_1)\mathbf C^{-1}(V_A^{-1}Z_1)$,
+    $\mathbf C$ $D\times D$ \eqref{eq:stfh-woodbury} (139-153)\;
+  $Q\leftarrow(\Xmat'V^{-1}\Xmat)^{-1}$;\ $P\leftarrow V^{-1}-V^{-1}\Xmat Q\Xmat'V^{-1}$ (265-274)\;
+  $V_a\leftarrow$ turunan \eqref{eq:stfh-spatial}--\eqref{eq:stfh-temporal} (276-289)\;
+  $S,F\leftarrow$ \eqref{eq:stfh-score} (292-316)\;
+  $\theta_{k+1}\leftarrow\theta_k+F^{-1}S$;\quad
+  bila $|\rho_{1,2}|\ge1$ maka $\rho_{1,2}\leftarrow\pm0.999$ (319-331)\;
+  $\texttt{diff}\leftarrow\max\abs{(\theta_{k+1}-\theta_k)/\theta_k^{\text{safe}}}$,
+    di mana $\theta_k^{\text{safe}}=\theta_k$ kecuali bila persis $0$ diganti
+    $10^{-4}$ (334-336)\;
+}
+\If{tidak konvergen}{\KwRet semua komponen \texttt{NULL},
+  \texttt{convergence = FALSE} (339-341); wrapper R berhenti di sini
+  tanpa memanggil \texttt{.pbmse\_stfh} (R 232-239)}\;
+$\sigma^2\leftarrow\max(0,\cdot)$;\ $\betah\leftarrow Q\Xmat'V^{-1}y$;\ $r\leftarrow y-\Xmat\betah$ (346-427)\;
+$\hat u^{(1)},\hat u^{(2)}\leftarrow$ \eqref{eq:stfh-pred};\ $\hat\theta\leftarrow\Xmat\betah+\hat u^{(1)}+\hat u^{(2)}$ (430-453)\;
+$\log|\Vm|\leftarrow\log|\Vm_A|+\log|\sigma_1^2\Omega_1|+\log|\mathbf C|$;\ loglik, AIC, BIC (456-479)\;
+galat baku $\beta$, komponen varian, $p$ (normal) (482-512)\;
+susun \code{estcoef}, \code{estvarcomp}, \code{df\_eblup}
+  (\code{eblup, random\_effect\_u1, random\_effect\_u2}) (520-535)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:stfh-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_stfh} (\texttt{R/eblup\_stfh.R:103-122}).}]
+eblup_stfh(formula, vardir, data, domain, time, W,
+           model = c("ST", "S"), maxiter = 100, precision = 1e-4,
+           sigma21_start = NULL, rho1_start = 0.5,
+           sigma22_start = NULL, rho2_start = 0.5,
+           compute_mse = FALSE, B = 100, n_threads = 1, seed = -1,
+           print_result = TRUE)
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{domain}, \code{time} --- nama kolom/kolom formula penanda domain
+        dan waktu (wajib; panel harus lengkap).
+  \item \code{W} --- matriks tetangga $D\times D$ (hanya antar domain, tanpa
+        dimensi waktu).
+  \item \code{model} --- \code{"ST"} (default, AR(1) temporal) atau
+        \code{"S"} (tanpa struktur temporal).
+  \item \code{compute\_mse} --- \code{FALSE} (default) menghasilkan
+        \code{mse = NA}; \code{TRUE} menjalankan bootstrap parametrik.
+\end{itemize}
+
+Objek keluaran: \code{"fastsae"} berisi \code{estcoef}
+(\code{beta, std.error, tvalue, pvalue}), \code{estvarcomp} (4 atau 3 baris
+\code{estimate, std.error}), \code{goodness} (\code{loglike, AIC, BIC} ---
+nama kolom berbeda dari SFH, STFH-8), \code{df\_eblup} dengan kolom
+\code{domain, time, y, eblup, vardir, mse, rse, mse\_pb, random\_effect\_u1,
+random\_effect\_u2}, \code{convergence}, \code{n\_iter}, \code{method = "REML"}.
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_stfh.Rd}); panel dibuat lengkap dengan penyaringan.}]
+library(fastsae)
+library(dplyr)
+
+mys_panel_nona <- mys_panel |>
+  filter(!is.na(y) & year >= 2024)
+
+m1 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel_nona,
+                 vardir = ~vardir, domain = ~area, time = ~year,
+                 W = mys_proxmat[-c(21, 25), -c(21, 25)], model = "ST")
+
+# dengan bootstrap MSE
+m2 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel_nona,
+                 vardir = ~vardir, domain = ~area, time = ~year,
+                 W = mys_proxmat[-c(21, 25), -c(21, 25)], model = "ST",
+                 compute_mse = TRUE, B = 100, seed = 42)
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:stfh-ref}
+
+\citet{marhuenda2013small} adalah rujukan model dan sekaligus rujukan yang
+disebut roxygen (\code{R/eblup\_stfh.R:10-16}) bersama \citet{rao2015small};
+gabungan data deret waktu dengan potongan lintas bagian yang menjadi dasar
+model semacam ini dirintis \citet{rao1994small}. Implementasi pembandingnya
+\pkg{sae} \citep{molina2015sae}. Seluruh rujukan terdaftar di
+\code{references.bib}.

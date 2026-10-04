@@ -12,7 +12,11 @@ eblup_fh(
   method = c("REML", "ML"),
   maxiter = 100,
   precision = 1e-04,
-  print_result = TRUE
+  print_result = TRUE,
+  self_benchmark = FALSE,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL
 )
 }
 \arguments{
@@ -32,6 +36,20 @@ in \code{data}. If NULL, the domains are numbered consecutively.}
 \item{precision}{convergence tolerance limit for the Fisher-scoring algorithm.}
 
 \item{print_result}{print coefficient or not, default value is TRUE.}
+
+\item{self_benchmark}{Logical. If \code{TRUE}, fits a self-benchmarking model via the
+augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
+ensuring that the weighted aggregate of small area estimates automatically matches the direct
+survey aggregate or specified benchmark targets without post-hoc adjustment.}
+
+\item{benchmark_weight}{Optional vector, column name, or one-sided formula referencing the domain
+benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.}
+
+\item{benchmark_target}{Optional numeric scalar or named vector specifying fixed aggregate
+benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggregate of the direct estimates.}
+
+\item{benchmark_group}{Optional vector, column name, or one-sided formula referencing the
+grouping / stratum column in \code{data} (e.g. province) for group-specific self-benchmarking.}
 }
 \value{
 The function returns a list with the following objects:
@@ -46,6 +64,8 @@ The function returns a list with the following objects:
 \item \code{vardir} variance sampling from the direct estimator for each area \cr
 \item \code{mse} Mean Square Error \cr
 \item \code{rse} Relative Standart Error (\%) \cr
+\code{self_benchmark} logical indicating whether self-benchmarking was active, \cr
+\code{benchmark_summary} summary table of benchmark calibration (if self-benchmarking). \cr
 }
 }
 \description{
@@ -66,9 +86,24 @@ m1 <- eblup_fh(
   vardir = "vardir"
 )
 
+# Self-benchmarking Fay-Herriot model
+m1_bench <- eblup_fh(
+  y ~ x1 + x2 + x3,
+  data = mys,
+  vardir = "vardir",
+  self_benchmark = TRUE,
+  benchmark_weight = "n"
+)
+
 }
 \references{
 \enumerate{
 \item Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
+}
+
+\enumerate{
+\item Rao, J. N. K., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
+\item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
+\emph{Survey Methodology}, 34(1), 29-36.
 }
 }

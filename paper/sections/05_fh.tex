@@ -1,0 +1,212 @@
+% ===========================================================================
+%  Bagian 5.1 -- eblup_fh
+% ===========================================================================
+\section{Model Fay--Herriot area-level: \texttt{eblup\_fh}}\label{sec:fh}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:fh-setting}
+
+Data berupa satu baris per domain: estimasi langsung $y_d$ (mis.\ rerata
+tahun sekolah per kabupaten), varians pengukurannya $\psi_d$ (\code{vardir}),
+dan kovariat $x_d$ berdimensi $p$ (jumlah sekolah, dll.). Model ini tepat
+ketika: (i) survei menghasilkan estimasi langsung beserta variansnya, (ii)
+domain sangat kecil sampai $y_d$ tidak stabil, dan (iii) ada kovariat yang
+tersedia untuk semua domain termasuk yang tidak tersampel. Data contoh
+\code{mys} (42 kabupaten, 10 di antaranya tanpa sampel) persis berbentuk ini.
+Model ini adalah titik masuk klasik SAE \citep{fay1979small} dan dibahas
+lengkap di \citet{rao2015small}.
+
+\subsection{Persamaan model}\label{sec:fh-model}
+
+\begin{equation}
+  y_d=x_d'\beta+u_d+e_d,\qquad
+  u_d\overset{\text{iid}}{\sim}N(0,\sigma^2),\qquad
+  e_d\sim N(0,\psi_d),
+  \label{eq:fh-model}
+\end{equation}
+dengan $\beta$ tanpa prior (dihilangkan lewat GLS) dan $e_d$ saling bebas.
+Varians total per area $v_d=\sigma^2+\psi_d$ dan bobot
+$w_d=1/v_d$ muncul di kode sebagai dasar seluruh turunan
+(\code{eblup\_fh.cpp:89}). Dalam notasi blok, $\Vm=\diag(v_1,\dots,v_m)$.
+
+Domain tanpa sampel ditandai \emph{bukan} lewat indeks melainkan lewat
+\code{y = NA}: baris dengan \code{y} non-finite dipisahkan lebih dulu dan
+$\Xmat$-nya disimpan sebagai \code{Xns} (\code{eblup\_fh.cpp:33-47}).
+Argumen \code{domain} hanya pelabelan kolom (\code{R/eblup\_fh.R:97}).
+
+\subsection{Prediktor titik}\label{sec:fh-prediktor}
+
+Dengan $\betah=(\Xmat'W\Xmat)^{-1}\Xmat'Wy$ (\code{eblup\_fh.cpp:135-143}),
+prediktor area adalah EBLUP
+\begin{equation}
+  \hat\theta_d=x_d'\betah+\hat u_d,\qquad
+  \hat u_d=\frac{\sighat}{\sighat+\psi_d}\bigl(y_d-x_d'\betah\bigr),
+  \label{eq:fh-pred}
+\end{equation}
+yang ekuivalen dengan pemulusan $y_d$ terhadap prediktor sintetis:
+\begin{equation}
+  \hat\theta_d=B_d\,(x_d'\betah)+(1-B_d)\,y_d,
+  \qquad B_d=\frac{\psi_d}{\psi_d+\sighat}.
+  \label{eq:fh-shrink}
+\end{equation}
+Pada domain tanpa sampel predikturnya jatuh ke prediktor sintetis murni
+(\code{eblup\_fh.cpp:207-222}):
+\begin{equation}
+  \hat\theta_{ns}=x_{ns}'\betah,\qquad
+  \widehat{\mathrm{MSE}}_{ns}=\sighat+x_{ns}'\Qm x_{ns},\qquad
+  \texttt{random\_effect}=\texttt{NA}.
+  \label{eq:fh-unsampled}
+\end{equation}
+
+\subsection{Estimasi komponen varians}\label{sec:fh-varians}
+
+Algoritme Fisher scoring persis seperti bagian~\ref{sec:fs} dengan skor ML
+\eqref{eq:score-fh-ml} dan skor REML \eqref{eq:score-fh-reml}. Rekam jejak
+lengkapnya:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Nilai awal:} ${\sighat}{}^{(0)}=\max(\mathrm{median}(\psi_d),0)$
+        (\code{eblup\_fh.cpp:64-65}).
+  \item \textbf{Loop:} \code{while (diff > precision \&\& k < maxiter)}
+        (\code{baris 88}), \code{precision} $=10^{-4}$, \code{maxiter} $=100$.
+  \item \textbf{Per iterasi:} $W$, $\Qm=(\Xmat'W\Xmat)^{-1}$ lewat
+        \code{inv\_sympd} dengan fallback \code{solve} (\code{baris 95-96}),
+        $Py=Wy-\Xmat\Qm\Xmat'Wy$ (\code{baris 98-99}).
+  \item \textbf{Update:} bila informasi $I\le0$ nilainya diganti
+        \code{std::numeric\_limits<double>::min()} \emph{sebelum} dipakai
+        membagi (\code{baris 120}), sehingga langkah menjadi raksasa lalu
+        hasil non-finite atau negatif \emph{dipaksa} $0$ (\code{baris 121-123}).
+  \item \textbf{Konvergensi:} $\texttt{diff}=\abs{({\sighat}{}^{\text{new}}-\sighat)/
+        \max(\sighat,10^{-12})}$ (\code{baris 125}); status
+        \code{convergence} dan \code{n\_iter} dikembalikan, dan wrapper R
+        memperingati bila gagal (\code{R/eblup\_fh.R:104-107}).
+  \item \textbf{Pass akhir:} hitung ulang $\Qm,\betah$, galat baku
+        \code{se = sqrt(diag(Q))}, $z$, dan $p$ dua sisi pada $\sighat$ final
+        (\code{baris 135-154}).
+\end{enumerate}
+
+Log-likelihood, AIC, dan BIC dihitung dari \eqref{eq:loglik-ml} dengan $m$
+= jumlah area tersampel, $\mathrm{AIC}=-2\ell+2(p+1)$,
+$\mathrm{BIC}=-2\ell+(p+1)\log m$ (\code{baris 170-174}).
+
+\implnote{Ketiga ukuran kecocokan itu selalu berbentuk ML meski
+\code{method = "REML"} (FH-3), dan koreksi bias orde-kedua
+$-b\,B_d^2$ hanya dipakai untuk ML (FH-4) --- perilaku yang sama dengan
+\pkg{sae::mseFH}. Kolom \code{estcoef} memuat dua kolom galat baku yang identik
+(\code{std.error} dan \code{stderr\_beta}; FH-5), dan \code{vardir} wajib
+positif ketat pada area tersampel (FH-6), yang tidak diperiksa \pkg{sae}.}
+
+\subsection{Estimasi MSE}\label{sec:fh-mse}
+
+MSE analitik \eqref{eq:mse-fh} adalah satu-satunya metode di \fct{eblup\_fh} --- tidak
+ada pilihan bootstrap. RSE dilaporkan sebagai
+$\mathrm{RSE}=100\sqrt{\mathrm{MSE}}/\abs{\hat\theta}$ dan menjadi
+\code{NaN} bila $\hat\theta=0$ (\code{baris 227-230}). Pada domain tanpa
+sampel dipakai \eqref{eq:fh-unsampled} tanpa suku $g_3$, sesuai
+\citet{prasad1990estimation} untuk prediktor yang tidak memakai data domain.
+
+\subsection{Pseudo-code}\label{sec:fh-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{eblup\_fh} --- alur sebenarnya (\texttt{R/eblup\_fh.R:49-113},
+\texttt{src/eblup\_fh.cpp:9-264})}
+\label{alg:fh}
+\KwIn{formula, \code{vardir}, \code{domain}, \code{data},
+  \code{method} $\in\{$REML, ML$\}$, \code{maxiter}, \code{precision}}
+\KwOut{\code{df\_eblup} (prediktor, MSE, RSE), \code{estcoef}, \code{goodness}}
+\SetKwFunction{FModelFrame}{model.frame}
+\SetKwFunction{FCore}{eblup\_core}
+\SetKwFunction{FPrint}{print}
+\tcp*{\emph{Lapis R} --- \code{R/eblup\_fh.R}}
+\code{method} $\leftarrow$ \texttt{match.arg}\tcp*{baris 59}
+\code{domain} $\leftarrow$ \code{1:nrow(data)} bila \code{NULL} (60--64)\;
+\code{mf} $\leftarrow$ \FModelFrame{formula, \code{na.action = na.pass}} (67)\;
+\code{y} $\leftarrow$ respons, $\Xmat\leftarrow$ \texttt{model.matrix} (74--75)\;
+\textbf{gagal} bila $\texttt{anyNA}(\Xmat)$ atau
+$\texttt{length(vardir)}\ne\texttt{nrow(mf)}$ (70--80)\;
+$\hat\theta,\widehat{\mathrm{MSE}},\ldots\leftarrow$ \FCore{$\Xmat,y,\psi$,
+  \code{method}, \code{maxiter}, \code{precision}} (82)\;
+sisipkan \code{domain} ke \code{df\_eblup}; \code{class} $\leftarrow$
+\code{"fastsae"} (97--102)\;
+\If{\texttt{!convergence}}{\texttt{cli\_alert\_danger} dan kembalikan (104--107)}
+\FPrint{objek} bila \code{print\_result} (109--111)\;
+\caption*{}
+\SetKwFunction{FFindNonfinite}{find\_nonfinite}
+\tcp*{\emph{Lapis C++} --- \code{src/eblup\_fh.cpp}}
+$I_s\leftarrow$\FFindNonfinite{$y$}; $I_{ns}\leftarrow$\texttt{find\_finite}($y$)
+  \tcp*{33--47}
+\textbf{gagal} bila $m=0$ atau ada $\psi_d\le0$ pada area tersampel (53--59)\;
+$\sighat\leftarrow\max(\mathrm{median}(\psi),0)$\;
+$k\leftarrow0$;\quad $\texttt{diff}\leftarrow\texttt{precision}+1$\;
+\While{\texttt{diff} $>$ \code{precision} \textbf{dan} $k<$ \code{maxiter}}{
+  $W\leftarrow\diag(w)$;\quad $\Qm\leftarrow(\Xmat'W\Xmat)^{-1}$;\quad
+    $Py\leftarrow Wy-\Xmat\Qm\Xmat'Wy$ (89--99)\;
+  \uIf{\code{method} $=$ ML}{$s\leftarrow-\tfrac12\sum_dw_d+\tfrac12(Py)'(Py)$;
+    $I\leftarrow\tfrac12\sum_dw_d^2$ (103, 112)}
+  \uElse{$s\leftarrow-\tfrac12\tr P+\tfrac12(Py)'(Py)$;
+    $I\leftarrow\tfrac12\tr(P^2)$ (105--117)}\;
+  bila $I\le0$ maka $I\leftarrow$ \code{numeric\_limits::min()} (120)\;
+  ${\sighat}{}^{\text{new}}\leftarrow\sighat+s/I$ (122)\;
+  bila ${\sighat}{}^{\text{new}}<0$ atau non-finite $\to{\sighat}{}^{\text{new}}\leftarrow0$ (123)\;
+  $\texttt{diff}\leftarrow\abs{({\sighat}{}^{\text{new}}-\sighat)/\max(\sighat,10^{-12})}$ (125);\quad
+    $\sighat\leftarrow{\sighat}{}^{\text{new}}$ (126);\quad $k\mathrel{+}=1$ (127)\;
+}
+hitung ulang $\Qm,\betah,\texttt{se},z,p$ pada $\sighat$ final (135--154)\;
+$\hat\theta_d\leftarrow x_d'\betah+\hat u_d$; loglik ML, AIC, BIC (159--180)\;
+$g_1,g_2,g_3\leftarrow$ \eqref{eq:g1g2g3};
+  $\widehat{\mathrm{MSE}}\leftarrow g_1+g_2+2g_3$ (REML);
+  pada ML dikurangi suku bias $b\,B_d^2$ (183--202)\;
+\For{$d\in I_{ns}$}{$\hat\theta_d\leftarrow x_{ns}'\betah$;
+  $\widehat{\mathrm{MSE}}\leftarrow\sighat+x_{ns}'\Qm x_{ns}$;
+  $\hat u_d\leftarrow\texttt{NA}$ (207--222)}
+$\mathrm{RSE}\leftarrow100\sqrt{\mathrm{MSE}}/\abs{\hat\theta}$;
+  susun \code{df\_eblup} dan \code{estcoef} (227--261)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:fh-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_fh} (\texttt{R/eblup\_fh.R:49-58}).}]
+eblup_fh(formula, vardir, domain = NULL, data,
+         method = c("REML", "ML"), maxiter = 100,
+         precision = 1e-4, print_result = TRUE)
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{formula} --- respons $\sim$ kovariat; respons boleh berisi
+        \code{NA} untuk domain tak-sampel (\code{na.action = na.pass}).
+  \item \code{vardir} --- nama kolom, formula satu sisi, atau vektor numerik
+        (resolver \code{.get\_variable}, \code{R/utils.R:19-38}).
+  \item \code{domain} --- kolom/faktor label domain (bukan penanda sampel).
+  \item \code{method} --- \code{"REML"} (default) atau \code{"ML"}.
+  \item \code{maxiter}, \code{precision} --- parameter Fisher scoring.
+  \item \code{print\_result} --- mencetak \code{print.fastsae}.
+\end{itemize}
+
+Objek keluaran: \code{list} berkelas \code{"fastsae"} berisi
+\code{estcoef} (beta, dua kolom galat baku, $z$, $p$), \code{random\_effect\_var}
+($\sighat$), \code{goodness} (loglik ML, AIC, BIC), \code{n\_iter},
+\code{convergence}, \code{df\_eblup} dengan kolom \code{domain, y, eblup,
+vardir, random\_effect, mse, rse}, plus \code{formula}, \code{model = "FH"},
+\code{call}, \code{data}.
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_fh.Rd}; data \texttt{mys} berisi 42 domain, 10 di antaranya tanpa sampel).}]
+library(fastsae)
+m1 <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
+head(m1$df_eblup, 3)
+m1$random_effect_var       # sigma^2
+m1$goodness                # loglik, AIC, BIC
+
+# metode ML dan kontrol iterasi
+m2 <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
+               method = "ML", maxiter = 50, precision = 1e-6)
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:fh-ref}
+
+\citet{fay1979small} memperkenalkan model area-level ini;
+\citet{rao2015small} menyajikan EBLUP dan dekomposisi MSE-nya;
+\citet{prasad1990estimation} dan \citet{kackar1984approximations} memberi
+kerangka suku $g$ dan pendekatan orde-kedua; \citet{datta2000unified}
+menyajikan ukuran ketidakpastian terpadu; \citet{molina2015sae} adalah
+referensi implementasi paket \pkg{sae} yang dipakai sebagai pembanding
+numerik. Blok \code{@references} fungsi ini hanya memuat
+\citet{rao2015small} (\code{R/eblup\_fh.R:5-8}).

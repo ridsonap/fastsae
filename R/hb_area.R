@@ -83,6 +83,16 @@
 #' @param prior_prec_time Optional list specifying the prior for temporal precision. Default is
 #'   a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.
 #' @param prior_rho_time Optional list specifying prior for temporal autocorrelation parameter in AR(1).
+#' @param self_benchmark Logical. If \code{TRUE}, fits a self-benchmarking model via the
+#'   augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
+#'   ensuring that the weighted aggregate of small area estimates automatically matches the direct
+#'   survey aggregate or specified benchmark targets without post-hoc adjustment.
+#' @param benchmark_weight Optional vector, column name, or one-sided formula referencing the domain
+#'   benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.
+#' @param benchmark_target Optional numeric scalar or named vector specifying fixed aggregate
+#'   benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggregate of the direct estimates.
+#' @param benchmark_group Optional vector, column name, or one-sided formula referencing the
+#'   grouping / stratum column in \code{data} (e.g. province) for group-specific self-benchmarking.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Additional arguments passed to \code{INLA::inla()}.
 #'
@@ -103,6 +113,8 @@
 #'   \item \code{spatial}: Spatial model type used.
 #'   \item \code{temporal}: Temporal model type used.
 #'   \item \code{st_interaction}: Spatio-temporal interaction type used.
+#'   \item \code{self_benchmark}: Logical indicating whether self-benchmarking was active.
+#'   \item \code{benchmark_summary}: Summary table of benchmark calibration (if self-benchmarking).
 #'   \item \code{fit}: Raw fitted model object.
 #'   \item \code{call}: Matched function call.
 #' }
@@ -110,6 +122,8 @@
 #' @references
 #' \enumerate{
 #'   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
+#'   \item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
+#'     \emph{Survey Methodology}, 34(1), 29-36.
 #'   \item Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An intuitive Bayesian spatial model
 #'     for disease mapping that accounts for scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
 #'   \item Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models.
@@ -134,7 +148,16 @@
 #'     family = "gaussian"
 #'   )
 #'
-#'   # 2. Spatial BYM2 Gaussian Fay-Herriot with INLA
+#'   # 2. Self-benchmarking Fay-Herriot with INLA (Wang, Fuller, and Qu, 2008)
+#'   m_bench <- hb_area(
+#'     y ~ x1 + x2 + x3,
+#'     data = mys,
+#'     vardir = "vardir",
+#'     self_benchmark = TRUE,
+#'     benchmark_weight = "n"
+#'   )
+#'
+#'   # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA
 #'   m_bym2 <- hb_area(
 #'     y ~ x1 + x2 + x3,
 #'     data = mys,
@@ -167,6 +190,10 @@ hb_area <- function(
   prior_rho = NULL,
   prior_prec_time = NULL,
   prior_rho_time = NULL,
+  self_benchmark = FALSE,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL,
   print_result = TRUE,
   ...
 ) {
@@ -252,6 +279,22 @@ hb_area <- function(
     W_obj <- .convert_spatial_weights(W, n_domains = n_unique_domains, spatial = spatial, domain_names = unique_domains)
   }
 
+  # 4. Self-benchmarking setup (Wang, Fuller, and Qu, 2008)
+  sb_info <- NULL
+  if (isTRUE(self_benchmark)) {
+    sb_info <- .setup_self_benchmark(
+      data = data,
+      formula = formula,
+      y = y,
+      vardir = vardir_vec,
+      weight = benchmark_weight,
+      target = benchmark_target,
+      group = benchmark_group
+    )
+    data <- sb_info$data_aug
+    formula <- sb_info$formula_aug
+  }
+
   # --------------------------------------------------------------------------
   # Route estimation: Frequentist Laplace (lme4) vs Bayesian INLA
   # --------------------------------------------------------------------------
@@ -265,6 +308,23 @@ hb_area <- function(
       exposure = exposure_vec,
       call = call_matched
     )
+    if (!is.null(sb_info)) {
+      out$self_benchmark <- TRUE
+      out$benchmark_weight <- benchmark_weight
+      out$benchmark_target <- benchmark_target
+      out$benchmark_group <- benchmark_group
+      out$benchmark_summary <- .compute_benchmark_summary(
+        unique_groups = sb_info$unique_groups,
+        group_vec = sb_info$group_vec,
+        w_norm = sb_info$w_norm,
+        y = sb_info$original_y,
+        target_vec = sb_info$target_vec,
+        estimates = out$df_hb$hb
+      )
+      out$df_hb$y <- sb_info$original_y
+      out$hb$y <- sb_info$original_y
+      out$df_eblup$y <- sb_info$original_y
+    }
   } else {
     if (method == "laplace") {
       if (family == "gaussian") {
@@ -299,6 +359,10 @@ hb_area <- function(
       prior_rho = prior_rho,
       prior_prec_time = prior_prec_time,
       prior_rho_time = prior_rho_time,
+      sb_info = sb_info,
+      benchmark_weight = benchmark_weight,
+      benchmark_target = benchmark_target,
+      benchmark_group = benchmark_group,
       call = call_matched,
       ...
     )
@@ -337,6 +401,10 @@ hb_area <- function(
   prior_rho = NULL,
   prior_prec_time = NULL,
   prior_rho_time = NULL,
+  sb_info = NULL,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL,
   call = NULL,
   ...
 ) {
@@ -600,6 +668,18 @@ hb_area <- function(
     ...
   )
 
+  # If self-benchmarking is active, ensure fixed effects prior is diffuse so augmented covariate is not shrunk
+  if (!is.null(sb_info)) {
+    if (is.null(inla_args$control.fixed)) {
+      inla_args$control.fixed <- list(
+        mean.intercept = 0,
+        prec.intercept = 1e-4,
+        mean = 0,
+        prec = 1e-6
+      )
+    }
+  }
+
   # Respect CRAN core limits and testing environments
   if (is.null(inla_args$num.threads)) {
     chk_cores <- tolower(Sys.getenv("_R_CHECK_LIMIT_CORES_", ""))
@@ -699,6 +779,24 @@ hb_area <- function(
     unique_times = unique_times,
     call = call
   )
+
+  if (!is.null(sb_info)) {
+    res$self_benchmark <- TRUE
+    res$benchmark_weight <- benchmark_weight
+    res$benchmark_target <- benchmark_target
+    res$benchmark_group <- benchmark_group
+    res$benchmark_summary <- .compute_benchmark_summary(
+      unique_groups = sb_info$unique_groups,
+      group_vec = sb_info$group_vec,
+      w_norm = sb_info$w_norm,
+      y = sb_info$original_y,
+      target_vec = sb_info$target_vec,
+      estimates = res$df_hb$hb
+    )
+    res$df_hb$y <- sb_info$original_y
+    res$hb$y <- sb_info$original_y
+    res$df_eblup$y <- sb_info$original_y
+  }
 
   return(res)
 }

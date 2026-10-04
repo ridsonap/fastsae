@@ -27,6 +27,10 @@ hb_area(
   prior_rho = NULL,
   prior_prec_time = NULL,
   prior_rho_time = NULL,
+  self_benchmark = FALSE,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL,
   print_result = TRUE,
   ...
 )
@@ -130,6 +134,20 @@ a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.}
 
 \item{prior_rho_time}{Optional list specifying prior for temporal autocorrelation parameter in AR(1).}
 
+\item{self_benchmark}{Logical. If \code{TRUE}, fits a self-benchmarking model via the
+augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
+ensuring that the weighted aggregate of small area estimates automatically matches the direct
+survey aggregate or specified benchmark targets without post-hoc adjustment.}
+
+\item{benchmark_weight}{Optional vector, column name, or one-sided formula referencing the domain
+benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.}
+
+\item{benchmark_target}{Optional numeric scalar or named vector specifying fixed aggregate
+benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggregate of the direct estimates.}
+
+\item{benchmark_group}{Optional vector, column name, or one-sided formula referencing the
+grouping / stratum column in \code{data} (e.g. province) for group-specific self-benchmarking.}
+
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 
 \item{...}{Additional arguments passed to \code{INLA::inla()}.}
@@ -152,6 +170,8 @@ An object of class \code{c("fastsae_hb_area", "fastsae")} containing:
   \item \code{spatial}: Spatial model type used.
   \item \code{temporal}: Temporal model type used.
   \item \code{st_interaction}: Spatio-temporal interaction type used.
+  \item \code{self_benchmark}: Logical indicating whether self-benchmarking was active.
+  \item \code{benchmark_summary}: Summary table of benchmark calibration (if self-benchmarking).
   \item \code{fit}: Raw fitted model object.
   \item \code{call}: Matched function call.
 }
@@ -175,7 +195,16 @@ if (requireNamespace("INLA", quietly = TRUE)) {
     family = "gaussian"
   )
 
-  # 2. Spatial BYM2 Gaussian Fay-Herriot with INLA
+  # 2. Self-benchmarking Fay-Herriot with INLA (Wang, Fuller, and Qu, 2008)
+  m_bench <- hb_area(
+    y ~ x1 + x2 + x3,
+    data = mys,
+    vardir = "vardir",
+    self_benchmark = TRUE,
+    benchmark_weight = "n"
+  )
+
+  # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA
   m_bym2 <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
@@ -190,6 +219,8 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 \references{
 \enumerate{
   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
+  \item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
+    \emph{Survey Methodology}, 34(1), 29-36.
   \item Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An intuitive Bayesian spatial model
     for disease mapping that accounts for scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
   \item Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models.

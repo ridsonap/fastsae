@@ -3,6 +3,12 @@ library(fastsae)
 
 skip_if_not_installed("sae")
 
+quiet <- function(expr) {
+  result <- NULL
+  invisible(capture.output(result <- suppressWarnings(suppressMessages(expr))))
+  result
+}
+
 # ------------------------------------------------------------------
 # Shared objects
 # ------------------------------------------------------------------
@@ -266,7 +272,10 @@ test_that("eblup_sfh validation and edge cases", {
   expect_error(eblup_sfh(y ~ x1 + x2, vardir = 1:5, data = mysnona, W = mys_proxmat_nona, print_result = FALSE), "length does not match")
 
   # Non-convergence with maxiter = 1
-  fit_nc <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mysnona, W = mys_proxmat_nona, maxiter = 1, print_result = FALSE)
+  quiet(
+    fit_nc <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mysnona, W = mys_proxmat_nona, maxiter = 1, print_result = FALSE)
+  )
+
   expect_false(fit_nc$convergence)
 
   # print_result = TRUE

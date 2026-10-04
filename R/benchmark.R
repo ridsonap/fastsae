@@ -139,6 +139,10 @@ benchmark_sae.fastsae <- function(
   nat_target <- outer_target %||% national_target
 
   # 1. Extract estimates and domain identifiers
+  if (isTRUE(object$self_benchmark)) {
+    cli::cli_alert_info("Note: The model object was already fitted with self-benchmarking active (Wang-Fuller-Qu augmented model).")
+  }
+
   df_est <- object$df_hb %||% object$df_ebp %||% object$df_eblup
   if (is.null(df_est)) {
     cli::cli_abort("The {.cls fastsae} object does not contain fitted area estimates ({.code df_hb} or {.code df_eblup}).")

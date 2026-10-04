@@ -45,6 +45,16 @@
 #' @param n_threads number of threads for parallel bootstrap MSE computation.
 #'   Use \code{0} for all available cores. Default \code{1}.
 #' @param seed random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.
+#' @param self_benchmark Logical. If \code{TRUE}, fits a self-benchmarking model via the
+#'   augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
+#'   ensuring that the weighted aggregate of small area estimates automatically matches the direct
+#'   survey aggregate or specified benchmark targets without post-hoc adjustment.
+#' @param benchmark_weight Optional vector, column name, or one-sided formula referencing the domain
+#'   benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.
+#' @param benchmark_target Optional numeric scalar or named vector specifying fixed aggregate
+#'   benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggregate of the direct estimates.
+#' @param benchmark_group Optional vector, column name, or one-sided formula referencing the
+#'   grouping / stratum column in \code{data} (e.g. time period / year) for group-specific self-benchmarking.
 #' @param print_result print the estimated coefficients or not. Default \code{TRUE}.
 #'
 #' @returns A list with the same structure as \code{seblup_area()}, with additional
@@ -118,6 +128,10 @@ eblup_stfh <- function(
   B = 100,
   n_threads = 1,
   seed = -1,
+  self_benchmark = FALSE,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL,
   print_result = TRUE
 ) {
   model <- match.arg(model, choices = c("ST", "S"))
@@ -138,13 +152,31 @@ eblup_stfh <- function(
     ))
   }
 
-  # Use complete data
-  mf <- stats::model.frame(formula, data, na.action = stats::na.omit)
-  X <- stats::model.matrix(attr(mf, "terms"), mf)
-  y <- stats::model.response(mf, "numeric")
-
   # vardir
   vardir <- .get_variable(data, vardir)
+
+  # Use complete data
+  mf <- stats::model.frame(formula, data, na.action = stats::na.omit)
+  y <- stats::model.response(mf, "numeric")
+
+  sb_info <- NULL
+  if (isTRUE(self_benchmark)) {
+    sb_info <- .setup_self_benchmark(
+      data = data,
+      formula = formula,
+      y = y,
+      vardir = vardir,
+      weight = benchmark_weight,
+      target = benchmark_target,
+      group = benchmark_group
+    )
+    data <- sb_info$data_aug
+    formula <- sb_info$formula_aug
+    mf <- stats::model.frame(formula, data, na.action = stats::na.omit)
+    y <- stats::model.response(mf, "numeric")
+  }
+
+  X <- stats::model.matrix(attr(mf, "terms"), mf)
   if (nrow(mf) != length(vardir)) {
     cli::cli_abort("Length of 'vardir' must equal number of observations in data ({nrow(mf)} vs {length(vardir)}).")
   }
@@ -282,6 +314,22 @@ eblup_stfh <- function(
     "random_effect_u1", "random_effect_u2"
   )
   res$df_eblup <- res$df_eblup[, intersect(cols_order, names(res$df_eblup))]
+
+  if (!is.null(sb_info)) {
+    res$self_benchmark <- TRUE
+    res$benchmark_weight <- benchmark_weight
+    res$benchmark_target <- benchmark_target
+    res$benchmark_group <- benchmark_group
+    res$benchmark_summary <- .compute_benchmark_summary(
+      unique_groups = sb_info$unique_groups,
+      group_vec = sb_info$group_vec,
+      w_norm = sb_info$w_norm,
+      y = sb_info$original_y,
+      target_vec = sb_info$target_vec,
+      estimates = res$df_eblup$eblup
+    )
+    res$df_eblup$y <- sb_info$original_y
+  }
 
   # Print results
   if (print_result) {

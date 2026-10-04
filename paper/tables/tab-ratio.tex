@@ -1,0 +1,31 @@
+\begin{table}[htbp]
+\centering
+\caption{Rasio kecepatan $=$ median waktu pembanding $/$ median waktu \texttt{fastsae} (semakin besar semakin cepat \texttt{fastsae}; nilai $<1$ berarti pembanding lebih cepat). Rasio dihitung per $n$ lalu diringkas.}
+\label{tab:ratio}
+\small
+\begin{tabular}{llrrrr}
+\toprule
+Model & Pembanding & $n$ pertama & $n$ terbesar & min & max \\
+\midrule
+FH area-level (\texttt{eblup\_fh}) & emdi & 18.5018 & 12343.4 & 18.5018 & 12343.4 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$: 2936.41$\times$}} \\[-2pt]
+FH area-level (\texttt{eblup\_fh}) & sae &  2.6386 &  363.76 &  2.6386 &  363.76 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$: 93.0598$\times$}} \\[-2pt]
+FH spasial (\texttt{eblup\_sfh}) & emdi & 14.5797 & 61.3577 &  11.213 & 61.3577 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$: 26.7192$\times$}} \\[-2pt]
+FH spasial (\texttt{eblup\_sfh}) & sae & 5.58264 &  80.696 & 5.58264 &  80.696 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$: 34.1403$\times$}} \\[-2pt]
+FH spasio-temporal (\texttt{eblup\_stfh}) & sae & 3.22733 & 30.7484 & 3.22733 & 30.7484 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$:   14.37$\times$}} \\[-2pt]
+Beta area-level (\texttt{hb\_area}) & tipsae & 1.88664 & 114.146 & 1.88664 & 114.146 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$: 31.7991$\times$}} \\[-2pt]
+Beta spasial & tipsae &  41.906 & 233.978 &  41.906 & 233.978 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$: 124.435$\times$}} \\[-2pt]
+Beta spasio-temporal & tipsae & 374.863 & 544.576 & 374.863 & 544.576 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$:  459.72$\times$}} \\[-2pt]
+Hierarki Bayes Gaussian & hbsae & 0.0162013 & 0.212725 & 0.0162013 & 0.212725 \\
+ & \multicolumn{5}{r}{\emph{rata-rata lintas $n$: 0.0756733$\times$}} \\[-2pt]
+\bottomrule
+\end{tabular}
+\end{table}
+

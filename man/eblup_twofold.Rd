@@ -16,6 +16,10 @@ eblup_twofold(
   seed = NULL,
   maxiter = 100,
   precision = 1e-04,
+  self_benchmark = FALSE,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL,
   print_result = TRUE
 )
 }
@@ -44,6 +48,21 @@ in \code{data}. If NULL, rows are numbered consecutively.}
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm.}
 
 \item{precision}{convergence tolerance limit for the Fisher-scoring algorithm.}
+
+\item{self_benchmark}{Logical. If \code{TRUE}, fits a self-benchmarking model via the
+augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
+ensuring that the weighted aggregate of small area estimates automatically matches the direct
+survey aggregate or specified benchmark targets without post-hoc adjustment.}
+
+\item{benchmark_weight}{Optional vector, column name, or one-sided formula referencing the domain
+benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.}
+
+\item{benchmark_target}{Optional numeric scalar or named vector specifying fixed aggregate
+benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggregate of the direct estimates.}
+
+\item{benchmark_group}{Optional vector, column name, or one-sided formula referencing the
+grouping / stratum column in \code{data} (e.g. area identifier for subarea-to-area benchmarking)
+for group-specific self-benchmarking.}
 
 \item{print_result}{print coefficient or not, default value is TRUE.}
 }

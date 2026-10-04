@@ -1,0 +1,178 @@
+% ===========================================================================
+%  Bagian 5.8 -- hb_twofold
+% ===========================================================================
+\section{Model hierarki Bayes sub-area dua-lipat: \texttt{hb\_twofold}}\label{sec:hbtwofold}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:hbtwofold-setting}
+
+Data dan penanda sama dengan \fct{eblup\_twofold}: satu baris per unit sampel
+dengan kolom \code{domain} (area, wajib) dan \code{subarea} (opsional,
+default penomoran unit). Perbedaannya inferensial: model ditempatkan dalam
+kerangka hierarki Bayes lewat \pkg{INLA}, dengan dua komponen acak terpisah
+(efek area dan efek sub-area) serta pilihan prediktor sintetis pada tingkat
+area. Fungsi ini diekspor dengan satu nama, \code{hb\_twofold}
+(\code{NAMESPACE:11}).
+
+\subsection{Persamaan model}\label{sec:hbtwofold-model}
+
+\begin{equation}
+  y_{ij}=x_{ij}'\beta+v_i+u_{ij},\qquad
+  v\sim N\bigl(0,\;\tau_v^{-1}Q_v^{-1}\bigr),\qquad
+  u_{ij}\overset{\text{iid}}{\sim}N\bigl(0,\;\tau_u^{-1}\bigr),
+  \label{eq:hbtwofold-model}
+\end{equation}
+dengan $Q_v$ dipilih \code{spatial} $\in$
+\{\code{none} (i.i.d.), \code{bym2}, \code{besag}\} dan $u$ selalu i.i.d.
+pada indeks sub-area (baris 241-257):
+\begin{lstlisting}[language=R]
+y ~ <fixed_str> + <rand_area> +
+    f(..subarea_id.., model = 'iid',
+      hyper = list(prec = prior_prec_subarea))
+\end{lstlisting}
+\code{rand\_area} adalah \code{f(..area\_id.., model='iid'|'bym2'|'besag',
+graph=..., hyper=list(prec = prior\_prec\_area[, phi = prior\_phi]))}.
+Likelihood: Gaussian (wajib \code{vardir}, dipakai sebagai
+\code{scale} $=1/\psi$, baris 212-214), Binomial (wajib \code{trials}),
+Poisson (\code{exposure} opsional; baris 277-286).
+
+\subsection{Prediktor titik}\label{sec:hbtwofold-prediktor}
+
+Prediksi sub-area diambil dari \code{summary.fitted.values} untuk
+$1..n_{\text{subarea}}$ (baris 303-310), lalu tingkat area diperoleh sebagai
+rata-rata berbobot (baris 344-358):
+\begin{equation}
+  \hat\theta^{\text{area}}_i=\sum_{j\in i}w_{ij}\,\hat\theta_{ij},
+  \qquad
+  w_{ij}=\frac{w_{ij}^{\text{user}}}{\sum_{k\in i}w_{ik}^{\text{user}}},
+  \qquad w_{ij}=\frac1{n_i}\ \text{bila \code{weight = NULL}}.
+  \label{eq:hbtwofold-area}
+\end{equation}
+Bobot yang tidak valid (NA/negatif) diubah menjadi $0$; bila jumlah bobot
+area bernilai $0$, kembali ke $1/n_i$ (baris 344-355).
+
+\subsection{Estimasi komponen varians}\label{sec:hbtwofold-varians}
+
+Sama seperti dua fungsi Bayes lain: \pkg{INLA} dengan
+\code{strategy} default \code{"laplace"}, \code{control.compute} berisi
+\code{dic, waic, cpo, mlik} plus \code{config} yang diaktifkan \emph{hanya}
+bila \code{compute\_area = TRUE} (karena butuh konfigurasi untuk posterior
+sampling), dan \code{num.threads = 1} (baris 260-275). Prior:
+\code{prior\_prec\_area} dan \code{prior\_prec\_subarea} keduanya
+\code{pc.prec(1, 0.01)}, \code{prior\_phi} \code{pc(0.5, 0.5)}
+(baris 138-159). Hyperparameter akhir: $\hat\sigma_v^2=1/\text{prec}$ pada
+indeks area, $\hat\sigma_u^2=1/\text{prec}$ pada indeks sub-area, dan
+\code{phi} bila ada (baris 443-467).
+
+\subsection{Estimasi MSE}\label{sec:hbtwofold-mse}
+
+Tingkat sub-area (baris 320-321):
+\begin{equation}
+  \widehat{\mathrm{MSE}}_{ij}=\mathrm{sd}_{ij}^2,\qquad
+  \mathrm{RSE}_{ij}=100\,\mathrm{sd}_{ij}/\abs{\hat\theta_{ij}}.
+  \label{eq:hbtwofold-mse-sub}
+\end{equation}
+Tingkat area memakai sampling posterior (baris 366-407), bila
+\code{compute\_area = TRUE}:
+\begin{enumerate}[label=\arabic*.]
+  \item \code{ps $\leftarrow$ INLA::inla.posterior.sample(n = n\_samples, fit)}
+        dengan \code{n\_samples} default $200$;
+  \item tarik baris \code{Predictor:1}..\code{Predictor:$n_{\text{subarea}}$}
+        dari \code{rownames(ps[[1]]\$latent)};
+  \item transformasi balik link manual (binomial $1/(1+e^{-x})$, Poisson
+        $e^{x}$, Gaussian tanpa transformasi);
+  \item agregasi per gambar posterior
+        $\theta^{\text{area},(k)}_i=\sum_j w_{ij}\theta^{(k)}_{ij}$;
+  \item $\mathrm{sd}^{\text{area}}=\mathrm{sd}\bigl(\theta^{\text{area}}\bigr)$,
+        CI dari kuantil $0.025/0.975$ gambar posterior.
+\end{enumerate}
+\begin{equation}
+  \widehat{\mathrm{MSE}}_{\text{area}}=\bigl(\mathrm{sd}^{\text{area}}\bigr)^2,
+  \qquad
+  \text{fallback bila sampling gagal: }
+  \mathrm{sd}^{\text{area}}=\sqrt{\textstyle\sum_j\bigl(w_{ij}\,
+  \mathrm{sd}_{ij}\bigr)^2},
+  \label{eq:hbtwofold-mse-area}
+\end{equation}
+dengan fallback itu berasumsi sub-area saling bebas (baris 397-407), dan CI
+jatuh ke $\pm1.96\,\mathrm{sd}$ (HB-18). Bila \code{compute\_area = FALSE},
+\code{df\_area = NULL} (baris 341).
+
+\subsection{Pseudo-code}\label{sec:hbtwofold-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{hb\_twofold} --- alur sebenarnya (\texttt{R/hb\_twofold.R:138-510})}
+\label{alg:hbtwofold}
+\KwIn{formula, \code{vardir} (wajib bila Gaussian), \code{domain} (wajib),
+  \code{subarea}, \code{data}, \code{family}, \code{spatial}, $W$,
+  \code{weight}, \code{trials}, \code{exposure}, prior, \code{compute\_area},
+  \code{n\_samples}, \code{...}}
+\KwOut{\code{df\_hb} (sub-area), \code{df\_area} (area, bila diaktifkan), \code{goodness}}
+\texttt{.check\_inla\_installed()} (161);\quad \code{match.arg} (163-165)\;
+\code{domain} wajib;\quad \code{subarea} $\leftarrow$ \code{1..n} bila \code{NULL} (177-186)\;
+$y,\texttt{terms}\leftarrow$ \texttt{model.frame(na.pass)} (196-198)\;
+Gaussian: \code{vardir} wajib, \code{scale\_vec} $=1/\psi$ (baris NA/$\le0/\infty
+  \to1$) (212-214);\quad Binomial: \code{trials} wajib (216-222)\;
+$W\leftarrow$ \texttt{.convert\_spatial\_weights} (225-229)\;
+formula $\leftarrow$ \eqref{eq:hbtwofold-model} (241-257)\;
+\code{num.threads} $\leftarrow$ \code{"1:1"};\quad \code{control.compute}
+  $=$ \{dic, waic, cpo, mlik, \code{config = compute\_area}\} (260-275)\;
+\code{fit} $\leftarrow$ \texttt{do.call(INLA::inla, ...)} (292-300)\;
+$\hat\theta_{ij},\mathrm{sd}_{ij},\mathrm{CI}\leftarrow$ (303-310);
+  $\widehat{\mathrm{MSE}}\leftarrow$ \eqref{eq:hbtwofold-mse-sub} (320-321)\;
+$w_{ij}\leftarrow$ \eqref{eq:hbtwofold-area} (344-355);\quad
+  $\hat\theta^{\text{area}}_i\leftarrow$ (358)\;
+\If{\code{compute\_area}}{
+  \texttt{inla.posterior.sample} $n=200$ (367-370)\;
+  transformasi balik link per gambar (377-379)\;
+  agregasi berbobot per gambar (386)\;
+  $\mathrm{sd}^{\text{area}},\mathrm{CI}\leftarrow$ kuantil (387-389)\;
+  \textbf{fallback} \eqref{eq:hbtwofold-mse-area} bila sampling gagal (397-407)
+}
+\If{\code{compute\_area} $=$ FALSE}{\code{df\_area} $\leftarrow$ \texttt{NULL} (341)}\;
+$\hat\sigma_v^2,\hat\sigma_u^2,\phi$, \code{goodness} $\leftarrow$ (443-476)\;
+kelas \code{c("fastsae\_hb\_twofold","fastsae\_hb","fastsae")} (503)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:hbtwofold-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{hb\_twofold} (\texttt{R/hb\_twofold.R:138-159}).}]
+hb_twofold(formula, vardir = NULL, domain, subarea = NULL, data,
+           family = c("gaussian","binomial","poisson"),
+           spatial = c("none","bym2","besag"), W = NULL, weight = NULL,
+           trials = NULL, exposure = NULL,
+           strategy = c("laplace","simplified.laplace"), scale_model = TRUE,
+           prior_prec_area    = list(prior = "pc.prec", param = c(1, 0.01)),
+           prior_prec_subarea = list(prior = "pc.prec", param = c(1, 0.01)),
+           prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+           compute_area = TRUE, n_samples = 200, print_result = TRUE, ...)
+\end{lstlisting}
+
+Objek keluaran: \code{c("fastsae\_hb\_twofold", "fastsae\_hb", "fastsae")}
+berisi \code{df\_hb} (juga \code{df\_subarea} sebagai alias, baris 485),
+\code{df\_area} (atau \code{NULL}), \code{random\_effect\_var} bernama
+\code{sigma2\_v} dan \code{sigma2\_u}, \code{hyperpar}, \code{goodness}
+berupa \code{list}, \code{fit}, \code{method}, \code{call}, \code{data}.
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/hb\_twofold.Rd}).}]
+library(fastsae)
+set.seed(42)
+m <- 10
+dat <- do.call(rbind, lapply(1:m, function(d) {
+  nd <- sample(2:4, 1)
+  data.frame(area = d, subarea = paste0(d, "-", seq_len(nd)),
+             x1 = rnorm(nd), vardir = runif(nd, 0.2, 0.8))
+}))
+dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] +
+  rnorm(nrow(dat), sd = 0.5) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
+
+fit <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area",
+                  subarea = "subarea", data = dat)
+summary(fit)
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:hbtwofold-ref}
+
+Blok roxygen memuat \citet{torabi2014small} (model dua-lipat),
+\citet{rao2015small}, dan \citet{riebler2016intuitive}
+(\code{R/hb\_twofold.R:105-112}); kerangka INLA mengacu ke
+\citet{rue2009approximate} dan \citet{lindgren2015bayesian}.

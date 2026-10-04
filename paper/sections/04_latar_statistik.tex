@@ -1,0 +1,302 @@
+% ===========================================================================
+%  Bagian 4 -- Latar statistik
+% ===========================================================================
+\section{Latar statistik}\label{sec:latar}
+
+Bagian ini menyajikan perkakas yang dipakai berulang di seluruh model, dengan
+notasi yang sama dengan yang dipakai kode (mis.\ nama variabel
+\code{vardir}, \code{sigma2}, \code{rho}). Derivasi panjang dipindahkan ke
+lampiran~\ref{sec:derivasi}.
+
+\subsection{Tabel notasi}\label{sec:notasi}
+
+\begin{table}[htbp]
+\centering
+\caption{Notasi utama dan padanannya dalam kode. Sumber: simbol pada
+\code{R/*.R} dan \code{src/*.cpp}.}
+\label{tab:notasi}
+\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+Simbol & Nama kode & Arti \\
+\midrule
+$y_d$ atau $y_{id}$ & \code{y} & pengamatan langsung / respons (baris \code{NA}
+  menandai domain tak-sampel pada model area-level) \\
+$\psi_d$ & \code{vardir}, \code{psi} & varian pengukuran langsung
+  $\psi_d=S_d^2/n_d$; wajib $>0$ pada area tersampel \\
+$\Xmat$ & \code{X}, \code{Xall} & matriks desain ($m\times p$ atau $N\times p$) \\
+$\betah$ & \code{beta} & estimasi koefisien fit tetap (GLS) \\
+$u_d$, $\theta_d$ & \code{random\_effect}, \code{theta} & efek acak domain dan
+  prediktor area $\theta_d=x_d'\beta+u_d$ \\
+$\sigma^2$ & \code{sigma2}, \code{sigma2\_u} & varians efek acak \\
+$\Vm$ & \code{V}, \code{Vi} & kovarians respons dan inversinya \\
+$\Qm=(\Xmat'\Vm^{-1}\Xmat)^{-1}$ & \code{Q} & matriks informasi GLS \\
+$w_d=1/(\psi_d+\sigma^2)$ & \code{w} & bobot FH per area \\
+$B_d$ & \code{Bd} & faktor pemulusan gaya FH (lihat \eqref{eq:g1g2g3}) \\
+$h_d=x_d'\Qm x_d$ & \code{h} & leverage prediktor \\
+$\Wmat$ & \code{W}, \code{proxmat} & matriks tetangga (bobot) \\
+$\rho$ & \code{rho} & autoregresi spasial pada SFH/STFH \\
+$f_d=n_d/N_d$ & \code{f} & fraksi sampel populasi (BHF, \code{hb\_unit}) \\
+$B$ & \code{B} & jumlah replikat bootstrap \\
+$m$, $M$, $D$, $T$ & \code{m}, \code{D}, \texttt{Tt} & jumlah area ter-sampel,
+  total baris, jumlah domain, jumlah periode waktu \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Model campuran linear, GLS, dan BLUP}\label{sec:lmm}
+
+Model campuran linear umum
+\begin{equation}
+  y=\Xmat\beta+\Zmat u+\varepsilon,\qquad
+  \begin{pmatrix}u\\\varepsilon\end{pmatrix}
+  \sim N\!\left(0,\;
+  \begin{pmatrix}\mathbf G&0\\0&\Rmat\end{pmatrix}\right),
+  \label{eq:lmm}
+\end{equation}
+memberi kovarians total $\Vm=\Zmat\mathbf G\Zmat'+\Rmat$. Dengan $\beta$
+diketahui, prediktor linier tak bias terbaik (BLUP) dari $u$ adalah
+\begin{equation}
+  \tilde u=\mathbf G\Zmat'\Vm^{-1}(y-\Xmat\beta),
+  \qquad
+  \tilde\theta=\Xmat\beta+\mathbf G\Zmat'\Vm^{-1}(y-\Xmat\beta).
+  \label{eq:blup}
+\end{equation}
+Apabila $\beta$ dinilai dengan GLS, $\betah=(\Xmat'\Vm^{-1}\Xmat)^{-1}
+\Xmat'\Vm^{-1}y$, maka prediktor \eqref{eq:blup} tetap linier tak bias pada
+$\beta$ dan dikenal sebagai \emph{best linear unbiased predictor}
+\citep{kackar1984approximations}. Pada \pkg{fastsae}, \eqref{eq:blup} muncul
+sebagai \code{eblup = Xbeta + GVi \%*\% (y - Xbeta)} pada SFH
+(\code{eblup\_sfh\_core.cpp:462}) dan sebagai kasus khusus pada FH.
+
+Untuk model area-level FH, $\Zmat=\Imat$, $\mathbf G=\sigma^2\Imat$,
+$\Rmat=\mathrm{diag}(\psi_d)$ sehingga $\Vm$ diagonal dan semua operasi
+turun ke skalar per area:
+\begin{equation}
+  \hat u_d=\frac{\sigma^2}{\sigma^2+\psi_d}\,(y_d-x_d'\betah),
+  \qquad
+  \hat\theta_d=x_d'\betah+\hat u_d.
+  \label{eq:fh-blup}
+\end{equation}
+
+\subsection{EBLUP}\label{sec:eblup}
+
+\emph{Empirical} BLUP menggantikan komponen varians $\sigma^2$ dengan
+estimanya $\hat\sigma^2$:
+\begin{equation}
+  \hat\theta_d(\hat\sigma^2)=x_d'\betah(\hat\sigma^2)
+  +\hat u_d(\hat\sigma^2).
+  \label{eq:eblup}
+\end{equation}
+\citet{kackar1984approximations} menunjukkan bahwa pendekatan orde-kedua
+menyediakan pendekatan varian prediktor yang lazim dipakai; \citet{prasad1990estimation}
+dan \citet{datta2000unified} mengembangkan dekomposisinya menjadi suku-suku
+$g$ yang dibahas pada bagian~\ref{sec:mse}. Konsekuensi praktis pendekatan ini
+diabaikan oleh Kackar--Harville: penggantian $\sigma^2\to\hat\sigma^2$
+menggeser prediktor sedikit ke atas (\emph{bias}); pada FH, \pkg{fastsae}
+mengoreksi orde-kedua itu \emph{hanya} bila \code{method = "ML"}
+(\code{eblup\_fh.cpp:196-199}).
+
+\subsection{ML, REML, dan skor}\label{sec:ml-reml}
+
+Likelihood biasa untuk FH (satu parametrik) dengan
+$v_d=\sigma^2+\psi_d$:
+\begin{equation}
+  \ell(\sigma^2)=-\frac12\sum_{d=1}^{m}
+  \left[\log(2\pi v_d)+\frac{r_d^2}{v_d}\right],
+  \qquad r_d=y_d-x_d'\betah,
+  \label{eq:loglik-ml}
+\end{equation}
+dengan $\betah$ fungsi GLS dari $\sigma^2$. Persamaan skor ML yang
+dikodekan (\code{eblup\_fh.cpp:103}) adalah
+\begin{equation}
+  s(\sigma^2)=-\frac12\sum_d w_d+\frac12(Py)'(Py),
+  \qquad P=W-WX\Qm X'W,
+  \label{eq:score-fh-ml}
+\end{equation}
+dan informasi Fisher $I(\sigma^2)=\frac12\sum_d w_d^2$
+(\code{eblup\_fh.cpp:112}). REML memakai kasus spesial
+\begin{equation}
+  s_R(\sigma^2)=-\frac12\tr P+\frac12(Py)'(Py),
+  \qquad I_R(\sigma^2)=\tfrac12\tr(P^2),
+  \label{eq:score-fh-reml}
+\end{equation}
+dengan turunan ringkas yang dikodekan: $\tr P=\sum_d w_d-\tr(\Qm
+\Xmat'W^2\Xmat)$ dan $\tr(P^2)=\sum w^2-2\sum_d w_d^2(x_d'\Qm x_d)w_d
++\tr(K^2)$, $K=\Qm\Xmat'W^2\Xmat$ (\code{eblup\_fh.cpp:105-117}).
+Tidak ada inversi matriks $m\times m$ sama sekali pada FH: kedua turunan
+dihitung dari akumulasi skalar.
+
+\begin{implnote}
+Untuk model dengan dua atau lebih parameter (dua-fold, SFH, STFH),
+persamaan skor ditulis per elemen $\theta_a$ dengan pola
+$s_a=-\tfrac12\tr(M_a)+\tfrac12 y'M_a y$ (REML) dan
+$\mathcal I_{ab}=\tfrac12\tr(M_aM_b)$, dengan $M_a=P\,\partial V/\partial
+\theta_a$ dan $P=V^{-1}-V^{-1}X\Qm X'V^{-1}$. Untuk SFH dengan
+\code{method="ML"}, kode memakai kuadratik $y'PDPy$ tetapi informasi
+$\tfrac12\tr(V^{-1}D_aV^{-1}D_b)$ --- campuran ML/REML yang didokumentasikan
+sebagai SFH-1 di \code{DISCREPANCIES.md}.
+\end{implnote}
+
+\subsection{Fisher scoring}\label{sec:fs}
+
+Fisher scoring menggantikan Hessian oleh informasi Fisher:
+\begin{equation}
+  \theta^{(k+1)}=\theta^{(k)}+\mathcal I(\theta^{(k)})^{-1}
+  s(\theta^{(k)}).
+  \label{eq:fisher}
+\end{equation}
+Algoritme umum yang diikuti empat inti C++ (lihat
+Tabel~\ref{tab:konvergensi} untuk nilai konkretnya):
+\begin{enumerate}[label=\arabic*.]
+  \item hitung $\Vm,\Vm^{-1},\Qm$ pada $\theta^{(k)}$;
+  \item hitung skor $s$ dan informasi $\mathcal I$;
+  \item langkah $\Delta=\mathcal I^{-1}s$ (pada dua-parameter: inversi
+        $2\times2$; bila gagal, fallback $\Delta_a=s_a/\mathcal I_{aa}$);
+  \item perbarui $\theta\leftarrow\theta+\Delta$; terapkan batas;
+  \item uji $\texttt{diff}=\max_a\abs{\Delta_a/\max(\theta_a,10^{-12})}\le
+        \texttt{precision}$;
+  \item ulangi maksimum \code{maxiter} kali, lalu lakukan pass akhir pada
+        $\hat\theta$ (menghitung ulang $\Qm,\betah$, galat baku, prediktor,
+        dan MSE).
+\end{enumerate}
+Langkah 6 penting: MSE dan galat baku dievaluasi pada $\hat\theta$ final,
+bukan pada iterate terakhir sebelum update (pada STFH, galat baku parameter
+komponen varians justru dihitung dari $\mathcal I^{-1}$ pada $\theta_k$
+sebelum update terakhir --- STFH-7 di \code{DISCREPANCIES.md}).
+
+\subsection{Dekomposisi MSE}\label{sec:mse}
+
+Untuk prediktor EBLUP, \citet{prasad1990estimation} dan
+\citet{kackar1984approximations} menguraikan galat kuadrat rata-rata ke dalam
+tiga suku. Untuk FH, \pkg{fastsae} menghitung (\code{eblup\_fh.cpp:183-202})
+dengan parametrisasi
+\begin{equation}
+  B_d=\frac{\psi_d}{\psi_d+\sighat},
+  \qquad
+  g_1=\psi_d(1-B_d),
+  \qquad
+  g_2=B_d^2\,h_d,
+  \qquad
+  g_3=B_d^2\,\frac{\VarA}{\sighat+\psi_d},
+  \label{eq:g1g2g3}
+\end{equation}
+dengan $\VarA=2/\sum_d w_d^2$ (varian asimptotik $\hat\sigma^2$), $h_d=x_d'
+\Qm x_d$. Lalu
+\begin{equation}
+  \widehat{\mathrm{MSE}}(\hat\theta_d)=
+  \begin{cases}
+    g_1+g_2+2g_3, & \text{REML},\\[2pt]
+    g_1+g_2+2g_3-b\,B_d^2, & \text{ML},
+  \end{cases}
+  \qquad
+  b=-\frac{\tr(\Qm\Xmat'W^2\Xmat)}{\max\bigl(\sum_d w_d^2,10^{-30}\bigr)}.
+  \label{eq:mse-fh}
+\end{equation}
+\implnote{$B_d$ pada \eqref{eq:g1g2g3} adalah komplemen dari
+$B_d=\sighat/(\sighat+\psi_d)$ yang lazim dipakai Rao--Molina: kode menulis
+$B_d=\psi_d/(\psi_d+\sighat)$ (FH-1). Bentuk $g_1=\psi_d(1-B_d)$ ekuatip dengan
+$(B_d^{\text{RM}})^2\psi_d+(1-B_d^{\text{RM}})^2\sighat$ (FH-2). Jangan tertukar
+dengan $(1-B)^2(\psi_d+\sighat)$ yang kadang muncul di literatur --- bentuk itu
+bukan yang dikodekan.}
+
+Untuk model dua-parameter (dua-fold) koreksi bias berbeda: varians
+$\Var(\hat\sigma_v^2)$, $\Var(\hat\sigma_u^2)$, dan $\Cov$ diambil dari
+invers matriks informasi Fisher final, dan
+$\mathrm{MSE}=g_1+g_2+g_3$ dengan suku silang $2\E_{vu}\Cov_{vu}$ sudah
+termasuk di dalam $g_3$ (TFH-2) --- bukan $g_1+g_2+2g_3$. Untuk SFH, empat
+suku dipakai: $\mathrm{MSE}=g_1+g_2+2g_3-g_4$ plus koreksi bias ML pada
+$g_1$ (bagian~\ref{sec:sfh-mse}).
+
+\subsection{MSE bootstrap}\label{sec:bootstrap}
+
+Dua jenis tersedia di paket:
+
+\paragraph{Parametrik.} Dari hasil fit $\hat\beta,\hat\sigma^2$, bangkitkan
+$y^\ast=\Xmat\hat\beta+u^\ast+\varepsilon^\ast$ dengan $u^\ast,\varepsilon^\ast$
+dari distribusi model, refit, lalu
+\begin{equation}
+  \widehat{\mathrm{MSE}}_{\mathrm{pb}}
+  =\frac1B\sum_{b=1}^B\bigl(\hat\theta_b^\ast-\theta_b^\ast\bigr)^2.
+  \label{eq:pbmse}
+\end{equation}
+Ini persis \code{eblup\_twofold.cpp:515-517}, \code{eblup\_stfh\_pbmse.cpp:405-412},
+\code{eblup\_sfh\_pbmse.cpp:158-164}, dan \code{R/eblup\_bhf.R:360}. Varian
+bias-koreksi pada SFH memakai
+\begin{equation}
+  \widehat{\mathrm{MSE}}_{\mathrm{pbbc}}
+  =2(g_1+g_2)-g_1^\ast-g_2^\ast+g_3^\ast,
+  \label{eq:pbbc}
+\end{equation}
+dengan $g_3^\ast$ diambil dari selisih $\hat\theta^\ast$ terhadap prediksi
+SBLUP yang bobotnya berasal dari \emph{fit awal}
+(\code{eblup\_sfh\_pbmse.cpp:127-128,164}); kesesuaian \eqref{eq:pbbc}
+dengan rumus publik tidak terikat pada referensi mana pun di repo dan
+ditandai tidak pasti (SFH-10).
+
+\paragraph{Nonparametrik.} Hanya untuk SFH dan hanya REML
+(\code{eblup\_sfh\_npbmse.cpp:32-34}): residual dibagi menjadi komponen
+efek acak dan sampling lewat akar kuadrat matriks $\Psi_e=\mathrm{diag}(\psi)
+P\,\mathrm{diag}(\psi)$ dan $\Psi_u=(\Imat-\rho W)\,G\,P\,G(\Imat-\rho W)'$
+yang dieigendekomposisi (kolom $p..m-1$ dipakai untuk membuang arah proyeksi
+$\Xmat$), lalu resample indeks residual yang telah distandarisasi
+(\code{eblup\_sfh\_npbmse.cpp:70-110,143-149}).
+
+\subsection{Domain tanpa sampel dan prediksi sintetis}\label{sec:unsampled}
+
+Tabel~\ref{tab:unsampled} merangkum perilaku tiap fungsi terhadap domain tanpa
+pengamatan. Definisi ``tanpa sampel'' berbeda antar fungsi, dan perbedaan itu
+penting bagi pengguna.
+
+\begin{table}[htbp]
+\centering
+\caption{Penanganan domain tanpa sampel. Sumber: cabang kode pada kolom terakhir.}
+\label{tab:unsampled}
+\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+Fungsi & Kriteria & Prediktor dan MSE \\
+\midrule
+\code{eblup\_fh} & \code{y = NA} & $x_{ns}'\betah$;
+  $\mathrm{MSE}=\sighat+x_{ns}'\Qm x_{ns}$; \code{random\_effect = NA}
+  (\code{eblup\_fh.cpp:207-222}) \\
+\code{eblup\_sfh} & \code{y = NA} & kriging $x_{ns}'\betah+G_{rs}\Vm^{-1}r$
+  dengan sub-blok $A_{full}^{-1}$; $\mathrm{MSE}=g_1+g_2$ saja
+  (\code{eblup\_sfh\_core.cpp:576-604}) \\
+\code{eblup\_stfh} & respons \code{NA} & \emph{tidak diizinkan}: panel wajib
+  lengkap, \code{cli\_abort} (\code{R/eblup\_stfh.R:129-139}) \\
+\code{eblup\_bhf} & domain tanpa unit sampel & prediktor sintetis
+  $\bar x_{pop}'\betah$, \code{samp\_size = 0}, peringatan
+  (\code{eblup\_unit.cpp:94-100}) \\
+\code{eblup\_twofold} & \code{y = NA} & area tanpa subarea: $x'\betah$;
+  subarea tak-sampel pada area tersampel: $x'\betah+\hat v_i$
+  (\code{eblup\_twofold.cpp:333-363}) \\
+\code{hb\_unit} & seluruh domain & menambahkan 1 baris \code{y = NA} per
+  domain, lalu memakai fitted INLA (\code{hb\_unit.R:244-249}) \\
+\code{hb\_area}, \code{hb\_twofold} & baris \code{y = NA} & tetap dievaluasi
+  oleh INLA; domain yang \emph{tidak ada dalam data} tidak diprediksi
+  (HB-17) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Benchmarking: pengertian internal dan eksternal}\label{sec:bench-def}
+
+Dalam literatur SAE, \emph{benchmarking} berarti mengkalibrasi prediktor
+model ke total atau agregat yang diketahui sehingga konsistensi antar tingkat
+kerapian terpenuhi \citep{rao2015small}. Dua varian muncul di paket ini:
+
+\begin{itemize}
+  \item \textbf{Benchmarking eksternal} memakai total populasi yang diketahui
+        dari sumber luar survei (mis.\ total penduduk per provinsi).
+  \item \textbf{Benchmarking internal} menggunakannya sebagai \emph{validasi}:
+        \code{diagnose()} membandingkan total prediksi terhadap total yang
+        diketahui dan menandai status \code{CONSISTENT} bila selisihnya di
+        bawah toleransi (\code{benchmark.R:602}).
+\end{itemize}
+
+Empat metode kalibrasi (\code{ratio}, \code{difference}, \code{optimal},
+\code{logit}) beserta pendukung hierarkinya dijelaskan pada
+bagian~\ref{sec:utilitas}; di sini cukup dicatat bahwa seluruhnya bekerja pada
+vektor prediktor + MSE dan bobot populasi, sehingga dapat dipakai pada hasil
+model mana pun yang mengembalikan \code{df\_eblup}/\code{df\_hb}.

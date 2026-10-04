@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{Waktu median per iterasi (detik) menurut jumlah area $n$. Model spasio-temporal dengan $T$ periode waktu; waktu termasuk estimasi komponen varian. Sumber: file \texttt{steblup\_benchmark.rds} di \texttt{inst/extdata} (repo \texttt{fastsae}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}, ditampilkan hingga 6 digit signifikan.}
+\label{tab:time-stfh}
+\small
+\begin{tabular}{lrrr}
+\toprule
+$n$ & fastsae & sae \\
+\midrule
+30 & 0.0367356 & 0.118558 \\
+50 & 0.0898305 & 0.420018 \\
+100 & 2.29928 & 17.9425 \\
+250 & 3.81651 & 58.4315 \\
+500 & 10.3596 & 253.343 \\
+1000 & 58.1005 & 1786.49 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

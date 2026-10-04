@@ -55,6 +55,10 @@ print.fastsae <- function(x, ...) {
     cli::cli_text("{.strong Method}: {x$method}")
   }
 
+  if (isTRUE(x$self_benchmark)) {
+    cli::cli_text("{.strong Self-Benchmarking}: Active (Wang-Fuller-Qu augmented model)")
+  }
+
   if (!is.null(x$random_effect_var)) {
     rev <- x$random_effect_var
     if (length(rev) == 2L && !is.null(names(rev))) {
@@ -139,6 +143,8 @@ summary.fastsae <- function(object, ...) {
     df_hb = object$df_hb,
     df_area = object$df_area,
     df_ebp = object$df_ebp,
+    self_benchmark = object$self_benchmark,
+    benchmark_summary = object$benchmark_summary,
     level = object$level
   )
   class(ans) <- "summary.fastsae"
@@ -193,6 +199,14 @@ print.summary.fastsae <- function(x, ...) {
 
   if (!is.null(x$method)) {
     cli::cli_text("{.strong Method}: {x$method}")
+  }
+
+  if (isTRUE(x$self_benchmark)) {
+    cli::cli_text("{.strong Self-Benchmarking}: Active (Wang-Fuller-Qu augmented model)")
+    if (!is.null(x$benchmark_summary)) {
+      cat("\nSelf-Benchmarking Calibration Summary:\n")
+      print(x$benchmark_summary, row.names = FALSE)
+    }
   }
 
   if (!is.null(x$estvarcomp)) {

@@ -25,6 +25,17 @@
 #' @param seed integer seed for bootstrap resampling (NULL = no seed set).
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
+#' @param self_benchmark Logical. If \code{TRUE}, fits a self-benchmarking model via the
+#'   augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
+#'   ensuring that the weighted aggregate of small area estimates automatically matches the direct
+#'   survey aggregate or specified benchmark targets without post-hoc adjustment.
+#' @param benchmark_weight Optional vector, column name, or one-sided formula referencing the domain
+#'   benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.
+#' @param benchmark_target Optional numeric scalar or named vector specifying fixed aggregate
+#'   benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggregate of the direct estimates.
+#' @param benchmark_group Optional vector, column name, or one-sided formula referencing the
+#'   grouping / stratum column in \code{data} (e.g. area identifier for subarea-to-area benchmarking)
+#'   for group-specific self-benchmarking.
 #' @param print_result print coefficient or not, default value is TRUE.
 #'
 #' @returns The function returns a list with the following objects:
@@ -73,6 +84,10 @@ eblup_twofold <- function(
   seed = NULL,
   maxiter = 100,
   precision = 1e-4,
+  self_benchmark = FALSE,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL,
   print_result = TRUE
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
@@ -96,6 +111,24 @@ eblup_twofold <- function(
   }
 
   y <- stats::model.response(mf, "numeric")
+
+  sb_info <- NULL
+  if (isTRUE(self_benchmark)) {
+    sb_info <- .setup_self_benchmark(
+      data = data,
+      formula = formula,
+      y = y,
+      vardir = vardir,
+      weight = benchmark_weight,
+      target = benchmark_target,
+      group = benchmark_group
+    )
+    data <- sb_info$data_aug
+    formula <- sb_info$formula_aug
+    mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
+    y <- stats::model.response(mf, "numeric")
+  }
+
   X <- stats::model.matrix(attr(mf, "terms"), mf)
 
   # Check auxiliary variables for NA values
@@ -130,6 +163,22 @@ eblup_twofold <- function(
   res$df_eblup <- res$df_eblup[, c("domain", "subarea", "y", "eblup", "vardir",
                                    "random_effect_area", "random_effect_subarea",
                                    "mse", "rse")]
+
+  if (!is.null(sb_info)) {
+    res$self_benchmark <- TRUE
+    res$benchmark_weight <- benchmark_weight
+    res$benchmark_target <- benchmark_target
+    res$benchmark_group <- benchmark_group
+    res$benchmark_summary <- .compute_benchmark_summary(
+      unique_groups = sb_info$unique_groups,
+      group_vec = sb_info$group_vec,
+      w_norm = sb_info$w_norm,
+      y = sb_info$original_y,
+      target_vec = sb_info$target_vec,
+      estimates = res$df_eblup$eblup
+    )
+    res$df_eblup$y <- sb_info$original_y
+  }
 
   res$call <- match.call()
   res$data <- data

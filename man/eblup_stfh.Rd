@@ -22,6 +22,10 @@ eblup_stfh(
   B = 100,
   n_threads = 1,
   seed = -1,
+  self_benchmark = FALSE,
+  benchmark_weight = NULL,
+  benchmark_target = NULL,
+  benchmark_group = NULL,
   print_result = TRUE
 )
 }
@@ -69,6 +73,20 @@ using \code{B} bootstrap replicates. Default \code{FALSE}.}
 Use \code{0} for all available cores. Default \code{1}.}
 
 \item{seed}{random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.}
+
+\item{self_benchmark}{Logical. If \code{TRUE}, fits a self-benchmarking model via the
+augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
+ensuring that the weighted aggregate of small area estimates automatically matches the direct
+survey aggregate or specified benchmark targets without post-hoc adjustment.}
+
+\item{benchmark_weight}{Optional vector, column name, or one-sided formula referencing the domain
+benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.}
+
+\item{benchmark_target}{Optional numeric scalar or named vector specifying fixed aggregate
+benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggregate of the direct estimates.}
+
+\item{benchmark_group}{Optional vector, column name, or one-sided formula referencing the
+grouping / stratum column in \code{data} (e.g. time period / year) for group-specific self-benchmarking.}
 
 \item{print_result}{print the estimated coefficients or not. Default \code{TRUE}.}
 }

@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{Waktu median per iterasi (detik) menurut jumlah area $n$. Model hierarki Bayes area-level Gaussian (\texttt{hb\_area}) vs \texttt{hbsae::fSAE.Area}. Sumber: file \texttt{hb\_benchmark.rds} di \texttt{inst/extdata} (repo \texttt{fastsae}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}, ditampilkan hingga 6 digit signifikan.}
+\label{tab:time-hb}
+\small
+\begin{tabular}{lrrr}
+\toprule
+$n$ & fastsae & hbsae \\
+\midrule
+30 & 1.29238 & 0.0209383 \\
+50 & 1.28063 & 0.0255576 \\
+100 &  1.2507 & 0.0373128 \\
+250 & 1.22658 & 0.0744251 \\
+500 & 1.25466 & 0.143842 \\
+1000 & 1.27669 & 0.271585 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

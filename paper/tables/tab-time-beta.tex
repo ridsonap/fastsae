@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{Waktu median per iterasi (detik) menurut jumlah area $n$. Model area-level beta (\texttt{fastsae::hb\_area} vs \texttt{tipsae::fit\_sae}). Sumber: file \texttt{beta\_benchmark.rds} di \texttt{inst/extdata} (repo \texttt{fastsae}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}, ditampilkan hingga 6 digit signifikan.}
+\label{tab:time-beta}
+\small
+\begin{tabular}{lrrr}
+\toprule
+$n$ & fastsae & tipsae \\
+\midrule
+30 & 1.24489 & 2.34867 \\
+50 & 1.33152 & 3.77451 \\
+100 & 1.27232 & 8.23587 \\
+250 & 1.31454 & 26.2762 \\
+500 & 1.41239 & 64.2141 \\
+1000 & 1.63967 & 187.162 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

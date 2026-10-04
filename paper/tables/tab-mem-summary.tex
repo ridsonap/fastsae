@@ -1,0 +1,29 @@
+\begin{table}[htbp]
+\centering
+\caption{Ringkasan alokasi memori total per iterasi (MB): rerata, minimum dan maksimum lintas seluruh $n$ pada tiap file sumber. Kolom ``maks'' adalah nilai pada $n$ terbesar pada file tersebut.}
+\label{tab:mem-summary}
+\small
+\begin{tabular}{llrrr}
+\toprule
+File & Metode & Rerata & Min & Maks \\
+\midrule
+\texttt{eblup} & fastsae & 0.0550461 & 0.00506592 & 0.185699 \\
+\texttt{eblup} & emdi & 824.466 & 4.18307 &  3773.6 \\
+\texttt{eblup} & sae & 16.3349 & 0.153381 & 71.9765 \\
+\texttt{seblup} & fastsae & 5.14563 & 0.029808 & 23.1548 \\
+\texttt{seblup} & emdi & 835.886 & 4.18307 & 3772.57 \\
+\texttt{seblup} & sae & 471.577 & 1.37314 & 1920.01 \\
+\texttt{steblup} & fastsae & 0.288579 & 0.0274048 & 0.893669 \\
+\texttt{steblup} & sae & 7821.69 & 43.8007 & 32478.3 \\
+\texttt{beta} & fastsae & 81.0359 & 2.59546 & 133.585 \\
+\texttt{beta} & tipsae & 5860.87 &  499.97 & 18335.2 \\
+\texttt{spatial\_beta} & fastsae & 70.6704 & 3.36058 & 161.025 \\
+\texttt{spatial\_beta} & tipsae & 7366.18 & 642.835 & 23038.7 \\
+\texttt{spatio\_temporal\_beta} & fastsae & 105.869 &  102.73 & 109.008 \\
+\texttt{spatio\_temporal\_beta} & tipsae &  3913.6 & 2947.08 & 4880.13 \\
+\texttt{hb} & fastsae & 23.7777 & 2.40248 & 57.7934 \\
+\texttt{hb} & hbsae &   67.01 &  5.8022 & 220.352 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

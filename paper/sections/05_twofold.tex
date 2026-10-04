@@ -1,0 +1,233 @@
+% ===========================================================================
+%  Bagian 5.5 -- eblup_twofold
+% ===========================================================================
+\section{Model sub-area dua-lipat: \texttt{eblup\_twofold}}\label{sec:twofold}
+
+\subsection{Setting data dan kapan dipakai}\label{sec:twofold-setting}
+
+Data memiliki tiga tingkat: area (mis.\\ kabupaten), \emph{sub-area} di dalam
+area (mis.\\ kecamatan), dan unit sampel di dalam sub-area. Satu baris data =
+satu unit sampel, dengan kolom penanda \code{domain} (area) dan
+\code{subarea}. Model ini dipakai ketika tersedia kovariat pada tingkat unit
+tetapi target estimasi pada dua tingkat sekaligus (area dan sub-area),
+termasuk sub-area yang tidak tersampel. Rujukan aslinya
+\citet{torabi2014small}; roxygen fungsi ini menyebut model dua-lipat tanpa
+mengutip DOI (\code{R/eblup\_twofold.R:7-14}).
+
+\subsection{Persamaan model}\label{sec:twofold-model}
+
+Dua tingkat persamaan (komentar \code{eblup\_twofold.cpp:4-8}):
+\begin{align}
+  y_{ij} &= \theta_{ij}+e_{ij}, & e_{ij}&\sim N(0,\psi_{ij}),
+    \label{eq:tf-lvl1}\\
+  \theta_{ij} &= x_{ij}'\beta+v_i+u_{ij}, &
+    v_i&\sim N(0,\sigma_v^2),\quad u_{ij}\sim N(0,\sigma_u^2),
+    \label{eq:tf-lvl2}
+\end{align}
+dengan $v_i$ = efek area (notasi kode: \code{s2v}) dan $u_{ij}$ = efek
+sub-area (\code{s2u}). Untuk tiap area $d$ kovariasinya adalah
+\begin{equation}
+  V_d=\sigma_v^2\ones\ones'
+  +\mathrm{diag}(\sigma_u^2+\psi_d),
+  \qquad
+  S_d=\sigma_v^2\ones\ones'+\sigma_u^2\Imat,
+  \label{eq:tf-block}
+\end{equation}
+dan inversinya memakai identitas Sherman--Morrison per blok
+\eqref{eq:woodbury-tfh} (biaya $O(n_d)$, bukan $O(n_d^3)$).
+
+\subsection{Prediktor titik}\label{sec:twofold-prediktor}
+
+\begin{equation}
+  \hat v_i=\sigma_v^2\,\ones'V^{-1}r,\qquad
+  \hat u_{ij}=\sigma_u^2\,(V^{-1}r)_{ij},\qquad
+  \hat\theta_{ij}=x_{ij}'\betah+\hat v_i+\hat u_{ij},
+  \label{eq:tf-pred}
+\end{equation}
+dengan $r=y-\Xmat\betah$ dan $V^{-1}$ per blok lewat \eqref{eq:woodbury-tfh}
+(baris 351-353). Tiga kasus domain (baris 333-363):
+\begin{itemize}
+  \item sub-area tersampel pada area tersampel: \eqref{eq:tf-pred};
+  \item sub-area \emph{tak}-sampel pada area tersampel:
+        $\hat\theta_{ij}=x_{ij}'\betah+\hat v_i$ dan $\hat u=0$ (data hilang
+        hanya menyisakan informasi area);
+  \item area tanpa sub-area tersampel sama sekali: $\hat\theta=x'\betah$
+        (prediktor sintetis).
+\end{itemize}
+Domain tanpa sampel didefinisikan lewat respons \code{y = NA}
+(baris 290-292), sama seperti FH. Validasi mensyaratkan minimal dua area
+tersampel dan $N_s>p$ (baris 301, 311).
+
+\subsection{Estimasi komponen varians}\label{sec:twofold-varians}
+
+Fisher scoring dua parameter $(\sigma_v^2,\sigma_u^2)$, nilai awal
+$0.5\,\mathrm{median}(\psi)$ keduanya (baris 181-182), toleransi $10^{-4}$,
+maksimum 100 iterasi (baris 186). Per iterasi (fungsi \code{twofold\_pass},
+baris 80-169) dihitung $Q=(\Xmat'V^{-1}\Xmat)^{-1}$, $r=V^{-1}(y-\Xmat\betah)$,
+lalu skor dan informasi:
+\begin{align}
+  s_v&=-\tfrac12 q_d+\tfrac12(\ones'r)^2,
+    & s_u&=-\tfrac12\tr P+\tfrac12 r'r,
+    & q_d&=\ones'V^{-1}\ones-(\Xmat'V^{-1}\ones)'Q(\Xmat'V^{-1}\ones),
+    \label{eq:tf-score-reml}\\
+  \mathcal I_{vv}&=\tfrac12 q_d^2,
+    & \mathcal I_{uu}&=\tfrac12\tr(P^2),
+    & \mathcal I_{vu}&=\tfrac12\bigl[\ones'V^{-1}\ones
+      -2\,\mathbf z'Q\bar x+\bar x'QMQ\bar x\bigr],
+  \label{eq:tf-info-reml}
+\end{align}
+untuk REML (baris 131-151); untuk ML (baris 152-158) suku $\tr P$ dan $q_d$
+diganti oleh $\ones'V^{-1}\ones$ dan $\tr V$. Langkah
+$\Delta=\mathcal I^{-1}s$ dengan fallback diagonal $s_k/\mathcal I_{kk}$
+bila inversi gagal (baris 193-204), nilai negatif dipaksa $0$ (baris 210-211),
+dan konvergensi relatif (baris 213-215).
+
+\implnote{Dua hal yang tidak ada pada FH: (i) varian estimasi komponen
+diambil dari \emph{invers matriks informasi Fisher} final, bukan bentuk
+tertutup $\VarA=2/\sum w^2$ (TFH-3); (ii) loglik REML dihitung benar,
+$\ell_R=-\tfrac12[(n-p)\log2\pi+\text{core}+\log|\Xmat'V^{-1}\Xmat|
+-\log|\Xmat'\Xmat|]$ (baris 259-265), berbeda dengan FH dan SFH yang selalu
+memakai bentuk ML (TFH-9 juga: dasar AIC/BIC memakai jumlah area dengan
+sub-area tersampel, bukan jumlah baris).}
+
+\subsection{Estimasi MSE}\label{sec:twofold-mse}
+
+\paragraph{Analitik (default).} Untuk sub-area tersampel (baris 369-411):
+\begin{align}
+  g_1&=\diag\bigl(S-SV^{-1}S\bigr),
+    \label{eq:tf-g1}\\
+  g_2&=\diag(DQD'),\qquad D=(\Imat-SV^{-1})\Xmat_d,
+    \label{eq:tf-g2}\\
+  g_3&=\mathbb E_{vv}\,\mathrm{var}_v+\mathbb E_{uu}\,\mathrm{var}_u
+      +2\,\mathbb E_{vu}\,\mathrm{cov}_{vu},
+    \label{eq:tf-g3}
+\end{align}
+di mana $\mathrm{var}_v,\mathrm{var}_u,\mathrm{cov}_{vu}$ adalah elemen
+$(\mathcal I^{-1})$ final (baris 324, 407) dan
+$\mathbb E_{uu}=\diag(M_uVM_u')$ dengan $M_u=V^{-1}-SV^{-2}$, sedangkan
+$M_v=\ones(\ones'V^{-1})'-SV^{-1}\ones(\ones'V^{-1})'$ (baris 395-406).
+Totalnya
+\begin{equation}
+  \widehat{\mathrm{MSE}}=g_1+g_2+g_3,
+  \label{eq:tf-mse}
+\end{equation}
+bukan $g_1+g_2+2g_3$: faktor dua pada suku silang sudah termasuk di dalam
+$g_3$ persis seperti tertulis di komentar kode.
+
+\implnote{Di sinilah perbedaan paling menonjol dengan publikasi.
+Komentar kode (\code{eblup\_twofold.cpp:19-24}) menyatakan bahwa persamaan
+(3.4) \citet{torabi2014small} mengandung suku $[A][B]$ yang semu dan koefisien
+varian $u$ yang salah bentuk (plus tanda salah pada lampiran), sehingga
+pendekatan matriks $g_3$ dipakai dan divalidasi dengan turunan beda
+pemisah (korelasi 0,97/0,96/0,74 terhadap uji numerik). Laporan ini
+melaporkannya sebagai TFH-1: apa yang dikodekan adalah pendekatan matriks,
+bukan rumus tertutup Torabi--Rao.}
+
+Untuk sub-area tak-sampel (baris 415-468): area tanpa sub-area tersampel
+memperoleh $x'Qx+\sigma_v^2+\sigma_u^2$ (baris 421-427); sub-area tak-sampel
+pada area tersampel memperoleh $g_1^\ast+g_2^\ast+g_3^\ast$ dengan
+$g_1^\ast=\sigma_v^2-\sigma_v^4(\ones'V^{-1}\ones)+\sigma_u^2$ dan
+$g_2^\ast=(x-\sigma_v^2\Xmat'V^{-1}\ones)'Q(x-\sigma_v^2\Xmat'V^{-1}\ones)$
+(baris 445-464). Nilai negatif dalam rentang $(-10^{-8},0)$ dipangkas ke $0$;
+lebih negatif dibiarkan sehingga RSE menjadi \code{NaN} (TFH-8).
+
+\paragraph{Bootstrap parametrik.} Dengan \code{mse = "bootstrap"} (default
+$B=200$): semua gambaran dibuat lebih dulu secara sekuensial
+($v^\ast\in\mathbb R^{m\times B}$, $u^\ast\in\mathbb R^{N\times B}$,
+$e^\ast\in\mathbb R^{N_s\times B}$; baris 475-478), lalu region
+\texttt{\#pragma omp parallel for schedule(static)} (baris 481) berjalan per
+replikat: $\theta^\ast=\Xmat\betah+v^\ast_i+u^\ast_j$,
+$y^\ast=\theta^\ast_{\text{sampel}}+e^\ast$, refit Fisher scoring penuh,
+prediktor bootstrap dengan prediktor yang \emph{sama} seperti estimasi titik
+(termasuk cabang tak-sampel), dan $\widehat{\mathrm{MSE}}=\mathrm{rata}
+\bigl((\hat\theta^\ast-\theta^\ast)^2\bigr)$ (baris 486-517). Karena semua
+RNG dipanggil sebelum pragma, hasil tidak bergantung jumlah thread
+(TFH-6: pemakaian prediktor yang sama persis juga dinyatakan kode sebagai
+perbaikan bug).
+
+\subsection{Pseudo-code}\label{sec:twofold-algo}
+
+\begin{algorithm}[htbp]
+\caption{\texttt{eblup\_twofold} --- alur sebenarnya (\texttt{R/eblup\_twofold.R:64-140}, \texttt{src/eblup\_twofold.cpp:173-553})}
+\label{alg:tfh}
+\KwIn{formula, \code{vardir}, \code{domain} (wajib), \code{subarea},
+  \code{method}, \code{mse}, \code{B}, \code{seed}, \code{maxiter}, \code{precision}}
+\KwOut{\code{df\_eblup} (area $\times$ sub-area), \code{random\_effect\_var} = $(\sigma_v^2,\sigma_u^2)$, \code{goodness}}
+\code{domain} $\leftarrow$ wajib (80-82);\quad
+  \code{subarea} $\leftarrow$ \code{seq\_len(nrow(data))} bila \code{NULL} (84-88)\;
+\code{area\_idx} $\leftarrow$ \texttt{as.integer(factor(domain)) - 1L} \tcp*{0-based (106)}
+\If{\code{seed} tidak \code{NULL}}{\texttt{set.seed(seed)} (108)}\;
+$\ldots\leftarrow$ \texttt{.eblup\_twofold\_core($\Xmat,y,\psi$, area, method, mse\_type, B, maxiter, precision)} (110-120)\;
+\caption*{}
+\KwData{}
+\tcp*{\emph{Lapis C++}}
+\textbf{gagal} bila \code{method}/\code{mse\_type} tak sah, $N_s\le p$,
+  $\psi\le0$, atau area tersampel $<2$ (281-311)\;
+$\sigma_v^2\leftarrow\sigma_u^2\leftarrow0.5\,\mathrm{median}(\psi)$ (181-182)\;
+\While{\texttt{diff} $>$ \code{precision} \textbf{dan} $k<$ \code{maxiter}}{
+  per blok $d$: $V_d^{-1}a\leftarrow$ \eqref{eq:woodbury-tfh} (98-108, 345-350)\;
+  $\betah,r,q_d,\tr P,\tr V,\tr P^2\leftarrow$ akumulasi (110-145)\;
+  \uIf{ML}{$s,\mathcal I\leftarrow$ bentuk ML (152-158)}
+  \uElse{$s,\mathcal I\leftarrow$ \eqref{eq:tf-score-reml}--\eqref{eq:tf-info-reml} (131-151)}\;
+  $\Delta\leftarrow\mathcal I^{-1}s$; bila inversi gagal $\to\Delta_k=s_k/\mathcal I_{kk}$ (193-204)\;
+  $\sigma_k^2\leftarrow\max(\sigma_k^2+\Delta_k,0)$; non-finite $\to$ nilai lama (206-211)\;
+  $\texttt{diff}\leftarrow\max_k\abs{(\sigma_k^{2(new)}-\sigma_k^2)/\max(\sigma_k^2,10^{-12})}$ (213-215)\;
+}
+pass final pada varian final: $\betah,Q,\mathcal I^{-1}$ (223-237)\;
+$\hat\theta\leftarrow$ \eqref{eq:tf-pred}, termasuk cabang tak-sampel (333-363)\;
+\uIf{\code{mse} $=$ analytical}{$g_1,g_2,g_3\leftarrow$ \eqref{eq:tf-g1}--\eqref{eq:tf-g3};
+  $\mathrm{MSE}\leftarrow$ \eqref{eq:tf-mse} per baris tersampel (369-411);
+  cabang tak-sampel (415-468)}
+\uElse{$v^\ast,u^\ast,e^\ast\leftarrow$ bangkit sekuensial (475-478)\;
+  \texttt{\#pragma omp parallel for schedule(static)} (481)\;
+  \For{$b=0,\dots,B-1$ paralel}{$\theta^\ast,y^\ast\leftarrow$ (486-488);
+    refit \code{twofold\_fit} (490-491); $\mathrm{SqDiff}[:,b]\leftarrow
+    (\hat\theta^\ast-\theta^\ast)^2$ (495-517)}}\;
+$\ell,\mathrm{AIC},\mathrm{BIC}\leftarrow$ loglik ML/REML, dasar $m_{\text{fit}}$ (239-267, 545-548)\;
+susun \code{df\_eblup} (\code{domain, subarea, y, eblup, vardir, random\_effect\_area,
+random\_effect\_subarea, mse, rse}) (550-553)\;
+\end{algorithm}
+
+\subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:twofold-api}
+
+\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_twofold} (\texttt{R/eblup\_twofold.R:64-77}).}]
+eblup_twofold(formula, vardir, domain = NULL, subarea = NULL, data,
+              method = c("REML", "ML"),
+              mse = c("analytical", "bootstrap"),
+              B = 200, seed = NULL, maxiter = 100,
+              precision = 1e-4, print_result = TRUE)
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{domain} --- wajib (bila \code{NULL} fungsi berhenti);
+        \code{subarea} --- opsional, default penomoran unit.
+  \item \code{mse} --- \code{"analytical"} (default) atau \code{"bootstrap"}
+        ($B$ default 200).
+  \item \code{seed} --- dipanggil pada semua jalur, bukan hanya bootstrap
+        (TFH-7).
+\end{itemize}
+
+Objek keluaran: \code{"fastsae"} berisi \code{random\_effect\_var} bernama
+\code{sigma2\_v} (area) dan \code{sigma2\_u} (sub-area), \code{estcoef},
+\code{df\_eblup}, \code{goodness} (\code{loglikelihood, AIC, BIC} dengan
+$\mathrm{AIC}=-2\ell+2(p+2)$ dan $\mathrm{BIC}=-2\ell+(p+2)\log m_{\text{fit}}$),
+\code{n\_iter}, \code{convergence}, \code{method = "eblup"},
+\code{level = "subarea"}, \code{model = "TWOFOLD"}.
+
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_twofold.Rd}); membutuhkan kolom penanda area dan sub-area.}]
+library(fastsae)
+m1 <- eblup_twofold(y ~ x1 + x2, data = your_data, vardir = "vardir",
+                    domain = "area", subarea = "kec")
+m1$random_effect_var        # sigma2_v (area), sigma2_u (subarea)
+
+m2 <- eblup_twofold(y ~ x1 + x2, data = your_data, vardir = "vardir",
+                    domain = "area", subarea = "kec",
+                    mse = "bootstrap", B = 100, seed = 42)
+\end{lstlisting}
+
+\subsection{Referensi kunci}\label{sec:twofold-ref}
+
+Rujukan model dua-lipat: \citet{torabi2014small} (disebut
+\code{DESCRIPTION} beserta DOI-nya dan menjadi dasar komentar kode
+\code{eblup\_twofold.cpp:19-24}); kerangka EBLUP: \citet{rao2015small};
+pembanding: \pkg{sae} \citep{molina2015sae}.
