@@ -276,6 +276,10 @@ hb_area <- function(
   # 3. Spatial weights handling
   W_obj <- NULL
   if (spatial != "none") {
+    if (is.null(W) && inherits(data, "sf")) {
+      cli::cli_alert_info("Argument {.arg W} not provided; automatically constructing binary spatial adjacency matrix from {.cls sf} polygon geometry.")
+      W <- create_weights(data, method = "queen", style = "B")
+    }
     W_obj <- .convert_spatial_weights(W, n_domains = n_unique_domains, spatial = spatial, domain_names = unique_domains)
   }
 
@@ -796,6 +800,12 @@ hb_area <- function(
     res$df_hb$y <- sb_info$original_y
     res$hb$y <- sb_info$original_y
     res$df_eblup$y <- sb_info$original_y
+  }
+
+  if (inherits(data, "sf") && requireNamespace("sf", quietly = TRUE)) {
+    if (!is.null(res$df_hb) && nrow(res$df_hb) == nrow(data)) {
+      res$df_hb <- sf::st_set_geometry(res$df_hb, sf::st_geometry(data))
+    }
   }
 
   return(res)

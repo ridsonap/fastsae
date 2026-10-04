@@ -74,6 +74,7 @@ Collate:
     methods.R
     autoplot.R
     gvf.R
+    create_weights.R
     eblup_fh.R
     eblup_sfh.R
     eblup_stfh.R
@@ -86,6 +87,7 @@ Collate:
     sim_area_data.R
     sim_series_data.R
     diagnose.R
+    spatial_test.R
     benchmark.R
     compare_sae.R
     export_sae.R

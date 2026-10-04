@@ -161,7 +161,12 @@ eblup_sfh <- function(
   }
 
   if (is.null(W)) {
-    cli::cli_abort("Argument `W` (spatial weight matrix) must be provided.")
+    if (inherits(data, "sf")) {
+      cli::cli_alert_info("Argument {.arg W} not provided; automatically constructing Queen spatial weights from {.cls sf} polygon geometry.")
+      W <- create_weights(data, method = "queen", style = "W")
+    } else {
+      cli::cli_abort("Argument `W` (spatial weight matrix) must be provided.")
+    }
   }
 
   n_total <- nrow(X)
@@ -253,6 +258,10 @@ eblup_sfh <- function(
   # Tambahkan domain identifier ke df_eblup sebagai kolom pertama
   res$df_eblup$domain <- domain
   res$df_eblup <- res$df_eblup[, c("domain", setdiff(names(res$df_eblup), "domain"))]
+
+  if (inherits(data, "sf") && requireNamespace("sf", quietly = TRUE)) {
+    res$df_eblup <- sf::st_set_geometry(res$df_eblup, sf::st_geometry(data))
+  }
 
   if (!is.null(sb_info)) {
     res$self_benchmark <- TRUE
