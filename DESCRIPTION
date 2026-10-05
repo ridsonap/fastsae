@@ -31,7 +31,7 @@ BugReports: https://github.com/ridsonap/fastsae/issues
 Encoding: UTF-8
 Language: en-US
 LazyData: true
-Additional_repositories: https://inla.r-inla-download.org/R/stable
+SystemRequirements: C++17
 Imports:
     cli,
     ggplot2,
