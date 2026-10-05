@@ -85,3 +85,39 @@ test_that("spatial_test auto-constructs W when data is sf and W is NULL", {
   expect_true(!is.null(st_sf$W))
   expect_message(print(st_sf), "Spatial")
 })
+
+test_that("spatial_test handles collinear covariates without crashing in LM-lag", {
+  set.seed(42)
+  n <- 25
+  x1 <- runif(n, 1, 5)
+  x2 <- runif(n, 2, 8)
+  x3 <- x1 * 2  # exactly collinear
+  y <- 3 + 1.2 * x1 - 0.5 * x2 + rnorm(n, 0, 0.5)
+  coords <- matrix(runif(n * 2), ncol = 2)
+  W <- create_weights(coords, method = "knn", k = 3, style = "W")
+  df <- data.frame(y = y, x1 = x1, x2 = x2, x3 = x3)
+
+  # Should not error or crash with 'missing value where TRUE/FALSE needed'
+  expect_no_error({
+    st_collin <- spatial_test(y ~ x1 + x2 + x3, data = df, W = W)
+  })
+  expect_true(is.finite(st_collin$residual_test$lm_lag$statistic))
+  expect_true(is.finite(st_collin$residual_test$lm_lag$p_value))
+})
+
+test_that("spatial_test throws informative error when auxiliary variables contain NA", {
+  set.seed(42)
+  n <- 20
+  x1 <- runif(n)
+  x1[3] <- NA  # NA in sampled area
+  y <- rnorm(n)
+  coords <- matrix(runif(n * 2), ncol = 2)
+  W <- create_weights(coords, method = "knn", k = 3, style = "W")
+  df <- data.frame(y = y, x1 = x1)
+
+  expect_error(
+    spatial_test(y ~ x1, data = df, W = W),
+    "Auxiliary variables in .* contain NA values"
+  )
+})
+

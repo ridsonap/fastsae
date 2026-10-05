@@ -214,13 +214,13 @@ diagnose <- function(object,
         z <- res_clean - mean(res_clean)
         s0 <- sum(W_sub)
         if (s0 > 0) {
-          num <- sum(W_sub * outer(z, z))
+          num <- sum(z * (W_sub %*% z))
           denom <- sum(z^2)
           moran_I <- (n_spat / s0) * (num / denom)
 
           # Expected value and variance under normality
           E_I <- -1 / (n_spat - 1)
-          s1 <- 0.5 * sum((W_sub + t(W_sub))^2)
+          s1 <- sum(W_sub^2) + sum(W_sub * t(W_sub))
           s2 <- sum((rowSums(W_sub) + colSums(W_sub))^2)
           kurt <- (n_spat * sum(z^4)) / (sum(z^2)^2)
 
