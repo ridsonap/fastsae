@@ -63,7 +63,7 @@ S3method(fitted, fastsae)
 S3method(residuals, fastsae)
 
 importFrom(Rcpp, evalCpp)
-importFrom(rlang, .data)
+importFrom(rlang, .data, "%||%")
 importFrom(stats, rnorm)
 importFrom(utils, head)
 importFrom(ggplot2, ggplot, aes, geom_point, geom_line, geom_ribbon,

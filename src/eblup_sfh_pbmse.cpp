@@ -71,7 +71,7 @@ List seblup_pbmse(
   const int max_total_attempts = B * max_attempts_factor;
 
 #ifdef _OPENMP
-  if (n_threads > 0) omp_set_num_threads(n_threads);
+  int _omp_threads = (n_threads > 0) ? n_threads : 1;
 #endif
 
   while (n_valid_total < B) {
@@ -105,7 +105,7 @@ List seblup_pbmse(
     mat G2_r(m, need, fill::zeros);
     vec valid_flag_r(need, fill::zeros);
 
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) num_threads(_omp_threads)
     for (int b = 0; b < need; ++b) {
       vec v_boot = V_boot.col(b);
       vec theta_boot = X * beta_boot + v_boot;

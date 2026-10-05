@@ -113,11 +113,9 @@ create_weights <- function(
       }
 
       if (method == "queen") {
-        # Queen contiguity: shares at least one point (vertex or edge)
         adj_raw <- sf::st_touches(data, sparse = TRUE)
         adj_list <- lapply(seq_len(n), function(i) setdiff(adj_raw[[i]], i))
       } else {
-        # Rook contiguity: shares a linear boundary of dimension >= 1
         if (requireNamespace("spdep", quietly = TRUE)) {
           nb_rook <- spdep::poly2nb(data, queen = FALSE)
           adj_list <- lapply(seq_len(n), function(i) {
@@ -125,26 +123,34 @@ create_weights <- function(
             if (length(nbrs) == 1 && nbrs[1] == 0) integer(0) else setdiff(as.integer(nbrs), i)
           })
         } else {
-          # Use DE-9IM pattern for shared line (dimension 1): "F***1****"
           rel_mat <- sf::st_relate(data, data, pattern = "F***1****", sparse = TRUE)
           adj_list <- lapply(seq_len(n), function(i) setdiff(rel_mat[[i]], i))
         }
       }
 
-      # Compute centroids in case island fallback is needed
       suppressWarnings({
         centr <- sf::st_centroid(sf::st_geometry(data))
       })
       dist_mat <- as.matrix(sf::st_distance(centr, centr))
       storage.mode(dist_mat) <- "double"
+      # ponytail: strip units if present (sf >=1.0 returns units matrix)
+      if (inherits(dist_mat[1,1], "units") || inherits(dist_mat, "units")) {
+        dist_mat <- units::drop_units(dist_mat)
+        storage.mode(dist_mat) <- "double"
+      }
+      # fallback if storage.mode stripped failed
+      if (is.character(dist_mat)) storage.mode(dist_mat) <- "double"
 
     } else {
-      # Distance-based methods (knn, distance, idw) for sf
       suppressWarnings({
         centr <- if (is_polygon) sf::st_centroid(sf::st_geometry(data)) else sf::st_geometry(data)
       })
       dist_mat <- as.matrix(sf::st_distance(centr, centr))
       storage.mode(dist_mat) <- "double"
+      if (inherits(dist_mat[1,1], "units") || inherits(dist_mat, "units")) {
+        dist_mat <- units::drop_units(dist_mat)
+        storage.mode(dist_mat) <- "double"
+      }
     }
 
   } else if (inherits(data, "listw")) {
@@ -164,9 +170,7 @@ create_weights <- function(
     })
 
   } else if (is.matrix(data) || is.data.frame(data)) {
-    # Matrix / data.frame of coordinates
     df_coords <- as.data.frame(data)
-    # Check for known coordinate column names
     coord_cols <- intersect(tolower(names(df_coords)), c("x", "y", "lon", "lat", "longitude", "latitude"))
     if (length(coord_cols) >= 2) {
       coords_mat <- as.matrix(df_coords[, coord_cols[1:2]])
@@ -189,7 +193,6 @@ create_weights <- function(
     cli::cli_abort("Unsupported input type for {.arg data}. Expected an {.cls sf} object, coordinate matrix, or {.cls nb}/{.cls listw} object.")
   }
 
-  # Set default domain names if not yet set
   if (is.null(dom_names)) {
     if (!is.null(rownames(data)) && !all(rownames(data) == as.character(seq_len(n)))) {
       dom_names <- rownames(data)
@@ -198,43 +201,47 @@ create_weights <- function(
     }
   }
 
-  # 3. Handle Distance-Based Methods
+  # 3. Handle Distance-Based Methods (ponytail: C++ for n>500, else stay in R — no new dep)
   if (method == "knn") {
     k_eff <- min(max(1L, as.integer(k)), n - 1L)
-    adj_list <- vector("list", n)
-    for (i in seq_len(n)) {
-      dists_i <- dist_mat[i, ]
-      dists_i[i] <- Inf
-      nn_idx <- order(dists_i)[seq_len(k_eff)]
-      adj_list[[i]] <- nn_idx
+    if (n > 500) {
+      A_dir <- .knn_adj_cpp(dist_mat, k_eff)
+      adj_list <- lapply(seq_len(n), function(i) which(A_dir[i, ] > 0.5))
+    } else {
+      adj_list <- vector("list", n)
+      for (i in seq_len(n)) {
+        dists_i <- dist_mat[i, ]
+        dists_i[i] <- Inf
+        nn_idx <- order(dists_i)[seq_len(k_eff)]
+        adj_list[[i]] <- nn_idx
+      }
     }
 
   } else if (method == "distance") {
     if (is.null(d_max)) {
-      # Compute minimum distance ensuring every node has at least 1 neighbor
       min_dists <- apply(dist_mat + diag(Inf, n), 1, min)
       d_max <- max(min_dists) * 1.001
       cli::cli_alert_info("Distance threshold {.code d_max} set automatically to {.val {round(d_max, 2)}} to guarantee connectivity.")
     }
-    adj_list <- vector("list", n)
-    for (i in seq_len(n)) {
-      dists_i <- dist_mat[i, ]
-      nbrs <- which(dists_i <= d_max & dists_i > 0)
-      adj_list[[i]] <- setdiff(nbrs, i)
+    if (n > 500) {
+      A_band <- .dist_adj_cpp(dist_mat, d_max)
+      adj_list <- lapply(seq_len(n), function(i) which(A_band[i, ] > 0.5))
+    } else {
+      adj_list <- vector("list", n)
+      for (i in seq_len(n)) {
+        dists_i <- dist_mat[i, ]
+        nbrs <- which(dists_i <= d_max & dists_i > 0)
+        adj_list[[i]] <- setdiff(nbrs, i)
+      }
     }
 
   } else if (method == "idw") {
-    # Inverse distance matrix
-    W_raw <- matrix(0, nrow = n, ncol = n)
-    for (i in seq_len(n)) {
-      for (j in seq_len(n)) {
-        if (i != j) {
-          d <- dist_mat[i, j]
-          if (d > 0) {
-            W_raw[i, j] <- 1 / (d^alpha)
-          }
-        }
-      }
+    if (n > 500) {
+      W_raw <- .idw_mat_cpp(dist_mat, alpha)
+    } else {
+      W_raw <- 1 / (dist_mat ^ alpha)
+      diag(W_raw) <- 0
+      W_raw[!is.finite(W_raw)] <- 0
     }
   }
 
@@ -257,7 +264,6 @@ create_weights <- function(
           dists_i[idx] <- Inf
           nearest_k <- order(dists_i)[seq_len(min(k_fallback, n - 1L))]
           adj_list[[idx]] <- nearest_k
-          # Ensure mutual connectivity
           for (k_neighbor in nearest_k) {
             adj_list[[k_neighbor]] <- sort(unique(c(adj_list[[k_neighbor]], idx)))
           }
@@ -269,7 +275,6 @@ create_weights <- function(
       }
     }
 
-    # Build raw weight matrix from adjacency list
     W_raw <- matrix(0, nrow = n, ncol = n)
     for (i in seq_len(n)) {
       nbrs <- adj_list[[i]]
@@ -279,49 +284,49 @@ create_weights <- function(
     }
   }
 
-  # Ensure zero on diagonal
   diag(W_raw) <- 0
 
   # 5. Apply Normalization Style
   W_out <- matrix(0, nrow = n, ncol = n)
 
   if (style == "W") {
-    # Row-standardized (row sums equal 1)
     rs <- rowSums(W_raw)
     nonzero_rows <- rs > 0
     W_out[nonzero_rows, ] <- W_raw[nonzero_rows, ] / rs[nonzero_rows]
 
   } else if (style == "B") {
-    # Binary adjacency (0/1)
     W_out <- (W_raw > 0) * 1
 
   } else if (style == "C") {
-    # Globally standardized
     total_w <- sum(W_raw)
     if (total_w > 0) {
       W_out <- (n / total_w) * W_raw
     }
 
   } else if (style == "U") {
-    # Equal weight 1 / n
     W_out <- W_raw / n
 
   } else if (style == "minmax") {
-    # Normalized by maximum eigenvalue
-    ev <- eigen(W_raw, only.values = TRUE)$values
-    max_ev <- max(abs(Re(ev)))
-    if (max_ev > 0) {
-      W_out <- W_raw / max_ev
+    # Guard dense eigen O(n^3): defer for large n (ponytail: use power iteration / RSpectra when n>500)
+    if (n > 500) {
+      cli::cli_alert_warning("Style {.val minmax} with {.val n}={n} would require dense eigen O(n^3); falling back to row-standardized {.val W} and capping spectral radius via row-sum bound.")
+      rs <- rowSums(abs(W_raw))
+      max_rs <- max(rs)
+      if (max_rs > 0) W_out <- W_raw / max_rs else W_out <- W_raw
     } else {
-      W_out <- W_raw
+      ev <- eigen(W_raw, only.values = TRUE)$values
+      max_ev <- max(abs(Re(ev)))
+      if (max_ev > 0) {
+        W_out <- W_raw / max_ev
+      } else {
+        W_out <- W_raw
+      }
     }
   }
 
-  # Attach domain names
   rownames(W_out) <- dom_names
   colnames(W_out) <- dom_names
 
-  # Set metadata attributes
   attr(W_out, "method") <- method
   attr(W_out, "style") <- style
   attr(W_out, "k") <- if (method == "knn") k else NULL

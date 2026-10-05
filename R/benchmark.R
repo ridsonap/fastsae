@@ -414,10 +414,14 @@ benchmark.default <- function(object, ...) {
         adj_per_group <- if (type == "mean") diff_nat else diff_nat / n_groups
         target_map <- target_map + adj_per_group
       } else if (method == "optimal") {
-        inv_prec_g <- pmax(group_mse, 1e-8)
-        if (any(is.na(inv_prec_g))) inv_prec_g <- rep(1, n_groups)
-        lambda_g <- diff_nat / sum(inv_prec_g)
-        target_map <- target_map + (inv_prec_g / (if (type == "mean") W_share else 1)) * lambda_g
+        # Variance-weighted optimal benchmarking (Datta et al., 2011; Steorts et al., 2014):
+        # minimize sum (delta_g^2 / group_mse) s.t. weighted sum = target
+        # solution: delta_g = (group_mse / W_share) * lambda where lambda = diff / sum(group_mse)
+        # Larger group_mse absorbs larger adjustment (ponytail: keep simple mse-weighting)
+        var_g <- pmax(group_mse, 1e-8)
+        var_g[is.na(var_g)] <- 1
+        lambda_g <- diff_nat / sum(var_g)
+        target_map <- target_map + (var_g / (if (type == "mean") W_share else 1)) * lambda_g
       } else if (method == "logit") {
         logit_t <- stats::qlogis(target_map)
         f_nat <- function(a) {
@@ -470,6 +474,7 @@ benchmark.default <- function(object, ...) {
 
     } else if (method == "optimal") {
       # Optimal Quadratic Loss / Variance-Weighted Benchmarking (Datta et al., 2011; Steorts et al., 2014)
+      # minimize sum(delta^2 / mse) s.t. sum(w_calc * y_bm)=T  => delta proportional to mse/w_calc
       mse_g <- df_work$mse[idx_g]
       diff_val <- T_g - agg_initial
 
@@ -477,10 +482,11 @@ benchmark.default <- function(object, ...) {
         cli::cli_warn("MSE not available or non-positive for group {.val {g}}; falling back to difference benchmarking.")
         df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
       } else {
-        inv_prec <- pmax(mse_g, 1e-8)
-        denom <- sum(inv_prec)
+        var_g <- pmax(mse_g, 1e-8)
+        var_g[is.na(var_g)] <- 1
+        denom <- sum(var_g)
         lambda <- diff_val / denom
-        df_work$y_bm[idx_g] <- y_g + (inv_prec / w_calc) * lambda
+        df_work$y_bm[idx_g] <- y_g + (var_g / w_calc) * lambda
       }
 
     } else if (method == "logit") {

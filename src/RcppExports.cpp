@@ -169,6 +169,42 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// knn_adj_cpp
+arma::mat knn_adj_cpp(const arma::mat& D, int k);
+RcppExport SEXP _fastsae_knn_adj_cpp(SEXP DSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(knn_adj_cpp(D, k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// dist_adj_cpp
+arma::mat dist_adj_cpp(const arma::mat& D, double d_max);
+RcppExport SEXP _fastsae_dist_adj_cpp(SEXP DSEXP, SEXP d_maxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< double >::type d_max(d_maxSEXP);
+    rcpp_result_gen = Rcpp::wrap(dist_adj_cpp(D, d_max));
+    return rcpp_result_gen;
+END_RCPP
+}
+// idw_mat_cpp
+arma::mat idw_mat_cpp(const arma::mat& D, double alpha);
+RcppExport SEXP _fastsae_idw_mat_cpp(SEXP DSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(idw_mat_cpp(D, alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_fastsae_eblup_core", (DL_FUNC) &_fastsae_eblup_core, 6},
@@ -179,6 +215,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastsae_pbmse_stfh", (DL_FUNC) &_fastsae_pbmse_stfh, 12},
     {"_fastsae_eblup_twofold_core", (DL_FUNC) &_fastsae_eblup_twofold_core, 9},
     {"_fastsae_eblup_bhf_cpp", (DL_FUNC) &_fastsae_eblup_bhf_cpp, 8},
+    {"_fastsae_knn_adj_cpp", (DL_FUNC) &_fastsae_knn_adj_cpp, 2},
+    {"_fastsae_dist_adj_cpp", (DL_FUNC) &_fastsae_dist_adj_cpp, 2},
+    {"_fastsae_idw_mat_cpp", (DL_FUNC) &_fastsae_idw_mat_cpp, 2},
     {NULL, NULL, 0}
 };
 

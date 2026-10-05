@@ -154,10 +154,9 @@
   rho_time <- NULL
 
   if (!is.null(hyper_summary) && nrow(hyper_summary) > 0) {
-    # Spatial / Area random effect precision
+    # Spatial / Area random effect precision (ponytail: generic fallback guards BYM2 label renames)
     prec_rows <- grep("Precision for (\\.\\.domain_id\\.\\.|domain)", rownames(hyper_summary), value = TRUE)
-    if (length(prec_rows) == 0 && spatial == "none" && temporal == "none") {
-      # Fallback for simple IID
+    if (length(prec_rows) == 0) {
       prec_rows <- grep("Precision for", rownames(hyper_summary), value = TRUE)
     }
     if (length(prec_rows) > 0) {
@@ -167,8 +166,11 @@
       }
     }
 
-    # Temporal precision
+    # Temporal precision — fallback to any Precision row not used for spatial
     prec_time_rows <- grep("Precision for (\\.\\.time_id\\.\\.|time)", rownames(hyper_summary), value = TRUE)
+    if (length(prec_time_rows) == 0 && length(prec_rows) > 1) {
+      prec_time_rows <- setdiff(grep("Precision for", rownames(hyper_summary), value = TRUE), prec_rows)
+    }
     if (length(prec_time_rows) > 0) {
       prec_time_est <- hyper_summary[prec_time_rows[1], "mean"]
       if (!is.na(prec_time_est) && prec_time_est > 0) {

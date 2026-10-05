@@ -136,7 +136,9 @@ eblup_fh <- function(
     vardir <- vardir_log
   }
 
-  # Self-benchmarking setup (Wang, Fuller, and Qu, 2008)
+  # Self-benchmarking setup (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec. 10.5.1)
+  # ponytail: for log-FH benchmark target is on original scale (user-facing), but z-weight uses vardir_log;
+  # Slud-Maiti back-transform is applied after fitting, so benchmark holds approximately on original scale.
   sb_info <- NULL
   if (isTRUE(self_benchmark)) {
     sb_info <- .setup_self_benchmark(

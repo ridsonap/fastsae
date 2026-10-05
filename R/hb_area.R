@@ -252,14 +252,25 @@ hb_area <- function(
     if (is.null(trials_vec)) {
       cli::cli_abort("For {.code family = 'binomial'}, {.arg trials} (sample sizes / total trials per area) must be specified.")
     }
-    # Check if response contains proportions (values in [0, 1] with non-integers)
     y_non_na <- y[!is.na(y)]
-    if (length(y_non_na) > 0 && all(y_non_na >= 0 & y_non_na <= 1) && any(y_non_na %% 1 != 0)) {
+    has_fraction <- any(abs(y_non_na - round(y_non_na)) > 1e-8)
+    all_in_unit <- length(y_non_na) > 0 && all(y_non_na >= 0 & y_non_na <= 1)
+    is_proportion <- all_in_unit && has_fraction
+    if (is_proportion) {
       cli::cli_alert_info("Response {.arg y} appears to be proportions; converting to integer counts: {.code round(y * trials)}.")
       y_counts <- as.integer(round(y * trials_vec))
+      # ponytail: index-matched check avoids recycling warning (y_counts and trials_vec same length)
+      idx_valid <- which(!is.na(y))
+      if (any(y_counts[idx_valid] < 0 | y_counts[idx_valid] > trials_vec[idx_valid], na.rm = TRUE)) {
+        bad <- idx_valid[y_counts[idx_valid] < 0 | y_counts[idx_valid] > trials_vec[idx_valid]]
+        cli::cli_abort("Converted counts ({paste(y_counts[bad], collapse=', ')}) must be in [0, trials]; check {.arg y} and {.arg trials}.")
+      }
       data[[response_var]] <- y_counts
       y <- y_counts
     } else {
+      if (any(y > trials_vec + 1e-6, na.rm = TRUE)) {
+        cli::cli_abort("For {.code family = 'binomial'}, response counts {.arg y} must not exceed {.arg trials}.")
+      }
       y_counts <- ifelse(is.na(y), NA_integer_, as.integer(round(y)))
       data[[response_var]] <- y_counts
       y <- y_counts
@@ -526,12 +537,21 @@ hb_area <- function(
     rs_inv <- ifelse(rs > 0, 1 / rs, 0)
     W_std <- W_mat * rs_inv
     W_sparse <- Matrix::Matrix(W_std, sparse = TRUE)
-    e <- eigen(W_std, only.values = TRUE)$values
-    re_e <- Re(e[abs(Im(e)) < 1e-5])
-    rho_min <- 1 / min(re_e)
-    rho_max <- 1 / max(re_e)
-    if (is.infinite(rho_min) || rho_min < -1) rho_min <- -0.999
-    if (is.infinite(rho_max) || rho_max > 1) rho_max <- 0.999
+    # Ponytail: dense eigen O(n^3) — guard for n>500, use row-sum spectral bound otherwise
+    n_s <- nrow(W_std)
+    if (n_s > 500) {
+      # Perron-Frobenius bound: spectral radius <= max row sum =1 for row-standardized => rho in (-1,1)
+      cli::cli_alert_info("SLM with n={n_s}>500: skipping dense eigen; using spectral bound rho in (-0.999, 0.999).")
+      rho_min <- -0.999
+      rho_max <- 0.999
+    } else {
+      e <- eigen(W_std, only.values = TRUE)$values
+      re_e <- Re(e[abs(Im(e)) < 1e-5])
+      rho_min <- 1 / min(re_e)
+      rho_max <- 1 / max(re_e)
+      if (is.infinite(rho_min) || rho_min < -1) rho_min <- -0.999
+      if (is.infinite(rho_max) || rho_max > 1) rho_max <- 0.999
+    }
     rho_range <- c(rho_min, rho_max)
 
     terms_no_y <- stats::delete.response(stats::terms(formula))

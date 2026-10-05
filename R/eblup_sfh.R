@@ -176,6 +176,14 @@ eblup_sfh <- function(
       "i" = "Got a {nrow(W)}x{ncol(W)} matrix. Do not pre-subset `W` to sampled domains only."
     ))
   }
+  if (anyNA(W)) cli::cli_abort("`W` contains NA values.")
+  if (any(diag(W) != 0)) cli::cli_warn("`W` should have zero diagonal; resetting diagonal to 0.")
+  if (any(diag(W) != 0)) diag(W) <- 0
+  # Optional row-standardization check (SFH assumes row-standardized W)
+  rs_W <- rowSums(W)
+  if (any(rs_W > 1.5) || any(rs_W[rs_W > 0] < 0.5)) {
+    cli::cli_alert_warning("`W` does not appear row-standardized (row sums outside [0.5, 1.5]); SFH assumes row-standardized proximity.")
+  }
 
 
   idx_s <- !is.na(y)

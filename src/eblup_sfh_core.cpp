@@ -393,7 +393,7 @@ List seblup_core(
   double sigma2 = sigma2_u(k);
   if (sigma2 < 0.0) sigma2 = 0.0;
 
-  // spatial covariance
+  // ponytail: keep sae-compatible rho→±1 mapping for boundary cases; unify only if m>1000 sparse port
   A = (I - rho_fix * Wt) * (I - rho_fix * W);
   bool ok_inv = inv_sympd(derSigma, A);
   if (!ok_inv) derSigma = pinv(A);

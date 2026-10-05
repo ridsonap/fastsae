@@ -33,3 +33,15 @@
     .Call(`_fastsae_eblup_bhf_cpp`, selectdom, dom, Xs, meanxpop, ys, popnsize, betaest, upred)
 }
 
+.knn_adj_cpp <- function(D, k) {
+    .Call(`_fastsae_knn_adj_cpp`, D, k)
+}
+
+.dist_adj_cpp <- function(D, d_max) {
+    .Call(`_fastsae_dist_adj_cpp`, D, d_max)
+}
+
+.idw_mat_cpp <- function(D, alpha) {
+    .Call(`_fastsae_idw_mat_cpp`, D, alpha)
+}
+

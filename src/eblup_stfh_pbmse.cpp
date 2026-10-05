@@ -343,13 +343,13 @@ List pbmse_stfh(
   std::vector<int> valid_count(B, 0);
 
 #ifdef _OPENMP
-  if (n_threads > 0) omp_set_num_threads(n_threads);
+  int _omp_threads_st = (n_threads > 0) ? n_threads : 1;
 #endif
 
   // ============================================================================
   // 5) Parallel bootstrap loop
   // ============================================================================
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) num_threads(_omp_threads_st)
   for (int b = 0; b < B; ++b) {
     // Construct bootstrap y
     vec u1_b = U1_boot.col(b);

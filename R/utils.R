@@ -146,11 +146,22 @@ utils::globalVariables(c("density", ".data"))
     z_names <- col_z
   }
 
-  # 6. Updated formula
+  # 6. Updated formula (ponytail: preserve terms env via reformulate; avoids dropping offset/intercept)
   formula_terms <- attr(stats::terms(formula), "term.labels")
+  # Detect if original had intercept
+  has_intercept <- attr(stats::terms(formula), "intercept") == 1
+  int_str <- if (has_intercept) NULL else "-1"
   all_fixed <- c(formula_terms, z_names)
-  fixed_str <- if (length(all_fixed) > 0) paste(all_fixed, collapse = " + ") else "1"
-  formula_aug <- stats::as.formula(paste(response_var, "~", fixed_str))
+  # Use reformulate to keep environment attached
+  rhs_parts <- c(all_fixed, int_str)
+  rhs_parts <- rhs_parts[!sapply(rhs_parts, is.null)]
+  if (length(rhs_parts) == 0) rhs_parts <- "1"
+  formula_aug <- stats::reformulate(rhs_parts, response = response_var, env = environment(formula) %||% parent.frame())
+  # Ensure intercept handling
+  if (!has_intercept) {
+    # reformulate with intercept=FALSE not directly; adjust via update if needed
+    formula_aug <- stats::update(formula_aug, ~ . -1)
+  }
 
   list(
     data_aug = data_aug,
