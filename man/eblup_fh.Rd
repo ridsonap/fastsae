@@ -30,6 +30,8 @@ in \code{data}. If NULL, the domains are numbered consecutively.}
 
 \item{data}{a data frame or a data frame extension (e.g. a tibble).}
 
+\item{method}{Character string specifying the estimation method: \code{"REML"} (default) or \code{"ML"}.}
+
 \item{transform}{Character string specifying data transformation for the response:
 \code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model with Slud & Maiti 2006
 second-order bias-corrected back-transformation).}

@@ -17,6 +17,7 @@ Rplots.pdf
 PACKAGES
 PACKAGES.gz
 PACKAGES.rds
+src/symbols.rds
 
 # macOS
 .DS_Store

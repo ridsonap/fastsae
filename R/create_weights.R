@@ -133,12 +133,11 @@ create_weights <- function(
       })
       dist_mat <- as.matrix(sf::st_distance(centr, centr))
       storage.mode(dist_mat) <- "double"
-      # ponytail: strip units if present (sf >=1.0 returns units matrix)
-      if (inherits(dist_mat[1,1], "units") || inherits(dist_mat, "units")) {
-        dist_mat <- units::drop_units(dist_mat)
-        storage.mode(dist_mat) <- "double"
+      # ponytail: strip units if present (sf >=1.0 returns units matrix) — no units:: import needed
+      if (inherits(dist_mat, "units") || (length(dist_mat) > 0 && inherits(dist_mat[1, 1], "units"))) {
+        dist_mat <- suppressWarnings(as.numeric(dist_mat))
+        dim(dist_mat) <- c(n, n)
       }
-      # fallback if storage.mode stripped failed
       if (is.character(dist_mat)) storage.mode(dist_mat) <- "double"
 
     } else {
@@ -147,9 +146,9 @@ create_weights <- function(
       })
       dist_mat <- as.matrix(sf::st_distance(centr, centr))
       storage.mode(dist_mat) <- "double"
-      if (inherits(dist_mat[1,1], "units") || inherits(dist_mat, "units")) {
-        dist_mat <- units::drop_units(dist_mat)
-        storage.mode(dist_mat) <- "double"
+      if (inherits(dist_mat, "units") || (length(dist_mat) > 0 && inherits(dist_mat[1, 1], "units"))) {
+        dist_mat <- suppressWarnings(as.numeric(dist_mat))
+        dim(dist_mat) <- c(n, n)
       }
     }
 
