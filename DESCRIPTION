@@ -32,6 +32,7 @@ Encoding: UTF-8
 Language: en-US
 LazyData: true
 SystemRequirements: C++17
+Additional_repositories: https://inla.r-inla-download.org/R/stable
 Imports:
     cli,
     ggplot2,

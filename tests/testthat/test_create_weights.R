@@ -124,3 +124,27 @@ test_that("eblup_sfh automatically constructs weights when data is sf and W is N
   # Check that geometry is preserved on df_eblup
   expect_s3_class(fit_auto_w$df_eblup, "sf")
 })
+
+test_that("create_weights validates domain argument length correctly", {
+  coords <- matrix(runif(20), ncol = 2)
+
+  # Length mismatch must throw error
+  expect_error(
+    create_weights(coords, domain = c("A", "B")),
+    "Length of .*domain.* must match"
+  )
+
+  # Correct length should set row/colnames
+  doms <- paste0("D", 1:10)
+  W <- create_weights(coords, domain = doms)
+  expect_equal(rownames(W), doms)
+  expect_equal(colnames(W), doms)
+})
+
+test_that("print.fastsae_weights formats sparsity percentage cleanly", {
+  coords <- matrix(runif(20), ncol = 2)
+  W <- create_weights(coords, method = "knn", k = 2)
+  # Ensure no escaped '\\%' or quoted percentage string in output
+  expect_message(print(W), "Sparsity: .*\\% zeros")
+})
+

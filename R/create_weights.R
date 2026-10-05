@@ -88,8 +88,19 @@ create_weights <- function(
       dom_names <- as.character(data[[domain]])
     } else if (inherits(domain, "formula")) {
       dom_names <- as.character(stats::model.frame(domain, data = as.data.frame(data))[[1]])
-    } else if (length(domain) == nrow(data)) {
-      dom_names <- as.character(domain)
+    } else {
+      n_exp <- if (inherits(data, "nb")) {
+        length(data)
+      } else if (inherits(data, "listw")) {
+        length(data$neighbours)
+      } else {
+        nrow(data)
+      }
+      if (length(domain) == n_exp) {
+        dom_names <- as.character(domain)
+      } else {
+        cli::cli_abort("Length of {.arg domain} ({length(domain)}) must match number of domains ({n_exp}).")
+      }
     }
   }
 
@@ -114,7 +125,7 @@ create_weights <- function(
 
       if (method == "queen") {
         adj_raw <- sf::st_touches(data, sparse = TRUE)
-        adj_list <- lapply(seq_len(n), function(i) setdiff(adj_raw[[i]], i))
+        adj_list <- lapply(adj_raw, as.integer)
       } else {
         if (requireNamespace("spdep", quietly = TRUE)) {
           nb_rook <- spdep::poly2nb(data, queen = FALSE)
@@ -128,17 +139,8 @@ create_weights <- function(
         }
       }
 
-      suppressWarnings({
-        centr <- sf::st_centroid(sf::st_geometry(data))
-      })
-      dist_mat <- as.matrix(sf::st_distance(centr, centr))
-      storage.mode(dist_mat) <- "double"
-      # ponytail: strip units if present (sf >=1.0 returns units matrix) — no units:: import needed
-      if (inherits(dist_mat, "units") || (length(dist_mat) > 0 && inherits(dist_mat[1, 1], "units"))) {
-        dist_mat <- suppressWarnings(as.numeric(dist_mat))
-        dim(dist_mat) <- c(n, n)
-      }
-      if (is.character(dist_mat)) storage.mode(dist_mat) <- "double"
+      # Centroids and distance matrix are evaluated lazily only if island fallback is needed
+      dist_mat <- NULL
 
     } else {
       suppressWarnings({
@@ -218,10 +220,14 @@ create_weights <- function(
 
   } else if (method == "distance") {
     if (is.null(d_max)) {
-      min_dists <- apply(dist_mat + diag(Inf, n), 1, min)
+      # Compute minimum distance ensuring every node has at least 1 neighbor
+      dist_temp <- dist_mat
+      diag(dist_temp) <- Inf
+      min_dists <- apply(dist_temp, 1, min)
       d_max <- max(min_dists) * 1.001
       cli::cli_alert_info("Distance threshold {.code d_max} set automatically to {.val {round(d_max, 2)}} to guarantee connectivity.")
     }
+    # ponytail: C++ for n>500, R vectorized for n<=500 (no new dep)
     if (n > 500) {
       A_band <- .dist_adj_cpp(dist_mat, d_max)
       adj_list <- lapply(seq_len(n), function(i) which(A_band[i, ] > 0.5))
@@ -229,18 +235,20 @@ create_weights <- function(
       adj_list <- vector("list", n)
       for (i in seq_len(n)) {
         dists_i <- dist_mat[i, ]
-        nbrs <- which(dists_i <= d_max & dists_i > 0)
-        adj_list[[i]] <- setdiff(nbrs, i)
+        dists_i[i] <- Inf
+        adj_list[[i]] <- which(dists_i <= d_max)
       }
     }
 
   } else if (method == "idw") {
+    # ponytail: C++ for n>500, vectorized safe for n<=500
     if (n > 500) {
       W_raw <- .idw_mat_cpp(dist_mat, alpha)
     } else {
-      W_raw <- 1 / (dist_mat ^ alpha)
+      W_raw <- matrix(0, nrow = n, ncol = n)
+      pos_dist <- is.finite(dist_mat) & (dist_mat > 0)
+      W_raw[pos_dist] <- 1 / (dist_mat[pos_dist]^alpha)
       diag(W_raw) <- 0
-      W_raw[!is.finite(W_raw)] <- 0
     }
   }
 
@@ -254,18 +262,44 @@ create_weights <- function(
     n_islands <- length(island_idx)
 
     if (n_islands > 0) {
-      if (isTRUE(island_fallback) && !is.null(dist_mat)) {
-        cli::cli_alert_info(
-          "{n_islands} island/isolated domain(s) detected with zero neighbors ({paste(dom_names[island_idx], collapse = ', ')}). Automatically connecting to nearest neighbor(s) via centroid distance."
-        )
-        for (idx in island_idx) {
-          dists_i <- dist_mat[idx, ]
-          dists_i[idx] <- Inf
-          nearest_k <- order(dists_i)[seq_len(min(k_fallback, n - 1L))]
-          adj_list[[idx]] <- nearest_k
-          for (k_neighbor in nearest_k) {
-            adj_list[[k_neighbor]] <- sort(unique(c(adj_list[[k_neighbor]], idx)))
+      if (isTRUE(island_fallback)) {
+        k_conn <- min(k_fallback, n - 1L)
+        if (is.null(dist_mat) && inherits(data, "sf")) {
+          cli::cli_alert_info(
+            "{n_islands} island/isolated domain(s) detected with zero neighbors ({paste(dom_names[island_idx], collapse = ', ')}). Automatically connecting to nearest neighbor(s) via centroid distance."
+          )
+          suppressWarnings({
+            centr <- sf::st_centroid(sf::st_geometry(data))
+          })
+          dist_islands <- as.matrix(sf::st_distance(centr[island_idx], centr))
+          storage.mode(dist_islands) <- "double"
+          for (k_i in seq_along(island_idx)) {
+            idx <- island_idx[k_i]
+            dists_i <- dist_islands[k_i, ]
+            dists_i[idx] <- Inf
+            nearest_k <- order(dists_i)[seq_len(k_conn)]
+            adj_list[[idx]] <- nearest_k
+            for (k_neighbor in nearest_k) {
+              adj_list[[k_neighbor]] <- sort(unique(c(adj_list[[k_neighbor]], idx)))
+            }
           }
+        } else if (!is.null(dist_mat)) {
+          cli::cli_alert_info(
+            "{n_islands} island/isolated domain(s) detected with zero neighbors ({paste(dom_names[island_idx], collapse = ', ')}). Automatically connecting to nearest neighbor(s) via distance matrix."
+          )
+          for (idx in island_idx) {
+            dists_i <- dist_mat[idx, ]
+            dists_i[idx] <- Inf
+            nearest_k <- order(dists_i)[seq_len(k_conn)]
+            adj_list[[idx]] <- nearest_k
+            for (k_neighbor in nearest_k) {
+              adj_list[[k_neighbor]] <- sort(unique(c(adj_list[[k_neighbor]], idx)))
+            }
+          }
+        } else {
+          cli::cli_alert_warning(
+            "{n_islands} domain(s) have zero neighbors in the spatial graph ({paste(dom_names[island_idx], collapse = ', ')}). Island fallback could not connect them because {.arg data} has no coordinate/geometric spatial information."
+          )
         }
       } else {
         cli::cli_alert_warning(
@@ -274,13 +308,15 @@ create_weights <- function(
       }
     }
 
+    # Build raw weight matrix from adjacency list (vectorized)
     W_raw <- matrix(0, nrow = n, ncol = n)
-    for (i in seq_len(n)) {
-      nbrs <- adj_list[[i]]
-      if (length(nbrs) > 0) {
-        W_raw[i, nbrs] <- 1
-      }
+    lens <- lengths(adj_list)
+    if (any(lens > 0)) {
+      rows <- rep.int(seq_len(n), lens)
+      cols <- unlist(adj_list, use.names = FALSE)
+      W_raw[cbind(rows, cols)] <- 1
     }
+    diag(W_raw) <- 0
   }
 
   diag(W_raw) <- 0
@@ -290,8 +326,8 @@ create_weights <- function(
 
   if (style == "W") {
     rs <- rowSums(W_raw)
-    nonzero_rows <- rs > 0
-    W_out[nonzero_rows, ] <- W_raw[nonzero_rows, ] / rs[nonzero_rows]
+    scale_factor <- ifelse(rs > 0, rs, 1)
+    W_out <- W_raw / scale_factor
 
   } else if (style == "B") {
     W_out <- (W_raw > 0) * 1
@@ -352,7 +388,7 @@ print.fastsae_weights <- function(x, ...) {
     "*" = "Dimensions: {.val {n}} x {.val {n}} domains",
     "*" = "Construction Method: {.field {toupper(meth)}}",
     "*" = "Standardization Style: {.val {sty}} ({.emph {switch(sty, 'W'='Row-standardized', 'B'='Binary', 'C'='Globally standardized', 'U'='Equal weights', 'minmax'='Spectral min-max', sty)}})",
-    "*" = "Sparsity: {.val {round((1 - sum(x != 0) / (n * n)) * 100, 1)}\\%} zeros"
+    "*" = "Sparsity: {.val {round((1 - sum(x != 0) / (n * n)) * 100, 1)}}% zeros"
   ))
 
   if (n_isl > 0) {

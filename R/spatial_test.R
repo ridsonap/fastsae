@@ -92,22 +92,30 @@ spatial_test <- function(
   X_sub <- X[sampled_mask, , drop = FALSE]
   W_sub <- W_mat[sampled_mask, sampled_mask, drop = FALSE]
 
-  # 3. Helper: Global Moran's I computation
-  .calc_moran <- function(vec, W_mat, alt = "greater") {
+  if (anyNA(X_sub)) {
+    cli::cli_abort("Auxiliary variables in {.arg formula} contain NA values for sampled domains.")
+  }
+
+  # Precompute spatial weight matrix constants once (O(N^2) instead of repeated O(N^3))
+  s0 <- sum(W_sub)
+  # tr(W^2 + W'W) == sum(W^2) + sum(W * t(W)) == s1 in Cliff & Ord (1981)
+  s1 <- sum(W_sub^2) + sum(W_sub * t(W_sub))
+  s2 <- sum((rowSums(W_sub) + colSums(W_sub))^2)
+  E_I <- -1 / (n - 1)
+
+  # 3. Helper: Global Moran's I computation (fast matrix-vector implementation)
+  .calc_moran <- function(vec, W_mat, s0, s1, s2, E_I, alt = "greater") {
     n_pts <- length(vec)
     z <- vec - mean(vec)
-    s0 <- sum(W_mat)
-    if (s0 <= 0) {
+    denom <- sum(z^2)
+    if (s0 <= 0 || denom <= 0) {
       return(list(I = NA_real_, expected = NA_real_, sd = NA_real_, z = NA_real_, p_value = NA_real_))
     }
 
-    num <- sum(W_mat * outer(z, z))
-    denom <- sum(z^2)
+    # Matrix-vector multiplication O(N^2), zero large matrix allocation
+    num <- sum(z * (W_mat %*% z))
     moran_I <- (n_pts / s0) * (num / denom)
 
-    E_I <- -1 / (n_pts - 1)
-    s1 <- 0.5 * sum((W_mat + t(W_mat))^2)
-    s2 <- sum((rowSums(W_mat) + colSums(W_mat))^2)
     kurt <- (n_pts * sum(z^4)) / (denom^2)
 
     var_I <- (n_pts * ((n_pts^2 - 3 * n_pts + 3) * s1 - n_pts * s2 + 3 * s0^2) -
@@ -134,20 +142,19 @@ spatial_test <- function(
   }
 
   # Step A: Direct Response Test (ESDA on y)
-  moran_y <- .calc_moran(y_sub, W_sub, alt = alternative)
+  moran_y <- .calc_moran(y_sub, W_sub, s0, s1, s2, E_I, alt = alternative)
 
   # Step B: Model Residual Test (OLS on auxiliary variables)
   ols_fit <- stats::lm.fit(X_sub, y_sub)
   res_ols <- stats::residuals(ols_fit)
-  moran_res <- .calc_moran(res_ols, W_sub, alt = alternative)
+  moran_res <- .calc_moran(res_ols, W_sub, s0, s1, s2, E_I, alt = alternative)
 
   # Anselin (1988) Lagrange Multiplier (LM) Tests
   # LM-Error Test:
   # LM_err = ( (e' W e) / (e'e / n) )^2 / tr(W^2 + W'W)
-  W2_plus_WtW <- W_sub %*% W_sub + t(W_sub) %*% W_sub
-  tr_T <- sum(diag(W2_plus_WtW))
+  tr_T <- s1
   s2_e <- sum(res_ols^2) / n
-  eWe <- as.numeric(t(res_ols) %*% W_sub %*% res_ols)
+  eWe <- as.numeric(crossprod(res_ols, W_sub %*% res_ols))
 
   lm_error_stat <- if (tr_T > 0 && s2_e > 0) {
     ((eWe / s2_e)^2) / tr_T
@@ -158,13 +165,13 @@ spatial_test <- function(
 
   # LM-Lag Test:
   # LM_lag = ( (e' W y) / (e'e / n) )^2 / D_lag
-  eWy <- as.numeric(t(res_ols) %*% W_sub %*% y_sub)
-  WXbeta <- W_sub %*% (X_sub %*% ols_fit$coefficients)
-  inv_XtX <- tryCatch(solve(t(X_sub) %*% X_sub), error = function(e) diag(ncol(X_sub)))
-  M_WXbeta <- WXbeta - X_sub %*% (inv_XtX %*% (t(X_sub) %*% WXbeta))
-  D_lag <- tr_T + sum(WXbeta * M_WXbeta) / s2_e
+  # Note: Uses QR residual projection to guarantee numerical stability and robustness to rank-deficiency
+  eWy <- as.numeric(crossprod(res_ols, W_sub %*% y_sub))
+  WXbeta <- W_sub %*% ols_fit$fitted.values
+  M_WXbeta <- qr.resid(ols_fit$qr, WXbeta)
+  D_lag <- tr_T + sum(M_WXbeta^2) / s2_e
 
-  lm_lag_stat <- if (D_lag > 0 && s2_e > 0) {
+  lm_lag_stat <- if (is.finite(D_lag) && D_lag > 0 && s2_e > 0) {
     ((eWy / s2_e)^2) / D_lag
   } else {
     0.0

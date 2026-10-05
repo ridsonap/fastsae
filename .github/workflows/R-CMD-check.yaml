@@ -65,6 +65,7 @@ jobs:
             any::rcmdcheck
             any::knitr?source
             any::xfun?source
+          extra-repositories: 'https://inla.r-inla-download.org/R/stable'
           needs: check
           cache-version: 3
 
