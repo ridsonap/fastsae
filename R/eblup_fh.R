@@ -12,6 +12,7 @@
 #' @param vardir vector or column names from data that contain variance sampling from the direct estimator.
 #' @param domain vector, column name or one-sided formula referencing a domain names column
 #'   in \code{data}. If NULL, the domains are numbered consecutively.
+#' @param method Fitting method can be chosen between 'ML' and 'REML'.
 #' @param transform Character string specifying data transformation for the response:
 #'   \code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model with Slud & Maiti 2006
 #'   second-order bias-corrected back-transformation).
