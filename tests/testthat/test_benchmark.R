@@ -96,13 +96,7 @@ test_that("benchmark print, summary, and autoplot methods work", {
   expect_s3_class(p_plot, "ggplot")
 })
 
-test_that("benchmark works as alias for benchmark_sae", {
-  y_hat <- c(0.2, 0.4, 0.6)
-  bm1 <- benchmark_sae(y_hat, target = 0.5, method = "ratio")
-  bm2 <- benchmark(y_hat, target = 0.5, method = "ratio")
-  expect_equal(bm1$benchmarked, bm2$benchmarked)
-  expect_s3_class(bm2, "fastsae_benchmark")
-})
+
 
 test_that("benchmark covers all validation, targets, and methods branches", {
   data(mys, package = "fastsae")

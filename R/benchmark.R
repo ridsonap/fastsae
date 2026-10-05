@@ -263,22 +263,6 @@ benchmark_sae.default <- function(
   )
 }
 
-#' @rdname benchmark_sae
-#' @export
-benchmark <- function(object, ...) {
-  benchmark_sae(object, ...)
-}
-
-#' @export
-benchmark.fastsae <- function(object, ...) {
-  benchmark_sae.fastsae(object, ...)
-}
-
-#' @export
-benchmark.default <- function(object, ...) {
-  benchmark_sae.default(object, ...)
-}
-
 #' Internal worker to compute small area benchmarking calibrations
 #' @noRd
 .benchmark_worker <- function(

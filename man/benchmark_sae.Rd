@@ -4,7 +4,6 @@
 \alias{benchmark_sae}
 \alias{benchmark_sae.fastsae}
 \alias{benchmark_sae.default}
-\alias{benchmark}
 \alias{print.fastsae_benchmark}
 \alias{summary.fastsae_benchmark}
 \alias{autoplot.fastsae_benchmark}
@@ -36,8 +35,6 @@ benchmark_sae(object, ...)
   outer_target = NULL,
   ...
 )
-
-benchmark(object, ...)
 
 \method{print}{fastsae_benchmark}(x, all_groups = FALSE, ...)
 

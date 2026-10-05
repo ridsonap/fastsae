@@ -59,18 +59,7 @@ test_that("benchmark finds group in df_eblup when not in object$data", {
   expect_s3_class(bm, "fastsae_benchmark")
 })
 
-# ── benchmark.R L270, L275 ──────────────────────────────────────────────────
-test_that("benchmark.fastsae and benchmark.default direct invocation", {
-  data(mys, package = "fastsae")
-  fit <- eblup_fh(y ~ x1, vardir = "vardir", data = mys, print_result = FALSE)
-  # Direct call to S3 methods to guarantee line coverage
-  bm1 <- fastsae:::benchmark.fastsae(fit, target = 7.0, method = "ratio")
-  expect_s3_class(bm1, "fastsae_benchmark")
-
-  y <- runif(10, 0.2, 0.8)
-  bm2 <- fastsae:::benchmark.default(y, target = 0.5, method = "ratio")
-  expect_s3_class(bm2, "fastsae_benchmark")
-})
+# ── benchmark.R S3 dispatch covered via benchmark_sae (benchmark alias removed)
 
 # ── benchmark.R L375 (unnamed numeric vector of length == n_groups) ─────────
 test_that("benchmark unnamed numeric vector matching n_groups length", {
