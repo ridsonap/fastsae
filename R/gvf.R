@@ -94,10 +94,9 @@ gvf_smooth <- function(
     cli::cli_abort("Length of 'n' ({length(n_vec)}) must match length of 'vardir' ({m}).")
   }
 
-  # Identify valid rows for model fitting (strictly positive vardir; y may be <=0 but modelled via log_y NA)
+  # Identify valid rows for model fitting (strictly positive vardir, positive y if present)
   valid_fit <- !is.na(vardir_vec) & (vardir_vec > 0)
-  # y<=0 not fatal: allow row but log_y will be NA → that row excluded by lm NA handling, not whole filter
-  if (!is.null(y_vec)) valid_fit <- valid_fit & !is.na(y_vec)
+  if (!is.null(y_vec)) valid_fit <- valid_fit & !is.na(y_vec) & (y_vec > 0)
   if (!is.null(n_vec)) valid_fit <- valid_fit & !is.na(n_vec) & (n_vec > 0)
 
   if (sum(valid_fit) < 3) {
@@ -127,11 +126,10 @@ gvf_smooth <- function(
   }
 
   # Construct model formula if not user-supplied
-  # ponytail: expose inv_n by default when n supplied (Wolter canonical 1/n term)
   if (is.null(formula)) {
     pred_terms <- character(0)
     if (!is.null(y_vec)) pred_terms <- c(pred_terms, "log_y")
-    if (!is.null(n_vec)) pred_terms <- c(pred_terms, "log_n", "inv_n")
+    if (!is.null(n_vec)) pred_terms <- c(pred_terms, "log_n")
 
     rhs <- paste(pred_terms, collapse = " + ")
 
@@ -156,9 +154,7 @@ gvf_smooth <- function(
   train_df <- fit_df[valid_fit, , drop = FALSE]
 
   if (method %in% c("log_linear", "cv_power")) {
-    # Wolter heteroscedasticity: Var(log D) ≈ 2/df, use df = n-1 weights (ponytail: WLS when n supplied)
-    w_gvf <- if (!is.null(n_vec)) pmax(n_vec[valid_fit] - 1, 1) else NULL
-    fit_mod <- if (!is.null(w_gvf)) stats::lm(model_formula, data = train_df, weights = w_gvf) else stats::lm(model_formula, data = train_df)
+    fit_mod <- stats::lm(model_formula, data = train_df)
     r_sq <- summary(fit_mod)$r.squared
     s2 <- summary(fit_mod)$sigma^2
     bc <- if (isTRUE(bias_correction)) exp(s2 / 2) else 1.0
@@ -172,8 +168,7 @@ gvf_smooth <- function(
       smooth_d <- smooth_cv2 * (fit_df$y^2)
     }
   } else if (method == "gamma_glm") {
-    w_gvf <- if (!is.null(n_vec)) pmax(n_vec[valid_fit] - 1, 1) else NULL
-    fit_mod <- if (!is.null(w_gvf)) stats::glm(model_formula, data = train_df, family = stats::Gamma(link = "log"), weights = w_gvf) else stats::glm(model_formula, data = train_df, family = stats::Gamma(link = "log"))
+    fit_mod <- stats::glm(model_formula, data = train_df, family = stats::Gamma(link = "log"))
     smooth_d <- stats::predict(fit_mod, newdata = fit_df, type = "response")
     # Pseudo R-squared: 1 - deviance / null.deviance
     r_sq <- if (!is.null(fit_mod$null.deviance) && fit_mod$null.deviance > 0) {
@@ -183,8 +178,7 @@ gvf_smooth <- function(
     }
   }
 
-  # vardir==0: keep predicted >0 (Gamma/log-linear exp>0), do not force 0 — use predicted
-  smooth_d[is.na(smooth_d)] <- stats::median(smooth_d, na.rm = TRUE)
+  smooth_d[is.na(smooth_d) & vardir_vec == 0] <- 0
 
   # Clean return data frame
   fit_df$smooth_vardir <- as.numeric(smooth_d)
