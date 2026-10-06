@@ -42,8 +42,10 @@
     } else {
       cli::cli_abort("Package {.pkg spdep} is required to convert an {.cls nb} object.")
     }
-  } else if (is.matrix(W) || inherits(W, "Matrix")) {
-    W_mat <- as.matrix(W)
+  } else if (inherits(W, "Matrix")) {
+    W_mat <- W
+  } else if (is.matrix(W)) {
+    W_mat <- W
   } else if (inherits(W, "inla.graph")) {
     return(list(graph = W, W_mat = NULL))
   } else {
@@ -68,9 +70,14 @@
 
   # For graph-based spatial models (BYM2, BYM, Besag, Leroux/generic1)
   # INLA requires a symmetric binary adjacency matrix (or symmetric weights)
-  # with zero on the diagonal.
-  adj_mat <- (W_mat > 0 | t(W_mat) > 0) * 1
-  diag(adj_mat) <- 0
+  # with zero on the diagonal. Ponytail: keep sparse when W_mat is Matrix
+  if (inherits(W_mat, "Matrix")) {
+    adj_mat <- Matrix::Matrix((W_mat > 0) | (t(W_mat) > 0), sparse = TRUE) * 1
+    Matrix::diag(adj_mat) <- 0
+  } else {
+    adj_mat <- (W_mat > 0 | t(W_mat) > 0) * 1
+    diag(adj_mat) <- 0
+  }
 
   # Check if disconnected components or isolated nodes exist
   degree <- rowSums(adj_mat)

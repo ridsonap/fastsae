@@ -134,7 +134,10 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
   mae_val <- mean(merged$abs_diff, na.rm = TRUE)
   rmsd_val <- sqrt(mean(merged$diff^2, na.rm = TRUE))
 
+  # ponytail: arithmetic mean unstable for ratios; report median + geometric mean alongside
   mean_ratio <- if (has_mse) mean(merged$mse_ratio, na.rm = TRUE) else NA_real_
+  # geometric mean via log (handles skew, <0 impossible for mse_ratio)
+  geom_ratio <- if (has_mse) exp(mean(log(pmax(merged$mse_ratio, 1e-8)), na.rm = TRUE)) else NA_real_
   med_ratio  <- if (has_mse) stats::median(merged$mse_ratio, na.rm = TRUE) else NA_real_
   n_eff2     <- if (has_mse) sum(merged$mse_2 < merged$mse_1, na.rm = TRUE) else NA_integer_
   pct_eff2   <- if (has_mse) (n_eff2 / nrow(merged)) * 100 else NA_real_
@@ -151,6 +154,7 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
       "Mean Absolute Difference (MAE)",
       "Root Mean Squared Difference (RMSD)",
       paste0("Mean MSE Ratio (", names[1], " / ", names[2], ")"),
+      paste0("Geometric Mean MSE Ratio (", names[1], " / ", names[2], ")"),
       paste0("Median MSE Ratio (", names[1], " / ", names[2], ")"),
       paste0("Domains where ", names[2], " has lower MSE"),
       paste0("Percentage of domains where ", names[2], " is more efficient (%)"),
@@ -165,6 +169,7 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
       sprintf("%.4f", mae_val),
       sprintf("%.4f", rmsd_val),
       if (!is.na(mean_ratio)) sprintf("%.4f", mean_ratio) else "N/A",
+      if (!is.na(geom_ratio)) sprintf("%.4f", geom_ratio) else "N/A",
       if (!is.na(med_ratio)) sprintf("%.4f", med_ratio) else "N/A",
       if (!is.na(n_eff2)) sprintf("%d / %d", n_eff2, nrow(merged)) else "N/A",
       if (!is.na(pct_eff2)) sprintf("%.1f%%", pct_eff2) else "N/A",

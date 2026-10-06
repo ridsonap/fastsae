@@ -395,17 +395,26 @@ benchmark_sae.default <- function(
         ratio_nat <- national_target / nat_current_agg
         target_map <- target_map * ratio_nat
       } else if (method == "difference") {
-        adj_per_group <- if (type == "mean") diff_nat else diff_nat / n_groups
-        target_map <- target_map + adj_per_group
+        # For type="total" use weighted split so small provinces not inflated (ponytail: equal split for mean)
+        if (type == "mean") {
+          target_map <- target_map + diff_nat
+        } else {
+          total_w2 <- sum(group_weights)
+          target_map <- target_map + (group_weights / total_w2) * diff_nat
+        }
       } else if (method == "optimal") {
-        # Variance-weighted optimal benchmarking (Datta et al., 2011; Steorts et al., 2014):
-        # minimize sum (delta_g^2 / group_mse) s.t. weighted sum = target
-        # solution: delta_g = (group_mse / W_share) * lambda where lambda = diff / sum(group_mse)
-        # Larger group_mse absorbs larger adjustment (ponytail: keep simple mse-weighting)
+        # Variance-weighted optimal benchmarking (Datta et al., 2011 Thm 3; Steorts et al., 2014):
+        # minimize sum(delta_g^2 / group_mse) s.t. sum(W_share*delta_g)=diff (mean) or sum(delta_g)=diff (total)
+        # solution delta_g = W_share*var_g*diff / sum(W_share^2*var_g)  [mean], var_g*diff/sum(var_g) [total]
         var_g <- pmax(group_mse, 1e-8)
         var_g[is.na(var_g)] <- 1
-        lambda_g <- diff_nat / sum(var_g)
-        target_map <- target_map + (var_g / (if (type == "mean") W_share else 1)) * lambda_g
+        if (type == "mean") {
+          denom_g <- sum(W_share^2 * var_g)
+          if (denom_g <= 0) denom_g <- sum(var_g)
+          target_map <- target_map + (W_share * var_g / denom_g) * diff_nat
+        } else {
+          target_map <- target_map + (var_g / sum(var_g)) * diff_nat
+        }
       } else if (method == "logit") {
         logit_t <- stats::qlogis(target_map)
         f_nat <- function(a) {
@@ -457,20 +466,22 @@ benchmark_sae.default <- function(
       df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
 
     } else if (method == "optimal") {
-      # Optimal Quadratic Loss / Variance-Weighted Benchmarking (Datta et al., 2011; Steorts et al., 2014)
-      # minimize sum(delta^2 / mse) s.t. sum(w_calc * y_bm)=T  => delta proportional to mse/w_calc
+      # Optimal Quadratic Loss / Variance-Weighted Benchmarking (Datta et al., 2011 Thm3; Steorts et al., 2014 §2.3)
+      # minimize sum(delta^2 / mse) s.t. sum(w_calc*y_bm)=T  => delta = w*psi * diff / sum(w^2*psi)
       mse_g <- df_work$mse[idx_g]
       diff_val <- T_g - agg_initial
 
       if (any(is.na(mse_g)) || all(mse_g <= 0)) {
         cli::cli_warn("MSE not available or non-positive for group {.val {g}}; falling back to difference benchmarking.")
+        # fallback to uniform difference (Rao-Molina Sec 10.3) — preserves sum(w*y_bm)=T for both mean/total
         df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
       } else {
         var_g <- pmax(mse_g, 1e-8)
         var_g[is.na(var_g)] <- 1
-        denom <- sum(var_g)
-        lambda <- diff_val / denom
-        df_work$y_bm[idx_g] <- y_g + (var_g / w_calc) * lambda
+        # ponytail: correct w*psi weighting; denom uses w^2*var for mean (w normed) and total
+        denom <- sum(w_calc^2 * var_g)
+        if (denom <= 0) denom <- sum(var_g)
+        df_work$y_bm[idx_g] <- y_g + (w_calc * var_g / denom) * diff_val
       }
 
     } else if (method == "logit") {

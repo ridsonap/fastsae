@@ -67,12 +67,16 @@ spatial_test <- function(
     }
   }
 
-  W_mat <- as.matrix(W)
+  # ponytail: keep Matrix sparse; densify only for Moran/LM arithmetic on sampled subset
+  W_is_sparse <- inherits(W, "Matrix")
+  W_mat <- W
+  W_nrow <- if (W_is_sparse) nrow(W) else nrow(W_mat)
+  W_ncol <- if (W_is_sparse) ncol(W) else ncol(W_mat)
   n_total <- nrow(data)
 
-  if (nrow(W_mat) != n_total || ncol(W_mat) != n_total) {
+  if (W_nrow != n_total || W_ncol != n_total) {
     cli::cli_abort(c(
-      "Dimensions of {.arg W} ({nrow(W_mat)} x {ncol(W_mat)}) must match the number of rows in {.arg data} ({n_total})."
+      "Dimensions of {.arg W} ({W_nrow} x {W_ncol}) must match the number of rows in {.arg data} ({n_total})."
     ))
   }
 
@@ -249,11 +253,12 @@ spatial_test <- function(
   is_moran_y_sig <- !is.na(moran_y$p_value) && moran_y$p_value < alpha
   is_moran_res_sig <- !is.na(moran_res$p_value) && moran_res$p_value < alpha
   is_lm_err_sig <- !is.na(lm_error_pval) && lm_error_pval < alpha
+  is_lm_lag_sig <- !is.na(lm_lag_pval) && lm_lag_pval < alpha
   is_lrt_sig <- !is.null(comp_res) && !is.na(comp_res$lrt_pval) && comp_res$lrt_pval < alpha
 
   # Spatial model is recommended if residual spatial autocorrelation persists
-  # OR if the comparative LRT test shows significant improvement
-  spatial_rec <- (is_moran_res_sig || is_lm_err_sig || is_lrt_sig)
+  # OR if comparative LRT/AIC shows improvement (note: REML LRT across structures is illustrative)
+  spatial_rec <- (is_moran_res_sig || is_lm_err_sig || is_lm_lag_sig || is_lrt_sig)
 
   reason_text <- if (spatial_rec) {
     if (is_lrt_sig && is_lm_err_sig) {

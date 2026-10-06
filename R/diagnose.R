@@ -96,11 +96,13 @@ diagnose <- function(object,
   valid_eff <- sampled_mask & !is.na(vardir) & !is.na(mse) & mse > 0
   eff_ratio[valid_eff] <- vardir[valid_eff] / mse[valid_eff]
 
-  # Residuals: direct_y - sae_pred
+  # Residuals: direct_y - sae_pred; std residual uses sqrt(vardir + mse) per Brown
   residuals <- direct_y - sae_pred
   std_residuals <- rep(NA_real_, N_total)
-  valid_res <- sampled_mask & !is.na(vardir) & vardir > 0
-  std_residuals[valid_res] <- residuals[valid_res] / sqrt(vardir[valid_res])
+  valid_res <- sampled_mask & !is.na(vardir) & vardir > 0 & !is.na(mse) & !is.na(sae_pred)
+  mse_valid <- mse[valid_res]; mse_valid[is.na(mse_valid)] <- 0
+  denom_std <- sqrt(pmax(vardir[valid_res] + pmax(mse_valid, 0), 1e-8))
+  std_residuals[valid_res] <- residuals[valid_res] / denom_std
 
   # ----------------------------------------------------------------------------
   # 2. Precision and Efficiency Gain Summary
@@ -140,8 +142,13 @@ diagnose <- function(object,
     pred_sub <- sae_pred[calib_mask]
     n_sub <- length(y_sub)
 
-    # a. Bias regression: y_dir = alpha + beta * sae_pred
-    fit_ols <- stats::lm(y_sub ~ pred_sub)
+    # a. Bias regression: y_dir = alpha + beta * sae_pred — WLS with 1/(vardir+mse) (ponytail: OLS when vardir NA)
+    vd_sub_brown <- vardir[calib_mask]
+    mse_sub_brown <- mse[calib_mask]
+    mse_clean_brown <- mse_sub_brown; mse_clean_brown[is.na(mse_clean_brown)] <- 0
+    w_brown <- 1 / pmax(vd_sub_brown + pmax(mse_clean_brown, 0), 1e-8)
+    w_brown[!is.finite(w_brown)] <- 1
+    fit_ols <- stats::lm(y_sub ~ pred_sub, weights = w_brown)
     coefs <- stats::coef(fit_ols)
     vcov_mat <- stats::vcov(fit_ols)
 
@@ -194,19 +201,23 @@ diagnose <- function(object,
   # 4. Spatial Autocorrelation Test on Residuals (Moran's I)
   # ----------------------------------------------------------------------------
   spatial_res <- NULL
+  # ponytail: keep Matrix sparse when supplied; densify only if small
   W_mat <- if (!is.null(W)) {
-    as.matrix(W)
+    W
   } else if (!is.null(object$W)) {
-    as.matrix(object$W)
+    object$W
   } else {
     NULL
   }
 
   if (!is.null(W_mat)) {
-    # Match sampled domains
-    if (nrow(W_mat) == N_total) {
+    # Match sampled domains — handle Matrix sparse without densifying
+    W_nrow <- if (inherits(W_mat, "Matrix")) nrow(W_mat) else nrow(W_mat)
+    if (W_nrow == N_total) {
       res_clean <- residuals[sampled_mask]
-      W_sub <- W_mat[sampled_mask, sampled_mask, drop = FALSE]
+      # Subset without forcing dense; convert to matrix only for Moran arithmetic (n_spat <= N_total)
+      W_sub_raw <- W_mat[sampled_mask, sampled_mask, drop = FALSE]
+      W_sub <- if (inherits(W_sub_raw, "Matrix")) as.matrix(W_sub_raw) else W_sub_raw
       n_spat <- length(res_clean)
 
       if (n_spat >= 5 && all(!is.na(res_clean))) {

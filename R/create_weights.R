@@ -319,8 +319,6 @@ create_weights <- function(
     diag(W_raw) <- 0
   }
 
-  diag(W_raw) <- 0
-
   # 5. Apply Normalization Style
   W_out <- matrix(0, nrow = n, ncol = n)
 

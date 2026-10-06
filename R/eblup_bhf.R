@@ -289,28 +289,26 @@ eblup_bhf <- function(
   Xbeta_pop <- as.numeric(Xs %*% betaest)
   dom_char <- as.character(dom)
 
-  for (b in seq_len(B)) {
-    # Generate bootstrap sample
+  # ponytail: n_threads was dead code — wire it via parallel::mclapply on Unix, else serial
+  use_parallel <- n_threads > 1 && .Platform$OS.type != "windows" && requireNamespace("parallel", quietly = TRUE)
+  if (n_threads > 1 && !use_parallel && .Platform$OS.type == "windows") {
+    cli::cli_alert_warning("Parallel bootstrap with {.code n_threads > 1} is not supported on Windows; falling back to serial.")
+  }
+
+  .one_boot <- function(b) {
     u_boot <- stats::rnorm(length(selectdom), sd = sqrt(sigma2_u))
     names(u_boot) <- as.character(selectdom)
-
     e_boot <- stats::rnorm(length(ys), sd = sqrt(sigma2_e))
-
-    # Fast vectorized y_boot: X * beta + u_boot[dom] + e_boot
     y_boot <- Xbeta_pop + u_boot[dom_char] + e_boot
-
-    # Fit bootstrap model
-    lmer_data$..y_boot.. <- y_boot
+    ldat <- lmer_data
+    ldat$..y_boot.. <- y_boot
     fit_boot <- tryCatch(
-      lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML")),
+      lme4::lmer(formula_lmer, data = ldat, REML = (method == "REML")),
       error = function(e) NULL
     )
-    if (is.null(fit_boot)) next
-
+    if (is.null(fit_boot)) return(NULL)
     beta_boot <- matrix(lme4::fixef(fit_boot), ncol = 1)
     upred_boot <- lme4::ranef(fit_boot)$dom
-
-    # Compute bootstrap EBLUP
     eblup_boot <- .eblup_bhf_cpp(
       selectdom = as.character(selectdom),
       dom = as.character(dom),
@@ -321,8 +319,6 @@ eblup_bhf <- function(
       betaest = beta_boot,
       upred = upred_boot
     )$eblup
-
-    # Compute true population mean in bootstrap population
     truemean_boot <- numeric(length(selectdom))
     for (i in seq_along(selectdom)) {
       d <- as.character(selectdom[i])
@@ -343,14 +339,31 @@ eblup_bhf <- function(
         truemean_boot[i] <- mud + u_boot[d] + stats::rnorm(1, 0, sqrt(sigma2_e / Ni))
       }
     }
+    (eblup_boot - truemean_boot)^2
+  }
 
-    # Accumulate MSE: (eblup_boot - truemean_boot)^2
-    mse <- mse + (eblup_boot - truemean_boot)^2
-    valid_B <- valid_B + 1L
+  if (use_parallel) {
+    n_cores <- min(as.integer(n_threads), parallel::detectCores())
+    boot_list <- parallel::mclapply(seq_len(B), .one_boot, mc.cores = n_cores)
+    for (res in boot_list) {
+      if (is.null(res)) next
+      mse <- mse + res
+      valid_B <- valid_B + 1L
+    }
+  } else {
+    for (b in seq_len(B)) {
+      res <- .one_boot(b)
+      if (is.null(res)) next
+      mse <- mse + res
+      valid_B <- valid_B + 1L
+    }
   }
 
   if (valid_B > 0L) {
     mse <- mse / valid_B
+    if (valid_B < B * 0.8) {
+      cli::cli_warn("{B - valid_B} of {B} bootstrap replicates failed (>20%); MSE based on {valid_B} valid replicates only.")
+    }
   } else {
     mse <- rep(NA_real_, length(selectdom))
   }
