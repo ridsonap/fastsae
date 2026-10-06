@@ -50,6 +50,19 @@
 #' neighbor(s) based on centroid distances, ensuring a connected spatial graph without
 #' computational singularities.
 #'
+#' @note Scalability / memory ceiling: \code{create_weights} builds dense \eqn{n \times n}
+#'   matrices (\eqn{8n^2} bytes per \code{double} matrix; up to \eqn{4} temporaries for
+#'   \code{dist_mat}, \code{W_raw}, \code{W_out}). This is fast for \eqn{n < 1{,}000}
+#'   (Indonesia 514 kab/kota \eqn{\approx} 2 MB). For \eqn{n \gtrsim 7{,}000}
+#'   (kecamatan) peak memory exceeds 1.5 GB and may OOM; for \eqn{n = 80{,}000} (desa)
+#'   dense storage would require \eqn{\approx} 55 GB and is infeasible. For large \eqn{n},
+#'   prefer sparse \code{Matrix::sparseMatrix} adjacency, \code{FNN::get.knn} kd-tree
+#'   \eqn{O(n \log n)} (no \code{dist_mat}), and \code{RSpectra}/power iteration for
+#'   \code{style = "minmax"}. The package already uses \code{Matrix} sparse gating
+#'   in \code{inla_utils} / \code{diagnose} / \code{spatial_test} and C++
+#'   (\code{weights.cpp}) for \eqn{n > 500}. ponytail: full sparse + kd-tree deferred
+#'   until large-\eqn{n} is requested.
+#'
 #' @examples
 #' \dontrun{
 #' if (requireNamespace("sf", quietly = TRUE)) {
