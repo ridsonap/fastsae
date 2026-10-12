@@ -13,7 +13,8 @@
 #' @param popnmean_xpop Population mean of auxiliary variables per domain.
 #' @param B Number of bootstrap replicates for MSE (if compute_mse = TRUE).
 #' @param compute_mse If TRUE, compute bootstrap MSE.
-#' @param n_threads Number of threads for parallel computation.
+#' @param n_threads Currently unused: the bootstrap MSE runs sequentially (each replicate
+#'   is a \code{lme4} refit). Kept for interface compatibility.
 #' @param seed Random seed for reproducibility.
 #' @param print_result Print results (default TRUE).
 #'
@@ -289,26 +290,35 @@ eblup_bhf <- function(
   mse <- numeric(length(selectdom))
   valid_B <- 0L
 
-  # Group indices by domain
+  # Domain bookkeeping, computed once (the loop below is vectorised over domains)
   dom_factor <- factor(dom, levels = as.character(selectdom))
-  dom_idx <- split(seq_along(dom), dom_factor)
   Xbeta_pop <- as.numeric(Xs %*% betaest)
-  dom_char <- as.character(dom)
+  n_d <- as.numeric(table(dom_factor))                 # sample size per domain
+  N_d <- as.numeric(popnsize)
+  r_d <- pmax(N_d - n_d, 0)                            # non-sampled units
+  mu_d <- as.numeric(meanxpop %*% betaest)             # Xbar_d' beta
+  # population mean error: ebar_d = (n_d ebar_{d,s} + r_d ebar_{d,r}) / N_d,
+  # ebar_{d,r} ~ N(0, s2e / r_d); fully sampled domains (r_d = 0): ebar_{d,s};
+  # unsampled domains (n_d = 0): ebar_d ~ N(0, s2e / N_d)
+  w_s <- ifelse(n_d > 0, ifelse(r_d > 0, n_d / N_d, 1), 0)
+  w_r <- ifelse(n_d > 0, ifelse(r_d > 0, r_d / N_d, 0), 1)
+  sd_r <- ifelse(n_d > 0, ifelse(r_d > 0, sqrt(sigma2_e / r_d), 0), sqrt(sigma2_e / N_d))
+  dom_int <- as.integer(dom_factor)
 
   for (b in seq_len(B)) {
     # Generate bootstrap sample
     u_boot <- stats::rnorm(length(selectdom), sd = sqrt(sigma2_u))
-    names(u_boot) <- as.character(selectdom)
 
     e_boot <- stats::rnorm(length(ys), sd = sqrt(sigma2_e))
 
     # Fast vectorized y_boot: X * beta + u_boot[dom] + e_boot
-    y_boot <- Xbeta_pop + u_boot[dom_char] + e_boot
+    y_boot <- Xbeta_pop + u_boot[dom_int] + e_boot   # integer index (no name matching)
 
-    # Fit bootstrap model
-    lmer_data$..y_boot.. <- y_boot
+    # Re-fit the bootstrap response with the model structure of the initial
+    # fit (lme4::refit): same estimator as lmer() on the new response, without
+    # re-parsing the formula and rebuilding the model matrices every time
     fit_boot <- tryCatch(
-      lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML")),
+      lme4::refit(fit, newresp = y_boot),
       error = function(e) NULL
     )
     if (is.null(fit_boot)) next
@@ -328,27 +338,12 @@ eblup_bhf <- function(
       upred = upred_boot
     )$eblup
 
-    # Compute true population mean in bootstrap population
-    truemean_boot <- numeric(length(selectdom))
-    for (i in seq_along(selectdom)) {
-      d <- as.character(selectdom[i])
-      idx_d <- dom_idx[[d]]
-      nd <- length(idx_d)
-      Ni <- popnsize[i]
-      rd <- max(Ni - nd, 0)
-      mud <- sum(meanxpop[i, ] * betaest)
-      if (nd > 0 && rd > 0) {
-        esdmean <- mean(e_boot[idx_d])
-        erdmean <- stats::rnorm(1, 0, sqrt(sigma2_e / rd))
-        edmean <- esdmean * (nd / Ni) + erdmean * (rd / Ni)
-        truemean_boot[i] <- mud + u_boot[d] + edmean
-      } else if (nd > 0 && rd == 0) {
-        esdmean <- mean(e_boot[idx_d])
-        truemean_boot[i] <- mud + u_boot[d] + esdmean
-      } else {
-        truemean_boot[i] <- mud + u_boot[d] + stats::rnorm(1, 0, sqrt(sigma2_e / Ni))
-      }
-    }
+    # True population mean in the bootstrap population (vectorised over domains)
+    esd <- numeric(length(n_d))
+    has_s <- n_d > 0
+    esd[has_s] <- rowsum(e_boot, dom_int)[, 1] / n_d[has_s]   # groups sorted by domain code
+    e_r <- stats::rnorm(length(n_d), 0, sd_r)
+    truemean_boot <- mu_d + as.numeric(u_boot) + w_s * esd + w_r * e_r
 
     # Accumulate MSE: (eblup_boot - truemean_boot)^2
     mse <- mse + (eblup_boot - truemean_boot)^2

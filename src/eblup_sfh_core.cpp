@@ -26,11 +26,14 @@ using namespace arma;
 bool sar_marginal(double rho, const arma::mat& Wf, const arma::mat& WtWf,
                   const arma::uvec& s, bool all,
                   arma::mat& Sig, arma::mat& SCS,
-                  arma::mat* SCSCS, arma::mat* SWWS, arma::mat* Sfull) {
+                  arma::mat* SCSCS, arma::mat* SWWS, arma::mat* Sfull,
+                  arma::mat* SCS_full, arma::mat* D2_full) {
   const arma::uword D = Wf.n_rows;
   const arma::mat I = arma::eye<arma::mat>(D, D);
-  // symmetric in exact arithmetic; symmetrise the round-off
-  const arma::mat A = arma::symmatu((I - rho * Wf.t()) * (I - rho * Wf));
+  // A = (I - rho W')(I - rho W) = I - rho (W + W') + rho^2 W'W, using the
+  // precomputed W'W: O(D^2) instead of a D^3 product per call.
+  // (symmetric in exact arithmetic; symmetrise the round-off)
+  const arma::mat A = arma::symmatu(I - rho * (Wf + Wf.t()) + (rho * rho) * WtWf);
   arma::mat Sf;
   bool ok = arma::inv_sympd(Sf, A);
   if (!ok) Sf = arma::pinv(A);
@@ -39,15 +42,14 @@ bool sar_marginal(double rho, const arma::mat& Wf, const arma::mat& WtWf,
   const arma::mat SCSf = Sf * CS;
   Sig = all ? Sf : arma::mat(Sf.submat(s, s));
   SCS = all ? SCSf : arma::mat(SCSf.submat(s, s));
-  if (SCSCS) {
-    arma::mat t = SCSf * CS;
-    *SCSCS = all ? t : arma::mat(t.submat(s, s));
-  }
-  if (SWWS) {
-    arma::mat t = Sf * WtWf * Sf;
-    *SWWS = all ? t : arma::mat(t.submat(s, s));
-  }
+  arma::mat t1, t2;
+  if (SCSCS || D2_full) t1 = SCSf * CS;            // Sigma C Sigma C Sigma
+  if (SWWS || D2_full) t2 = Sf * WtWf * Sf;        // Sigma W'W Sigma
+  if (SCSCS) *SCSCS = all ? t1 : arma::mat(t1.submat(s, s));
+  if (SWWS) *SWWS = all ? t2 : arma::mat(t2.submat(s, s));
   if (Sfull) *Sfull = Sf;
+  if (SCS_full) *SCS_full = SCSf;                  // = -Sigma'  (all domains)
+  if (D2_full) *D2_full = 2.0 * t1 - 2.0 * t2;     // =  Sigma'' (all domains)
   return ok;
 }
 
@@ -614,9 +616,10 @@ List seblup_core(
 
   // spatial covariance (+ rho-derivative pieces for g3/g4 and the full
   // Sigma for kriging the unsampled domains)
-  mat der3, SCSCS_f, SWWS_f, Sigma_full;
+  mat der3, SCSCS_f, SWWS_f, Sigma_full, SCS_all, D2_all;
   bool ok_inv = sar_marginal(rho_fix, W, WtW, idx_s, all_s, derSigma, der3,
-                             &SCSCS_f, &SWWS_f, &Sigma_full);
+                             &SCSCS_f, &SWWS_f, &Sigma_full,
+                             adaNA ? &SCS_all : nullptr, adaNA ? &D2_all : nullptr);
 
   mat G = sigma2 * derSigma;
   V = symmatu(G + diagmat(vardir));
@@ -759,11 +762,14 @@ List seblup_core(
   mat l1t = l1.t();
   mat l2t = l2.t();
 
-  for (int i = 0; i < m; ++i) {
-    mat L(2, m, fill::zeros);
-    L.row(0) = l1t.row(i);
-    L.row(1) = l2t.row(i);
-    g3d(i) = trace(L * V * L.t() * Idevi);
+  // g3_i = sum_ab Idevi_ab (l_a' V l_b)_ii, l_a = rows of l1t / l2t:
+  // vectorised as row sums of (l_a' V) % l_b' (two m^3 products instead of
+  // m small 2 x m chains)
+  {
+    const mat VL1 = l1t * V, VL2 = l2t * V;   // (l_a' V), V symmetric
+    const vec q11 = sum(VL1 % l1t, 1), q22 = sum(VL2 % l2t, 1);
+    const vec q12 = sum(VL1 % l2t, 1), q21 = sum(VL2 % l1t, 1);
+    g3d = Idevi(0, 0) * q11 + Idevi(0, 1) * q12 + Idevi(1, 0) * q21 + Idevi(1, 1) * q22;
   }
 
   // g4d
@@ -838,9 +844,8 @@ List seblup_core(
     // - 2 Sigma W'W Sigma (C = 2 rho W'W - W - W'). For a block B of G:
     //   B_0 = Sigma[B], B_1 = sigma2 Sigma'[B], B_01 = Sigma'[B],
     //   B_11 = sigma2 Sigma''[B], B_00 = 0.
-    const mat C_full = 2.0 * rho_fix * WtW - (W + W.t());
-    const mat Sd1 = -(Sigma_full * C_full * Sigma_full);                      // Sigma'
-    const mat Sd2 = 2.0 * (-Sd1) * C_full * Sigma_full - 2.0 * Sigma_full * WtW * Sigma_full;  // Sigma''
+    const mat Sd1 = -SCS_all;      // Sigma'  (from sar_marginal, all domains)
+    const mat& Sd2 = D2_all;       // Sigma'' (from sar_marginal, all domains)
     auto blk = [&](const mat& Mf, const uvec& r, const uvec& c) { return mat(Mf.submat(r, c)); };
     // A = G_rs and its derivatives; V_j = G_j[s,s]
     const mat A = G_rs;
@@ -863,8 +868,11 @@ List seblup_core(
       return sigma2 * vec(blk(Sd2, idx_ns, idx_ns).diag());
     };
     const mat& K = Vi;
-    std::vector<mat> Kj = { -K * Vj[0] * K, -K * Vj[1] * K };
     auto dg = [](const mat& M1, const mat& M2) -> vec { return sum(M1 % M2, 1); };  // diag(M1 M2')
+    // r x m products only (r = #unsampled): AK = A K, AjK = A_j K
+    const mat AK = A * K;
+    std::vector<mat> AjK = { Aj[0] * K, Aj[1] * K };
+    std::vector<mat> AKVj = { AK * Vj[0], AK * Vj[1] };   // A K V_j
 
     // g3 (exact derivative of the kriging predictor):
     //   d theta~_r / d th_a = l_a' P y,
@@ -888,9 +896,15 @@ List seblup_core(
     for (int j = 0; j < 2; ++j) {
       for (int k = 0; k < 2; ++k) {
         if (Idevi(j, k) == 0.0) continue;
-        const mat Kjk = K * Vj[j] * K * Vj[k] * K + K * Vj[k] * K * Vj[j] * K - K * Vjk(j, k) * K;
-        const vec d2 = Grr_jk(j, k) - 2.0 * dg(Ajk(j, k) * K, A) - 2.0 * dg(Aj[j] * Kj[k], A)
-          - 2.0 * dg(Aj[k] * Kj[j], A) - 2.0 * dg(Aj[j] * K, Aj[k]) - dg(A * Kjk, A);
+        // diag(A K_jk A') = diag(A K V_j K V_k K A') + diag(A K V_k K V_j K A')
+        //                  - diag(A K V_jk K A'),  with (K A')' = A K
+        const vec AKjkA = dg(AKVj[j] * K * Vj[k], AK) + dg(AKVj[k] * K * Vj[j], AK)
+                        - dg(AK * Vjk(j, k), AK);
+        // diag(A_j K_k A') = -diag(A_j K V_k K A') = -diag((A_j K V_k)(A K)')
+        const vec AjKkA = -dg(AjK[j] * Vj[k], AK);
+        const vec AkKjA = -dg(AjK[k] * Vj[j], AK);
+        const vec d2 = Grr_jk(j, k) - 2.0 * dg(Ajk(j, k) * K, A) - 2.0 * AjKkA
+          - 2.0 * AkKjA - 2.0 * dg(AjK[j], Aj[k]) - AKjkA;
         half_tr += 0.5 * Idevi(j, k) * d2;
       }
     }
@@ -898,8 +912,9 @@ List seblup_core(
     if (isML) {
       const vec Grr_0 = vec(blk(Sigma_full, idx_ns, idx_ns).diag());
       const vec Grr_1 = sigma2 * vec(blk(Sd1, idx_ns, idx_ns).diag());
-      const vec dg1_0 = Grr_0 - 2.0 * dg(Aj[0] * K, A) - dg(A * Kj[0], A);
-      const vec dg1_1 = Grr_1 - 2.0 * dg(Aj[1] * K, A) - dg(A * Kj[1], A);
+      // diag(A K_j A') = -diag((A K V_j)(A K)')
+      const vec dg1_0 = Grr_0 - 2.0 * dg(AjK[0], A) + dg(AKVj[0], AK);
+      const vec dg1_1 = Grr_1 - 2.0 * dg(AjK[1], A) + dg(AKVj[1], AK);
       mse_ns -= bML(0) * dg1_0 + bML(1) * dg1_1;
     }
 

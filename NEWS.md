@@ -84,6 +84,18 @@
   output has a new `mse_benchmarked` column, the first-order MSE of the benchmarked estimates
   ($mse_i - 2 k_i (Mw)_i + adj_i^2$; within about 1% of the empirical MSE in a simulation).
 
+### Performance
+* `benchmark_sae()`: the MSE covariance between areas is applied as a matrix-free operator
+  (FH: $O(n p^2)$, no $n \times n$ matrices). FH with $m = 2000$: 9.4 s / 490 MB -> 0.002 s / 1.7 MB;
+  $m = 20000$ now runs in about 0.01 s.
+* `eblup_bhf()` bootstrap MSE: replicates are re-fitted with `lme4::refit()` (no formula re-parsing or
+  model-matrix rebuilding) and the bootstrap population means are computed vectorised over domains;
+  about 1.5x faster and about 3x less memory, same results for a given seed.
+* `eblup_sfh()`: $(I - \rho W')(I - \rho W)$ is formed from the precomputed $W'W$ (no $D^3$ product per
+  iteration); $g_3$ is vectorised; the MSE of unsampled (kriged) domains reuses the SAR derivative
+  matrices and only uses (#unsampled x m) products. $D = 400$ with 20 unsampled domains: 3.8 s -> 2.1 s.
+* `eblup_bhf(n_threads)` is documented as unused (the bootstrap is sequential).
+
 ### Major New Features & Enhancements
 * **Two-Fold Subarea EBLUP (`eblup_twofold`)**:
   * Implements nested two-fold sub-area level models (Torabi & Rao, 2014) with area effects $v_i$ and sub-area effects $u_{ij}$.

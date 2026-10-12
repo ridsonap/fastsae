@@ -23,7 +23,8 @@ void set_r_seed(int seed);
 bool sar_marginal(double rho, const arma::mat& Wf, const arma::mat& WtWf,
                   const arma::uvec& s, bool all,
                   arma::mat& Sig, arma::mat& SCS,
-                  arma::mat* SCSCS, arma::mat* SWWS, arma::mat* Sfull);
+                  arma::mat* SCSCS, arma::mat* SWWS, arma::mat* Sfull,
+                  arma::mat* SCS_full = nullptr, arma::mat* D2_full = nullptr);
 
 // X, y, vardir: sampled domains only; W: FULL weight matrix; idx_s: rows of
 // W that are sampled (0-based).

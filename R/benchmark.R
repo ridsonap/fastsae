@@ -196,7 +196,7 @@ benchmark_sae.fastsae <- function(
 
   # Full MSE matrix (prediction errors are correlated across areas); NULL ->
   # diagonal fallback inside the worker.
-  M <- if (!is.null(mse_vec)) tryCatch(.mse_matrix(object), error = function(e) NULL) else NULL
+  M <- if (!is.null(mse_vec)) tryCatch(.mse_operator(object), error = function(e) NULL) else NULL
 
   # Call internal benchmarking worker
   .benchmark_worker(
@@ -302,7 +302,10 @@ benchmark.default <- function(object, ...) {
   model_family = "gaussian"
 ) {
   n <- length(y_hat)
-  if (!is.null(mse_matrix) && !identical(dim(mse_matrix), c(n, n))) mse_matrix <- NULL
+  # `mse_matrix` is an operator list(mse, mult) from .mse_operator() (or NULL)
+  if (!is.null(mse_matrix) && (!is.function(mse_matrix$mult) || length(mse_matrix$mse) != n)) {
+    mse_matrix <- NULL
+  }
 
   if (any(weight <= 0, na.rm = TRUE)) {
     cli::cli_abort("Benchmark {.arg weight} must be strictly positive for all domains.")
@@ -347,7 +350,9 @@ benchmark.default <- function(object, ...) {
       # MSE of the group weighted estimate: w' M w, including the covariances
       # between area errors when the full MSE matrix is available
       if (!is.null(mse_matrix)) {
-        group_mse[g] <- max(drop(t(w_norm) %*% mse_matrix[idx_g, idx_g, drop = FALSE] %*% w_norm), 1e-8)
+        w_full <- numeric(n)
+        w_full[idx_g] <- w_norm
+        group_mse[g] <- max(sum(w_full * mse_matrix$mult(w_full)), 1e-8)
       } else {
         group_mse[g] <- sum((w_norm^2) * pmax(df_work$mse[idx_g], 1e-8, na.rm = TRUE), na.rm = TRUE)
       }
@@ -567,7 +572,7 @@ benchmark.default <- function(object, ...) {
     if (!is.null(mse_matrix)) {
       w_full <- numeric(n)
       w_full[idx_g] <- w_calc
-      Mw <- as.vector(mse_matrix %*% w_full)[idx_g]
+      Mw <- mse_matrix$mult(w_full)[idx_g]
     } else {
       Mw <- w_calc * m_g
     }
@@ -778,84 +783,106 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
   autoplot.fastsae_benchmark(x, ...)
 }
 
-#' Covariance with given variances: S C S, C = correlation of `M`, S = diag(sqrt(mse))
+#' Operator for the full MSE matrix of the area estimates of a fitted model
 #'
-#' Keeps the correlation structure of the leading terms (always positive
-#' semi-definite) and the reported MSE on the diagonal. Simply overwriting the
-#' diagonal of g1 + g2 with the MSE can break positive semi-definiteness when
-#' the second-order terms are negative (e.g. a large g4 near rho = -1).
-#' @noRd
-.scale_to_mse <- function(M, mse) {
-  M <- (M + t(M)) / 2
-  d <- sqrt(pmax(diag(M), .Machine$double.eps))
-  C <- M / outer(d, d)
-  sm <- sqrt(pmax(mse, 0))
-  out <- C * outer(sm, sm)
-  diag(out) <- mse
-  dimnames(out) <- NULL
-  out
-}
-
-#' Full MSE matrix of the area estimates of a fitted model
-#'
-#' The prediction errors of different areas are correlated (common beta-hat,
+#' Prediction errors of different areas are correlated (common beta-hat,
 #' spatial / temporal random effects). With known variance parameters every
 #' area estimate, sampled or kriged, is theta~ = X beta~ + G[., s] V^-1 (y_s - X_s beta~),
 #' so the leading terms of the error covariance are
 #'   g1 = G - G[., s] V^-1 G[s, .]  and  g2 = R Q R',  R = X - G[., s] V^-1 X_s.
-#' The returned matrix has the correlation of g1 + g2 and the reported `mse`
-#' (which also contains the g3 / g4 terms) on the diagonal (see `.scale_to_mse`).
-#' Supported: FH (identity scale), SFH, STFH, and INLA area-level HB fits
-#' (posterior covariance from draws). Otherwise NULL (diagonal fallback).
+#' The MSE matrix used is M = S C S, with C the correlation matrix of
+#' g1 + g2 (positive semi-definite) and S = diag(sqrt(mse)), so that diag(M)
+#' is the reported `mse` (which also contains the g3 / g4 terms).
+#'
+#' M is never formed: the function returns `mult(v) = M v`, computed from
+#' (g1 + g2) v and diag(g1 + g2) without n x n matrices where the model
+#' structure allows it (FH: O(n p^2); SFH: one D x D inverse; STFH: one
+#' Cholesky of V; HB: posterior draws). Supported: FH (identity scale), SFH,
+#' STFH and INLA area-level HB fits; otherwise NULL (diagonal fallback).
+#' @return list(mse, mult) or NULL.
 #' @noRd
-.mse_matrix <- function(object, n_draws = 500) {
+.mse_operator <- function(object, n_draws = 500) {
   df <- object$df_hb %||% object$df_eblup
   mse <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else NULL)
   if (is.null(df) || is.null(mse) || anyNA(mse)) return(NULL)
 
-  full_from <- function(G, Xall, s, psi_s) {
-    Vi <- solve(G[s, s, drop = FALSE] + diag(psi_s, length(psi_s)))
-    Xs <- Xall[s, , drop = FALSE]
-    Q <- solve(t(Xs) %*% Vi %*% Xs)
-    K <- G[, s, drop = FALSE] %*% Vi
-    R <- Xall - K %*% Xs
-    M <- G - K %*% G[s, , drop = FALSE] + R %*% Q %*% t(R)
-    .scale_to_mse(M, mse)
+  # M v = s * (G12 (s * v / d)) / d,  d = sqrt(diag(G12)), s = sqrt(mse)
+  make_op <- function(g12_mult, g12_diag) {
+    d <- sqrt(pmax(g12_diag, .Machine$double.eps))
+    sm <- sqrt(pmax(mse, 0))
+    list(mse = mse, mult = function(v) {
+      v <- as.matrix(v)
+      out <- sm * (g12_mult(sm * v / d) / d)
+      drop(out)
+    })
   }
   design <- function() {
     mf <- stats::model.frame(object$formula, object$data, na.action = stats::na.pass)
     stats::model.matrix(attr(mf, "terms"), mf)
   }
+  # generic dense-G version (SFH): G (n x n), sampled index s, sampling variances psi_s
+  dense_op <- function(G, Xall, s, psi_s) {
+    Vs <- G[s, s, drop = FALSE] + diag(psi_s, length(psi_s))
+    Vi <- chol2inv(chol(Vs))
+    Xs <- Xall[s, , drop = FALSE]
+    Q <- solve(t(Xs) %*% Vi %*% Xs)
+    K <- G[, s, drop = FALSE] %*% Vi                  # n x m
+    R <- Xall - K %*% Xs
+    RQ <- R %*% Q
+    g12_diag <- diag(G) - rowSums(K * G[, s, drop = FALSE]) + rowSums(RQ * R)
+    g12_mult <- function(v) G %*% v - K %*% (G[s, , drop = FALSE] %*% v) + RQ %*% (t(R) %*% v)
+    make_op(g12_mult, g12_diag)
+  }
 
   model <- object$model %||% ""
   if (identical(model, "FH") && identical(object$transform %||% "none", "none")) {
+    # G = s2 I: g1 is diagonal; R = B x (sampled), x (unsampled)
     X <- design()
-    s <- which(!is.na(df$y))
-    G <- diag(object$random_effect_var, nrow(df))
-    return(full_from(G, X, s, df$vardir[s]))
+    s2 <- object$random_effect_var
+    samp <- !is.na(df$y)
+    B <- ifelse(samp, df$vardir / (s2 + df$vardir), 1)
+    Vi <- 1 / (s2 + df$vardir[samp])
+    Xs <- X[samp, , drop = FALSE]
+    Q <- solve(crossprod(Xs * sqrt(Vi)))
+    R <- B * X
+    RQ <- R %*% Q
+    g1 <- ifelse(samp, s2 * B, s2)
+    return(make_op(function(v) g1 * v + RQ %*% crossprod(R, v), g1 + rowSums(RQ * R)))
   }
   if (identical(model, "SFH") && !is.null(object$W)) {
     X <- design()
     s <- which(!is.na(df$y))
     D <- nrow(object$W)
-    G <- object$random_effect_var * solve(crossprod(diag(D) - object$rho * object$W))
-    return(full_from(G, X, s, df$vardir[s]))
+    G <- object$random_effect_var * chol2inv(chol(crossprod(diag(D) - object$rho * object$W)))
+    return(dense_op(G, X, s, df$vardir[s]))
   }
   if (model %in% c("ST", "S") && !is.null(object$W) && !is.null(object$estvarcomp)) {
+    # all domains sampled: g1 = Psi - Psi V^-1 Psi, R = Psi V^-1 X
     th <- object$estvarcomp$estimate
     dom <- df$domain; tim <- df$time
     ord <- order(match(as.character(dom), unique(as.character(dom))), tim)
     D <- length(unique(dom)); Tt <- length(unique(tim))
     if (D * Tt != nrow(df)) return(NULL)
-    O1 <- solve(crossprod(diag(D) - th[2] * object$W))
+    O1 <- chol2inv(chol(crossprod(diag(D) - th[2] * object$W)))
     O2 <- if (model == "ST") outer(1:Tt, 1:Tt, function(i, j) th[4]^abs(i - j)) / (1 - th[4]^2) else diag(Tt)
-    G <- th[1] * kronecker(O1, matrix(1, Tt, Tt)) + th[3] * kronecker(diag(D), O2)
+    V <- th[1] * kronecker(O1, matrix(1, Tt, Tt)) + th[3] * kronecker(diag(D), O2)
+    psi <- df$vardir[ord]
+    diag(V) <- diag(V) + psi
+    Vi <- chol2inv(chol(V))
+    rm(V)
     X <- design()[ord, , drop = FALSE]
-    mse_sorted <- mse[ord]
-    mse <- mse_sorted
-    M <- full_from(G, X, seq_len(nrow(df)), df$vardir[ord])
+    Q <- solve(t(X) %*% Vi %*% X)
+    R <- psi * (Vi %*% X)
+    RQ <- R %*% Q
+    g12_sorted <- psi - psi^2 * diag(Vi) + rowSums(RQ * R)
     inv <- order(ord)
-    return(M[inv, inv])
+    mult_sorted <- function(v) psi * v - psi * (Vi %*% (psi * v)) + RQ %*% crossprod(R, v)
+    # operate in the caller's row order
+    g12_mult <- function(v) {
+      v <- as.matrix(v)
+      mult_sorted(v[ord, , drop = FALSE])[inv, , drop = FALSE]
+    }
+    return(make_op(g12_mult, g12_sorted[inv]))
   }
   if (inherits(object, "fastsae_hb_area") && !is.null(object$fit) && inherits(object$fit, "inla") &&
       requireNamespace("INLA", quietly = TRUE)) {
@@ -866,7 +893,20 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
     rows <- grep("^Predictor:", rownames(smp[[1]]$latent))[seq_len(n)]
     eta <- vapply(smp, function(z) z$latent[rows, 1], numeric(n))
     theta <- switch(fam, gaussian = eta, binomial = stats::plogis(eta), beta = stats::plogis(eta), exp(eta))
-    return(.scale_to_mse(stats::cov(t(theta)), mse))
+    Tc <- theta - rowMeans(theta)
+    S1 <- ncol(Tc) - 1
+    return(make_op(function(v) Tc %*% crossprod(Tc, v) / S1, rowSums(Tc^2) / S1))
   }
   NULL
+}
+
+#' Dense MSE matrix (small n only; used in tests): the operator applied to I
+#' @noRd
+.mse_matrix <- function(object, n_draws = 500) {
+  op <- .mse_operator(object, n_draws = n_draws)
+  if (is.null(op)) return(NULL)
+  M <- op$mult(diag(length(op$mse)))
+  M <- (M + t(M)) / 2
+  dimnames(M) <- NULL
+  M
 }

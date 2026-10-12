@@ -38,7 +38,8 @@ eblup_bhf(
 
 \item{compute_mse}{If TRUE, compute bootstrap MSE.}
 
-\item{n_threads}{Number of threads for parallel computation.}
+\item{n_threads}{Currently unused: the bootstrap MSE runs sequentially (each replicate
+is a \code{lme4} refit). Kept for interface compatibility.}
 
 \item{seed}{Random seed for reproducibility.}
 
