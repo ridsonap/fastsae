@@ -63,7 +63,8 @@ Suggests:
 VignetteBuilder: knitr
 LinkingTo: 
     Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    RcppEigen
 Depends: 
     R (>= 4.1.0)
 Collate:

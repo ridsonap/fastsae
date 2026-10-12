@@ -488,3 +488,32 @@ test_that("SFH MSE of kriged (unsampled) domains matches an independent second-o
     expect_equal(f$df_eblup$mse[ns], mse, tolerance = 1e-6)
   }
 })
+
+test_that("SFH with a dense W (dense factorisation path) matches the independent computation", {
+  # inverse-distance weights: every pair is a neighbour, so the C++ engine
+  # uses dense instead of sparse Cholesky factorisations
+  set.seed(29)
+  D <- 50
+  xy <- cbind(runif(D), runif(D))
+  W <- 1 / as.matrix(dist(xy)); diag(W) <- 0; W <- W / rowSums(W)
+  X <- cbind(1, rnorm(D), rnorm(D))
+  psi <- runif(D, 0.3, 1)
+  v <- solve(diag(D) - 0.5 * W, rnorm(D, sd = 0.8))
+  d <- data.frame(y = drop(X %*% c(1, 1, -1)) + v + rnorm(D, sd = sqrt(psi)),
+                  x1 = X[, 2], x2 = X[, 3], vardir = psi)
+  for (meth in c("REML", "ML")) {
+    f <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = d, W = W, method = meth, print_result = FALSE)
+    expect_true(f$convergence)
+    expect_true(abs(f$rho) < 0.999)
+    expect_equal(f$df_eblup$mse, .sfh_mse_R(f, X, d$y, psi, W), tolerance = 1e-8, ignore_attr = TRUE)
+    # GLS beta, EBLUP and log-likelihood from dense algebra
+    G <- f$random_effect_var * solve(crossprod(diag(D) - f$rho * W))
+    V <- G + diag(psi); Vi <- solve(V)
+    b <- solve(t(X) %*% Vi %*% X, t(X) %*% Vi %*% d$y)
+    expect_equal(f$estcoef$beta, as.numeric(b), tolerance = 1e-10)
+    expect_equal(f$df_eblup$eblup, as.numeric(X %*% b + G %*% Vi %*% (d$y - X %*% b)), tolerance = 1e-10)
+    r <- d$y - X %*% b
+    ll <- -0.5 * (D * log(2 * pi) + as.numeric(determinant(V)$modulus) + sum(r * (Vi %*% r)))
+    expect_equal(unname(f$goodness["loglikelihood"]), ll, tolerance = 1e-10)
+  }
+})

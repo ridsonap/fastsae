@@ -100,11 +100,15 @@
 * `eblup_bhf()` output: `fit$lme` (the `lmerMod` object) is replaced by `fit$residuals` (unit-level
   conditional residuals, used by `residuals()`); `estcoef` standard errors are $(X'\hat V^{-1}X)^{-1}$
   as in `lme4`. Rank-deficient designs now give an explicit error.
-* `eblup_sfh()`: $(I - \rho W')(I - \rho W)$ is formed from the precomputed $W'W$ (no $D^3$ product per
-  iteration); $g_3$ is vectorised; the MSE of unsampled (kriged) domains reuses the SAR derivative
-  matrices and only uses (#unsampled x m) products. $D = 400$ with 20 unsampled domains: 3.8 s -> 2.1 s.
-
-### Major New Features & Enhancements
+* `eblup_sfh()` (fit, analytical MSE, kriging and the bootstrap refits) no longer forms any
+  $D \times D$ inverse or $D^3$ product. With $A = (I - \rho W')(I - \rho W)$ and
+  $M = A + \sigma^2 E'\Psi^{-1}E$ (both sparse), $V^{-1}$, $GV^{-1}$, $g_1 = \sigma^2 \mathrm{diag}(M^{-1})$,
+  the scores/information, $g_3$, $g_4$, the ML bias and the kriging terms follow from Cholesky
+  solves with $A$ and $M$ (`src/sar_engine.h`; Eigen sparse $LDL'$ with AMD ordering, dense
+  factorisations when $W$ itself is dense, e.g. distance weights). Results are unchanged (relative
+  differences below 2e-10). Analytical: $D = 400$ 2.2 s -> 0.10 s, $D = 1600$ 80 s -> 2.5 s,
+  $D = 2500$ about 6 s; bootstrap ($D = 400$, $B = 20$): 16 s -> 1.3 s. `RcppEigen` is added to
+  `LinkingTo`.
 * **Two-Fold Subarea EBLUP (`eblup_twofold`)**:
   * Implements nested two-fold sub-area level models (Torabi & Rao, 2014) with area effects $v_i$ and sub-area effects $u_{ij}$.
   * Ultra-fast Fisher-scoring algorithms in C++ for REML and ML estimation.

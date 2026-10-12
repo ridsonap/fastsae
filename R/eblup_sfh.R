@@ -97,6 +97,14 @@
 #' \eqn{\rho = -0.999} is reported as \eqn{-1} (as \code{sae}) only when \eqn{I + W} is
 #' non-singular (not for bipartite graphs such as a rook grid).
 #'
+#' Computation. No \eqn{D \times D} inverse is formed: with
+#' \eqn{A = (I - \rho W')(I - \rho W)} and \eqn{M = A + \sigma^2 E'\Psi^{-1}E}
+#' (\eqn{E} selects the sampled domains), \eqn{V^{-1} = \Psi^{-1} - \sigma^2\Psi^{-1}EM^{-1}E'\Psi^{-1}},
+#' \eqn{g_1 = \sigma^2\,\mathrm{diag}(M^{-1})} and the remaining terms follow from Cholesky
+#' solves with \eqn{A} and \eqn{M}. These are sparse for a sparse \code{W} (contiguity or
+#' k-nearest-neighbour weights), which makes models with a few thousand domains feasible;
+#' a dense \code{W} (e.g. inverse-distance weights) uses dense factorisations.
+#'
 #' @export
 #' @examples
 #' library(fastsae)
