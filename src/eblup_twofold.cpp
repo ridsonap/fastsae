@@ -9,7 +9,7 @@
 //
 // Variance components (s2v, s2u) by ML/REML Fisher-scoring exploiting the
 // block-diagonal covariance (Woodbury per area block). EBLUP from the BLUP
-// equations. MSE = g1 + g2 + g3 (Prasad-Rao type), with g3 from an exact
+// equations. MSE = g1 + g2 + 2*g3 (Prasad-Rao type), with g3 from an exact
 // matrix derivation:
 //
 //   d mu~/d s2u = (V^{-1} - S V^{-2}) r  =: Mu r
@@ -22,6 +22,10 @@
 // The matrix-based g3 above was validated against finite-difference
 // derivatives (cor 0.97/0.96/0.74). A proposed sigma_u^-2 "correction" was
 // rejected as dimensionally wrong.
+//
+// The reported MSE ESTIMATOR is g1 + g2 + 2*g3 (REML), minus b_ML'grad g1
+// for ML: g1 + g2 + g3 approximates the true MSE, but the plug-in g1(th^)
+// is itself biased downward by ~g3.
 //
 // REVISION NOTES (this file):
 //  [bug]  beta/Q returned by twofold_fit now correspond to the FINAL (s2v, s2u)
@@ -116,7 +120,14 @@ TwofoldPass twofold_pass(const mat& Xs, const vec& ys, const vec& psis,
   const vec tvec = Q * Xty;
 
   // Score and information for (s2v, s2u). Order: 0=v (area), 1=u (subarea).
+  // V_v = blockdiag(1_d 1_d'), V_u = I. P = V^{-1} - V^{-1} X Q X' V^{-1} is
+  // NOT block diagonal, so the exact REML information needs cross-area terms;
+  // with a_d = X_d'V_d^{-1}1, S_a = sum_d a_d a_d', M = X'V^{-2}X (total):
+  //   tr(P V_v P V_v) = sum_d s1_d^2 - 2 sum_d s1_d a_d'Q a_d + tr(Q S_a Q S_a)
+  //   tr(P V_u P V_u) = tr(V^{-2}) - 2 tr(Q X'V^{-3}X) + tr(Q M Q M)
+  //   tr(P V_v P V_u) = sum_d [z_d'z_d - 2 z_d'A_d Q a_d] + tr(Q M Q S_a)
   double sv = 0.0, su = 0.0, Ivv = 0.0, Iuu = 0.0, Ivu = 0.0;
+  mat S_a(p, p, fill::zeros), M_tot(p, p, fill::zeros);
   for (int d = 0; d < m_all; ++d) {
     const uvec& id = sidx[d];
     if (id.n_elem == 0) continue;
@@ -127,35 +138,40 @@ TwofoldPass twofold_pass(const mat& Xs, const vec& ys, const vec& psis,
     const double trV = accu(a.dd) - a.c * a.dd2;
     const double s1 = a.s * (1.0 - a.c * a.s); // 1'V^{-1}1
     const vec z = a.dd * (1.0 - a.c * a.s);    // V^{-1}1
+    const double trV2 = a.dd2 - 2.0 * a.c * a.dd3 + a.c * a.c * a.dd2 * a.dd2;
 
     if (!is_ml) {
       const vec avec = sum(a.A, 0).t();        // X'V^{-1}1
-      const mat M = a.A.t() * a.A;             // X'V^{-2}X
-      const double qd = s1 - as_scalar(avec.t() * Q * avec);
+      const mat M = a.A.t() * a.A;             // X'V^{-2}X (area d)
+      const double aQa = as_scalar(avec.t() * Q * avec);
+      const double qd = s1 - aQa;
       const double trP = trV - trace(Q * M);
       sv += -0.5 * qd + 0.5 * sumr * sumr;
       su += -0.5 * trP + 0.5 * dot(r, r);
-      Ivv += 0.5 * qd * qd;
 
       mat VinvA = a.A.each_col() % a.dd;
       VinvA -= a.c * a.dd * (a.dd.t() * a.A);
-      const mat G = a.A.t() * VinvA;
-      const mat MQ = M * Q;
-      const double trV2 = a.dd2 - 2.0 * a.c * a.dd3 + a.c * a.c * a.dd2 * a.dd2;
-      const double trP2 = trV2 - 2.0 * trace(Q * G) + trace(MQ * MQ);
-      Iuu += 0.5 * trP2;
+      const mat G = a.A.t() * VinvA;           // X'V^{-3}X (area d)
 
+      Ivv += 0.5 * (s1 * s1 - 2.0 * s1 * aQa);
+      Iuu += 0.5 * (trV2 - 2.0 * trace(Q * G));
       const rowvec zA = z.t() * a.A;
-      const double term = dot(z, z) - 2.0 * as_scalar(zA * Q * avec) +
-        as_scalar(avec.t() * Q * M * Q * avec);
-      Ivu += 0.5 * term;
+      Ivu += 0.5 * (dot(z, z) - 2.0 * as_scalar(zA * Q * avec));
+      S_a += avec * avec.t();
+      M_tot += M;
     } else {
       sv += -0.5 * s1 + 0.5 * sumr * sumr;
       su += -0.5 * trV + 0.5 * dot(r, r);
       Ivv += 0.5 * s1 * s1;
-      Iuu += 0.5 * (a.dd2 - 2.0 * a.c * a.dd3 + a.c * a.c * a.dd2 * a.dd2);
+      Iuu += 0.5 * trV2;
       Ivu += 0.5 * dot(z, z);
     }
+  }
+  if (!is_ml) {
+    const mat QS = Q * S_a, QM = Q * M_tot;
+    Ivv += 0.5 * trace(QS * QS);
+    Iuu += 0.5 * trace(QM * QM);
+    Ivu += 0.5 * trace(QM * QS);
   }
 
   o.beta = tvec;
@@ -191,12 +207,20 @@ TwofoldFit twofold_fit(const mat& Xs, const vec& ys, const vec& psis,
     vec delta(2, fill::zeros);
     bool solved = false;
     const double det = Ivv * Iuu - Ivu * Ivu;
-    if (std::fabs(det) > 1e-300 && std::isfinite(det)) {
+    // Relative test: with one subarea per area, V_v = V_u = I and only
+    // s2v + s2u is identified -- the (exact) information is singular. The
+    // pseudo-inverse then moves along the identified direction only.
+    const bool well_cond = std::isfinite(det) && det > 1e-10 * std::fabs(Ivv * Iuu);
+    if (well_cond) {
       mat II;
       if (inv_sympd(II, o.Info)) {
         delta = II * o.sc;
         solved = true;
       }
+    }
+    if (!solved && o.Info.is_finite() && accu(abs(o.Info)) > 0.0) {
+      delta = pinv(o.Info) * o.sc;
+      solved = delta.is_finite();
     }
     if (!solved) {
       delta(0) = (Ivv > 1e-300) ? sv / Ivv : 0.0;
@@ -232,8 +256,14 @@ TwofoldFit twofold_fit(const mat& Xs, const vec& ys, const vec& psis,
   // Inverse information (ML or REML, matching `method`) for the g3 variances.
   {
     mat II;
-    if (inv_sympd(II, fin.Info)) f.InfoInv = II;
-    else f.InfoInv = zeros<mat>(2, 2);
+    const double detf = fin.Info(0, 0) * fin.Info(1, 1) - fin.Info(0, 1) * fin.Info(0, 1);
+    if (detf > 1e-10 * std::fabs(fin.Info(0, 0) * fin.Info(1, 1)) && inv_sympd(II, fin.Info)) {
+      f.InfoInv = II;
+    } else if (fin.Info.is_finite()) {
+      f.InfoInv = pinv(fin.Info);  // only s2v + s2u identified (see above)
+    } else {
+      f.InfoInv = zeros<mat>(2, 2);
+    }
   }
 
   if (want_loglik) {
@@ -363,7 +393,37 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
     }
   }
 
-  // ---- MSE: analytical (g1+g2+g3) or parametric bootstrap
+  // ---- MSE: analytical or parametric bootstrap
+  //
+  // Analytical MSE ESTIMATOR (Prasad-Rao / Datta-Lahiri for a covariance
+  // linear in (s2v, s2u); Rao & Molina 2015, Ch. 5):
+  //   REML: g1(th^) + g2(th^) + 2 g3(th^)
+  //   ML  : g1(th^) + g2(th^) + 2 g3(th^) - b_ML(th^)' grad g1(th^)
+  // The factor 2 on g3 is needed because the plug-in g1(th^) is biased
+  // downward by ~g3 (E g1(th^) = g1(th) - g3(th) + o(1/m)).
+  const bool is_ml = (method == "ML");
+  vec bML(2, fill::zeros);
+  if (is_ml) {
+    // b_ML = 1/2 I^{-1} h, h_j = -tr( Q X' V^{-1} V_j V^{-1} X ),
+    // V_v = blockdiag(11'), V_u = I.
+    vec h(2, fill::zeros);
+    for (int d = 0; d < m_all; ++d) {
+      const uvec& id = sidx[d];
+      if (id.n_elem == 0) continue;
+      const mat Xd = Xs.rows(id);
+      const vec psid = psis.elem(id);
+      const vec dd = 1.0 / (s2u + psid);
+      const double s = accu(dd);
+      const double c = (s2v > 0.0) ? s2v / (1.0 + s2v * s) : 0.0;
+      mat ViX = Xd.each_col() % dd;
+      ViX -= c * dd * (dd.t() * Xd);              // V_d^{-1} X_d
+      const vec a = sum(ViX, 0).t();             // X_d' V_d^{-1} 1
+      h(0) -= as_scalar(a.t() * f.Q * a);
+      h(1) -= trace(f.Q * (ViX.t() * ViX));      // tr(Q X'V^{-2}X)
+    }
+    bML = 0.5 * f.InfoInv * h;
+  }
+
   if (mse_type == "analytical") {
     // Sampled: g1+g2+g3 via explicit per-area matrices
     for (int d = 0; d < m_all; ++d) {
@@ -405,7 +465,15 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
         E_vu(j) = dot(MvV.row(j), Mu.row(j));
       }
       vec g3 = E_vv * var_v + E_uu * var_u + 2.0 * E_vu * cov_vu;
-      vec mse_d = g1 + g2 + g3;
+      vec mse_d = g1 + g2 + 2.0 * g3;
+      if (is_ml) {
+        // grad g1 = diag( S_j - S_j V^{-1} S - S V^{-1} S_j + S V^{-1} V_j V^{-1} S ),
+        // S_v = V_v = 11', S_u = V_u = I.
+        mat J = ones<mat>(nd, nd);
+        mat dg1v = J - J * Vinv * Sd - SVinv * J + SVinv * J * Vinv * Sd;
+        mat dg1u = eye<mat>(nd, nd) - 2.0 * SVinv + SVinv * Vinv * Sd;
+        mse_d -= bML(0) * dg1v.diag() + bML(1) * dg1u.diag();
+      }
       for (int j = 0; j < nd; ++j) if (mse_d(j) < 0 && mse_d(j) > -1e-8) mse_d(j) = 0;
       mse_all.elem(gid) = mse_d;
     }
@@ -455,13 +523,22 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
         const double Evu = dot(a_v, Va_u);
         const double g3s = Evv * var_v + Euu * var_u + 2.0 * Evu * cov_vu;
 
+        // ML bias term: d g1*/d s2v = 1 - 2 s2v w1 + s2v^2 w1^2,
+        //               d g1*/d s2u = 1 + s2v^2 1'V^{-2}1
+        double bias_s = 0.0;
+        if (is_ml) {
+          const double dg1s_v = 1.0 - 2.0 * s2v * w1 + s2v * s2v * w1 * w1;
+          const double dg1s_u = 1.0 + s2v * s2v * accu(Vinv_w);
+          bias_s = bML(0) * dg1s_v + bML(1) * dg1s_u;
+        }
+
         for (uword k = 0; k < ng.n_elem; ++k) {
           const uword gi = ng(k);
           const vec xj = Xall.row(gi).t();
           // g2*: (x - s2v X'V^{-1}1)' Q (x - s2v X'V^{-1}1)
           const vec av = xj - s2v * Xtw;
           const double g2s = as_scalar(av.t() * f.Q * av);
-          double mse_star = g1s + g2s + g3s;
+          double mse_star = g1s + g2s + 2.0 * g3s - bias_s;
           if (mse_star < 0 && mse_star > -1e-8) mse_star = 0;
           mse_all(gi) = mse_star;
         }

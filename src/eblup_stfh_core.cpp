@@ -9,6 +9,7 @@
 //
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
+#include "eblup_stfh_core.h"
 using namespace Rcpp;
 using namespace arma;
 
@@ -43,6 +44,30 @@ static void build_omega2(int Tt, double rho2, arma::mat& Omega2, arma::mat& dOme
   Omega2.diag().fill(1.0 / one_m_rho2sq);
   // Turunan diagonal: d/drho2 [1/(1-rho2^2)] = 2*rho2 / (1-rho2^2)^2.
   dOmega2.diag().fill(2.0 * rho2 / (one_m_rho2sq * one_m_rho2sq));
+}
+
+// ============================================================================
+// build_omega2_d2()
+//
+// Second derivative of the AR(1) matrix Omega2(rho2)_ij = rho2^l / (1 - rho2^2),
+// l = |i - j|. With f = rho^l and h = 1 / (1 - rho^2) (h' = 2 rho h^2,
+// h'' = 2 h^2 + 8 rho^2 h^3):  Omega2'' = f'' h + 2 f' h' + f h''.
+// ============================================================================
+static arma::mat build_omega2_d2(int Tt, double rho2) {
+  arma::mat d2(Tt, Tt);
+  const double h = 1.0 / (1.0 - rho2 * rho2);
+  const double h1 = 2.0 * rho2 * h * h;
+  const double h2 = 2.0 * h * h + 8.0 * rho2 * rho2 * h * h * h;
+  for (int i = 0; i < Tt; ++i) {
+    for (int j = 0; j < Tt; ++j) {
+      const int l = std::abs(i - j);
+      const double f = std::pow(rho2, (double) l);
+      const double f1 = (l >= 1) ? l * std::pow(rho2, (double)(l - 1)) : 0.0;
+      const double f2 = (l >= 2) ? l * (l - 1) * std::pow(rho2, (double)(l - 2)) : 0.0;
+      d2(i, j) = f2 * h + 2.0 * f1 * h1 + f * h2;
+    }
+  }
+  return d2;
 }
 
 // ============================================================================
@@ -154,6 +179,495 @@ static bool build_invV(const ModelPieces& mp, const arma::mat& invAZ1, int D,
 }
 
 // ============================================================================
+// Structured evaluation (no M x M matrices)
+//
+// V = A + Z Vu1 Z', A = blockdiag(A_d) (T x T per domain), Z = I_D (x) 1_T.
+// With Woodbury, V^{-1} = A^{-1} - (A^{-1}Z) C^{-1} (A^{-1}Z)',
+// C = Vu1^{-1} + Z'A^{-1}Z, and
+//   P = V^{-1} - V^{-1}X Q X'V^{-1} = A^{-1} - U Wm U',
+//   U = [A^{-1}Z, V^{-1}X] (M x (D + p)), Wm = blockdiag(C^{-1}, Q).
+// The derivatives are of two kinds: V_a = Z B_a Z' (sigma21, rho1) and
+// V_a = I_D (x) E_a (sigma22, rho2). Scores and Fisher information then only
+// need D x D, (D+p) x (D+p) and T x T blocks:
+//   tr(P Z Ba Z' P Z Bb Z') = tr(Ba Z'PZ Bb Z'PZ)
+//   tr(P Z Ba Z' P (I(x)E)) = tr(Ba (PZ)'(I(x)E)(PZ))
+//   tr(P Ej P Ek) = sum_d tr(A_d^{-1} Ej A_d^{-1} Ek)
+//                   - 2 tr(Wm (Ek U)'(A^{-1}Ej U)) + tr(Wm U'EjU Wm U'EkU)
+// i.e. O(T D^3 + M (D+p)^2) instead of O(M^3) per iteration. Algebraically
+// identical to the dense computation. Pure Armadillo (thread-safe).
+// ============================================================================
+namespace {
+struct StPieces {
+  int D = 0, T = 0, M = 0;
+  bool isST = true, hasVu1 = true;
+  std::vector<arma::mat> Ainv;   // D blocks, T x T
+  arma::mat AZ;                  // M x D, A^{-1} Z
+  arma::vec c;                   // D, 1'A_d^{-1}1
+  arma::mat Cmat, Cinv;          // D x D (when sigma21 != 0)
+  arma::mat Omega1, Omega2, dOmega2;
+  double logdetA = 0.0;
+};
+}  // namespace
+
+static bool st_build(const arma::vec& th, bool isST, int D, int T,
+                     const arma::vec& vardir, const arma::mat& W, StPieces& p) {
+  p.D = D; p.T = T; p.M = D * T; p.isST = isST;
+  const arma::mat I = arma::eye<arma::mat>(D, D);
+  const arma::mat ImrW = I - th(1) * W;
+  const arma::mat A1 = arma::symmatu(ImrW.t() * ImrW);
+  if (!arma::inv_sympd(p.Omega1, A1) && !arma::inv(p.Omega1, A1)) return false;
+  if (isST) build_omega2(T, th(3), p.Omega2, p.dOmega2);
+  p.Ainv.resize(D);
+  p.AZ.zeros(p.M, D);
+  p.c.set_size(D);
+  p.logdetA = 0.0;
+  for (int d = 0; d < D; ++d) {
+    const int f = d * T, l = f + T - 1;
+    const arma::vec psi_d = vardir.subvec(f, l);
+    arma::mat Ad;
+    if (isST) {
+      Ad = arma::symmatu(th(2) * p.Omega2 + arma::diagmat(psi_d));
+    } else {
+      const arma::vec bd = th(2) + psi_d;
+      if (arma::any(bd <= 0.0)) return false;
+      Ad = arma::diagmat(bd);
+    }
+    if (!arma::inv_sympd(p.Ainv[d], Ad) && !arma::inv(p.Ainv[d], Ad)) return false;
+    double ld, sg;
+    if (!arma::log_det(ld, sg, Ad) || sg <= 0) return false;
+    p.logdetA += ld;
+    const arma::vec a = arma::sum(p.Ainv[d], 1);
+    p.AZ.submat(f, d, l, d) = a;
+    p.c(d) = arma::accu(a);
+  }
+  p.hasVu1 = (th(0) != 0.0);
+  if (p.hasVu1) {
+    const arma::mat Vu1 = arma::symmatu(th(0) * p.Omega1);
+    arma::mat invVu1;
+    if (!arma::inv_sympd(invVu1, Vu1) && !arma::inv(invVu1, Vu1)) return false;
+    p.Cmat = arma::symmatu(invVu1 + arma::diagmat(p.c));
+    if (!arma::inv_sympd(p.Cinv, p.Cmat) && !arma::inv(p.Cinv, p.Cmat)) return false;
+  }
+  return true;
+}
+
+// A^{-1} Y, (I (x) E) Y, blockdiag(A_d^{-1} E) Y, Z'Y, V^{-1} Y
+static arma::mat st_Ainv(const StPieces& p, const arma::mat& Y) {
+  arma::mat R(Y.n_rows, Y.n_cols);
+  for (int d = 0; d < p.D; ++d) {
+    const int f = d * p.T, l = f + p.T - 1;
+    R.rows(f, l) = p.Ainv[d] * Y.rows(f, l);
+  }
+  return R;
+}
+static arma::mat st_blk(const StPieces& p, const arma::mat& E, const arma::mat& Y) {
+  arma::mat R(Y.n_rows, Y.n_cols);
+  for (int d = 0; d < p.D; ++d) {
+    const int f = d * p.T, l = f + p.T - 1;
+    R.rows(f, l) = E * Y.rows(f, l);
+  }
+  return R;
+}
+static arma::mat st_AinvE(const StPieces& p, const arma::mat& E, const arma::mat& Y) {
+  arma::mat R(Y.n_rows, Y.n_cols);
+  for (int d = 0; d < p.D; ++d) {
+    const int f = d * p.T, l = f + p.T - 1;
+    R.rows(f, l) = p.Ainv[d] * (E * Y.rows(f, l));
+  }
+  return R;
+}
+static arma::mat st_Zt(const StPieces& p, const arma::mat& Y) {
+  arma::mat R(p.D, Y.n_cols);
+  for (int d = 0; d < p.D; ++d) {
+    const int f = d * p.T, l = f + p.T - 1;
+    R.row(d) = arma::sum(Y.rows(f, l), 0);
+  }
+  return R;
+}
+static arma::mat st_Vinv(const StPieces& p, const arma::mat& Y) {
+  arma::mat R = st_Ainv(p, Y);
+  if (p.hasVu1) R -= p.AZ * (p.Cinv * (p.AZ.t() * Y));
+  return R;
+}
+
+// REML score S and Fisher information F at th (pieces p already built);
+// also returns ViX, Q and Py. th may have negative variances (classical
+// iteration): no logarithms are taken here.
+static bool st_score_info(const StPieces& p, const arma::vec& th, const arma::mat& X,
+                          const arma::vec& y, const arma::mat& W, const arma::mat& WtW,
+                          arma::vec& S, arma::mat& F,
+                          arma::mat& ViX, arma::mat& Q, arma::vec& Py) {
+  const int D = p.D, T = p.T, nparam = p.isST ? 4 : 3, px = X.n_cols;
+  ViX = st_Vinv(p, X);
+  const arma::mat XtViX = arma::symmatu(X.t() * ViX);
+  if (!arma::inv_sympd(Q, XtViX) && !arma::inv(Q, XtViX)) return false;
+  const arma::vec Viy = st_Vinv(p, arma::mat(y));
+  Py = Viy - ViX * (Q * (X.t() * Viy));
+
+  // low-rank part of P
+  const int r = (p.hasVu1 ? D : 0) + px;
+  arma::mat U(p.M, r), Wm(r, r, fill::zeros);
+  int off = 0;
+  if (p.hasVu1) {
+    U.cols(0, D - 1) = p.AZ;
+    Wm.submat(0, 0, D - 1, D - 1) = p.Cinv;
+    off = D;
+  }
+  U.cols(off, off + px - 1) = ViX;
+  Wm.submat(off, off, off + px - 1, off + px - 1) = Q;
+
+  const arma::mat PZ = p.AZ - U * (Wm * st_Zt(p, U).t());   // P Z (M x D)
+  arma::mat ZPZ = st_Zt(p, PZ);
+  ZPZ = 0.5 * (ZPZ + ZPZ.t());
+  const arma::vec zPy = st_Zt(p, arma::mat(Py));
+
+  const arma::mat Cw = 2.0 * th(1) * WtW - (W + W.t());
+  const arma::mat B[2] = { p.Omega1, -th(0) * (p.Omega1 * Cw * p.Omega1) };
+  std::vector<arma::mat> E;
+  if (p.isST) { E.push_back(p.Omega2); E.push_back(th(2) * p.dOmega2); }
+  else E.push_back(arma::eye<arma::mat>(T, T));
+  const int nE = (int) E.size();
+
+  S.set_size(nparam);
+  F.set_size(nparam, nparam);
+  for (int a = 0; a < 2; ++a) {
+    const arma::mat BZ = B[a] * ZPZ;
+    S(a) = -0.5 * arma::trace(BZ) + 0.5 * arma::dot(zPy, B[a] * zPy);
+    for (int b = a; b < 2; ++b) {
+      F(a, b) = 0.5 * arma::accu(BZ % (B[b] * ZPZ).t());
+      F(b, a) = F(a, b);
+    }
+  }
+  std::vector<arma::mat> EU(nE), AEU(nE), UtEU(nE);
+  for (int j = 0; j < nE; ++j) {
+    EU[j] = st_blk(p, E[j], U);
+    AEU[j] = st_AinvE(p, E[j], U);
+    UtEU[j] = U.t() * EU[j];
+    double trAE = 0.0;
+    for (int d = 0; d < D; ++d) trAE += arma::accu(p.Ainv[d] % E[j].t());
+    const arma::vec EPy = st_blk(p, E[j], arma::mat(Py));
+    S(2 + j) = -0.5 * (trAE - arma::accu(Wm % UtEU[j].t())) + 0.5 * arma::dot(Py, EPy);
+    const arma::mat PZtEPZ = PZ.t() * st_blk(p, E[j], PZ);
+    for (int a = 0; a < 2; ++a) {
+      F(a, 2 + j) = 0.5 * arma::accu(B[a] % PZtEPZ.t());
+      F(2 + j, a) = F(a, 2 + j);
+    }
+  }
+  for (int j = 0; j < nE; ++j) {
+    for (int k = j; k < nE; ++k) {
+      double T1 = 0.0;
+      for (int d = 0; d < D; ++d) {
+        const arma::mat AEj = p.Ainv[d] * E[j], AEk = p.Ainv[d] * E[k];
+        T1 += arma::accu(AEj % AEk.t());
+      }
+      const double T2 = arma::accu(Wm % (EU[k].t() * AEU[j]).t());
+      const arma::mat WEj = Wm * UtEU[j], WEk = Wm * UtEU[k];
+      const double T3 = arma::accu(WEj % WEk.t());
+      F(2 + j, 2 + k) = 0.5 * (T1 - 2.0 * T2 + T3);
+      F(2 + k, 2 + j) = F(2 + j, 2 + k);
+    }
+  }
+  return S.is_finite() && F.is_finite();
+}
+
+// ============================================================================
+// stfh_reml_eval()
+//
+// Restricted log-likelihood (up to a constant)
+//   ll = -1/2 [ log|V| + log|X'V^{-1}X| + y'Py ],
+// with log|V| = log|A| + log|Vu1| + log|Vu1^{-1} + Z1'A^{-1}Z1| (determinant
+// lemma), and optionally the REML score S and Fisher information F.
+// Pure Armadillo (thread-safe).
+// ============================================================================
+static bool stfh_reml_eval(
+    const arma::vec& th, bool isST, int D, int Tt,
+    const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
+    const arma::mat& W, bool want_SF,
+    double& ll, arma::vec& S, arma::mat& F
+) {
+  StPieces p;
+  if (!st_build(th, isST, D, Tt, vardir, W, p)) return false;
+  arma::mat ViX, Q;
+  arma::vec Py;
+  arma::vec S0;
+  arma::mat F0;
+  if (want_SF) {
+    if (!st_score_info(p, th, X, y, W, W.t() * W, S0, F0, ViX, Q, Py)) return false;
+  } else {
+    // log-likelihood only (line search): no score / information
+    ViX = st_Vinv(p, X);
+    const arma::mat XtViX = arma::symmatu(X.t() * ViX);
+    if (!arma::inv_sympd(Q, XtViX)) return false;
+    const arma::vec Viy = st_Vinv(p, arma::mat(y));
+    Py = Viy - ViX * (Q * (X.t() * Viy));
+  }
+
+  double logdetV = p.logdetA, ld, sg;
+  if (p.hasVu1) {
+    if (th(0) <= 0.0) return false;
+    if (!arma::log_det(ld, sg, p.Omega1) || sg <= 0) return false;
+    logdetV += D * std::log(th(0)) + ld;
+    if (!arma::log_det(ld, sg, p.Cmat) || sg <= 0) return false;
+    logdetV += ld;
+  }
+  if (!arma::log_det(ld, sg, arma::mat(arma::symmatu(X.t() * ViX))) || sg <= 0) return false;
+  ll = -0.5 * (logdetV + ld + arma::dot(y, Py));
+  if (!std::isfinite(ll)) return false;
+  if (want_SF) { S = S0; F = F0; }
+  return true;
+}
+
+// ============================================================================
+// stfh_fit_safeguarded()
+//
+// Fallback when the classical (sae-compatible) Fisher scoring fails, which
+// happens when a variance iterate goes negative: with rho1 -> 1 the matrix V
+// then becomes strongly indefinite and the iteration wanders. Here instead:
+//   * projected Fisher scoring on sigma21, sigma22 >= 0, |rho| <= 0.999;
+//   * parameters at an active bound are held fixed (a variance at 0 whose
+//     score points outwards, and the correlation of a variance that is 0,
+//     which is then unidentified);
+//   * step halving until the REML log-likelihood does not decrease.
+// Returns the constrained REML maximiser in `th`.
+// ============================================================================
+static bool stfh_fit_safeguarded(
+    const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
+    const arma::mat& W, int D, int Tt, bool isST,
+    int maxiter, double precision, arma::vec& th, int& iters
+) {
+  const int nparam = isST ? 4 : 3;
+  auto project = [&](arma::vec t) {
+    t(0) = std::max(t(0), 0.0);
+    t(2) = std::max(t(2), 0.0);
+    t(1) = std::min(std::max(t(1), -0.999), 0.999);
+    if (isST) t(3) = std::min(std::max(t(3), -0.999), 0.999);
+    return t;
+  };
+  th = project(th);
+  double ll;
+  arma::vec S;
+  arma::mat F;
+  if (!stfh_reml_eval(th, isST, D, Tt, X, y, vardir, W, true, ll, S, F)) return false;
+
+  // Near a nearly unidentified ridge (e.g. sigma22 -> 0 with rho2 -> 1, where
+  // only sigma22 / (1 - rho2^2) is well determined) progress per iteration is
+  // slow, so the fallback gets its own, larger budget.
+  const int max_it = 5 * maxiter;
+  for (iters = 1; iters <= max_it; ++iters) {
+    // Active set: a variance at 0 whose score points outwards; the
+    // correlation of a zero variance (unidentified); a correlation at its
+    // bound whose score points outwards.
+    std::vector<arma::uword> fr;
+    for (int a = 0; a < nparam; ++a) {
+      bool fixed = false;
+      if ((a == 0 || a == 2) && th(a) == 0.0 && S(a) <= 0.0) fixed = true;
+      if ((a == 1 && th(0) == 0.0) || (a == 3 && th(2) == 0.0)) fixed = true;
+      if ((a == 1 || a == 3) && ((th(a) >= 0.999 && S(a) >= 0.0) ||
+                                 (th(a) <= -0.999 && S(a) <= 0.0))) fixed = true;
+      if (!fixed) fr.push_back(a);
+    }
+    if (fr.empty()) return true;
+    const arma::uvec f = arma::conv_to<arma::uvec>::from(fr);
+
+    // Converged when every free score is negligible in standard-error units:
+    // |S_a| / sqrt(F_aa) is the size of a scoring step measured in SEs (the
+    // remaining log-likelihood gain is ~ z^2 / 2). A relative change in the
+    // parameter is a poor criterion for a variance close to 0, where Fisher
+    // scoring also zig-zags because the observed curvature differs from F.
+    // Default precision 1e-4 => steps below 0.1% of an SE.
+    {
+      double zmax = 0.0;
+      for (arma::uword a : fr) {
+        if (F(a, a) > 0.0) zmax = std::max(zmax, std::fabs(S(a)) / std::sqrt(F(a, a)));
+      }
+      if (zmax < 10.0 * precision) return true;
+    }
+
+    // Candidate directions: Fisher-scoring step on the free set, then (if the
+    // line search fails on it) the diagonally scaled gradient.
+    std::vector<arma::vec> dirs;
+    {
+      arma::vec sf, step(nparam, fill::zeros);
+      // no_approx: a singular F block yields no Newton direction (the scaled
+      // gradient below is used) instead of a printed warning from a thread.
+      if (arma::solve(sf, arma::mat(F.submat(f, f)), arma::vec(S.elem(f)),
+                      arma::solve_opts::no_approx)) {
+        step.elem(f) = sf;
+        dirs.push_back(step);
+      }
+      arma::vec g(nparam, fill::zeros);
+      const arma::vec dF = F.diag();
+      for (arma::uword a : fr) g(a) = S(a) / std::max(dF(a), 1e-12);
+      dirs.push_back(g);
+    }
+
+    double t = 1.0, llc = 0.0;
+    arma::vec cand, Sc;
+    arma::mat Fc;
+    bool accepted = false;
+    // line search on the log-likelihood only; score / information are
+    // computed once, for the accepted point
+    for (const arma::vec& step : dirs) {
+      t = 1.0;
+      for (int h = 0; h < 20; ++h) {
+        cand = project(th + t * step);
+        if (stfh_reml_eval(cand, isST, D, Tt, X, y, vardir, W, false, llc, Sc, Fc) &&
+            llc > ll) {
+          accepted = true;
+          break;
+        }
+        t *= 0.5;
+      }
+      if (accepted) break;
+    }
+    if (!accepted) return true;  // no ascent direction left: constrained maximum
+    if (!stfh_reml_eval(cand, isST, D, Tt, X, y, vardir, W, true, llc, Sc, Fc)) return false;
+    const bool full_step = (t == 1.0);
+
+    const double rel = arma::max(arma::abs(cand - th) / arma::max(arma::abs(th), 1e-4 * arma::ones<arma::vec>(nparam)));
+    const double gain = llc - ll;
+    th = cand; ll = llc; S = Sc; F = Fc;
+    if (rel < precision) return true;
+    // On a (nearly) flat ridge -- e.g. rho1 when sigma21 ~ 0 -- the parameter
+    // can keep moving while the likelihood no longer changes. Only trusted
+    // for a full (un-halved) scoring step, so that a step shortened by the
+    // line search is never mistaken for convergence.
+    if (full_step && iters > 1 && gain <= 1e-10 * (1.0 + std::fabs(ll))) return true;
+  }
+  return false;
+}
+
+// ============================================================================
+// stfh_fit_arma()
+//
+// Pure Armadillo REML Fisher-scoring fit + EBLUP (no R objects, no R RNG),
+// safe to call from an OpenMP parallel region. Same algorithm as the
+// iteration in .eblup_stfh_core(): same update, clamping, convergence rule
+// and final truncation. Used to RE-ESTIMATE theta in every bootstrap
+// replicate (otherwise the bootstrap MSE misses the g3 contribution).
+// ============================================================================
+STFitArma stfh_fit_arma(
+    const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
+    const arma::mat& W, int D, int Tt, bool isST,
+    int maxiter, double precision,
+    double sigma21_start, double rho1_start,
+    double sigma22_start, double rho2_start
+) {
+  STFitArma res;
+  res.ok = false;
+  res.converged = false;
+  res.n_iter = 0;
+  res.sigma21 = res.rho1 = res.sigma22 = res.rho2 = 0.0;
+
+  const int nparam = isST ? 4 : 3;
+  const arma::mat WtW = W.t() * W;
+
+  arma::vec thetak(nparam), thetak1(nparam);
+  thetak1(0) = sigma21_start;
+  thetak1(1) = rho1_start;
+  thetak1(2) = sigma22_start;
+  if (isST) thetak1(3) = rho2_start;
+
+  int k = 0;
+  double diff = precision + 1.0;
+  bool primary_failed = false;
+  while (diff > precision && k < maxiter) {
+    ++k;
+    thetak = thetak1;
+
+    StPieces sp;
+    if (!st_build(thetak, isST, D, Tt, vardir, W, sp)) { primary_failed = true; break; }
+    arma::vec S;
+    arma::mat F, ViX_k, Q_k;
+    arma::vec Py_k;
+    if (!st_score_info(sp, thetak, X, y, W, WtW, S, F, ViX_k, Q_k, Py_k)) { primary_failed = true; break; }
+    arma::mat Finv;
+    if (!arma::inv_sympd(Finv, F)) {
+      if (!arma::inv(Finv, F)) { primary_failed = true; break; }
+    }
+    thetak1 = thetak + Finv * S;
+    if (!thetak1.is_finite()) { primary_failed = true; break; }
+
+    if (thetak1(1) <= -1) thetak1(1) = -0.999;
+    else if (thetak1(1) >= 1) thetak1(1) = 0.999;
+    if (isST) {
+      if (thetak1(3) <= -1) thetak1(3) = -0.999;
+      else if (thetak1(3) >= 1) thetak1(3) = 0.999;
+    }
+
+    arma::vec thetak_safe = thetak;
+    for (int i = 0; i < nparam; ++i) if (thetak_safe(i) == 0.0) thetak_safe(i) = 1e-4;
+    diff = arma::max(arma::abs((thetak_safe - thetak1) / thetak_safe));
+  }
+  if (primary_failed || diff > precision) {
+    // classical iteration failed: constrained REML with step halving
+    arma::vec th(nparam);
+    th(0) = sigma21_start; th(1) = rho1_start; th(2) = sigma22_start;
+    if (isST) th(3) = rho2_start;
+    int it2 = 0;
+    if (!stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST, maxiter, precision, th, it2)) {
+      res.n_iter = k + it2;
+      return res;
+    }
+    thetak1 = th;
+    k += it2;
+  } else if (thetak1(0) < 0.0 || thetak1(2) < 0.0) {
+    // same constrained re-maximisation as in .eblup_stfh_core()
+    arma::vec th = thetak1;
+    int it2 = 0;
+    if (!stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST, maxiter, precision, th, it2)) {
+      res.n_iter = k + it2;
+      return res;
+    }
+    thetak1 = th;
+    k += it2;
+  }
+  res.n_iter = k;
+
+  const double s21 = std::max(thetak1(0), 0.0);
+  const double r1 = thetak1(1);
+  const double s22 = std::max(thetak1(2), 0.0);
+  const double r2 = isST ? thetak1(3) : 0.0;
+
+  arma::vec thf(nparam);
+  thf(0) = s21; thf(1) = r1; thf(2) = s22;
+  if (isST) thf(3) = r2;
+  StPieces spf;
+  if (!st_build(thf, isST, D, Tt, vardir, W, spf)) return res;
+  const arma::mat ViXf = st_Vinv(spf, X);
+  arma::mat Q;
+  if (!arma::inv_sympd(Q, arma::symmatu(X.t() * ViXf))) return res;
+  res.beta = Q * (ViXf.t() * y);
+  const arma::vec invVresid = st_Vinv(spf, arma::mat(y - X * res.beta));
+  struct { arma::mat Vu1, Omega2; } mpf = { s21 * spf.Omega1, isST ? spf.Omega2 : arma::mat() };
+
+  // u1 = Vu1 Z1' V^{-1} r ;  u2 = (I_D x sigma22 Omega2) V^{-1} r
+  arma::vec tZ1invVresid(D);
+  for (int d = 0; d < D; ++d) {
+    tZ1invVresid(d) = arma::sum(invVresid.subvec(d * Tt, d * Tt + Tt - 1));
+  }
+  const arma::vec u1 = mpf.Vu1 * tZ1invVresid;
+
+  arma::vec eblup = X * res.beta;
+  for (int d = 0; d < D; ++d) {
+    const int first = d * Tt, last = first + Tt - 1;
+    const arma::vec r_d = invVresid.subvec(first, last);
+    eblup.subvec(first, last) += u1(d) +
+      (isST ? arma::vec(s22 * (mpf.Omega2 * r_d)) : arma::vec(s22 * r_d));
+  }
+
+  res.eblup = eblup;
+  res.theta = X * res.beta;
+  res.sigma21 = s21;
+  res.rho1 = r1;
+  res.sigma22 = s22;
+  res.rho2 = r2;
+  res.ok = eblup.is_finite();
+  res.converged = res.ok;
+  return res;
+}
+
+// ============================================================================
 // .eblup_stfh_core()
 //
 // Output structure matching seblup_area + estvarcomp for spatio-temporal
@@ -246,81 +760,25 @@ List eblup_stfh_core(
     );
   };
 
+  bool used_fallback = false;
+  bool primary_failed = false;
   while (diff > precision && k < maxiter) {
     ++k;
     thetak = thetak1;
 
-    const double sigma21_k = thetak(0);
-    const double rho1_k = thetak(1);
-    const double sigma22_k = thetak(2);
-    const double rho2_k = isST ? thetak(3) : 0.0;
-
-    ModelPieces mp = compute_pieces(sigma21_k, rho1_k, sigma22_k, rho2_k,
-                                    isST, D, Tt, Id, W, vardir);
-    if (!mp.ok) return make_fail_result(false);
-
-    arma::mat invAZ1 = build_invAZ1(mp.invA, D, Tt);
-    arma::mat invV, Cmat;
-    if (!build_invV(mp, invAZ1, D, invV, Cmat)) return make_fail_result(false);
-
-    arma::mat tXinvV = tX * invV;
-    arma::mat tXinvVX = arma::symmatu(tXinvV * X);
-    arma::mat Q;
-    bool okQ = arma::inv_sympd(Q, tXinvVX);
-    if (!okQ) okQ = arma::inv(Q, tXinvVX);
-    if (!okQ) return make_fail_result(false);
-
-    arma::mat P = invV - tXinvV.t() * Q * tXinvV;
-    arma::vec Py = P * y;
-
-    // Derivative of spatial model
-    arma::mat derivrho1 = -WpWt + 2.0 * rho1_k * WtW;
-    arma::mat sigmaOmegaderivrho1Omega = (-sigma21_k) * (mp.Omega1 * derivrho1 * mp.Omega1);
-
-    // Va matrices (Kronecker products)
-    std::vector<arma::mat> Va(nparam);
-    Va[0] = arma::kron(mp.Omega1, OnesT);
-    Va[1] = arma::kron(sigmaOmegaderivrho1Omega, OnesT);
-    if (!isST) {
-      Va[2] = arma::eye<arma::mat>(M, M);
-    } else {
-      Va[2] = arma::kron(EyeD, mp.Omega2);
-      arma::mat sigma22dOmega2 = sigma22_k * mp.dOmega2;
-      Va[3] = arma::kron(EyeD, sigma22dOmega2);
-    }
-
-    // PV matrices and traces
-    std::vector<arma::mat> PV(nparam);
-    arma::vec trPV(nparam);
-    for (int i = 0; i < nparam; ++i) {
-      PV[i] = P * Va[i];
-      trPV(i) = arma::trace(PV[i]);
-    }
-
-    // Fisher information matrix
-    arma::mat trPVPV(nparam, nparam, fill::zeros);
-    for (int i = 0; i < nparam; ++i) {
-      for (int j = i; j < nparam; ++j) {
-        const double tv = arma::accu(PV[i] % PV[j].t());
-        trPVPV(i, j) = tv;
-        trPVPV(j, i) = tv;
-      }
-    }
-
-    // Score vector and Fisher matrix
-    for (int a = 0; a < nparam; ++a) {
-      const double quad = arma::as_scalar(Py.t() * Va[a] * Py);
-      S(a) = -0.5 * trPV(a) + 0.5 * quad;
-      for (int b = a; b < nparam; ++b) F(a, b) = 0.5 * trPVPV(a, b);
-    }
-    for (int a = 1; a < nparam; ++a)
-      for (int b = 0; b < a; ++b) F(a, b) = F(b, a);
+    // Score and Fisher information, structured (no M x M matrices; see
+    // st_score_info). Algebraically identical to the dense computation.
+    StPieces sp;
+    if (!st_build(thetak, isST, D, Tt, vardir, W, sp)) { primary_failed = true; break; }
+    arma::mat ViX_k, Q_k;
+    arma::vec Py_k;
+    if (!st_score_info(sp, thetak, X, y, W, WtW, S, F, ViX_k, Q_k, Py_k)) { primary_failed = true; break; }
 
     // Update theta
     arma::mat symF = arma::symmatu(F);
     bool okF = arma::inv_sympd(Finv, symF);
     if (!okF) okF = arma::inv(Finv, symF);
-    if (!okF) return make_fail_result(false);
+    if (!okF) { primary_failed = true; break; }
 
     thetak1 = thetak + Finv * S;
 
@@ -338,8 +796,34 @@ List eblup_stfh_core(
     diff = arma::max(arma::abs((thetak_safe - thetak1) / thetak_safe));
   }
 
-  if (k >= maxiter && diff >= precision) {
-    return make_fail_result(false);
+  if (primary_failed || (k >= maxiter && diff >= precision)) {
+    // The classical (sae-compatible) Fisher scoring failed -- typically a
+    // variance iterate went negative and V became indefinite. Fall back to
+    // constrained REML (projected scoring + step halving) from the starting
+    // values. Fits on which the classical iteration converges are unchanged.
+    arma::vec th(nparam);
+    th(0) = sigma21_start; th(1) = rho1_start; th(2) = sigma22_start;
+    if (isST) th(3) = rho2_start;
+    int it2 = 0;
+    const bool ok2 = stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST,
+                                          maxiter, precision, th, it2);
+    k += it2;
+    if (!ok2) return make_fail_result(false);
+    thetak1 = th;
+    used_fallback = true;
+  } else if (thetak1(0) < 0.0 || thetak1(2) < 0.0) {
+    // The classical iteration converged to a point with a NEGATIVE variance;
+    // truncating it to 0 (as sae::eblupSTFH does) leaves the other parameters
+    // at values that are not optimal given that variance = 0. Re-maximise the
+    // REML likelihood under the constraints, starting from the truncated point.
+    arma::vec th = thetak1;
+    int it2 = 0;
+    const bool ok2 = stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST,
+                                          maxiter, precision, th, it2);
+    k += it2;
+    if (!ok2) return make_fail_result(false);
+    thetak1 = th;
+    used_fallback = true;
   }
 
   // ==========================================================================
@@ -494,8 +978,66 @@ List eblup_stfh_core(
     _["pvalue"] = NumericVector(pvalue.begin(), pvalue.end())
   );
 
-  // SE for theta
-  arma::vec diagFinv = Finv.diag();
+  arma::uvec unidentified;
+  // ================================================================
+  // REML Fisher information at the FINAL estimates (after truncation),
+  // used for both the SEs of theta and the g3 term of the analytical MSE.
+  // ================================================================
+  // Reconstruct final Va derivatives
+  arma::mat derivrho1 = -WpWt + 2.0 * rho1_f * WtW;
+  arma::mat sigmaOmegaderivrho1Omega = (-sigma21_f) * (mpf.Omega1 * derivrho1 * mpf.Omega1);
+
+  std::vector<arma::mat> Va(nparam);
+  Va[0] = arma::kron(mpf.Omega1, OnesT);
+  Va[1] = arma::kron(sigmaOmegaderivrho1Omega, OnesT);
+  if (!isST) {
+    Va[2] = arma::eye<arma::mat>(M, M);
+  } else {
+    Va[2] = arma::kron(EyeD, mpf.Omega2);
+    arma::mat sigma22dOmega2 = sigma22_f * mpf.dOmega2;
+    Va[3] = arma::kron(EyeD, sigma22dOmega2);
+  }
+
+  // Inverse information of the last classical iteration (what
+  // sae::eblupSTFH reports as the SEs of theta); kept for the SEs.
+  const arma::mat Finv_iter = Finv;
+  const arma::mat Pf = invV - tXinvV.t() * Q * tXinvV;
+  std::vector<arma::mat> PVf(nparam);
+  for (int a = 0; a < nparam; ++a) PVf[a] = Pf * Va[a];
+  {
+    arma::mat Ff(nparam, nparam, fill::zeros);
+    for (int a = 0; a < nparam; ++a) {
+      for (int b = a; b < nparam; ++b) {
+        Ff(a, b) = 0.5 * arma::accu(PVf[a] % PVf[b].t());
+        Ff(b, a) = Ff(a, b);
+      }
+    }
+    // At a boundary a parameter may be unidentified: with sigma21 = 0,
+    // dV/drho1 = 0, so its row/column of F is zero. Invert F on the
+    // identified parameters only; an unidentified one gets zero variance
+    // (which is also its zero contribution to g3) and an NA standard error.
+    // Correlations estimated on the boundary (|rho| >= 0.999) are treated as
+    // fixed as well: the Prasad-Rao expansion in rho is not valid there.
+    const double tol_id = 1e-10 * std::max(1.0, Ff.diag().max());
+    arma::uvec keep(nparam, fill::ones);
+    for (int a = 0; a < nparam; ++a) if (Ff(a, a) <= tol_id) keep(a) = 0;
+    if (std::fabs(rho1_f) >= 0.999) keep(1) = 0;
+    if (isST && std::fabs(rho2_f) >= 0.999) keep(3) = 0;
+    arma::uvec id_par = arma::find(keep == 1);
+    Finv.zeros(nparam, nparam);
+    if (id_par.n_elem > 0) {
+      arma::mat Fsub = Ff.submat(id_par, id_par), Fsub_inv;
+      if (!arma::inv_sympd(Fsub_inv, Fsub)) Fsub_inv = arma::pinv(Fsub);
+      Finv.submat(id_par, id_par) = Fsub_inv;
+    }
+    unidentified.zeros(nparam);
+    for (int a = 0; a < nparam; ++a) if (keep(a) == 0) unidentified(a) = 1;
+  }
+
+  // SE for theta: as sae::eblupSTFH (last classical iteration) when that
+  // iteration converged; from the information at the final estimates when
+  // the constrained fallback was needed (unidentified parameters: NA).
+  arma::vec diagFinv = used_fallback ? arma::vec(Finv.diag()) : arma::vec(Finv_iter.diag());
   if (arma::any(diagFinv < 0) || diagFinv.has_nan()) {
     DataFrame estvarcomp = DataFrame::create(
       _["estimate"] = est_vec,
@@ -512,6 +1054,7 @@ List eblup_stfh_core(
     );
   }
   arma::vec stderr_theta = arma::sqrt(diagFinv);
+  if (used_fallback) stderr_theta.elem(arma::find(unidentified == 1)).fill(NA_REAL);
 
   DataFrame estvarcomp = DataFrame::create(
     _["estimate"] = est_vec,
@@ -535,38 +1078,24 @@ List eblup_stfh_core(
     if (g2(i) < 0.0) g2(i) = 0.0;
   }
 
-  // g3 component: uncertainty from variance component estimation
+  // g3 component: uncertainty from variance component estimation.
+  // The EBLUP can be written as theta~(th) = y - Psi P(th) y, so its exact
+  // derivative is d theta~/d th_a = Psi P V_a P y, with
+  //   Cov(Psi P V_a P y, Psi P V_b P y)_ii = psi_i^2 (P V_a P V_b P)_ii
+  // (using P V P = P). Hence
+  //   g3_i = psi_i^2 sum_ab Finv_ab (P V_a P V_b P)_ii.
+  // This agrees with the textbook Prasad-Rao form
+  //   psi_i^2 sum_ab Finv_ab (V^-1 V_a V^-1 V V^-1 V_b V^-1)_ii
+  // up to o(1/m), but unlike it, it is unaffected by components of V_a
+  // lying in col(X), which are absorbed by beta~ (e.g. at rho1 -> 1 with a
+  // row-standardised W, Omega1 is dominated by the constant vector and the
+  // textbook form explodes).
   arma::vec g3(M, fill::zeros);
-  arma::mat V_mat;
-  bool okV = arma::inv_sympd(V_mat, invV);
-  if (!okV) V_mat = arma::pinv(invV);
-
-  // Reconstruct final Va derivatives
-  arma::mat derivrho1 = -WpWt + 2.0 * rho1_f * WtW;
-  arma::mat sigmaOmegaderivrho1Omega = (-sigma21_f) * (mpf.Omega1 * derivrho1 * mpf.Omega1);
-
-  std::vector<arma::mat> Va(nparam);
-  Va[0] = arma::kron(mpf.Omega1, OnesT);
-  Va[1] = arma::kron(sigmaOmegaderivrho1Omega, OnesT);
-  if (!isST) {
-    Va[2] = arma::eye<arma::mat>(M, M);
-  } else {
-    Va[2] = arma::kron(EyeD, mpf.Omega2);
-    arma::mat sigma22dOmega2 = sigma22_f * mpf.dOmega2;
-    Va[3] = arma::kron(EyeD, sigma22dOmega2);
-  }
-
-  std::vector<arma::mat> Ma(nparam);
-  std::vector<arma::mat> Ha(nparam);
-  for (int a = 0; a < nparam; ++a) {
-    arma::mat Ka = invV * Va[a] * invV;
-    Ma[a] = arma::diagmat(vardir) * Ka;
-    Ha[a] = V_mat * Ma[a];
-  }
-
+  const arma::vec psi2 = arma::square(vardir);
   for (int a = 0; a < nparam; ++a) {
     for (int b = a; b < nparam; ++b) {
-      arma::vec c_ab = arma::sum(Ma[a] % Ha[b], 0).t();
+      if (Finv(a, b) == 0.0) continue;
+      arma::vec c_ab = psi2 % arma::sum((PVf[a] * PVf[b]) % Pf, 1);
       double weight = (a == b) ? Finv(a, b) : 2.0 * Finv(a, b);
       g3 += weight * c_ab;
     }
@@ -575,7 +1104,35 @@ List eblup_stfh_core(
     if (g3(i) < 0.0) g3(i) = 0.0;
   }
 
-  arma::vec mse_anal = g1 + g2 + 2.0 * g3;
+  // g4 component: V is nonlinear in rho1 and rho2, so the plug-in g1(th^)
+  // has an extra bias 1/2 sum_jk Finv_jk psi_i^2 (V^-1 V_jk V^-1)_ii on top of
+  // the -g3 part (as the g4 term of the SFH model, Singh et al. 2005). In the
+  // P form used for g3 (equal up to o(1/m), robust to col(X) components):
+  //   g4_i = 1/2 sum_jk Finv_jk psi_i^2 (P V_jk P)_ii,
+  // with the non-zero second derivatives V_jk = d^2 V / d th_j d th_k:
+  //   (sigma21, rho1): (d Omega1 / d rho1) (x) J = -(Omega1 C Omega1) (x) J
+  //   (rho1, rho1)   : sigma21 (2 Omega1 C Omega1 C Omega1 - 2 Omega1 W'W Omega1) (x) J
+  //   (sigma22, rho2): I (x) dOmega2               [ST only]
+  //   (rho2, rho2)   : sigma22 I (x) d2Omega2      [ST only]
+  arma::vec g4(M, fill::zeros);
+  {
+    auto add_g4 = [&](int a, int b, const arma::mat& Vab) {
+      const double w = (a == b) ? Finv(a, b) : 2.0 * Finv(a, b);
+      if (w == 0.0) return;
+      g4 += 0.5 * w * (psi2 % arma::sum((Pf * Vab) % Pf, 1));
+    };
+    const arma::mat OCO = mpf.Omega1 * derivrho1 * mpf.Omega1;
+    add_g4(0, 1, arma::kron(-OCO, OnesT));
+    const arma::mat d2Om1 = 2.0 * OCO * derivrho1 * mpf.Omega1 -
+      2.0 * mpf.Omega1 * WtW * mpf.Omega1;
+    add_g4(1, 1, arma::kron(sigma21_f * d2Om1, OnesT));
+    if (isST) {
+      add_g4(2, 3, arma::kron(EyeD, mpf.dOmega2));
+      add_g4(3, 3, arma::kron(EyeD, sigma22_f * build_omega2_d2(Tt, rho2_f)));
+    }
+  }
+
+  arma::vec mse_anal = g1 + g2 + 2.0 * g3 - g4;
   arma::vec rse_anal(M);
   for (int i = 0; i < M; ++i) {
     rse_anal(i) = (std::abs(eblup(i)) < 1e-12) ? NA_REAL : (std::sqrt(mse_anal(i)) / std::abs(eblup(i)) * 100.0);
@@ -601,6 +1158,7 @@ List eblup_stfh_core(
     _["g1"] = NumericVector(g1.begin(), g1.end()),
     _["g2"] = NumericVector(g2.begin(), g2.end()),
     _["g3"] = NumericVector(g3.begin(), g3.end()),
+    _["g4"] = NumericVector(g4.begin(), g4.end()),
     _["model"] = model,
     _["convergence"] = true,
     _["n_iter"] = k

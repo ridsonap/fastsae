@@ -8,9 +8,28 @@ skip_if_not_installed("sae")
 # ------------------------------------------------------------------
 
 library(dplyr)
+# mys_panel is stored time-major; sae::eblupSTFH() requires domain-major
+# order (all years of area 1, then area 2, ...), so sort before comparing.
 mys_panel_nona <- mys_panel |>
-  filter(!is.na(y))
+  filter(!is.na(y)) |>
+  arrange(area, year)
 mys_proxmat_nona <- mys_proxmat[-c(21, 25), -c(21, 25)]
+
+# With the correct (domain-major) order, sae::eblupSTFH() does not converge on
+# the observed mys_panel response, so the agreement tests use a response
+# simulated from the ST model on the same covariates, vardir and W.
+local({
+  D <- 40; Tt <- 11
+  set.seed(2)
+  W <- mys_proxmat_nona
+  Om1 <- solve(t(diag(D) - 0.5 * W) %*% (diag(D) - 0.5 * W))
+  Om2 <- outer(1:Tt, 1:Tt, function(i, j) 0.5^abs(i - j)) / (1 - 0.5^2)
+  u1 <- sqrt(0.5) * t(chol(Om1)) %*% rnorm(D)
+  u2 <- sqrt(0.3) * as.vector(t(chol(Om2)) %*% matrix(rnorm(D * Tt), Tt))
+  X <- model.matrix(~ x1 + x2 + x3, mys_panel_nona)
+  mys_panel_nona$y <<- as.vector(X %*% c(4, 0, 0.05, 0.01)) + u1[rep(1:D, each = Tt)] + u2 +
+    rnorm(D * Tt, sd = sqrt(mys_panel_nona$vardir))
+})
 
 
 fit_fast <- eblup_stfh(
@@ -237,7 +256,8 @@ test_that("eblup_stfh validation and edge cases", {
   )
   expect_s3_class(fit_custom_start, "fastsae")
 
-  # Non-convergence with maxiter = 1
+  # Non-convergence: maxiter = 1 and an unattainable precision (the
+  # constrained fallback, with its 5 * maxiter budget, cannot reach it either)
   fit_st_nc <- eblup_stfh(
     y ~ x1 + x2 + x3,
     data = mys_panel_nona,
@@ -247,6 +267,7 @@ test_that("eblup_stfh validation and edge cases", {
     W = mys_proxmat_nona,
     model = "ST",
     maxiter = 1,
+    precision = 1e-14,
     print_result = FALSE
   )
   expect_false(fit_st_nc$convergence)
@@ -329,3 +350,18 @@ test_that("eblup_stfh validation and edge cases", {
   )
 })
 
+
+test_that("eblup_stfh is invariant to the row order of the panel", {
+  # time-major input (as stored in mys_panel) must give the same fit as the
+  # domain-major panel, with results returned in the caller's row order
+  tm <- mys_panel_nona[order(mys_panel_nona$year, mys_panel_nona$area), ]
+  fit_tm <- eblup_stfh(y ~ x1 + x2 + x3, data = tm, vardir = ~vardir, domain = ~area,
+                       time = ~year, W = mys_proxmat_nona, model = "ST", print_result = FALSE)
+  expect_equal(fit_tm$estvarcomp$estimate, fit_fast$estvarcomp$estimate, tolerance = 1e-8)
+  expect_equal(fit_tm$estcoef$beta, fit_fast$estcoef$beta, tolerance = 1e-8)
+  expect_equal(fit_tm$df_eblup$domain, tm$area)
+  expect_equal(fit_tm$df_eblup$time, tm$year)
+  key_tm <- paste(fit_tm$df_eblup$domain, fit_tm$df_eblup$time)
+  key_dm <- paste(fit_fast$df_eblup$domain, fit_fast$df_eblup$time)
+  expect_equal(fit_tm$df_eblup$eblup, fit_fast$df_eblup$eblup[match(key_tm, key_dm)], tolerance = 1e-8)
+})

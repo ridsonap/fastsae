@@ -194,6 +194,10 @@ benchmark_sae.fastsae <- function(
     group_vec <- as.character(group)
   }
 
+  # Full MSE matrix (prediction errors are correlated across areas); NULL ->
+  # diagonal fallback inside the worker.
+  M <- if (!is.null(mse_vec)) tryCatch(.mse_matrix(object), error = function(e) NULL) else NULL
+
   # Call internal benchmarking worker
   .benchmark_worker(
     domain = domain_vec,
@@ -206,6 +210,7 @@ benchmark_sae.fastsae <- function(
     type = type,
     national_target = nat_target,
     mse = mse_vec,
+    mse_matrix = M,
     call = match.call(),
     model_family = object$family %||% "gaussian"
   )
@@ -292,10 +297,12 @@ benchmark.default <- function(object, ...) {
   type = "mean",
   national_target = NULL,
   mse = NULL,
+  mse_matrix = NULL,
   call = NULL,
   model_family = "gaussian"
 ) {
   n <- length(y_hat)
+  if (!is.null(mse_matrix) && !identical(dim(mse_matrix), c(n, n))) mse_matrix <- NULL
 
   if (any(weight <= 0, na.rm = TRUE)) {
     cli::cli_abort("Benchmark {.arg weight} must be strictly positive for all domains.")
@@ -337,8 +344,13 @@ benchmark.default <- function(object, ...) {
     w_norm <- w_g / W_g
     group_orig[g] <- sum(w_norm * df_work$y_hat[idx_g])
     if (!all(is.na(df_work$mse[idx_g]))) {
-      # Variance of group weighted estimate
-      group_mse[g] <- sum((w_norm^2) * pmax(df_work$mse[idx_g], 1e-8, na.rm = TRUE), na.rm = TRUE)
+      # MSE of the group weighted estimate: w' M w, including the covariances
+      # between area errors when the full MSE matrix is available
+      if (!is.null(mse_matrix)) {
+        group_mse[g] <- max(drop(t(w_norm) %*% mse_matrix[idx_g, idx_g, drop = FALSE] %*% w_norm), 1e-8)
+      } else {
+        group_mse[g] <- sum((w_norm^2) * pmax(df_work$mse[idx_g], 1e-8, na.rm = TRUE), na.rm = TRUE)
+      }
     } else {
       group_mse[g] <- NA_real_
     }
@@ -414,11 +426,16 @@ benchmark.default <- function(object, ...) {
         adj_per_group <- if (type == "mean") diff_nat else diff_nat / n_groups
         target_map <- target_map + adj_per_group
       } else if (method == "optimal") {
-        inv_prec_g <- pmax(group_mse, 1e-8)
-        if (any(is.na(inv_prec_g))) inv_prec_g <- rep(1, n_groups)
-        lambda_g <- diff_nat / sum(inv_prec_g)
-        target_map <- target_map + (inv_prec_g / (if (type == "mean") W_share else 1)) * lambda_g
+        # Minimise sum_g (T_g' - T_g)^2 / mse_g  s.t.  sum_g a_g T_g' = national
+        # => T_g' = T_g + a_g mse_g * diff / sum_g a_g^2 mse_g
+        mse_g <- pmax(group_mse, 1e-8)
+        if (any(is.na(mse_g))) mse_g <- rep(1, n_groups)
+        a_g <- if (type == "mean") W_share else rep(1, n_groups)
+        target_map <- target_map + a_g * mse_g * diff_nat / sum(a_g^2 * mse_g)
       } else if (method == "logit") {
+        if (type != "mean") {
+          cli::cli_abort("Hierarchical logit benchmarking requires {.code type = \"mean\"} (group targets must be proportions in (0, 1)).")
+        }
         logit_t <- stats::qlogis(target_map)
         f_nat <- function(a) {
           sum(W_share * stats::plogis(logit_t + a)) - national_target
@@ -477,10 +494,11 @@ benchmark.default <- function(object, ...) {
         cli::cli_warn("MSE not available or non-positive for group {.val {g}}; falling back to difference benchmarking.")
         df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
       } else {
-        inv_prec <- pmax(mse_g, 1e-8)
-        denom <- sum(inv_prec)
-        lambda <- diff_val / denom
-        df_work$y_bm[idx_g] <- y_g + (inv_prec / w_calc) * lambda
+        # Minimise sum_i (y_i' - y_i)^2 / mse_i  s.t.  sum_i w_i y_i' = T
+        # (loss weights phi_i = 1 / mse_i; Datta et al., 2011):
+        #   y_i' = y_i + w_i mse_i * (T - sum w y) / sum_j w_j^2 mse_j
+        mse_pos <- pmax(mse_g, 1e-8)
+        df_work$y_bm[idx_g] <- y_g + w_calc * mse_pos * diff_val / sum(w_calc^2 * mse_pos)
       }
 
     } else if (method == "logit") {
@@ -515,6 +533,48 @@ benchmark.default <- function(object, ...) {
     }
   }
 
+  # MSE of the benchmarked estimates (first order). Every rule moves an
+  # estimate by adj_i = k_i (T - sum_j w_j theta^_j) with sum_i w_i k_i = 1:
+  #   difference: k_i = 1 / sum w;  ratio: k_i = theta^_i / sum w theta^;
+  #   optimal: k_i = w_i mse_i / sum w^2 mse;
+  #   logit: k_i = theta^_i (1 - theta^_i) / sum w theta^ (1 - theta^).
+  # With errors e (E[e e'] = M) and delta = T - sum w theta, the benchmarked
+  # error is e_i - k_i w'e + k_i delta, hence
+  #   MSE_bm,i = M_ii - 2 k_i (M w)_i + k_i^2 (delta^2 + w'M w),
+  # and adj_i^2 = k_i^2 (delta - w'e)^2 has expectation k_i^2 (delta^2 + w'Mw):
+  #   MSE_bm,i ~ mse_i - 2 k_i (M w)_i + adj_i^2.
+  # (M w)_i uses the full MSE matrix when available, else w_i mse_i.
+  df_work$mse_bm <- NA_real_
+  for (g in unique_groups) {
+    idx_g <- which(df_work$group == g)
+    m_g <- df_work$mse[idx_g]
+    if (anyNA(m_g)) next
+    w_g <- df_work$weight[idx_g]
+    w_calc <- if (type == "mean") w_g / sum(w_g) else w_g
+    y_g <- df_work$y_hat[idx_g]
+    k <- switch(method,
+      ratio = y_g / sum(w_calc * y_g),
+      difference = rep(1 / sum(w_calc), length(idx_g)),
+      optimal = {
+        mp <- pmax(m_g, 1e-8)
+        w_calc * mp / sum(w_calc^2 * mp)
+      },
+      logit = {
+        v <- y_g * (1 - y_g)
+        v / sum(w_calc * v)
+      }
+    )
+    if (!is.null(mse_matrix)) {
+      w_full <- numeric(n)
+      w_full[idx_g] <- w_calc
+      Mw <- as.vector(mse_matrix %*% w_full)[idx_g]
+    } else {
+      Mw <- w_calc * m_g
+    }
+    adj <- df_work$y_bm[idx_g] - y_g
+    df_work$mse_bm[idx_g] <- pmax(m_g - 2 * k * Mw + adj^2, 0)
+  }
+
   # Build return table
   res_df <- data.frame(
     domain = df_work$domain,
@@ -529,6 +589,10 @@ benchmark.default <- function(object, ...) {
   res_df$adjustment <- df_work$y_bm - df_work$y_hat
   res_df$rel_adjustment_pct <- ifelse(abs(df_work$y_hat) > .Machine$double.eps,
                                       (res_df$adjustment / df_work$y_hat) * 100, NA_real_)
+  if (!all(is.na(df_work$mse_bm))) {
+    res_df$mse <- df_work$mse
+    res_df$mse_benchmarked <- df_work$mse_bm
+  }
   res_df$target <- df_work$target
   if (is_hierarchical) {
     res_df$national_target <- rep(national_target, nrow(res_df))
@@ -563,6 +627,7 @@ benchmark.default <- function(object, ...) {
     )
   }
 
+  attr(res_df, "mse_matrix_used") <- !is.null(mse_matrix)
   attr(res_df, "method") <- method
   attr(res_df, "type") <- type
   attr(res_df, "hierarchical") <- is_hierarchical
@@ -711,4 +776,97 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
     return(map_sae(x, ...))
   }
   autoplot.fastsae_benchmark(x, ...)
+}
+
+#' Covariance with given variances: S C S, C = correlation of `M`, S = diag(sqrt(mse))
+#'
+#' Keeps the correlation structure of the leading terms (always positive
+#' semi-definite) and the reported MSE on the diagonal. Simply overwriting the
+#' diagonal of g1 + g2 with the MSE can break positive semi-definiteness when
+#' the second-order terms are negative (e.g. a large g4 near rho = -1).
+#' @noRd
+.scale_to_mse <- function(M, mse) {
+  M <- (M + t(M)) / 2
+  d <- sqrt(pmax(diag(M), .Machine$double.eps))
+  C <- M / outer(d, d)
+  sm <- sqrt(pmax(mse, 0))
+  out <- C * outer(sm, sm)
+  diag(out) <- mse
+  dimnames(out) <- NULL
+  out
+}
+
+#' Full MSE matrix of the area estimates of a fitted model
+#'
+#' The prediction errors of different areas are correlated (common beta-hat,
+#' spatial / temporal random effects). With known variance parameters every
+#' area estimate, sampled or kriged, is theta~ = X beta~ + G[., s] V^-1 (y_s - X_s beta~),
+#' so the leading terms of the error covariance are
+#'   g1 = G - G[., s] V^-1 G[s, .]  and  g2 = R Q R',  R = X - G[., s] V^-1 X_s.
+#' The returned matrix has the correlation of g1 + g2 and the reported `mse`
+#' (which also contains the g3 / g4 terms) on the diagonal (see `.scale_to_mse`).
+#' Supported: FH (identity scale), SFH, STFH, and INLA area-level HB fits
+#' (posterior covariance from draws). Otherwise NULL (diagonal fallback).
+#' @noRd
+.mse_matrix <- function(object, n_draws = 500) {
+  df <- object$df_hb %||% object$df_eblup
+  mse <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else NULL)
+  if (is.null(df) || is.null(mse) || anyNA(mse)) return(NULL)
+
+  full_from <- function(G, Xall, s, psi_s) {
+    Vi <- solve(G[s, s, drop = FALSE] + diag(psi_s, length(psi_s)))
+    Xs <- Xall[s, , drop = FALSE]
+    Q <- solve(t(Xs) %*% Vi %*% Xs)
+    K <- G[, s, drop = FALSE] %*% Vi
+    R <- Xall - K %*% Xs
+    M <- G - K %*% G[s, , drop = FALSE] + R %*% Q %*% t(R)
+    .scale_to_mse(M, mse)
+  }
+  design <- function() {
+    mf <- stats::model.frame(object$formula, object$data, na.action = stats::na.pass)
+    stats::model.matrix(attr(mf, "terms"), mf)
+  }
+
+  model <- object$model %||% ""
+  if (identical(model, "FH") && identical(object$transform %||% "none", "none")) {
+    X <- design()
+    s <- which(!is.na(df$y))
+    G <- diag(object$random_effect_var, nrow(df))
+    return(full_from(G, X, s, df$vardir[s]))
+  }
+  if (identical(model, "SFH") && !is.null(object$W)) {
+    X <- design()
+    s <- which(!is.na(df$y))
+    D <- nrow(object$W)
+    G <- object$random_effect_var * solve(crossprod(diag(D) - object$rho * object$W))
+    return(full_from(G, X, s, df$vardir[s]))
+  }
+  if (model %in% c("ST", "S") && !is.null(object$W) && !is.null(object$estvarcomp)) {
+    th <- object$estvarcomp$estimate
+    dom <- df$domain; tim <- df$time
+    ord <- order(match(as.character(dom), unique(as.character(dom))), tim)
+    D <- length(unique(dom)); Tt <- length(unique(tim))
+    if (D * Tt != nrow(df)) return(NULL)
+    O1 <- solve(crossprod(diag(D) - th[2] * object$W))
+    O2 <- if (model == "ST") outer(1:Tt, 1:Tt, function(i, j) th[4]^abs(i - j)) / (1 - th[4]^2) else diag(Tt)
+    G <- th[1] * kronecker(O1, matrix(1, Tt, Tt)) + th[3] * kronecker(diag(D), O2)
+    X <- design()[ord, , drop = FALSE]
+    mse_sorted <- mse[ord]
+    mse <- mse_sorted
+    M <- full_from(G, X, seq_len(nrow(df)), df$vardir[ord])
+    inv <- order(ord)
+    return(M[inv, inv])
+  }
+  if (inherits(object, "fastsae_hb_area") && !is.null(object$fit) && inherits(object$fit, "inla") &&
+      requireNamespace("INLA", quietly = TRUE)) {
+    fam <- object$family %||% "gaussian"
+    smp <- tryCatch(INLA::inla.posterior.sample(n = n_draws, result = object$fit), error = function(e) NULL)
+    if (is.null(smp)) return(NULL)
+    n <- nrow(df)
+    rows <- grep("^Predictor:", rownames(smp[[1]]$latent))[seq_len(n)]
+    eta <- vapply(smp, function(z) z$latent[rows, 1], numeric(n))
+    theta <- switch(fam, gaussian = eta, binomial = stats::plogis(eta), beta = stats::plogis(eta), exp(eta))
+    return(.scale_to_mse(stats::cov(t(theta)), mse))
+  }
+  NULL
 }

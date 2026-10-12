@@ -14,9 +14,9 @@ using namespace arma;
 
 // [[Rcpp::export(.seblup_npbmse)]]
 List seblup_npbmse(
-    const arma::mat& X,
-    const arma::vec& y,
-    const arma::vec& vardir,
+    const arma::mat& Xall,
+    const arma::vec& yall,
+    const arma::vec& vardirall,
     const arma::mat& W,
     std::string method = "REML",
     int maxiter = 100,
@@ -33,11 +33,18 @@ List seblup_npbmse(
     Rcpp::stop("method must be 'REML' for nonparametric bootstrap MSE (seblup_npbmse).");
   }
 
+  // Unsampled domains (y = NA) stay in W (full-domain SAR; see seblup_pbmse).
+  const arma::uvec idx_s = arma::find_finite(yall);
+  const bool all_s = (idx_s.n_elem == W.n_rows);
+  const mat X = Xall.rows(idx_s);
+  const vec y = yall.elem(idx_s);
+  const vec vardir = vardirall.elem(idx_s);
+
   // ================================================================
   // Main fit
   // ================================================================
   List result_awal = seblup_core(
-    X, y, vardir, W,
+    Xall, yall, vardirall, W,
     method, maxiter, precision,
     true
   );
@@ -61,8 +68,24 @@ List seblup_npbmse(
   vec g1 = result_awal["g1d"];
   vec g2 = result_awal["g2d"];
 
-  mat I = eye<mat>(m, m);
-  mat Irhoproxmat = I - rho_boot * W;
+  // Generator of the sampled random effects: v_s = Gen u, u ~ (0, s2 I).
+  // We store GenInv = Gen^{-1} (v_boot = solve(GenInv, u)) and whiten the
+  // predicted v by GenInv. All domains sampled: GenInv = I - rho W (classical
+  // SAR, as sae::npbmseSFH). Otherwise the sampled domains have covariance
+  // s2 * Sigma_full[s,s]: Gen = chol_lower(Sigma_full[s,s]).
+  mat Irhoproxmat;
+  if (all_s) {
+    Irhoproxmat = eye<mat>(m, m) - rho_boot * W;
+  } else {
+    mat Sig_ss, SCS_unused;
+    sar_marginal(rho_boot, W, W.t() * W, idx_s, false, Sig_ss, SCS_unused,
+                 nullptr, nullptr, nullptr);
+    mat L;
+    if (!chol(L, arma::symmatu(Sig_ss), "lower")) {
+      Rcpp::stop("Cholesky factorisation of the sampled SAR covariance failed.");
+    }
+    Irhoproxmat = arma::inv(arma::trimatl(L));
+  }
 
   // ================================================================
   // 1) Compute standardized residuals
@@ -90,20 +113,26 @@ List seblup_npbmse(
   vec ValVe = eigval_e.subvec(p, m - 1);
   mat Vei05 = VecVe * diagmat(1.0 / arma::sqrt(ValVe)) * VecVe.t();
 
-  vec eigval_u; mat eigvec_u;
-  eig_sym(eigval_u, eigvec_u, Vu);
-  mat VecVu = eigvec_u.cols(p, m - 1);
-  vec ValVu = eigval_u.subvec(p, m - 1);
-  mat Vui05 = VecVu * diagmat(1.0 / arma::sqrt(ValVu)) * VecVu.t();
-
-  vec ustim = Vui05 * (Irhoproxmat * vstim);
   vec estim = Vei05 * (resid_fit - vstim);
 
-  double sdu = std::sqrt(sigma2_boot);
+  // With sigma2_u = 0 (boundary) there are no area effects to resample:
+  // G = 0 makes Vu = 0, and its inverse square root would give NaN.
+  vec u_std(m, fill::zeros);
+  if (sigma2_boot > 0.0) {
+    vec eigval_u; mat eigvec_u;
+    eig_sym(eigval_u, eigvec_u, Vu);
+    mat VecVu = eigvec_u.cols(p, m - 1);
+    vec ValVu = eigval_u.subvec(p, m - 1);
+    mat Vui05 = VecVu * diagmat(1.0 / arma::sqrt(ValVu)) * VecVu.t();
 
-  double mean_u = arma::mean(ustim);
-  double sdemp_u = std::sqrt(arma::mean(arma::square(ustim - mean_u)));
-  vec u_std = sdu * (ustim - mean_u) / sdemp_u;
+    vec ustim = Vui05 * (Irhoproxmat * vstim);
+
+    double sdu = std::sqrt(sigma2_boot);
+
+    double mean_u = arma::mean(ustim);
+    double sdemp_u = std::sqrt(arma::mean(arma::square(ustim - mean_u)));
+    if (sdemp_u > 0.0) u_std = sdu * (ustim - mean_u) / sdemp_u;
+  }
 
   double mean_e = arma::mean(estim);
   double sdemp_e = std::sqrt(arma::mean(arma::square(estim - mean_e)));
@@ -169,7 +198,7 @@ List seblup_npbmse(
       vec direct_boot = theta_boot + e_boot;
 
       SeblupFitArma res = seblup_fit_core_arma(
-        X, direct_boot, vardir, W, method, maxiter, precision
+        X, direct_boot, vardir, W, idx_s, method, maxiter, precision
       );
 
       bool valid = res.converged &&
@@ -222,14 +251,21 @@ List seblup_npbmse(
   vec mse_npb2 = 2.0 * (g1 + g2) - g1_npb - g2_npb + g3_npb;
 
   result_awal = seblup_core(
-    X, y, vardir, W,
+    Xall, yall, vardirall, W,
     method, maxiter, precision,
     false
   );
 
+  // bootstrap columns are defined for sampled domains only (NA elsewhere)
+  vec mse_npb_all(Xall.n_rows), mse_npb2_all(Xall.n_rows);
+  mse_npb_all.fill(NA_REAL);
+  mse_npb2_all.fill(NA_REAL);
+  mse_npb_all.elem(idx_s) = mse_npb;
+  mse_npb2_all.elem(idx_s) = mse_npb2;
+
   DataFrame df_eblup = Rcpp::as<Rcpp::DataFrame>(result_awal["df_eblup"]);
-  df_eblup.push_back(mse_npb, "mse_npb");
-  df_eblup.push_back(mse_npb2, "mse_npbbc");
+  df_eblup.push_back(mse_npb_all, "mse_npb");
+  df_eblup.push_back(mse_npb2_all, "mse_npbbc");
   result_awal["df_eblup"] = df_eblup;
 
   result_awal.push_back(round_no, "n_rounds");

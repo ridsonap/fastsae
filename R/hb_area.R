@@ -34,6 +34,10 @@
 #'     \item \code{"bym"}: Classic Besag-York-Mollié (1991) model.
 #'     \item \code{"besag"}: Intrinsic Conditional Autoregressive (ICAR) model.
 #'     \item \code{"generic1"}: Leroux spatial autoregressive model.
+#'     \item \code{"slm"}: Spatial lag model, \eqn{\eta = (I - \rho W)^{-1}(X\beta + \epsilon)}
+#'       (INLA \code{"slm"}). Note that the covariates are spatially filtered too, so this
+#'       is \emph{not} the Bayesian counterpart of \code{\link{eblup_sfh}}, whose SAR
+#'       structure applies to the random effect only: \eqn{X\beta + (I - \rho W)^{-1}\epsilon}.
 #'   }
 #' @param W Proximity or spatial adjacency matrix. Can be a square \code{matrix},
 #'   \code{Matrix}, or \code{spdep} \code{nb} or \code{listw} object. Dimensions must
@@ -83,10 +87,23 @@
 #' @param prior_prec_time Optional list specifying the prior for temporal precision. Default is
 #'   a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.
 #' @param prior_rho_time Optional list specifying prior for temporal autocorrelation parameter in AR(1).
-#' @param self_benchmark Logical. If \code{TRUE}, fits a self-benchmarking model via the
-#'   augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
-#'   ensuring that the weighted aggregate of small area estimates automatically matches the direct
-#'   survey aggregate or specified benchmark targets without post-hoc adjustment.
+#' @param self_benchmark Logical. If \code{TRUE}, the weighted aggregate of the area
+#'   estimates is made to match the direct survey aggregate or \code{benchmark_target}; see
+#'   \code{benchmark_method}.
+#' @param benchmark_method How self-benchmarking is done when \code{self_benchmark = TRUE}:
+#'   \code{"posterior"} (default) benchmarks every posterior draw of the area parameters
+#'   (an additive shift for \code{"gaussian"}, a common shift on the logit scale for
+#'   \code{"binomial"} and \code{"beta"}, a common ratio for \code{"poisson"},
+#'   \code{"nbinomial"} and \code{"gamma"}), so the constraint holds exactly for the posterior
+#'   mean and the reported SD / credible intervals refer to the benchmarked estimator (Bayesian
+#'   benchmarking, cf. Datta et al., 2011). \code{"wfq"} uses the augmented-covariate approach of
+#'   Wang, Fuller and Qu (2008), which is exact only for the linear Gaussian EBLUP; for the HB
+#'   models it holds only approximately (non-flat prior on the coefficients, integration over
+#'   the hyperparameters) and not at all for non-Gaussian likelihoods. With
+#'   \code{method = "laplace"} (no posterior draws) the same adjustment is applied to the point
+#'   estimates.
+#' @param benchmark_draws Number of posterior draws for \code{benchmark_method = "posterior"}.
+#' @param benchmark_seed Seed for \code{INLA::inla.posterior.sample()} (\code{0} = random).
 #' @param benchmark_weight Optional vector, column name, or one-sided formula referencing the domain
 #'   benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.
 #' @param benchmark_target Optional numeric scalar or named vector specifying fixed aggregate
@@ -194,10 +211,14 @@ hb_area <- function(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
+  benchmark_method = c("posterior", "wfq"),
+  benchmark_draws = 1000,
+  benchmark_seed = 0L,
   print_result = TRUE,
   ...
 ) {
   call_matched <- match.call()
+  benchmark_method <- match.arg(benchmark_method)
   family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"))
   spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "bym", "besag", "generic1", "slm"))
   temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
@@ -286,17 +307,31 @@ hb_area <- function(
   # 4. Self-benchmarking setup (Wang, Fuller, and Qu, 2008)
   sb_info <- NULL
   if (isTRUE(self_benchmark)) {
+    # Direct estimates on the scale of the area parameter (the scale of `hb`):
+    # proportions for binomial, rates per unit exposure for counts. The
+    # benchmark targets are computed from these.
+    y_direct <- y
+    if (benchmark_method == "posterior") {
+      if (family == "binomial") {
+        y_direct <- y / trials_vec
+      } else if (family %in% c("poisson", "nbinomial") && !is.null(exposure_vec)) {
+        y_direct <- y / exposure_vec
+      }
+    }
     sb_info <- .setup_self_benchmark(
       data = data,
       formula = formula,
-      y = y,
+      y = y_direct,
       vardir = vardir_vec,
       weight = benchmark_weight,
       target = benchmark_target,
       group = benchmark_group
     )
-    data <- sb_info$data_aug
-    formula <- sb_info$formula_aug
+    if (benchmark_method == "wfq") {
+      data <- sb_info$data_aug
+      formula <- sb_info$formula_aug
+    }
+    sb_info$method <- benchmark_method
   }
 
   # --------------------------------------------------------------------------
@@ -313,7 +348,17 @@ hb_area <- function(
       call = call_matched
     )
     if (!is.null(sb_info)) {
+      if (benchmark_method == "posterior") {
+        # no posterior draws on this route: benchmark the point estimates
+        out$df_hb$hb_unbenchmarked <- out$df_hb$hb
+        out$df_hb$hb <- as.vector(.benchmark_adjust(
+          matrix(out$df_hb$hb, ncol = 1), sb_info, .benchmark_type_for_family(family)
+        ))
+        out$hb <- out$df_hb
+        out$df_eblup <- out$df_hb
+      }
       out$self_benchmark <- TRUE
+      out$benchmark_method <- benchmark_method
       out$benchmark_weight <- benchmark_weight
       out$benchmark_target <- benchmark_target
       out$benchmark_group <- benchmark_group
@@ -325,9 +370,11 @@ hb_area <- function(
         target_vec = sb_info$target_vec,
         estimates = out$df_hb$hb
       )
-      out$df_hb$y <- sb_info$original_y
-      out$hb$y <- sb_info$original_y
-      out$df_eblup$y <- sb_info$original_y
+      if (benchmark_method == "wfq") {
+        out$df_hb$y <- sb_info$original_y
+        out$hb$y <- sb_info$original_y
+        out$df_eblup$y <- sb_info$original_y
+      }
     }
   } else {
     if (method == "laplace") {
@@ -367,6 +414,8 @@ hb_area <- function(
       benchmark_weight = benchmark_weight,
       benchmark_target = benchmark_target,
       benchmark_group = benchmark_group,
+      benchmark_draws = benchmark_draws,
+      benchmark_seed = benchmark_seed,
       call = call_matched,
       ...
     )
@@ -409,6 +458,8 @@ hb_area <- function(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
+  benchmark_draws = 1000,
+  benchmark_seed = 0L,
   call = NULL,
   ...
 ) {
@@ -672,8 +723,8 @@ hb_area <- function(
     ...
   )
 
-  # If self-benchmarking is active, ensure fixed effects prior is diffuse so augmented covariate is not shrunk
-  if (!is.null(sb_info)) {
+  # WFQ self-benchmarking: diffuse fixed-effects prior so the augmented covariate is not shrunk
+  if (!is.null(sb_info) && identical(sb_info$method, "wfq")) {
     if (is.null(inla_args$control.fixed)) {
       inla_args$control.fixed <- list(
         mean.intercept = 0,
@@ -785,7 +836,11 @@ hb_area <- function(
   )
 
   if (!is.null(sb_info)) {
+    if (identical(sb_info$method, "posterior")) {
+      res <- .posterior_benchmark(res, sb_info, family, n_draws = benchmark_draws, seed = benchmark_seed)
+    }
     res$self_benchmark <- TRUE
+    res$benchmark_method <- sb_info$method
     res$benchmark_weight <- benchmark_weight
     res$benchmark_target <- benchmark_target
     res$benchmark_group <- benchmark_group
@@ -797,9 +852,11 @@ hb_area <- function(
       target_vec = sb_info$target_vec,
       estimates = res$df_hb$hb
     )
-    res$df_hb$y <- sb_info$original_y
-    res$hb$y <- sb_info$original_y
-    res$df_eblup$y <- sb_info$original_y
+    if (identical(sb_info$method, "wfq")) {
+      res$df_hb$y <- sb_info$original_y
+      res$hb$y <- sb_info$original_y
+      res$df_eblup$y <- sb_info$original_y
+    }
   }
 
   if (inherits(data, "sf") && requireNamespace("sf", quietly = TRUE)) {

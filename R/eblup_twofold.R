@@ -19,7 +19,7 @@
 #' @param subarea vector, column name or one-sided formula referencing the subarea identifier column
 #'   in \code{data}. If NULL, rows are numbered consecutively.
 #' @param method Fitting method can be chosen between 'REML' and 'ML'.
-#' @param mse MSE estimation method: 'analytical' (Prasad-Rao g1+g2+g3, fast) or
+#' @param mse MSE estimation method: 'analytical' (Prasad-Rao g1+g2+2*g3, fast; ML adds the bias correction) or
 #'   'bootstrap' (parametric bootstrap, slower but robust).
 #' @param B number of parametric bootstrap replicates (only used if mse = 'bootstrap').
 #' @param seed integer seed for bootstrap resampling (NULL = no seed set).
@@ -50,7 +50,8 @@
 #' The model has a form that is response ~ auxiliary variables, with one row per subarea.
 #' When the response contains NA the subarea is treated as non-sampled and predicted
 #' with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
-#' g1+g2+g3 with exact matrix derivation for g3) or by parametric bootstrap.
+#' g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
+#' derivation for g3) or by parametric bootstrap.
 #'
 #' @export
 #' @examples

@@ -348,3 +348,41 @@ test_that("eblup_stfh self-benchmarking works for Spatio-Temporal models", {
 })
 
 
+
+test_that("Log-FH self-benchmarking holds exactly on the original scale", {
+  data(mys, package = "fastsae")
+  fit <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, transform = "log",
+                  self_benchmark = TRUE, benchmark_weight = "n", print_result = FALSE)
+  expect_lt(max(abs(fit$benchmark_summary$discrepancy)), 1e-10)
+  expect_true("eblup_unbenchmarked" %in% names(fit$df_eblup))
+  ratio <- fit$df_eblup$eblup / fit$df_eblup$eblup_unbenchmarked
+  expect_lt(diff(range(ratio[!is.na(mys$y)])), 1e-12) # a single common ratio
+})
+
+test_that("hb_area posterior self-benchmarking is exact for every family", {
+  skip_if_not_installed("INLA")
+  data(sim_area, package = "fastsae")
+  set.seed(1)
+  n <- 30
+  d <- data.frame(
+    area = seq_len(n), x1 = rnorm(n), w = runif(n, 1, 5),
+    trials = sample(30:60, n, replace = TRUE), vardir = runif(n, 0.05, 0.2)
+  )
+  d$y_g <- 1 + d$x1 + rnorm(n, sd = 0.3) + rnorm(n, sd = sqrt(d$vardir))
+  d$y_b <- rbinom(n, d$trials, plogis(-0.5 + 0.5 * d$x1 + rnorm(n, sd = 0.3)))
+  d$y_p <- rpois(n, d$trials * exp(-1 + 0.3 * d$x1 + rnorm(n, sd = 0.2)))
+  cases <- list(
+    list(f = y_g ~ x1, family = "gaussian", args = list(vardir = "vardir")),
+    list(f = y_b ~ x1, family = "binomial", args = list(trials = "trials")),
+    list(f = y_p ~ x1, family = "poisson", args = list(exposure = "trials"))
+  )
+  for (cs in cases) {
+    fit <- do.call(hb_area, c(list(formula = cs$f, data = d, domain = "area", family = cs$family,
+                                   self_benchmark = TRUE, benchmark_weight = "w",
+                                   benchmark_draws = 200, benchmark_seed = 1L,
+                                   print_result = FALSE), cs$args))
+    expect_equal(fit$benchmark_method, "posterior")
+    expect_lt(max(abs(fit$benchmark_summary$discrepancy)), 1e-8)
+    expect_true(all(fit$df_hb$ci_lower <= fit$df_hb$hb & fit$df_hb$hb <= fit$df_hb$ci_upper))
+  }
+})

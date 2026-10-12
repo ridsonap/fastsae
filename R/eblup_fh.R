@@ -14,15 +14,24 @@
 #'   in \code{data}. If NULL, the domains are numbered consecutively.
 #' @param method Fitting method can be chosen between 'ML' and 'REML'.
 #' @param transform Character string specifying data transformation for the response:
-#'   \code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model with Slud & Maiti 2006
-#'   second-order bias-corrected back-transformation).
+#'   \code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model). With \code{"log"} the
+#'   estimate is back-transformed as \eqn{\exp(\tilde\mu + \hat g_1/2)} with
+#'   \eqn{g_1 = \sigma^2_u(1-\gamma)} (\eqn{\sigma^2_u/2} for unsampled domains), i.e. the
+#'   conditional-mean correction under the log-normal model (cf. Slud & Maiti, 2006); it
+#'   does not include the additional O(1/m) terms for the estimation of \eqn{\beta} and
+#'   \eqn{\sigma^2_u}. The MSE on the original scale is the delta-method approximation
+#'   \eqn{\hat\theta^2 \cdot mse_{log}}.
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
 #' @param print_result print coefficient or not, default value is TRUE.
 #' @param self_benchmark Logical. If \code{TRUE}, fits a self-benchmarking model via the
 #'   augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
 #'   ensuring that the weighted aggregate of small area estimates automatically matches the direct
-#'   survey aggregate or specified benchmark targets without post-hoc adjustment.
+#'   survey aggregate or specified benchmark targets without post-hoc adjustment. With
+#'   \code{transform = "log"} that constraint would hold on the log scale only, so instead the
+#'   back-transformed estimates are ratio-benchmarked on the original scale (exact constraint;
+#'   MSE scaled by the squared group ratio; the unbenchmarked estimate is kept in
+#'   \code{eblup_unbenchmarked}).
 #' @param benchmark_weight Optional vector, column name, or one-sided formula referencing the domain
 #'   benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.
 #' @param benchmark_target Optional numeric scalar or named vector specifying fixed aggregate
@@ -138,6 +147,10 @@ eblup_fh <- function(
   }
 
   # Self-benchmarking setup (Wang, Fuller, and Qu, 2008)
+  # Identity scale: WFQ augmented model (exact for the linear EBLUP).
+  # Log scale: the WFQ constraint would hold on the log scale only, so the
+  # model is fitted unaugmented and the back-transformed estimates are
+  # ratio-benchmarked on the original scale (exact constraint).
   sb_info <- NULL
   if (isTRUE(self_benchmark)) {
     sb_info <- .setup_self_benchmark(
@@ -149,10 +162,12 @@ eblup_fh <- function(
       target = benchmark_target,
       group = benchmark_group
     )
-    data <- sb_info$data_aug
-    formula <- sb_info$formula_aug
-    mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
-    y <- if (transform == "log") ifelse(is.na(stats::model.response(mf, "numeric")), NA_real_, log(stats::model.response(mf, "numeric"))) else stats::model.response(mf, "numeric")
+    if (transform == "none") {
+      data <- sb_info$data_aug
+      formula <- sb_info$formula_aug
+      mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
+      y <- stats::model.response(mf, "numeric")
+    }
   }
 
   X <- stats::model.matrix(attr(mf, "terms"), mf)
@@ -178,11 +193,14 @@ eblup_fh <- function(
   res$transform <- transform
 
   if (transform == "log") {
-    # Slud-Maiti (2006) second-order bias-corrected back-transformation
+    # Back-transformation exp(mu~ + g1/2): conditional-mean correction under the
+    # log-normal model (cf. Slud & Maiti, 2006), without their O(1/m) terms
     sigma2_u <- res$random_effect_var
     mu_star <- res$df_eblup$eblup
     mse_star <- res$df_eblup$mse
-    gamma_star <- ifelse(is.na(vardir) | vardir <= 0, 0.0, sigma2_u / (sigma2_u + vardir))
+    # Unsampled areas get the synthetic predictor, so gamma = 0 there (their
+    # vardir is not on the log scale and must not enter the correction).
+    gamma_star <- ifelse(is.na(y) | is.na(vardir) | vardir <= 0, 0.0, sigma2_u / (sigma2_u + vardir))
 
     eblup_orig <- exp(mu_star + 0.5 * sigma2_u * (1.0 - gamma_star))
     mse_orig <- (eblup_orig^2) * mse_star
@@ -195,11 +213,23 @@ eblup_fh <- function(
     res$df_eblup$rse <- rse_orig
     res$df_eblup$y <- y_orig
     res$df_eblup$vardir <- vardir_orig
+
+    if (!is.null(sb_info)) {
+      # ratio benchmarking on the original scale: theta_bm = c_g * theta, so
+      # (treating the group factor c_g as fixed) MSE_bm = c_g^2 * MSE
+      bm <- as.vector(.benchmark_adjust(matrix(eblup_orig, ncol = 1), sb_info, "ratio"))
+      c_g <- ifelse(eblup_orig > 0, bm / eblup_orig, 1)
+      res$df_eblup$eblup_unbenchmarked <- eblup_orig
+      res$df_eblup$eblup <- bm
+      res$df_eblup$mse <- c_g^2 * mse_orig
+      res$df_eblup$rse <- ifelse(bm < .Machine$double.eps, NA_real_, sqrt(res$df_eblup$mse) / bm * 100)
+    }
   }
 
   # Add domain identifier as first column in df_eblup
   res$df_eblup$domain <- domain
-  cols_order <- c("domain", "y", "eblup", "vardir", "random_effect", "mse", "rse", "eblup_log", "mse_log")
+  cols_order <- c("domain", "y", "eblup", "vardir", "random_effect", "mse", "rse", "eblup_log", "mse_log",
+                  "eblup_unbenchmarked")
   res$df_eblup <- res$df_eblup[, intersect(cols_order, names(res$df_eblup))]
 
   if (!is.null(sb_info)) {

@@ -17,10 +17,12 @@
 #'
 #' @param formula an object of class formula describing the model to fit
 #'   (response ~ auxiliary variables). Variables must be present in \code{data}.
-#' @param data a data frame (or extension) with \code{domain * time} rows, sorted so
-#'   that all \code{time} periods of domain 1 come first, then all periods of
-#'   domain 2, and so on (i.e. domain-major order) -- exactly as required by
-#'   \code{eblupSTFH()}.
+#' @param data a data frame (or extension) with \code{domain * time} rows (balanced
+#'   panel). Rows may be in any order: they are sorted internally into the
+#'   domain-major order required by the model (domains in order of first appearance,
+#'   periods increasing), and the results are returned in the original row order.
+#'   Note that \code{sae::eblupSTFH()} instead assumes the data are already in
+#'   domain-major order.
 #' @param vardir vector, column name or one-sided formula referencing a column
 #'   in \code{data}, with the sampling variances of the direct estimator.
 #' @param domain vector, column name or one-sided formula referencing a domain names column
@@ -28,7 +30,8 @@
 #' @param time vector, column name, or one-sided formula referencing a time names column
 #'   in \code{data}.
 #' @param W a square proximity/spatial weights matrix of dimension
-#'   \code{domain x domain} (row-standardized, values typically in \eqn{[0,1]}).
+#'   \code{domain x domain} (row-standardized, values typically in \eqn{[0,1]}), with rows
+#'   and columns in the order in which the domains first appear in \code{data}.
 #' @param model character, either \code{"ST"} (spatio-temporal, default) or
 #'   \code{"S"} (spatial only, no AR(1) temporal component).
 #' @param maxiter maximum number of Fisher-scoring iterations. Default 100.
@@ -38,10 +41,19 @@
 #'   the variance/autocorrelation components. Defaults mirror \code{eblupSTFH()}:
 #'   \code{0.5 * median(vardir)} for the variances and \code{0.5} for the
 #'   autocorrelations. \code{rho2_start} is ignored when \code{model = "S"}.
+#'   The REML fit first uses the same Fisher-scoring iteration as \code{sae::eblupSTFH()};
+#'   if that fails (typically a variance iterate turns negative and the covariance matrix
+#'   becomes indefinite) it falls back to constrained REML (variances \eqn{\ge 0},
+#'   \eqn{|\rho| \le 0.999}) with step halving. When a variance is estimated at 0, its
+#'   autocorrelation is not identified and its standard error is reported as \code{NA}.
 #' @param compute_mse logical, if \code{TRUE} computes MSE. Default \code{FALSE}.
-#' @param mse_type character, method for MSE estimation: \code{"analytical"} (fast Prasad-Rao /
-#'   Marhuenda et al. 2013 analytical MSE, default when \code{compute_mse = TRUE}) or
-#'   \code{"bootstrap"} (parametric bootstrap).
+#' @param mse_type character, method for MSE estimation: \code{"analytical"} (fast
+#'   Prasad-Rao type estimator g1 + g2 + 2 g3 - g4, default when \code{compute_mse = TRUE}; g3 uses
+#'   the exact derivative of the EBLUP, \eqn{\Psi P V_a P y}, and the REML information at the
+#'   final estimates; correlations estimated on the boundary \eqn{|\rho| \ge 0.999} are
+#'   treated as fixed, so they do not enter \eqn{g_3}/\eqn{g_4}) or \code{"bootstrap"}
+#'   (parametric bootstrap in which the variance components are re-estimated by REML in every
+#'   replicate, as in Marhuenda et al., 2013).
 #' @param B number of bootstrap replicates for MSE computation. Only used when
 #'   \code{compute_mse = TRUE} and \code{mse_type = "bootstrap"}. Default \code{100}.
 #' @param n_threads number of threads for parallel bootstrap MSE computation.
@@ -163,8 +175,41 @@ eblup_stfh <- function(
     ))
   }
 
-  # vardir
+  # ---- domain-major order ----
+  # The C++ core requires all periods of domain 1, then domain 2, ... with the
+  # same (increasing) time order within every domain. Sort internally (domains
+  # in order of first appearance, which must also be the row order of W) and
+  # return the results in the caller's row order. Previously unsorted input,
+  # e.g. time-major panels such as `mys_panel`, was silently mis-specified.
+  data_orig <- data
+  .resolve_rows <- function(v) {
+    if (is.null(v)) return(NULL)
+    if ((is.character(v) && length(v) == 1) || inherits(v, "formula")) {
+      return(.get_variable(data, v))
+    }
+    v
+  }
+  dom0 <- .get_variable(data, domain)
+  tim0 <- .get_variable(data, time)
   vardir <- .get_variable(data, vardir)
+  n_rows <- nrow(data)
+  ord <- if (length(dom0) == n_rows && length(tim0) == n_rows) {
+    order(match(as.character(dom0), unique(as.character(dom0))), tim0)
+  } else {
+    seq_len(n_rows) # malformed input: leave it to the validation below
+  }
+  data <- data[ord, , drop = FALSE]
+  domain <- if (length(dom0) == n_rows) dom0[ord] else dom0
+  time <- if (length(tim0) == n_rows) tim0[ord] else tim0
+  if (length(vardir) == n_rows) vardir <- vardir[ord]
+  if (!is.null(benchmark_weight)) {
+    bw <- .resolve_rows(benchmark_weight)
+    if (length(bw) == length(ord)) benchmark_weight <- bw[ord]
+  }
+  if (!is.null(benchmark_group)) {
+    bg <- .resolve_rows(benchmark_group)
+    if (length(bg) == length(ord)) benchmark_group <- bg[ord]
+  }
 
   # Use complete data
   mf <- stats::model.frame(formula, data, na.action = stats::na.omit)
@@ -197,10 +242,22 @@ eblup_stfh <- function(
   }
 
   # domain & time
-  domain <- .get_variable(data, domain)
-  time <- .get_variable(data, time)
   n_domain <- length(unique(domain))
   n_time <- length(unique(time))
+
+  # After sorting, every domain must have the same sequence of periods
+  # (balanced panel, one row per domain x time).
+  if (length(domain) == n_domain * n_time) {
+    dom_blocks <- rep(unique(domain), each = n_time)
+    time_blocks <- rep(time[seq_len(n_time)], n_domain)
+    if (!identical(as.character(domain), as.character(dom_blocks)) ||
+        !identical(as.character(time), as.character(time_blocks))) {
+      cli::cli_abort(c(
+        "{.arg data} must be a balanced panel: one row per domain and time period, with the same periods in every domain.",
+        "i" = "Check for duplicated or missing domain x time combinations."
+      ))
+    }
+  }
 
   # check dimension
   M <- n_domain * n_time
@@ -270,14 +327,29 @@ eblup_stfh <- function(
   # Add class
   res$call <- match.call()
   res$data <- data
+  res$W <- W
   class(res) <- "fastsae"
+
+  # Map results back to the caller's row order (see the sorting above)
+  .restore_order <- function(res) {
+    inv <- order(ord)
+    if (!is.null(res$df_eblup) && nrow(res$df_eblup) == length(inv)) {
+      res$df_eblup <- res$df_eblup[inv, , drop = FALSE]
+      rownames(res$df_eblup) <- NULL
+    }
+    for (nm in c("mse_analytical", "rse_analytical", "g1", "g2", "g3", "g4")) {
+      if (!is.null(res[[nm]]) && length(res[[nm]]) == length(inv)) res[[nm]] <- res[[nm]][inv]
+    }
+    if (!is.null(res$data) && nrow(res$data) == length(inv)) res$data <- res$data[inv, , drop = FALSE]
+    res
+  }
 
   # Convergence check
   if (!isTRUE(res$convergence)) {
     cli::cli_alert_danger(
       "After {res$n_iter} iteration(s), there is no convergence."
     )
-    return(res)
+    return(.restore_order(res))
   }
 
   # ---- compute MSE if requested ----
@@ -350,6 +422,8 @@ eblup_stfh <- function(
     )
     res$df_eblup$y <- sb_info$original_y
   }
+
+  res <- .restore_order(res)
 
   # Print results
   if (print_result) {

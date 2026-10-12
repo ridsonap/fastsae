@@ -55,6 +55,31 @@ test_that("benchmark works on fastsae eblup_fh models", {
   expect_equal(sum((mys$n / sum(mys$n)) * bm_wt$benchmarked), target_val, tolerance = 1e-8)
 })
 
+test_that("optimal benchmarking is the inverse-MSE-weighted least-squares solution", {
+  data(mys, package = "fastsae")
+  fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, print_result = FALSE)
+  est <- fit_fh$df_eblup$eblup
+  mse <- fit_fh$df_eblup$mse
+  w <- mys$n / sum(mys$n) # unequal weights
+  target_val <- 7.5
+
+  bm <- benchmark_sae(fit_fh, target = target_val, weight = mys$n, method = "optimal")
+  expect_equal(sum(w * bm$benchmarked), target_val, tolerance = 1e-10)
+
+  # Closed form of argmin sum (y' - y)^2 / mse  s.t.  sum w y' = T
+  d <- target_val - sum(w * est)
+  expect_equal(bm$benchmarked, est + w * mse * d / sum(w^2 * mse), tolerance = 1e-10)
+
+  # No other feasible point has a smaller loss
+  loss <- function(z) sum((z - est)^2 / mse)
+  set.seed(1)
+  for (k in 1:20) {
+    v <- rnorm(length(est))
+    v <- v - w * sum(w * v) / sum(w^2) # keep sum(w * z) = T
+    expect_gt(loss(bm$benchmarked + 0.01 * v), loss(bm$benchmarked))
+  }
+})
+
 test_that("benchmark works with grouping (hierarchical calibration)", {
   set.seed(123)
   n <- 30
@@ -193,3 +218,53 @@ test_that("benchmark covers all validation, targets, and methods branches", {
   }
 })
 
+
+test_that(".mse_matrix: FH off-diagonal = R Q R', diagonal = reported mse", {
+  data(mys, package = "fastsae")
+  fit <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, print_result = FALSE)
+  M <- fastsae:::.mse_matrix(fit)
+  expect_equal(dim(M), c(nrow(mys), nrow(mys)))
+  expect_equal(diag(M), fit$df_eblup$mse)
+  expect_equal(M, t(M))
+  s <- !is.na(mys$y)
+  X <- model.matrix(~ x1 + x2, mys)
+  s2 <- fit$random_effect_var
+  B <- ifelse(s, mys$vardir / (s2 + mys$vardir), 1) # unsampled: synthetic, R = x'
+  Vi <- diag(1 / (s2 + mys$vardir[s]))
+  Q <- solve(t(X[s, ]) %*% Vi %*% X[s, ])
+  R <- B * X
+  G12 <- diag(ifelse(s, B * s2, s2)) + R %*% Q %*% t(R) # g1 (diagonal for FH) + g2
+  expect_equal(M, cov2cor(G12) * outer(sqrt(fit$df_eblup$mse), sqrt(fit$df_eblup$mse)),
+               tolerance = 1e-10, ignore_attr = TRUE)
+})
+
+test_that("benchmarked MSE follows mse - 2 k (Mw) + adj^2", {
+  data(mys, package = "fastsae")
+  fit <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, print_result = FALSE)
+  w <- mys$n
+  bm <- benchmark_sae(fit, target = 7.5, weight = w, method = "difference")
+  expect_true(isTRUE(attr(bm, "mse_matrix_used")))
+  M <- fastsae:::.mse_matrix(fit)
+  wn <- w / sum(w)
+  adj <- bm$benchmarked - fit$df_eblup$eblup
+  expect_equal(bm$mse_benchmarked, pmax(fit$df_eblup$mse - 2 * as.vector(M %*% wn) + adj^2, 0),
+               tolerance = 1e-10)
+  # without an MSE matrix (numeric input) there is no MSE column
+  bm0 <- benchmark_sae(fit$df_eblup$eblup, target = 7.5, weight = w, method = "difference")
+  expect_false("mse_benchmarked" %in% names(bm0))
+})
+
+test_that(".mse_matrix supports SFH (with unsampled domains) and STFH", {
+  library(dplyr)
+  fit_s <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, print_result = FALSE)
+  Ms <- fastsae:::.mse_matrix(fit_s)
+  expect_equal(diag(Ms), fit_s$df_eblup$mse)
+  expect_true(all(eigen(Ms, symmetric = TRUE, only.values = TRUE)$values > -1e-8))
+  d <- mys_panel |> filter(!is.na(y), year >= 2024)
+  W <- mys_proxmat[-c(21, 25), -c(21, 25)]
+  fit_t <- eblup_stfh(y ~ x1 + x2, data = d, vardir = ~vardir, domain = ~area, time = ~year,
+                      W = W, compute_mse = TRUE, print_result = FALSE)
+  Mt <- fastsae:::.mse_matrix(fit_t)
+  expect_equal(diag(Mt), fit_t$df_eblup$mse)
+  expect_equal(Mt, t(Mt))
+})

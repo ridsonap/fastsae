@@ -464,3 +464,29 @@ test_that("hb_unit handles INLA failure and vardir fallback paths", {
   expect_s3_class(fit_pois, "fastsae")
 })
 
+
+test_that("hb_unit finite-population mean predicts non-sampled units at xbar_r (BHF identity)", {
+  skip_if_not_installed("INLA")
+  # f_d = 1/2 and the sample covariate mean differs from the population mean,
+  # so predicting the non-sampled part at Xbar_d (instead of xbar_{d,r}) would
+  # be off by f_d * (Xbar_d - xbar_{d,s}) * beta1 = 0.5 * 2 * 3 = 3.
+  set.seed(42)
+  D <- 15; n <- 10; N <- 20
+  dom <- rep(seq_len(D), each = n)
+  x <- rnorm(D * n)
+  u <- rnorm(D, sd = 1)
+  y <- 1 + 3 * x + u[dom] + rnorm(D * n, sd = 0.5)
+  smp <- data.frame(y = y, x = x, dom = dom)
+  xbar_s <- as.vector(tapply(x, dom, mean))
+  pop <- data.frame(dom = seq_len(D), x = xbar_s + 2, N = N)
+
+  fit <- hb_unit(y ~ x, unit_data = smp, Xpop = pop, domain_var = "dom",
+                 popsize_var = "N", family = "gaussian", print_result = FALSE)
+  d <- fit$df_hb
+  b <- fit$estcoef$beta
+  f <- n / N
+  xbar_r <- (N * pop$x - n * xbar_s) / (N - n)
+  expected <- f * d$sample_mean + (1 - f) * (b[1] + b[2] * xbar_r + d$random_effect)
+  # INLA's per-node marginal corrections make this only approximately linear
+  expect_lt(max(abs(d$hb - expected)), 0.05)
+})

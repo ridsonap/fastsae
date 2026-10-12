@@ -447,14 +447,14 @@ hb_twofold <- function(
     area_idx <- grep("..area_id..", hyp_names)
     if (length(area_idx) > 0) {
       prec_v <- hyp_sum$mean[area_idx[1]]
-      s2v <- if (prec_v > 0) 1 / prec_v else NA_real_
+      s2v <- .post_mean_variance(fit, hyp_names[area_idx[1]], prec_v)
     }
 
     # Sub-area precision
     subarea_idx <- grep("..subarea_id..", hyp_names)
     if (length(subarea_idx) > 0) {
       prec_u <- hyp_sum$mean[subarea_idx[1]]
-      s2u <- if (prec_u > 0) 1 / prec_u else NA_real_
+      s2u <- .post_mean_variance(fit, hyp_names[subarea_idx[1]], prec_u)
     }
 
     # Spatial mixing parameter (BYM2)

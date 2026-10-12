@@ -194,3 +194,62 @@ utils::globalVariables(c("density", ".data"))
   }
   do.call(rbind, res_list)
 }
+
+#' Benchmark a matrix of estimates column by column
+#'
+#' Each column of `theta` (n x S: one domain per row, one posterior draw or a
+#' single point estimate per column) is adjusted within each benchmark group
+#' so that sum_i w_i theta_i = target exactly, using the same rules as
+#' `benchmark_sae()`: an additive shift (`"difference"`), a common shift on
+#' the logit scale for quantities in (0, 1) (`"logit"`) or a common ratio for
+#' positive quantities (`"ratio"`). Only domains with positive weight are
+#' adjusted (the others do not enter the constraint).
+#'
+#' @param theta Numeric matrix n x S.
+#' @param sb_info List from `.setup_self_benchmark()` (w_norm, group_vec,
+#'   unique_groups, target_vec).
+#' @param type One of "difference", "logit", "ratio".
+#' @return Adjusted matrix of the same size.
+#' @noRd
+.benchmark_adjust <- function(theta, sb_info, type = c("difference", "logit", "ratio")) {
+  type <- match.arg(type)
+  theta <- as.matrix(theta)
+  for (g in sb_info$unique_groups) {
+    idx <- which(sb_info$group_vec == g & sb_info$w_norm > 0)
+    if (length(idx) == 0) next
+    w <- sb_info$w_norm[idx]
+    tgt <- as.numeric(sb_info$target_vec[g])
+    th <- theta[idx, , drop = FALSE]
+    if (type == "difference") {
+      theta[idx, ] <- sweep(th, 2, tgt - colSums(w * th), "+")
+    } else if (type == "ratio") {
+      agg <- colSums(w * th)
+      if (any(agg <= 0) || tgt <= 0) {
+        cli::cli_abort("Ratio benchmarking needs positive estimates and target (group {.val {g}}).")
+      }
+      theta[idx, ] <- sweep(th, 2, tgt / agg, "*")
+    } else {
+      if (tgt <= 0 || tgt >= 1) {
+        cli::cli_abort("Logit benchmarking needs a target in (0, 1) (group {.val {g}}).")
+      }
+      lth <- stats::qlogis(pmin(pmax(th, 1e-12), 1 - 1e-12))
+      for (s in seq_len(ncol(th))) {
+        fn <- function(a) sum(w * stats::plogis(lth[, s] + a)) - tgt
+        a <- stats::uniroot(fn, c(-50, 50), tol = 1e-12)$root
+        theta[idx, s] <- stats::plogis(lth[, s] + a)
+      }
+    }
+  }
+  theta
+}
+
+#' Benchmark rule matching a response family
+#' @noRd
+.benchmark_type_for_family <- function(family) {
+  switch(family,
+    gaussian = "difference",
+    binomial = "logit",
+    beta = "logit",
+    "ratio" # poisson, nbinomial, gamma
+  )
+}

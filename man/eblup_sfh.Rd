@@ -107,7 +107,35 @@ The model has a form that is response ~ auxiliary variables.
 where numeric type response variables can contain NA.
 When the response variable contains NA, that domain is treated as unsampled: it is
 predicted with a full-spatial synthetic (kriging) estimator that borrows strength from
-sampled neighbors via \code{W}, with an analytical MSE approximation.
+sampled neighbors via \code{W}. The SAR process is defined on all domains of \code{W}, so the
+sampled domains have covariance \eqn{\sigma^2 \Sigma[s,s]} with
+\eqn{\Sigma = [(I - \rho W')(I - \rho W)]^{-1}}.
+
+Analytical MSE. Sampled domains: \eqn{g_1 + g_2 + 2 g_3 - g_4} (Singh et al., 2005;
+as \code{sae::mseSFH}), minus \eqn{b_{ML}'\nabla g_1} for ML. Unsampled domains:
+\eqn{g_1 + g_2 + g_3 - \frac{1}{2}\mathrm{tr}(I^{-1}\nabla^2 g_1)} (minus
+\eqn{b_{ML}'\nabla g_1} for ML), with \eqn{g_3} from the exact derivative of the
+kriging predictor; for sampled domains this second-order form agrees, up to o(1/m), with
+\eqn{g_1 + g_2 + 2 g_3 - g_4}. The inverse information used for \eqn{g_3} and
+\eqn{b_{ML}} is the one of the fitting method: REML information for REML and ML
+information for ML. (\code{sae::mseSFH} uses the REML information also for ML; the two
+agree asymptotically, but with few domains, or \eqn{\hat\sigma^2 \approx 0} with
+\eqn{\hat\rho \approx 1}, the REML choice can make the ML bias term explode. Hence, for
+\code{method = "ML"}, the MSE differs from \code{sae::mseSFH}; REML results agree.)
+
+When \eqn{\hat\rho} lies on the boundary (\eqn{|\hat\rho| \ge 0.999}, or reported as
+\eqn{-1}), the Prasad-Rao expansion in \eqn{\rho} is not valid and can explode, so
+\eqn{\rho} is treated as fixed: only the \eqn{\sigma^2} block of the information is
+inverted, which removes the \eqn{\rho} terms from \eqn{g_3}, \eqn{g_4} and
+\eqn{b_{ML}} (the standard error of \eqn{\rho} is then \code{NA}). In this case the
+MSE differs from \code{sae::mseSFH}, which keeps those terms.
+
+If the classical (sae-compatible) Fisher scoring fails, or converges to a negative
+\eqn{\sigma^2} (which \code{sae::eblupSFH} truncates to 0 without re-estimating
+\eqn{\rho}), the (RE)ML likelihood is maximised under the constraints
+\eqn{\sigma^2 \ge 0}, \eqn{|\rho| \le 0.999}. A lower-bound estimate
+\eqn{\rho = -0.999} is reported as \eqn{-1} (as \code{sae}) only when \eqn{I + W} is
+non-singular (not for bipartite graphs such as a rook grid).
 }
 \examples{
 library(fastsae)

@@ -31,6 +31,9 @@ hb_area(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
+  benchmark_method = c("posterior", "wfq"),
+  benchmark_draws = 1000,
+  benchmark_seed = 0L,
   print_result = TRUE,
   ...
 )
@@ -72,6 +75,10 @@ Options:
   \item \code{"bym"}: Classic Besag-York-Mollié (1991) model.
   \item \code{"besag"}: Intrinsic Conditional Autoregressive (ICAR) model.
   \item \code{"generic1"}: Leroux spatial autoregressive model.
+  \item \code{"slm"}: Spatial lag model, \eqn{\eta = (I - \rho W)^{-1}(X\beta + \epsilon)}
+    (INLA \code{"slm"}). Note that the covariates are spatially filtered too, so this
+    is \emph{not} the Bayesian counterpart of \code{\link{eblup_sfh}}, whose SAR
+    structure applies to the random effect only: \eqn{X\beta + (I - \rho W)^{-1}\epsilon}.
 }}
 
 \item{temporal}{Character string specifying the temporal random effect structure:
@@ -134,10 +141,9 @@ a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.}
 
 \item{prior_rho_time}{Optional list specifying prior for temporal autocorrelation parameter in AR(1).}
 
-\item{self_benchmark}{Logical. If \code{TRUE}, fits a self-benchmarking model via the
-augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
-ensuring that the weighted aggregate of small area estimates automatically matches the direct
-survey aggregate or specified benchmark targets without post-hoc adjustment.}
+\item{self_benchmark}{Logical. If \code{TRUE}, the weighted aggregate of the area
+estimates is made to match the direct survey aggregate or \code{benchmark_target}; see
+\code{benchmark_method}.}
 
 \item{benchmark_weight}{Optional vector, column name, or one-sided formula referencing the domain
 benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.}
@@ -147,6 +153,23 @@ benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggreg
 
 \item{benchmark_group}{Optional vector, column name, or one-sided formula referencing the
 grouping / stratum column in \code{data} (e.g. province) for group-specific self-benchmarking.}
+
+\item{benchmark_method}{How self-benchmarking is done when \code{self_benchmark = TRUE}:
+\code{"posterior"} (default) benchmarks every posterior draw of the area parameters
+(an additive shift for \code{"gaussian"}, a common shift on the logit scale for
+\code{"binomial"} and \code{"beta"}, a common ratio for \code{"poisson"},
+\code{"nbinomial"} and \code{"gamma"}), so the constraint holds exactly for the posterior
+mean and the reported SD / credible intervals refer to the benchmarked estimator (Bayesian
+benchmarking, cf. Datta et al., 2011). \code{"wfq"} uses the augmented-covariate approach of
+Wang, Fuller and Qu (2008), which is exact only for the linear Gaussian EBLUP; for the HB
+models it holds only approximately (non-flat prior on the coefficients, integration over
+the hyperparameters) and not at all for non-Gaussian likelihoods. With
+\code{method = "laplace"} (no posterior draws) the same adjustment is applied to the point
+estimates.}
+
+\item{benchmark_draws}{Number of posterior draws for \code{benchmark_method = "posterior"}.}
+
+\item{benchmark_seed}{Seed for \code{INLA::inla.posterior.sample()} (\code{0} = random).}
 
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 

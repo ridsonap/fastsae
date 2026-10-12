@@ -37,10 +37,12 @@ eblup_stfh(
 \item{vardir}{vector, column name or one-sided formula referencing a column
 in \code{data}, with the sampling variances of the direct estimator.}
 
-\item{data}{a data frame (or extension) with \code{domain * time} rows, sorted so
-that all \code{time} periods of domain 1 come first, then all periods of
-domain 2, and so on (i.e. domain-major order) -- exactly as required by
-\code{eblupSTFH()}.}
+\item{data}{a data frame (or extension) with \code{domain * time} rows (balanced
+panel). Rows may be in any order: they are sorted internally into the
+domain-major order required by the model (domains in order of first appearance,
+periods increasing), and the results are returned in the original row order.
+Note that \code{sae::eblupSTFH()} instead assumes the data are already in
+domain-major order.}
 
 \item{domain}{vector, column name or one-sided formula referencing a domain names column
 in \code{data}. If NULL, the domains are numbered consecutively.}
@@ -49,7 +51,8 @@ in \code{data}. If NULL, the domains are numbered consecutively.}
 in \code{data}.}
 
 \item{W}{a square proximity/spatial weights matrix of dimension
-\code{domain x domain} (row-standardized, values typically in \eqn{[0,1]}).}
+\code{domain x domain} (row-standardized, values typically in \eqn{[0,1]}), with rows
+and columns in the order in which the domains first appear in \code{data}.}
 
 \item{model}{character, either \code{"ST"} (spatio-temporal, default) or
 \code{"S"} (spatial only, no AR(1) temporal component).}
@@ -62,13 +65,22 @@ Default \code{1e-4}.}
 \item{sigma21_start, rho1_start, sigma22_start, rho2_start}{starting values for
 the variance/autocorrelation components. Defaults mirror \code{eblupSTFH()}:
 \code{0.5 * median(vardir)} for the variances and \code{0.5} for the
-autocorrelations. \code{rho2_start} is ignored when \code{model = "S"}.}
+autocorrelations. \code{rho2_start} is ignored when \code{model = "S"}.
+The REML fit first uses the same Fisher-scoring iteration as \code{sae::eblupSTFH()};
+if that fails (typically a variance iterate turns negative and the covariance matrix
+becomes indefinite) it falls back to constrained REML (variances \eqn{\ge 0},
+\eqn{|\rho| \le 0.999}) with step halving. When a variance is estimated at 0, its
+autocorrelation is not identified and its standard error is reported as \code{NA}.}
 
 \item{compute_mse}{logical, if \code{TRUE} computes MSE. Default \code{FALSE}.}
 
-\item{mse_type}{character, method for MSE estimation: \code{"analytical"} (fast Prasad-Rao /
-Marhuenda et al. 2013 analytical MSE, default when \code{compute_mse = TRUE}) or
-\code{"bootstrap"} (parametric bootstrap).}
+\item{mse_type}{character, method for MSE estimation: \code{"analytical"} (fast
+Prasad-Rao type estimator g1 + g2 + 2 g3 - g4, default when \code{compute_mse = TRUE}; g3 uses
+the exact derivative of the EBLUP, \eqn{\Psi P V_a P y}, and the REML information at the
+final estimates; correlations estimated on the boundary \eqn{|\rho| \ge 0.999} are
+treated as fixed, so they do not enter \eqn{g_3}/\eqn{g_4}) or \code{"bootstrap"}
+(parametric bootstrap in which the variance components are re-estimated by REML in every
+replicate, as in Marhuenda et al., 2013).}
 
 \item{B}{number of bootstrap replicates for MSE computation. Only used when
 \code{compute_mse = TRUE} and \code{mse_type = "bootstrap"}. Default \code{100}.}

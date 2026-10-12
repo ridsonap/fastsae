@@ -46,14 +46,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // seblup_npbmse
-List seblup_npbmse(const arma::mat& X, const arma::vec& y, const arma::vec& vardir, const arma::mat& W, std::string method, int maxiter, double precision, int B, int n_threads, int max_attempts_factor, int seed);
-RcppExport SEXP _fastsae_seblup_npbmse(SEXP XSEXP, SEXP ySEXP, SEXP vardirSEXP, SEXP WSEXP, SEXP methodSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP BSEXP, SEXP n_threadsSEXP, SEXP max_attempts_factorSEXP, SEXP seedSEXP) {
+List seblup_npbmse(const arma::mat& Xall, const arma::vec& yall, const arma::vec& vardirall, const arma::mat& W, std::string method, int maxiter, double precision, int B, int n_threads, int max_attempts_factor, int seed);
+RcppExport SEXP _fastsae_seblup_npbmse(SEXP XallSEXP, SEXP yallSEXP, SEXP vardirallSEXP, SEXP WSEXP, SEXP methodSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP BSEXP, SEXP n_threadsSEXP, SEXP max_attempts_factorSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type vardir(vardirSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Xall(XallSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type yall(yallSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type vardirall(vardirallSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type W(WSEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
@@ -62,19 +62,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
     Rcpp::traits::input_parameter< int >::type max_attempts_factor(max_attempts_factorSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(seblup_npbmse(X, y, vardir, W, method, maxiter, precision, B, n_threads, max_attempts_factor, seed));
+    rcpp_result_gen = Rcpp::wrap(seblup_npbmse(Xall, yall, vardirall, W, method, maxiter, precision, B, n_threads, max_attempts_factor, seed));
     return rcpp_result_gen;
 END_RCPP
 }
 // seblup_pbmse
-List seblup_pbmse(const arma::mat& X, const arma::vec& y, const arma::vec& vardir, const arma::mat& W, std::string method, int maxiter, double precision, int B, int n_threads, int max_attempts_factor, int seed);
-RcppExport SEXP _fastsae_seblup_pbmse(SEXP XSEXP, SEXP ySEXP, SEXP vardirSEXP, SEXP WSEXP, SEXP methodSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP BSEXP, SEXP n_threadsSEXP, SEXP max_attempts_factorSEXP, SEXP seedSEXP) {
+List seblup_pbmse(const arma::mat& Xall, const arma::vec& yall, const arma::vec& vardirall, const arma::mat& W, std::string method, int maxiter, double precision, int B, int n_threads, int max_attempts_factor, int seed);
+RcppExport SEXP _fastsae_seblup_pbmse(SEXP XallSEXP, SEXP yallSEXP, SEXP vardirallSEXP, SEXP WSEXP, SEXP methodSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP BSEXP, SEXP n_threadsSEXP, SEXP max_attempts_factorSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type vardir(vardirSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Xall(XallSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type yall(yallSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type vardirall(vardirallSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type W(WSEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
@@ -83,7 +83,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
     Rcpp::traits::input_parameter< int >::type max_attempts_factor(max_attempts_factorSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(seblup_pbmse(X, y, vardir, W, method, maxiter, precision, B, n_threads, max_attempts_factor, seed));
+    rcpp_result_gen = Rcpp::wrap(seblup_pbmse(Xall, yall, vardirall, W, method, maxiter, precision, B, n_threads, max_attempts_factor, seed));
     return rcpp_result_gen;
 END_RCPP
 }

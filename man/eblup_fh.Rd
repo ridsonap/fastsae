@@ -33,8 +33,13 @@ in \code{data}. If NULL, the domains are numbered consecutively.}
 \item{method}{Fitting method can be chosen between 'ML' and 'REML'.}
 
 \item{transform}{Character string specifying data transformation for the response:
-\code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model with Slud & Maiti 2006
-second-order bias-corrected back-transformation).}
+\code{"none"} (default) or \code{"log"} (Log-Fay-Herriot model). With \code{"log"} the
+estimate is back-transformed as \eqn{\exp(\tilde\mu + \hat g_1/2)} with
+\eqn{g_1 = \sigma^2_u(1-\gamma)} (\eqn{\sigma^2_u/2} for unsampled domains), i.e. the
+conditional-mean correction under the log-normal model (cf. Slud & Maiti, 2006); it
+does not include the additional O(1/m) terms for the estimation of \eqn{\beta} and
+\eqn{\sigma^2_u}. The MSE on the original scale is the delta-method approximation
+\eqn{\hat\theta^2 \cdot mse_{log}}.}
 
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm.}
 
@@ -45,7 +50,11 @@ second-order bias-corrected back-transformation).}
 \item{self_benchmark}{Logical. If \code{TRUE}, fits a self-benchmarking model via the
 augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
 ensuring that the weighted aggregate of small area estimates automatically matches the direct
-survey aggregate or specified benchmark targets without post-hoc adjustment.}
+survey aggregate or specified benchmark targets without post-hoc adjustment. With
+\code{transform = "log"} that constraint would hold on the log scale only, so instead the
+back-transformed estimates are ratio-benchmarked on the original scale (exact constraint;
+MSE scaled by the squared group ratio; the unbenchmarked estimate is kept in
+\code{eblup_unbenchmarked}).}
 
 \item{benchmark_weight}{Optional vector, column name, or one-sided formula referencing the domain
 benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.}

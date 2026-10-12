@@ -69,7 +69,14 @@ Rcpp::List pbmse_stfh(
     int seed
 );
 
-// Internal function (not exported) - declaration in eblup_stfh_pbmse.cpp
-// STFitArma fit_stfh_arma(...)
+// Pure Armadillo REML fit + EBLUP (thread-safe; defined in eblup_stfh_core.cpp).
+// Used to re-estimate theta in every bootstrap replicate.
+STFitArma stfh_fit_arma(
+    const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
+    const arma::mat& W, int D, int Tt, bool isST,
+    int maxiter, double precision,
+    double sigma21_start, double rho1_start,
+    double sigma22_start, double rho2_start
+);
 
 #endif // EBLUP_STFH_CORE_H

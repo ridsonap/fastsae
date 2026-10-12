@@ -14,6 +14,24 @@
   }
 }
 
+#' Posterior mean of a variance from the marginal of its precision
+#'
+#' E[1 / tau | y] (the posterior mean of the variance), not 1 / E[tau | y],
+#' which is smaller by Jensen's inequality. Falls back to 1 / E[tau | y] when
+#' the marginal is not available.
+#' @noRd
+.post_mean_variance <- function(fit, row_name, prec_mean) {
+  marg <- fit$marginals.hyperpar[[row_name]]
+  v <- if (!is.null(marg)) {
+    tryCatch(INLA::inla.emarginal(function(x) 1 / x, marg), error = function(e) NA_real_)
+  } else {
+    NA_real_
+  }
+  if (!is.finite(v) && !is.na(prec_mean) && prec_mean > 0) v <- 1 / prec_mean
+  v
+}
+
+
 #' Convert and validate spatial proximity / weight matrix for INLA models
 #'
 #' @param W Matrix, Matrix object, `spdep` `nb`, or `listw` object.
@@ -163,7 +181,7 @@
     if (length(prec_rows) > 0) {
       prec_est <- hyper_summary[prec_rows[1], "mean"]
       if (!is.na(prec_est) && prec_est > 0) {
-        random_effect_var <- 1 / prec_est
+        random_effect_var <- .post_mean_variance(fit, prec_rows[1], prec_est)
       }
     }
 
@@ -172,7 +190,7 @@
     if (length(prec_time_rows) > 0) {
       prec_time_est <- hyper_summary[prec_time_rows[1], "mean"]
       if (!is.na(prec_time_est) && prec_time_est > 0) {
-        random_effect_var_time <- 1 / prec_time_est
+        random_effect_var_time <- .post_mean_variance(fit, prec_time_rows[1], prec_time_est)
       }
     }
 
@@ -395,3 +413,48 @@
   return(out)
 }
 
+
+#' Posterior (Bayesian) self-benchmarking of an INLA area-level fit
+#'
+#' Draws from the joint posterior of the linear predictor, maps them to the
+#' response scale, adjusts every draw so that the benchmark constraint holds
+#' exactly (see `.benchmark_adjust()`), and summarises the adjusted draws.
+#' Because the constraint holds draw by draw it also holds for the posterior
+#' mean, and the reported SD and credible interval account for it (Bayesian
+#' benchmarking, cf. Datta et al., 2011).
+#'
+#' @param res Result of `.extract_inla_results()` (needs `res$fit`, `res$df_hb`).
+#' @param sb_info List from `.setup_self_benchmark()`.
+#' @param family Response family.
+#' @param n_draws Number of posterior draws.
+#' @param seed Seed passed to `INLA::inla.posterior.sample()` (0 = random).
+#' @return `res` with benchmarked `df_hb` columns; the unbenchmarked estimate
+#'   is kept in `hb_unbenchmarked`.
+#' @noRd
+.posterior_benchmark <- function(res, sb_info, family, n_draws = 1000, seed = 0L) {
+  n <- nrow(res$df_hb)
+  smp <- INLA::inla.posterior.sample(n = n_draws, result = res$fit, seed = as.integer(seed))
+  rn <- rownames(smp[[1]]$latent)
+  pred_rows <- grep("^Predictor:", rn)[seq_len(n)]
+  eta <- vapply(smp, function(s) s$latent[pred_rows, 1], numeric(n))
+  theta <- switch(family,
+    gaussian = eta,
+    binomial = stats::plogis(eta),
+    beta = stats::plogis(eta),
+    exp(eta) # poisson / nbinomial (rate) / gamma
+  )
+  theta_bm <- .benchmark_adjust(theta, sb_info, .benchmark_type_for_family(family))
+  df <- res$df_hb
+  df$hb_unbenchmarked <- df$hb
+  df$hb <- rowMeans(theta_bm)
+  df$sd <- apply(theta_bm, 1, stats::sd)
+  df$mse <- df$sd^2
+  df$rse <- ifelse(abs(df$hb) < .Machine$double.eps, NA_real_, df$sd / abs(df$hb) * 100)
+  df$ci_lower <- apply(theta_bm, 1, stats::quantile, probs = 0.025, names = FALSE)
+  df$ci_upper <- apply(theta_bm, 1, stats::quantile, probs = 0.975, names = FALSE)
+  res$df_hb <- df
+  res$hb <- df
+  if (!is.null(res$df_eblup)) res$df_eblup <- df
+  res$benchmark_draws <- n_draws
+  res
+}

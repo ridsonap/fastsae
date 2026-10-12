@@ -38,7 +38,7 @@ in \code{data}. If NULL, rows are numbered consecutively.}
 
 \item{method}{Fitting method can be chosen between 'REML' and 'ML'.}
 
-\item{mse}{MSE estimation method: 'analytical' (Prasad-Rao g1+g2+g3, fast) or
+\item{mse}{MSE estimation method: 'analytical' (Prasad-Rao g1+g2+2*g3, fast; ML adds the bias correction) or
 'bootstrap' (parametric bootstrap, slower but robust).}
 
 \item{B}{number of parametric bootstrap replicates (only used if mse = 'bootstrap').}
@@ -84,7 +84,8 @@ with an area random effect \eqn{v_i} and a subarea random effect \eqn{u_{ij}}.
 The model has a form that is response ~ auxiliary variables, with one row per subarea.
 When the response contains NA the subarea is treated as non-sampled and predicted
 with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
-g1+g2+g3 with exact matrix derivation for g3) or by parametric bootstrap.
+g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
+derivation for g3) or by parametric bootstrap.
 }
 \examples{
 library(fastsae)

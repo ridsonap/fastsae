@@ -141,6 +141,7 @@ eblup_bhf <- function(
       Xpop = Xpop,
       domain_var = domain_var,
       popsize_var = popsize_var,
+      meanxpop = meanxpop,
       method = method,
       B = B,
       n_threads = n_threads,
@@ -219,7 +220,8 @@ eblup_bhf <- function(
   method = c("REML", "ML"),
   B = 100,
   n_threads = 1,
-  seed = -1
+  seed = -1,
+  meanxpop = NULL
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
 
@@ -241,10 +243,14 @@ eblup_bhf <- function(
   Xpop <- Xpop[order(match(pop_dom, selectdom)), , drop = FALSE]
   popnsize <- .get_variable(Xpop, popsize_var)
 
-  formula_noy <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
-  meanxpop <- stats::model.matrix(formula_noy, Xpop)
-  if (ncol(meanxpop) == ncol(Xs) - 1 && "(Intercept)" %in% colnames(Xs)) {
-    meanxpop <- cbind(`(Intercept)` = 1, meanxpop)
+  # Use the same population means as the point estimate (incl. a user-supplied
+  # popnmean_xpop), so that the bootstrap targets the same estimator.
+  if (is.null(meanxpop)) {
+    formula_noy <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
+    meanxpop <- stats::model.matrix(formula_noy, Xpop)
+    if (ncol(meanxpop) == ncol(Xs) - 1 && "(Intercept)" %in% colnames(Xs)) {
+      meanxpop <- cbind(`(Intercept)` = 1, meanxpop)
+    }
   }
 
   # --- initial fit ---

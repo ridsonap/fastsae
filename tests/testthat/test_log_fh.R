@@ -56,16 +56,13 @@ test_that("Log-FH integrates with self-benchmarking", {
   expect_true(fit_log_bench$self_benchmark)
   expect_s3_class(fit_log_bench$benchmark_summary, "data.frame")
 
-  # Weighted benchmark target on log scale is exact (Wang, Fuller, and Qu, 2008)
+  # The benchmark holds exactly on the original scale (ratio benchmarking of
+  # the back-transformed estimates; a WFQ constraint would only hold on the
+  # log scale)
   w <- mys_pos$n / sum(mys_pos$n)
-  direct_log_bench <- sum(w * log(mys_pos$y))
-  est_log_bench <- sum(w * fit_log_bench$df_eblup$eblup_log)
-  expect_equal(est_log_bench, direct_log_bench, tolerance = 1e-4)
-
-  # On original scale, it is close to direct benchmark target
   direct_bench <- sum(w * mys_pos$y)
   est_bench <- sum(w * fit_log_bench$df_eblup$eblup)
-  expect_equal(est_bench, direct_bench, tolerance = 0.1)
+  expect_equal(est_bench, direct_bench, tolerance = 1e-10)
 })
 
 test_that("Log-FH validation rejects non-positive response values", {
@@ -81,4 +78,15 @@ test_that("Log-FH validation rejects non-positive response values", {
     ),
     "strictly positive"
   )
+})
+
+test_that("Log-FH unsampled areas use the synthetic correction exp(x'b + s2/2) even if vardir is given", {
+  data(mys, package = "fastsae")
+  d <- mys[!is.na(mys$y), ]
+  d$y[1:3] <- NA # unsampled, but keep their (original-scale) vardir
+  expect_false(anyNA(d$vardir[1:3]))
+  fit <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = d, transform = "log", print_result = FALSE)
+  X <- model.matrix(~ x1 + x2, d)
+  xb <- as.vector(X[1:3, ] %*% fit$estcoef$beta)
+  expect_equal(fit$df_eblup$eblup[1:3], exp(xb + 0.5 * fit$random_effect_var), tolerance = 1e-10)
 })

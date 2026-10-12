@@ -243,6 +243,25 @@ hb_unit <- function(
 
   # Prediction rows (1 per domain, response = NA)
   df_p <- as.data.frame(Xpop_domain[, term_labels, drop = FALSE])
+
+  # With a finite population (popsize_var), the domain mean is
+  #   Ybar_d = f_d * ybar_{d,s} + (1 - f_d) * Ybar_{d,r},
+  # and Ybar_{d,r} must be predicted at the NON-SAMPLED covariate mean
+  #   xbar_{d,r} = (N_d * Xbar_d - n_d * xbar_{d,s}) / (N_d - n_d),
+  # not at the population mean Xbar_d (cf. the BHF EBLUP in eblup_bhf()).
+  if (!is.null(popsize_var)) {
+    N_pop <- as.numeric(Xpop_domain[[popsize_var]])
+    n_samp <- as.numeric(table(factor(dom_s, levels = all_domains)))
+    has_r <- n_samp > 0 & !is.na(N_pop) & N_pop > n_samp
+    for (v in term_labels) {
+      if (!is.numeric(df_p[[v]]) || !v %in% names(formuladata_s)) next
+      xbar_s <- as.numeric(tapply(formuladata_s[[v]], factor(dom_s, levels = all_domains), mean))
+      x_r <- df_p[[v]]
+      x_r[has_r] <- (N_pop[has_r] * df_p[[v]][has_r] - n_samp[has_r] * xbar_s[has_r]) /
+        (N_pop[has_r] - n_samp[has_r])
+      df_p[[v]] <- x_r
+    }
+  }
   df_p$y <- rep(NA_real_, n_domains)
   df_p$..dom_id.. <- pred_dom_id
 
@@ -322,8 +341,19 @@ hb_unit <- function(
     # For domains with samp_size == 0, f_d == 0 so hb_adj = hb_pred
     hb_adj <- ifelse(samp_size > 0, f_d * sample_mean_y + (1 - f_d) * hb_pred, hb_pred)
 
-    # Variance adjustment
-    sd_adj <- ifelse(samp_size > 0, (1 - f_d) * hb_sd, hb_sd)
+    # Variance adjustment: Var(Ybar_d | y) = (1 - f_d)^2 Var(Ybar_{d,r} | y), and
+    # for the Gaussian model Ybar_{d,r} = mu_{d,r} + ebar_{d,r} with
+    # Var(ebar_{d,r}) = sigma_e^2 / (N_d - n_d).
+    var_r <- hb_sd^2
+    if (family == "gaussian") {
+      obs_idx <- grep("Gaussian", names(fit$marginals.hyperpar))
+      if (length(obs_idx) > 0) {
+        s2e_post <- INLA::inla.emarginal(function(x) 1 / x, fit$marginals.hyperpar[[obs_idx[1]]])
+        n_r <- pop_size - samp_size
+        var_r <- var_r + ifelse(!is.na(n_r) & n_r > 0, s2e_post / n_r, 0)
+      }
+    }
+    sd_adj <- ifelse(samp_size > 0, (1 - f_d) * sqrt(var_r), sqrt(var_r))
     # Ensure minimum standard deviation
     sd_adj[sd_adj < .Machine$double.eps] <- hb_sd[sd_adj < .Machine$double.eps]
 
@@ -378,7 +408,7 @@ hb_unit <- function(
     re_idx <- grep("..dom_id..", hyp_names)
     if (length(re_idx) > 0) {
       prec_u <- hyp_sum$mean[re_idx[1]]
-      sigma2_u <- if (prec_u > 0) 1 / prec_u else NA_real_
+      sigma2_u <- .post_mean_variance(fit, hyp_names[re_idx[1]], prec_u)
     }
 
     # Observation / residual variance (Gaussian)
@@ -386,7 +416,7 @@ hb_unit <- function(
       obs_idx <- grep("Gaussian", hyp_names)
       if (length(obs_idx) > 0) {
         prec_e <- hyp_sum$mean[obs_idx[1]]
-        sigma2_e <- if (prec_e > 0) 1 / prec_e else NA_real_
+        sigma2_e <- .post_mean_variance(fit, hyp_names[obs_idx[1]], prec_e)
       }
     }
 

@@ -12,7 +12,14 @@ skip_if_not_installed("sae")
 
 # Common formula and parameters for eblup_stfh calls
 formula_stfh <- y ~ x1 + x2 + x3
-mys_panel_nona <- mys_panel |> filter(!is.na(y))
+# mys_panel is stored time-major; sae::eblupSTFH() requires domain-major
+# order (all years of area 1, then area 2, ...), so sort before comparing.
+# The bootstrap re-estimates the variance components in every replicate (a full
+# REML fit on a D*T panel), so these mechanics tests use the last three years
+# only (40 x 3 instead of 40 x 11) to keep the run time reasonable.
+mys_panel_nona <- mys_panel |>
+  filter(!is.na(y), year >= 2024) |>
+  arrange(area, year)
 mys_proxmat_nona <- mys_proxmat[-c(21, 25), -c(21, 25)]
 
 model_stfh <- "ST" # default spatial-temporal model

@@ -14,9 +14,9 @@ using namespace arma;
 
 // [[Rcpp::export(.seblup_pbmse)]]
 List seblup_pbmse(
-    const arma::mat& X,
-    const arma::vec& y,
-    const arma::vec& vardir,
+    const arma::mat& Xall,
+    const arma::vec& yall,
+    const arma::vec& vardirall,
     const arma::mat& W,
     std::string method = "REML",
     int maxiter = 100,
@@ -28,11 +28,20 @@ List seblup_pbmse(
 ) {
   if (seed >= 0) set_r_seed(seed);
 
+  // Unsampled domains (y = NA) stay in W: the SAR process lives on all D
+  // domains; bootstrap replicates are generated on all of them and the
+  // sampled ones are kept (marginal covariance s2 * Sigma_full[s,s]).
+  const arma::uvec idx_s = arma::find_finite(yall);
+  const int D = W.n_rows;
+  const mat X = Xall.rows(idx_s);
+  const vec y = yall.elem(idx_s);
+  const vec vardir = vardirall.elem(idx_s);
+
   // ================================================================
   // Main fit
   // ================================================================
   List result_awal = seblup_core(
-    X, y, vardir, W,
+    Xall, yall, vardirall, W,
     method, maxiter, precision,
     true
   );
@@ -53,8 +62,7 @@ List seblup_pbmse(
   vec g1 = result_awal["g1d"];
   vec g2 = result_awal["g2d"];
 
-  mat I = eye<mat>(m, m);
-  mat Irhoproxmat = I - rho_boot * W;
+  mat Irhoproxmat = eye<mat>(D, D) - rho_boot * W;   // full domain
   mat QXtVi = Q_mat * XtVi_mat;
 
   // ================================================================
@@ -88,16 +96,16 @@ List seblup_pbmse(
     }
 
     // Generate random numbers SEQUENTIALLY for this batch
-    mat U_boot(m, need);
+    mat U_boot(D, need);
     mat E_boot(m, need);
     for (int b = 0; b < need; ++b) {
-      U_boot.col(b) = as<arma::vec>(rnorm(m, 0.0, std::sqrt(sigma2_boot)));
+      U_boot.col(b) = as<arma::vec>(rnorm(D, 0.0, std::sqrt(sigma2_boot)));
       for (int i = 0; i < m; ++i) {
         E_boot(i, b) = R::rnorm(0.0, std::sqrt(vardir(i)));
       }
     }
 
-    mat V_boot = arma::solve(Irhoproxmat, U_boot);
+    mat V_boot = mat(arma::solve(Irhoproxmat, U_boot)).rows(idx_s);
 
     mat SqDiff_r(m, need, fill::zeros);
     mat SqDiffPb_r(m, need, fill::zeros);
@@ -112,7 +120,7 @@ List seblup_pbmse(
       vec direct_boot = theta_boot + E_boot.col(b);
 
       SeblupFitArma res = seblup_fit_core_arma(
-        X, direct_boot, vardir, W, method, maxiter, precision
+        X, direct_boot, vardir, W, idx_s, method, maxiter, precision
       );
 
       bool valid = res.converged &&
@@ -164,14 +172,21 @@ List seblup_pbmse(
   vec mse_pb2 = 2.0 * (g1 + g2) - g1_pb - g2_pb + g3_pb;
 
   result_awal = seblup_core(
-    X, y, vardir, W,
+    Xall, yall, vardirall, W,
     method, maxiter, precision,
     false
   );
 
+  // bootstrap columns are defined for sampled domains only (NA elsewhere)
+  vec mse_pb_all(Xall.n_rows), mse_pb2_all(Xall.n_rows);
+  mse_pb_all.fill(NA_REAL);
+  mse_pb2_all.fill(NA_REAL);
+  mse_pb_all.elem(idx_s) = mse_pb;
+  mse_pb2_all.elem(idx_s) = mse_pb2;
+
   DataFrame df_eblup = Rcpp::as<Rcpp::DataFrame>(result_awal["df_eblup"]);
-  df_eblup.push_back(mse_pb, "mse_pb");
-  df_eblup.push_back(mse_pb2, "mse_pbbc");
+  df_eblup.push_back(mse_pb_all, "mse_pb");
+  df_eblup.push_back(mse_pb2_all, "mse_pbbc");
   result_awal["df_eblup"] = df_eblup;
 
   result_awal.push_back(round_no, "n_rounds");
