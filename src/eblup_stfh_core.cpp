@@ -1,11 +1,9 @@
 // src/eblup_stfh_core.cpp
 // Core Spatio-Temporal Fay-Herriot EBLUP estimation (Fisher-scoring, REML-style)
 //
-// Optimized version - Key optimizations:
-//  1. Pre-compute WtW and WpWt outside the iteration loop
-//  2. Pre-compute OnesT matrix for Kronecker products
-//  3. Use inv_sympd for better numerical stability
-//  4. Handle sigma21=0 case properly (zero Vu1 matrix)
+// The fit, the Fisher information, the SEs and the analytical MSE all use the
+// structured representation of V (block-diagonal A plus the rank-D term
+// Z Vu1 Z'; see "Structured evaluation" below): no M x M matrix is formed.
 //
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
@@ -71,114 +69,6 @@ static arma::mat build_omega2_d2(int Tt, double rho2) {
 }
 
 // ============================================================================
-// ModelPieces
-//
-// Menyimpan semua kuantitas turunan dari theta = (sigma21, rho1, sigma22[, rho2])
-// ============================================================================
-struct ModelPieces {
-  bool ok = true;
-  bool hasVu1 = true;
-  arma::mat Omega1;      // D x D
-  arma::mat Vu1;         // D x D (zero when sigma21 == 0)
-  arma::mat invVu1;      // D x D (not computed when sigma21 == 0)
-  arma::mat invA;        // M x M, blok diagonal per domain
-  arma::vec diagC;       // D x 1, diag(Z1' invA Z1)
-  double logdetA = 0.0;  // log det dari matriks blok-diagonal A (= invA^-1)
-  arma::mat Omega2;      // T x T (ST saja)
-  arma::mat dOmega2;     // T x T (ST saja)
-};
-
-static ModelPieces compute_pieces(
-    double sigma21, double rho1, double sigma22, double rho2,
-    bool isST, int D, int Tt,
-    const arma::mat& Id, const arma::mat& W, const arma::vec& vardir
-) {
-  ModelPieces mp;
-  const int M = D * Tt;
-
-  arma::mat ImrW = Id - rho1 * W;
-  arma::mat A1 = arma::symmatu(ImrW.t() * ImrW);
-  bool ok1 = arma::inv_sympd(mp.Omega1, A1);
-  if (!ok1) ok1 = arma::inv(mp.Omega1, A1);
-  if (!ok1) { mp.ok = false; return mp; }
-
-  mp.Vu1 = arma::symmatu(sigma21 * mp.Omega1);
-  if (sigma21 == 0.0) {
-    mp.hasVu1 = false;
-  } else {
-    mp.hasVu1 = true;
-    arma::mat symVu1 = arma::symmatu(mp.Vu1);
-    bool okVu1 = arma::inv_sympd(mp.invVu1, symVu1);
-    if (!okVu1) okVu1 = arma::inv(mp.invVu1, symVu1);
-    if (!okVu1) { mp.ok = false; return mp; }
-  }
-
-  mp.invA.zeros(M, M);
-  mp.diagC.zeros(D);
-  mp.logdetA = 0.0;
-
-  if (isST) build_omega2(Tt, rho2, mp.Omega2, mp.dOmega2);
-
-  for (int d = 0; d < D; ++d) {
-    const int first = d * Tt;
-    const int last = first + Tt - 1;
-
-    if (!isST) {
-      arma::vec block_diag = sigma22 + vardir.subvec(first, last);
-      if (arma::any(block_diag <= 0.0)) { mp.ok = false; return mp; }
-      arma::vec invblock = 1.0 / block_diag;
-      for (int t = 0; t < Tt; ++t) mp.invA(first + t, first + t) = invblock(t);
-      mp.diagC(d) = arma::sum(invblock);
-      mp.logdetA += arma::sum(arma::log(block_diag));
-    } else {
-      arma::mat Ved = arma::diagmat(vardir.subvec(first, last));
-      arma::mat Ad = arma::symmatu(sigma22 * mp.Omega2 + Ved);
-      arma::mat invAd;
-      bool okAd = arma::inv_sympd(invAd, Ad);
-      if (!okAd) okAd = arma::inv(invAd, Ad);
-      if (!okAd) { mp.ok = false; return mp; }
-
-      double ld, sign_;
-      bool okld = arma::log_det(ld, sign_, Ad);
-      if (!okld || sign_ <= 0) { mp.ok = false; return mp; }
-
-      mp.invA.submat(first, first, last, last) = arma::symmatu(invAd);
-      mp.diagC(d) = arma::accu(invAd);
-      mp.logdetA += ld;
-    }
-  }
-  return mp;
-}
-
-// Z1' invA (M x D)
-static arma::mat build_invAZ1(const arma::mat& invA, int D, int Tt) {
-  const int M = D * Tt;
-  arma::mat invAZ1(M, D, fill::zeros);
-  for (int d = 0; d < D; ++d) {
-    const int first = d * Tt, last = first + Tt - 1;
-    invAZ1.submat(first, d, last, d) = arma::sum(invA.submat(first, first, last, last), 1);
-  }
-  return invAZ1;
-}
-
-// invV via Woodbury identity
-static bool build_invV(const ModelPieces& mp, const arma::mat& invAZ1, int D,
-                       arma::mat& invV_out, arma::mat& Cmat_out) {
-  if (!mp.hasVu1) {
-    invV_out = mp.invA;
-    Cmat_out.zeros();
-    return true;
-  }
-  Cmat_out = arma::symmatu(mp.invVu1 + arma::diagmat(mp.diagC));
-  arma::mat Cinv;
-  bool okC = arma::inv_sympd(Cinv, Cmat_out);
-  if (!okC) okC = arma::inv(Cinv, Cmat_out);
-  if (!okC) return false;
-  invV_out = arma::symmatu(mp.invA - invAZ1 * Cinv * invAZ1.t());
-  return true;
-}
-
-// ============================================================================
 // Structured evaluation (no M x M matrices)
 //
 // V = A + Z Vu1 Z', A = blockdiag(A_d) (T x T per domain), Z = I_D (x) 1_T.
@@ -193,7 +83,7 @@ static bool build_invV(const ModelPieces& mp, const arma::mat& invAZ1, int D,
 //   tr(P Z Ba Z' P (I(x)E)) = tr(Ba (PZ)'(I(x)E)(PZ))
 //   tr(P Ej P Ek) = sum_d tr(A_d^{-1} Ej A_d^{-1} Ek)
 //                   - 2 tr(Wm (Ek U)'(A^{-1}Ej U)) + tr(Wm U'EjU Wm U'EkU)
-// i.e. O(T D^3 + M (D+p)^2) instead of O(M^3) per iteration. Algebraically
+// i.e. O(D^3 + M T (D+p)) instead of O(M^3) per iteration. Algebraically
 // identical to the dense computation. Pure Armadillo (thread-safe).
 // ============================================================================
 namespace {
@@ -242,10 +132,8 @@ static bool st_build(const arma::vec& th, bool isST, int D, int T,
   }
   p.hasVu1 = (th(0) != 0.0);
   if (p.hasVu1) {
-    const arma::mat Vu1 = arma::symmatu(th(0) * p.Omega1);
-    arma::mat invVu1;
-    if (!arma::inv_sympd(invVu1, Vu1) && !arma::inv(invVu1, Vu1)) return false;
-    p.Cmat = arma::symmatu(invVu1 + arma::diagmat(p.c));
+    // V_u1^{-1} = (sigma21 Omega1)^{-1} = A1 / sigma21 (no second inversion)
+    p.Cmat = arma::symmatu(A1 / th(0) + arma::diagmat(p.c));
     if (!arma::inv_sympd(p.Cinv, p.Cmat) && !arma::inv(p.Cinv, p.Cmat)) return false;
   }
   return true;
@@ -268,14 +156,6 @@ static arma::mat st_blk(const StPieces& p, const arma::mat& E, const arma::mat& 
   }
   return R;
 }
-static arma::mat st_AinvE(const StPieces& p, const arma::mat& E, const arma::mat& Y) {
-  arma::mat R(Y.n_rows, Y.n_cols);
-  for (int d = 0; d < p.D; ++d) {
-    const int f = d * p.T, l = f + p.T - 1;
-    R.rows(f, l) = p.Ainv[d] * (E * Y.rows(f, l));
-  }
-  return R;
-}
 static arma::mat st_Zt(const StPieces& p, const arma::mat& Y) {
   arma::mat R(p.D, Y.n_cols);
   for (int d = 0; d < p.D; ++d) {
@@ -290,39 +170,179 @@ static arma::mat st_Vinv(const StPieces& p, const arma::mat& Y) {
   return R;
 }
 
+// Low-rank factor U = [A^-1 Z, V^-1 X] of P = A^-1 - U Wm U' (Wm = diag(C^-1, Q)).
+// The A^-1 Z part has a single non-zero per row (a_i in column d(i)), so
+//   U'Y = [Z' A^-1 Y ; X' V^-1 Y]  and  U S  cost O(M k) instead of O(M r k).
+namespace {
+struct StLR {
+  const StPieces& p;
+  const arma::mat& ViX;
+  arma::vec avec;
+  int off, px, r;
+  StLR(const StPieces& p_, const arma::mat& ViX_) : p(p_), ViX(ViX_) {
+    px = ViX.n_cols;
+    off = p.hasVu1 ? p.D : 0;
+    r = off + px;
+    avec.zeros(p.M);
+    if (p.hasVu1)
+      for (int d = 0; d < p.D; ++d) {
+        const int f = d * p.T, l = f + p.T - 1;
+        avec.subvec(f, l) = p.AZ.submat(f, d, l, d);
+      }
+  }
+  // U' Y (r x k)
+  arma::mat Ut(const arma::mat& Y) const {
+    arma::mat R(r, Y.n_cols);
+    if (p.hasVu1) R.rows(0, p.D - 1) = st_Zt(p, st_Ainv(p, Y));
+    R.rows(off, off + px - 1) = ViX.t() * Y;
+    return R;
+  }
+  // U S (M x k)
+  arma::mat Umul(const arma::mat& Sm) const {
+    arma::mat R = ViX * Sm.rows(off, off + px - 1);
+    if (p.hasVu1)
+      for (int d = 0; d < p.D; ++d) {
+        const int f = d * p.T, l = f + p.T - 1;
+        R.rows(f, l) += avec.subvec(f, l) * Sm.row(d);
+      }
+    return R;
+  }
+  // rowsum(Y % U) for Y (M x r)
+  arma::vec Urow(const arma::mat& Y) const {
+    arma::vec out = arma::sum(Y.cols(off, off + px - 1) % ViX, 1);
+    if (p.hasVu1)
+      for (int d = 0; d < p.D; ++d) {
+        const int f = d * p.T, l = f + p.T - 1;
+        out.subvec(f, l) += avec.subvec(f, l) % Y.submat(f, d, l, d);
+      }
+    return out;
+  }
+  // U as a dense M x r matrix
+  arma::mat dense() const {
+    arma::mat Ud(p.M, r, fill::zeros);
+    Ud.cols(off, off + px - 1) = ViX;
+    if (p.hasVu1)
+      for (int d = 0; d < p.D; ++d) {
+        const int f = d * p.T, l = f + p.T - 1;
+        Ud.submat(f, d, l, d) = avec.subvec(f, l);
+      }
+    return Ud;
+  }
+  arma::mat Wm(const arma::mat& Q) const {
+    arma::mat W_(r, r, fill::zeros);
+    if (p.hasVu1) W_.submat(0, 0, p.D - 1, p.D - 1) = p.Cinv;
+    W_.submat(off, off, off + px - 1, off + px - 1) = Q;
+    return W_;
+  }
+};
+}  // namespace
+
+// An M x r factor F = [a-part | Xp] with the same layout as U: column d of the
+// a-part is non-zero only in block d (entries a_i), Xp is dense M x px.
+// Block-diagonal transforms keep this layout, so P E U, A^-1 X U, ... stay cheap.
+namespace {
+struct BSF {
+  int D = 0, T = 0, M = 0, off = 0, px = 0, r = 0;
+  bool hasA = false;
+  arma::vec a;
+  arma::mat Xp;
+  // F S  (M x k)
+  arma::mat mul(const arma::mat& Sm) const {
+    arma::mat R = Xp * Sm.rows(off, off + px - 1);
+    if (hasA)
+      for (int d = 0; d < D; ++d) {
+        const int f = d * T, l = f + T - 1;
+        R.rows(f, l) += a.subvec(f, l) * Sm.row(d);
+      }
+    return R;
+  }
+  // rowsum(Y % F) for Y (M x r)
+  arma::vec row(const arma::mat& Y) const {
+    arma::vec out = arma::sum(Y.cols(off, off + px - 1) % Xp, 1);
+    if (hasA)
+      for (int d = 0; d < D; ++d) {
+        const int f = d * T, l = f + T - 1;
+        out.subvec(f, l) += a.subvec(f, l) % Y.submat(f, d, l, d);
+      }
+    return out;
+  }
+};
+BSF bsf_of(const StLR& L) {
+  BSF F;
+  F.D = L.p.D; F.T = L.p.T; F.M = L.p.M; F.off = L.off; F.px = L.px; F.r = L.r;
+  F.hasA = L.p.hasVu1; F.a = L.avec; F.Xp = L.ViX;
+  return F;
+}
+// blockdiag(Xb) F
+BSF bsf_transform(const BSF& F, const std::vector<arma::mat>& Xb) {
+  BSF G = F;
+  for (int d = 0; d < F.D; ++d) {
+    const int f = d * F.T, l = f + F.T - 1;
+    if (F.hasA) G.a.subvec(f, l) = Xb[d] * F.a.subvec(f, l);
+    G.Xp.rows(f, l) = Xb[d] * F.Xp.rows(f, l);
+  }
+  return G;
+}
+}  // namespace
+
 // REML score S and Fisher information F at th (pieces p already built);
 // also returns ViX, Q and Py. th may have negative variances (classical
-// iteration): no logarithms are taken here.
+// iteration): no logarithms are taken here. Cost O(D^3 + M T r), no M x M
+// or M x r x r products.
 static bool st_score_info(const StPieces& p, const arma::vec& th, const arma::mat& X,
                           const arma::vec& y, const arma::mat& W, const arma::mat& WtW,
                           arma::vec& S, arma::mat& F,
                           arma::mat& ViX, arma::mat& Q, arma::vec& Py) {
-  const int D = p.D, T = p.T, nparam = p.isST ? 4 : 3, px = X.n_cols;
+  const int D = p.D, T = p.T, nparam = p.isST ? 4 : 3;
   ViX = st_Vinv(p, X);
   const arma::mat XtViX = arma::symmatu(X.t() * ViX);
   if (!arma::inv_sympd(Q, XtViX) && !arma::inv(Q, XtViX)) return false;
   const arma::vec Viy = st_Vinv(p, arma::mat(y));
   Py = Viy - ViX * (Q * (X.t() * Viy));
 
-  // low-rank part of P
-  const int r = (p.hasVu1 ? D : 0) + px;
-  arma::mat U(p.M, r), Wm(r, r, fill::zeros);
-  int off = 0;
-  if (p.hasVu1) {
-    U.cols(0, D - 1) = p.AZ;
-    Wm.submat(0, 0, D - 1, D - 1) = p.Cinv;
-    off = D;
-  }
-  U.cols(off, off + px - 1) = ViX;
-  Wm.submat(off, off, off + px - 1, off + px - 1) = Q;
+  const StLR L(p, ViX);
+  const arma::mat Wm = L.Wm(Q);
+  const arma::mat Ud = L.dense();
 
-  const arma::mat PZ = p.AZ - U * (Wm * st_Zt(p, U).t());   // P Z (M x D)
-  arma::mat ZPZ = st_Zt(p, PZ);
+  // P Z = A^-1 Z - U G with G = Wm U'Z; U'Z = [diag(c); X'V^-1 Z]. The top
+  // (A^-1 Z) blocks of U'Z, U'E U and U'E A^-1 Z are diagonal, so the products
+  // with them below are column scalings (rmul / tmul), not D^3 products.
+  const int off = L.off, px = L.px;
+  const arma::mat ZtViX = st_Zt(p, ViX);                      // D x px
+  arma::mat UtZ(L.r, D);
+  if (p.hasVu1) UtZ.rows(0, D - 1) = arma::diagmat(p.c);
+  UtZ.rows(off, off + px - 1) = ZtViX.t();
+  // M_ (r x r) times Y (r x k), where M_ = [diag(dg) R12 ; R21 R22] (hasVu1)
+  auto tmul = [&](const arma::vec& dg, const arma::mat& Mfull, const arma::mat& Y) -> arma::mat {
+    if (!p.hasVu1) return Mfull * Y;
+    arma::mat R(L.r, Y.n_cols);
+    const arma::mat Yt = Y.rows(0, D - 1), Yb = Y.rows(off, off + px - 1);
+    R.rows(0, D - 1) = (Yt.each_col() % dg) + Mfull.submat(0, off, D - 1, off + px - 1) * Yb;
+    R.rows(off, off + px - 1) = Mfull.submat(off, 0, off + px - 1, D - 1) * Yt +
+      Mfull.submat(off, off, off + px - 1, off + px - 1) * Yb;
+    return R;
+  };
+  // Wm Y with Wm = diag(C^-1, Q)
+  auto wmul = [&](const arma::mat& Y) -> arma::mat {
+    arma::mat R(L.r, Y.n_cols);
+    if (p.hasVu1) R.rows(0, D - 1) = p.Cinv * Y.rows(0, D - 1);
+    R.rows(off, off + px - 1) = Q * Y.rows(off, off + px - 1);
+    return R;
+  };
+  arma::mat G(L.r, D);                                        // Wm U'Z
+  if (p.hasVu1) G.rows(0, D - 1) = p.Cinv.each_row() % p.c.t();
+  G.rows(off, off + px - 1) = Q * ZtViX.t();
+  // Z'PZ = diag(c) - (U'Z)' G
+  arma::mat ZPZ = -(ZtViX * G.rows(off, off + px - 1));
+  if (p.hasVu1) ZPZ -= G.rows(0, D - 1).each_col() % p.c;
+  ZPZ.diag() += p.c;
   ZPZ = 0.5 * (ZPZ + ZPZ.t());
   const arma::vec zPy = st_Zt(p, arma::mat(Py));
 
-  const arma::mat Cw = 2.0 * th(1) * WtW - (W + W.t());
-  const arma::mat B[2] = { p.Omega1, -th(0) * (p.Omega1 * Cw * p.Omega1) };
+  // B_rho1 = -sigma21 Omega1 C Omega1 with the sparse C = 2 rho W'W - W - W'
+  const arma::sp_mat Cw(arma::mat(2.0 * th(1) * WtW - (W + W.t())));
+  const arma::mat B[2] = { p.Omega1, -th(0) * (p.Omega1 * arma::mat(Cw * p.Omega1)) };
+  const arma::mat BZ[2] = { B[0] * ZPZ, B[1] * ZPZ };
   std::vector<arma::mat> E;
   if (p.isST) { E.push_back(p.Omega2); E.push_back(th(2) * p.dOmega2); }
   else E.push_back(arma::eye<arma::mat>(T, T));
@@ -331,28 +351,46 @@ static bool st_score_info(const StPieces& p, const arma::vec& th, const arma::ma
   S.set_size(nparam);
   F.set_size(nparam, nparam);
   for (int a = 0; a < 2; ++a) {
-    const arma::mat BZ = B[a] * ZPZ;
-    S(a) = -0.5 * arma::trace(BZ) + 0.5 * arma::dot(zPy, B[a] * zPy);
+    S(a) = -0.5 * arma::trace(BZ[a]) + 0.5 * arma::dot(zPy, B[a] * zPy);
     for (int b = a; b < 2; ++b) {
-      F(a, b) = 0.5 * arma::accu(BZ % (B[b] * ZPZ).t());
+      F(a, b) = 0.5 * arma::accu(BZ[a] % BZ[b].t());
       F(b, a) = F(a, b);
     }
   }
-  std::vector<arma::mat> EU(nE), AEU(nE), UtEU(nE);
+  std::vector<arma::mat> EU(nE), UtEU(nE);
+  std::vector<arma::vec> tdgE(nE);
   for (int j = 0; j < nE; ++j) {
-    EU[j] = st_blk(p, E[j], U);
-    AEU[j] = st_AinvE(p, E[j], U);
-    UtEU[j] = U.t() * EU[j];
+    EU[j] = st_blk(p, E[j], Ud);
+    UtEU[j] = L.Ut(EU[j]);                                     // U' E_j U
     double trAE = 0.0;
     for (int d = 0; d < D; ++d) trAE += arma::accu(p.Ainv[d] % E[j].t());
     const arma::vec EPy = st_blk(p, E[j], arma::mat(Py));
     S(2 + j) = -0.5 * (trAE - arma::accu(Wm % UtEU[j].t())) + 0.5 * arma::dot(Py, EPy);
-    const arma::mat PZtEPZ = PZ.t() * st_blk(p, E[j], PZ);
+    // Z'P E_j P Z = (AZ - U G)' E_j (AZ - U G)
+    //             = Z'A^-1 E A^-1 Z - H'G - G'H + G' (U'E U) G,  H = U' E A^-1 Z
+    const arma::mat EAZ = st_blk(p, E[j], p.AZ);
+    const arma::vec tdg = arma::diagvec(st_Zt(p, st_Ainv(p, EAZ)));   // diagonal
+    const arma::mat Hb = ViX.t() * EAZ;                          // bottom of H (px x D)
+    arma::mat HtG = Hb.t() * G.rows(off, off + px - 1);
+    if (p.hasVu1) HtG += G.rows(0, D - 1).each_col() % tdg;
+    arma::mat PZtEPZ = -(HtG + HtG.t()) + G.t() * tmul(tdg, UtEU[j], G);
+    PZtEPZ.diag() += tdg;
+    tdgE[j] = tdg;
     for (int a = 0; a < 2; ++a) {
       F(a, 2 + j) = 0.5 * arma::accu(B[a] % PZtEPZ.t());
       F(2 + j, a) = F(a, 2 + j);
     }
   }
+  // Wm (U'E_j U): the top-left block of U'E_j U is diagonal (tdgE[j])
+  auto wmulE = [&](int j) -> arma::mat {
+    if (!p.hasVu1) return wmul(UtEU[j]);
+    const arma::mat& M_ = UtEU[j];
+    arma::mat R(L.r, L.r);
+    R.submat(0, 0, D - 1, D - 1) = p.Cinv.each_row() % tdgE[j].t();
+    R.submat(0, off, D - 1, off + px - 1) = p.Cinv * M_.submat(0, off, D - 1, off + px - 1);
+    R.rows(off, off + px - 1) = Q * M_.rows(off, off + px - 1);
+    return R;
+  };
   for (int j = 0; j < nE; ++j) {
     for (int k = j; k < nE; ++k) {
       double T1 = 0.0;
@@ -360,8 +398,10 @@ static bool st_score_info(const StPieces& p, const arma::vec& th, const arma::ma
         const arma::mat AEj = p.Ainv[d] * E[j], AEk = p.Ainv[d] * E[k];
         T1 += arma::accu(AEj % AEk.t());
       }
-      const double T2 = arma::accu(Wm % (EU[k].t() * AEU[j]).t());
-      const arma::mat WEj = Wm * UtEU[j], WEk = Wm * UtEU[k];
+      // U' E_k A^-1 E_j U
+      const arma::mat UEAEU = L.Ut(st_blk(p, E[k], st_Ainv(p, EU[j])));
+      const double T2 = arma::accu(Wm % UEAEU.t());
+      const arma::mat WEj = wmulE(j), WEk = wmulE(k);
       const double T3 = arma::accu(WEj % WEk.t());
       F(2 + j, 2 + k) = 0.5 * (T1 - 2.0 * T2 + T3);
       F(2 + k, 2 + j) = F(2 + j, 2 + k);
@@ -727,9 +767,7 @@ List eblup_stfh_core(
   const arma::mat Wt = W.t();
   const arma::mat WtW = Wt * W;
   const arma::mat WpWt = W + Wt;
-  const arma::mat EyeD = arma::eye<arma::mat>(D, D);
   const arma::mat tX = X.t();
-  const arma::mat OnesT = arma::ones<arma::mat>(Tt, Tt);
 
   CharacterVector thetanames = isST
   ? CharacterVector::create("sigma21", "rho1", "sigma22", "rho2")
@@ -859,9 +897,7 @@ List eblup_stfh_core(
     );
   }
 
-  ModelPieces mpf = compute_pieces(sigma21_f, rho1_f, sigma22_f, rho2_f,
-                                   isST, D, Tt, Id, W, vardir);
-  if (!mpf.ok) {
+  auto fail_final = [&]() -> List {
     DataFrame estvarcomp = DataFrame::create(
       _["estimate"] = est_vec,
       _["std.error"] = NumericVector(nparam, 0.0)
@@ -875,50 +911,32 @@ List eblup_stfh_core(
       _["convergence"] = false,
       _["n_iter"] = k
     );
-  }
+  };
 
-  bool haveVu1 = (sigma21_f != 0.0);
-  arma::mat invAZ1f = build_invAZ1(mpf.invA, D, Tt);
-  arma::mat invV, Cmat;
-  if (haveVu1) {
-    if (!build_invV(mpf, invAZ1f, D, invV, Cmat)) {
-      DataFrame estvarcomp = DataFrame::create(
-        _["estimate"] = est_vec,
-        _["std.error"] = NumericVector(nparam, 0.0)
-      );
-      return List::create(
-        _["estcoef"] = R_NilValue,
-        _["estvarcomp"] = estvarcomp,
-        _["goodness"] = R_NilValue,
-        _["df_eblup"] = R_NilValue,
-        _["model"] = model,
-        _["convergence"] = false,
-        _["n_iter"] = k
-      );
-    }
-  } else {
-    invV = mpf.invA;
-  }
+  // ==========================================================================
+  // Everything below uses the structured representation of V (StPieces):
+  //   V^-1 = A^-1 - A^-1 Z C^-1 Z' A^-1 and P = A^-1 - U Wm U', with A^-1
+  //   block diagonal (T x T blocks), U = [A^-1 Z, V^-1 X], Wm = diag(C^-1, Q).
+  // No M x M matrix is formed (M = D T).
+  // ==========================================================================
+  StPieces spf;
+  if (!st_build(thetak1, isST, D, Tt, vardir, W, spf)) return fail_final();
+  const bool haveVu1 = spf.hasVu1;
+
+  // REML score/information at the final estimates, V^-1 X and Q
+  arma::vec Sf, Pyf;
+  arma::mat Ff, ViXf, Q;
+  if (!st_score_info(spf, thetak1, X, y, W, WtW, Sf, Ff, ViXf, Q, Pyf)) return fail_final();
+  Ff = arma::symmatu(Ff);
 
   // Beta and residuals
-  arma::mat tXinvV = tX * invV;
-  arma::mat tXinvVX = arma::symmatu(tXinvV * X);
-  arma::mat Q;
-  bool okQ = arma::inv_sympd(Q, tXinvVX);
-  if (!okQ) okQ = arma::inv(Q, tXinvVX);
-  if (!okQ) return make_fail_result(false);
-
-  arma::vec beta = Q * (tXinvV * y);
+  arma::vec beta = Q * (ViXf.t() * y);
   arma::vec resid = y - X * beta;
-  arma::vec invVresid = invV * resid;
+  arma::vec invVresid = st_Vinv(spf, arma::mat(resid));
 
   // Random effects
-  arma::vec tZ1invVresid(D, fill::zeros);
-  for (int d = 0; d < D; ++d) {
-    const int first = d * Tt, last = first + Tt - 1;
-    tZ1invVresid(d) = arma::sum(invVresid.subvec(first, last));
-  }
-  arma::vec u1est = mpf.Vu1 * tZ1invVresid;
+  const arma::vec tZ1invVresid = st_Zt(spf, arma::mat(invVresid));
+  arma::vec u1est = (sigma21_f * spf.Omega1) * tZ1invVresid;
   arma::vec u1dt(M);
   for (int d = 0; d < D; ++d) {
     const int first = d * Tt, last = first + Tt - 1;
@@ -929,7 +947,7 @@ List eblup_stfh_core(
   if (!isST) {
     u2dt = sigma22_f * invVresid;
   } else {
-    arma::mat sigma22Omega2 = sigma22_f * mpf.Omega2;
+    arma::mat sigma22Omega2 = sigma22_f * spf.Omega2;
     for (int d = 0; d < D; ++d) {
       const int first = d * Tt, last = first + Tt - 1;
       u2dt.subvec(first, last) = sigma22Omega2 * invVresid.subvec(first, last);
@@ -938,7 +956,7 @@ List eblup_stfh_core(
 
   arma::vec eblup = X * beta + u1dt + u2dt;
 
-  // Log-likelihood
+  // Log-likelihood: log|V| = log|A| + log|V_u1| + log|C|
   double logdetV;
   const double quadform = arma::dot(resid, invVresid);
   if (haveVu1) {
@@ -949,11 +967,11 @@ List eblup_stfh_core(
     const double logdetVu1 = D * std::log(sigma21_f) - logdetA1f;
 
     double logdetC, signC;
-    arma::log_det(logdetC, signC, Cmat);
+    arma::log_det(logdetC, signC, spf.Cmat);
 
-    logdetV = mpf.logdetA + logdetVu1 + logdetC;
+    logdetV = spf.logdetA + logdetVu1 + logdetC;
   } else {
-    logdetV = mpf.logdetA;
+    logdetV = spf.logdetA;
   }
 
   const double loglike = -0.5 * (M * std::log(2.0 * M_PI) + logdetV + quadform);
@@ -979,39 +997,10 @@ List eblup_stfh_core(
   );
 
   arma::uvec unidentified;
-  // ================================================================
-  // REML Fisher information at the FINAL estimates (after truncation),
-  // used for both the SEs of theta and the g3 term of the analytical MSE.
-  // ================================================================
-  // Reconstruct final Va derivatives
-  arma::mat derivrho1 = -WpWt + 2.0 * rho1_f * WtW;
-  arma::mat sigmaOmegaderivrho1Omega = (-sigma21_f) * (mpf.Omega1 * derivrho1 * mpf.Omega1);
-
-  std::vector<arma::mat> Va(nparam);
-  Va[0] = arma::kron(mpf.Omega1, OnesT);
-  Va[1] = arma::kron(sigmaOmegaderivrho1Omega, OnesT);
-  if (!isST) {
-    Va[2] = arma::eye<arma::mat>(M, M);
-  } else {
-    Va[2] = arma::kron(EyeD, mpf.Omega2);
-    arma::mat sigma22dOmega2 = sigma22_f * mpf.dOmega2;
-    Va[3] = arma::kron(EyeD, sigma22dOmega2);
-  }
-
   // Inverse information of the last classical iteration (what
   // sae::eblupSTFH reports as the SEs of theta); kept for the SEs.
   const arma::mat Finv_iter = Finv;
-  const arma::mat Pf = invV - tXinvV.t() * Q * tXinvV;
-  std::vector<arma::mat> PVf(nparam);
-  for (int a = 0; a < nparam; ++a) PVf[a] = Pf * Va[a];
   {
-    arma::mat Ff(nparam, nparam, fill::zeros);
-    for (int a = 0; a < nparam; ++a) {
-      for (int b = a; b < nparam; ++b) {
-        Ff(a, b) = 0.5 * arma::accu(PVf[a] % PVf[b].t());
-        Ff(b, a) = Ff(a, b);
-      }
-    }
     // At a boundary a parameter may be unidentified: with sigma21 = 0,
     // dV/drho1 = 0, so its row/column of F is zero. Invert F on the
     // identified parameters only; an unidentified one gets zero variance
@@ -1038,21 +1027,7 @@ List eblup_stfh_core(
   // iteration converged; from the information at the final estimates when
   // the constrained fallback was needed (unidentified parameters: NA).
   arma::vec diagFinv = used_fallback ? arma::vec(Finv.diag()) : arma::vec(Finv_iter.diag());
-  if (arma::any(diagFinv < 0) || diagFinv.has_nan()) {
-    DataFrame estvarcomp = DataFrame::create(
-      _["estimate"] = est_vec,
-      _["std.error"] = NumericVector(nparam, 0.0)
-    );
-    return List::create(
-      _["estcoef"] = R_NilValue,
-      _["estvarcomp"] = estvarcomp,
-      _["goodness"] = R_NilValue,
-      _["df_eblup"] = R_NilValue,
-      _["model"] = model,
-      _["convergence"] = false,
-      _["n_iter"] = k
-    );
-  }
+  if (arma::any(diagFinv < 0) || diagFinv.has_nan()) return fail_final();
   arma::vec stderr_theta = arma::sqrt(diagFinv);
   if (used_fallback) stderr_theta.elem(arma::find(unidentified == 1)).fill(NA_REAL);
 
@@ -1062,17 +1037,60 @@ List eblup_stfh_core(
   );
 
   // ================================================================
-  // Analytical MSE (Prasad-Rao / Marhuenda et al. 2013: g1 + g2 + 2*g3)
+  // Analytical MSE (Prasad-Rao / Marhuenda et al. 2013) in structured form
   // ================================================================
-  // g1 component: uncertainty from random effects
-  arma::vec invV_diag = invV.diag();
+  // Helpers for U = [A^-1 Z, V^-1 X]: the A^-1 Z part has one non-zero per
+  // row (a_i in column d(i)), so U'Y = [Z'A^-1 Y; X'V^-1 Y] and U S cost O(M).
+  const StLR LR(spf, ViXf);
+  const BSF Uf = bsf_of(LR);
+  const arma::mat Wm = LR.Wm(Q);
+  auto Ut = [&](const arma::mat& Y) { return LR.Ut(Y); };          // U' Y
+  const arma::vec& avec = LR.avec;
+  const arma::mat Udense = LR.dense();
+  auto blk_apply = [&](const std::vector<arma::mat>& Xb, const arma::mat& Y) -> arma::mat {
+    arma::mat R(Y.n_rows, Y.n_cols);
+    for (int d = 0; d < D; ++d) {
+      const int f = d * Tt, l = f + Tt - 1;
+      R.rows(f, l) = Xb[d] * Y.rows(f, l);
+    }
+    return R;
+  };
+  auto Papply = [&](const arma::mat& Y) -> arma::mat {    // P Y
+    return st_Ainv(spf, Y) - Uf.mul(Wm * Ut(Y));
+  };
+  // diag(P X P) for a block-diagonal X (blocks Xb), with P = A^-1 - U Wm U':
+  //   diag(A^-1 X A^-1) - diag(A^-1 X U Wm U') - diag(U Wm U' X A^-1)
+  //   + diag(U Wm U'X U Wm U')
+  auto diag_PXP = [&](const std::vector<arma::mat>& Xb) -> arma::vec {
+    arma::vec out(M);
+    std::vector<arma::mat> AX(D), AXt(D);
+    for (int d = 0; d < D; ++d) {
+      const int f = d * Tt, l = f + Tt - 1;
+      AX[d] = spf.Ainv[d] * Xb[d];
+      AXt[d] = spf.Ainv[d] * Xb[d].t();
+      out.subvec(f, l) = arma::diagvec(AX[d] * spf.Ainv[d]);
+    }
+    const BSF AXU = bsf_transform(Uf, AX), AXtU = bsf_transform(Uf, AXt);
+    out -= Uf.row(AXU.mul(Wm));
+    out -= AXtU.row(Uf.mul(Wm));
+    out += Uf.row(Uf.mul(Wm * Ut(blk_apply(Xb, Udense)) * Wm));
+    return out;
+  };
+
+  // g1 = psi - psi^2 diag(V^-1), diag(V^-1) = diag(A^-1) - a_i^2 C^-1_dd
+  arma::vec invV_diag(M);
+  for (int d = 0; d < D; ++d) {
+    const int f = d * Tt, l = f + Tt - 1;
+    invV_diag.subvec(f, l) = arma::diagvec(spf.Ainv[d]);
+    if (haveVu1) invV_diag.subvec(f, l) -= arma::square(avec.subvec(f, l)) * spf.Cinv(d, d);
+  }
   arma::vec g1 = vardir - (arma::square(vardir) % invV_diag);
   for (uword i = 0; i < g1.n_elem; ++i) {
     if (g1(i) < 0.0) g1(i) = 0.0;
   }
 
   // g2 component: uncertainty from beta estimation
-  arma::mat R_mat = arma::diagmat(vardir) * (invV * X);
+  arma::mat R_mat = arma::diagmat(vardir) * ViXf;
   arma::vec g2 = arma::sum((R_mat * Q) % R_mat, 1);
   for (uword i = 0; i < g2.n_elem; ++i) {
     if (g2(i) < 0.0) g2(i) = 0.0;
@@ -1090,16 +1108,89 @@ List eblup_stfh_core(
   // lying in col(X), which are absorbed by beta~ (e.g. at rho1 -> 1 with a
   // row-standardised W, Omega1 is dominated by the constant vector and the
   // textbook form explodes).
-  arma::vec g3(M, fill::zeros);
-  const arma::vec psi2 = arma::square(vardir);
-  for (int a = 0; a < nparam; ++a) {
-    for (int b = a; b < nparam; ++b) {
-      if (Finv(a, b) == 0.0) continue;
-      arma::vec c_ab = psi2 % arma::sum((PVf[a] * PVf[b]) % Pf, 1);
-      double weight = (a == b) ? Finv(a, b) : 2.0 * Finv(a, b);
-      g3 += weight * c_ab;
+  // V_a is either Z B_a Z' (sigma21, rho1) or block diagonal I (x) E_j
+  // (sigma22, rho2), so with PZ = P Z:
+  //   Z-Z: (P V_a P V_b P)_ii = (PZ B_a Z'PZ B_b PZ')_ii
+  //   Z-E: (PZ B_a PZ' E_j P)_ii = rowsum(PZ B_a % P E_j PZ)
+  //   E-E: (P E_j P E_k P)_ii = (P E_j A^-1 E_k P)_ii - ((P E_j U) Wm (P E_k U)')_ii
+  arma::mat derivrho1 = -WpWt + 2.0 * rho1_f * WtW;
+  const arma::mat OCO = spf.Omega1 * derivrho1 * spf.Omega1;
+  const arma::mat Bz[2] = { spf.Omega1, -sigma21_f * OCO };
+  std::vector<arma::mat> Eb;
+  if (isST) { Eb.push_back(spf.Omega2); Eb.push_back(sigma22_f * spf.dOmega2); }
+  else Eb.push_back(arma::eye<arma::mat>(Tt, Tt));
+  const int nE = (int) Eb.size();
+  auto wgt = [&](int a, int b) { return (a == b) ? Finv(a, b) : 2.0 * Finv(a, b); };
+
+  // P Z = A^-1 Z - U G, G = Wm U'Z (U'Z = [diag(c); X'V^-1 Z]). With
+  // sigma21 > 0, A^-1 Z is the a-part of U, so P Z = U K with K = [I; 0] - G
+  // and diag(PZ S PZ') = rowsum(U (K S K') % U): O(D^3 + M r), no M x D^2.
+  const arma::mat ZtViX = st_Zt(spf, ViXf);
+  arma::mat UtZ(LR.r, D);
+  if (haveVu1) UtZ.rows(0, D - 1) = arma::diagmat(spf.c);
+  UtZ.rows(LR.off, LR.off + p - 1) = ZtViX.t();
+  const arma::mat G = Wm * UtZ;
+  arma::mat Kz;
+  arma::mat PZd;                                   // dense P Z (sigma21 = 0 only)
+  if (haveVu1) {
+    Kz = -G;
+    Kz.submat(0, 0, D - 1, D - 1).diag() += 1.0;
+  } else {
+    PZd = spf.AZ - Uf.mul(G);
+  }
+  auto PZmul = [&](const arma::mat& Sm) -> arma::mat {        // (P Z) S
+    return haveVu1 ? Uf.mul(Kz * Sm) : arma::mat(PZd * Sm);
+  };
+  auto diagPZ = [&](const arma::mat& Sm) -> arma::vec {       // diag(PZ S PZ')
+    return haveVu1 ? Uf.row(Uf.mul(Kz * Sm * Kz.t())) : arma::vec(arma::sum((PZd * Sm) % PZd, 1));
+  };
+  arma::mat ZPZ = arma::diagmat(spf.c) - UtZ.t() * G;
+  ZPZ = 0.5 * (ZPZ + ZPZ.t());
+
+  arma::vec g3s(M, fill::zeros);
+  {
+    arma::mat Szz(D, D, fill::zeros);
+    for (int a = 0; a < 2; ++a)
+      for (int b = a; b < 2; ++b)
+        if (Finv(a, b) != 0.0) Szz += wgt(a, b) * (Bz[a] * ZPZ * Bz[b]);
+    if (arma::any(arma::vectorise(Szz) != 0.0)) g3s += diagPZ(Szz);
+
+    const arma::mat PZ = PZmul(arma::eye<arma::mat>(D, D));
+    std::vector<arma::mat> UtEU(nE);
+    for (int j = 0; j < nE; ++j) {
+      const int aj = 2 + j;
+      bool needZE = false;
+      for (int a = 0; a < 2; ++a) needZE = needZE || (Finv(a, aj) != 0.0);
+      if (needZE) {
+        const arma::mat Yj = Papply(st_blk(spf, Eb[j], PZ));        // P E_j P Z
+        arma::mat Bsum(D, D, fill::zeros);
+        for (int a = 0; a < 2; ++a) if (Finv(a, aj) != 0.0) Bsum += wgt(a, aj) * Bz[a];
+        g3s += arma::sum(PZmul(Bsum) % Yj, 1);
+      }
+      UtEU[j] = Ut(st_blk(spf, Eb[j], Udense));                     // U' E_j U
+    }
+    // E-E: (P E_j P E_k P)_ii = diag(P E_j A^-1 E_k P) - diag((P E_j U) Wm (P E_k U)'),
+    // P E_j U = A^-1 E_j U - U N_j with N_j = Wm U'E_j U
+    for (int j = 0; j < nE; ++j) {
+      for (int kk = j; kk < nE; ++kk) {
+        const double w = wgt(2 + j, 2 + kk);
+        if (w == 0.0) continue;
+        std::vector<arma::mat> Xblk(D), AEj(D), AEk(D);
+        for (int d = 0; d < D; ++d) {
+          Xblk[d] = Eb[j] * spf.Ainv[d] * Eb[kk];
+          AEj[d] = spf.Ainv[d] * Eb[j];
+          AEk[d] = spf.Ainv[d] * Eb[kk];
+        }
+        const BSF Bj = bsf_transform(Uf, AEj), Bk = bsf_transform(Uf, AEk);
+        const arma::mat Nj = Wm * UtEU[j], Nk = Wm * UtEU[kk];
+        const arma::vec cross = Bk.row(Bj.mul(Wm)) - Uf.row(Bj.mul(Wm * Nk.t())) -
+          Bk.row(Uf.mul(Nj * Wm)) + Uf.row(Uf.mul(Nj * Wm * Nk.t()));
+        g3s += w * (diag_PXP(Xblk) - cross);
+      }
     }
   }
+  const arma::vec psi2 = arma::square(vardir);
+  arma::vec g3 = psi2 % g3s;
   for (uword i = 0; i < g3.n_elem; ++i) {
     if (g3(i) < 0.0) g3(i) = 0.0;
   }
@@ -1116,19 +1207,23 @@ List eblup_stfh_core(
   //   (rho2, rho2)   : sigma22 I (x) d2Omega2      [ST only]
   arma::vec g4(M, fill::zeros);
   {
-    auto add_g4 = [&](int a, int b, const arma::mat& Vab) {
-      const double w = (a == b) ? Finv(a, b) : 2.0 * Finv(a, b);
+    auto add_z = [&](int a, int b, const arma::mat& K) {      // V_ab = Z K Z'
+      const double w = wgt(a, b);
       if (w == 0.0) return;
-      g4 += 0.5 * w * (psi2 % arma::sum((Pf * Vab) % Pf, 1));
+      g4 += 0.5 * w * (psi2 % diagPZ(K));
     };
-    const arma::mat OCO = mpf.Omega1 * derivrho1 * mpf.Omega1;
-    add_g4(0, 1, arma::kron(-OCO, OnesT));
-    const arma::mat d2Om1 = 2.0 * OCO * derivrho1 * mpf.Omega1 -
-      2.0 * mpf.Omega1 * WtW * mpf.Omega1;
-    add_g4(1, 1, arma::kron(sigma21_f * d2Om1, OnesT));
+    auto add_e = [&](int a, int b, const arma::mat& E) {      // V_ab = I (x) E
+      const double w = wgt(a, b);
+      if (w == 0.0) return;
+      g4 += 0.5 * w * (psi2 % diag_PXP(std::vector<arma::mat>(D, E)));
+    };
+    add_z(0, 1, -OCO);
+    const arma::mat d2Om1 = 2.0 * OCO * derivrho1 * spf.Omega1 -
+      2.0 * spf.Omega1 * WtW * spf.Omega1;
+    add_z(1, 1, sigma21_f * d2Om1);
     if (isST) {
-      add_g4(2, 3, arma::kron(EyeD, mpf.dOmega2));
-      add_g4(3, 3, arma::kron(EyeD, sigma22_f * build_omega2_d2(Tt, rho2_f)));
+      add_e(2, 3, spf.dOmega2);
+      add_e(3, 3, sigma22_f * build_omega2_d2(Tt, rho2_f));
     }
   }
 

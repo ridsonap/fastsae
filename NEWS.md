@@ -109,6 +109,12 @@
   differences below 2e-10). Analytical: $D = 400$ 2.2 s -> 0.10 s, $D = 1600$ 80 s -> 2.5 s,
   $D = 2500$ about 6 s; bootstrap ($D = 400$, $B = 20$): 16 s -> 1.3 s. `RcppEigen` is added to
   `LinkingTo`.
+* `eblup_stfh()`: the final step (Fisher information at the estimates, SEs, $g_1$-$g_4$ of the analytical
+  MSE) no longer forms $M \times M$ matrices ($M = DT$); it uses the same structured representation of $V$
+  as the iterations ($A^{-1}$ block diagonal, $P = A^{-1} - U W U'$ with $U = [A^{-1}Z, V^{-1}X]$ whose
+  $A^{-1}Z$ part has one non-zero per row). The scoring step also exploits the diagonal blocks of $U'Z$ and
+  $U'EU$ and the sparsity of $C = 2\rho W'W - W - W'$. Results are unchanged (relative differences below
+  3e-11). $T = 5$: $D = 250$ 28 s -> 1.6 s, $D = 500$ about 4 min -> 10 s, $D = 1000$ 75 s.
 * `create_weights()`: distances for `knn`, `distance` and `idw` are computed in blocks of rows (at most
   about 1M distances at a time) instead of a full $D \times D$ distance matrix, and the weight matrix is
   filled once from the neighbour pairs (no intermediate 0/1 matrix and no normalisation copies; `idw`
