@@ -38,20 +38,37 @@ eblup_bhf(
 
 \item{compute_mse}{If TRUE, compute bootstrap MSE.}
 
-\item{n_threads}{Currently unused: the bootstrap MSE runs sequentially (each replicate
-is a \code{lme4} refit). Kept for interface compatibility.}
+\item{n_threads}{Number of OpenMP threads for the bootstrap MSE. Results depend on
+\code{seed} only, not on the number of threads.}
 
 \item{seed}{Random seed for reproducibility.}
 
 \item{print_result}{Print results (default TRUE).}
 }
 \value{
-List containing EBLUP estimates, fit, and optionally MSE.
+List containing EBLUP estimates, fit, and optionally MSE. The
+  \code{fit} element holds the variance components, \code{beta}, the
+  predicted random effects and the unit-level conditional residuals.
 }
 \description{
 This function estimates small area means or totals using the unit-level model
 proposed by Battese, Harter, and Fuller (1988), which combines survey data
 (sample units) and auxiliary population information.
+}
+\details{
+The nested error model \eqn{y_{dj} = x_{dj}'\beta + u_d + e_{dj}} is fitted by
+REML or ML in compiled code. With \eqn{\gamma = \sigma_u^2/\sigma_e^2},
+\eqn{\beta} and \eqn{\sigma_e^2} are profiled out, so the fit is a
+one-dimensional maximisation over \eqn{\gamma \ge 0} (including the boundary
+\eqn{\sigma_u^2 = 0}); each evaluation uses only within-domain cross-products
+and domain means. The estimates are those of \code{lme4::lmer} and
+\code{sae::eblupBHF} up to the optimiser tolerance of those packages. The
+standard errors in \code{estcoef} are from \eqn{(X'\hat V^{-1}X)^{-1}}.
+
+The bootstrap MSE refits the model in each replicate with the same code and
+runs replicates in parallel (\code{n_threads}); random draws are generated
+sequentially from R's RNG, so a given \code{seed} gives the same result for
+any number of threads.
 }
 \examples{
 

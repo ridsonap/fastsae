@@ -323,8 +323,8 @@ residuals.fastsae <- function(object, ...) {
   if (!is.null(object$df_eblup) && all(c("y", "eblup") %in% names(object$df_eblup))) {
     return(object$df_eblup$y - object$df_eblup$eblup)
   }
-  if (!is.null(object$fit$lme)) {
-    return(stats::residuals(object$fit$lme))
+  if (!is.null(object$fit$residuals)) {
+    return(object$fit$residuals)
   }
   NULL
 }

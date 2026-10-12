@@ -290,34 +290,104 @@ test_that("eblup_bhf handles unsampled domains, full enumeration, and NA in unit
   expect_equal(fit_warn$df_eblup$samp_size[fit_warn$df_eblup$domain == 999], 0)
   expect_true(fit_warn$df_eblup$mse[fit_warn$df_eblup$domain == 999] > 0)
 
-  # 4. .pbmse_unit directly with NA and fit_boot NULL
-  # NOTE: with_mocked_bindings intercepts even qualified lme4::lmer calls,
-  # so grab the real implementation first to avoid infinite recursion.
-  real_lmer <- lme4::lmer
-  lmer_env <- new.env(parent = emptyenv())
-  lmer_env$call_count <- 0L
-  testthat::with_mocked_bindings(
-    lmer = function(formula, data, ...) {
-      lmer_env$call_count <- lmer_env$call_count + 1L
-      # First call is the initial fit; return real result
-      if (lmer_env$call_count == 1L) return(real_lmer(formula, data = data, ...))
-      # All subsequent (bootstrap) calls return NULL -> exercises `next` path
-      NULL
-    },
-    .package = "lme4",
-    {
-      fit_lme4_na <- fastsae:::.pbmse_unit(
-        formula = CornHec ~ CornPix + SoyBeansPix,
-        unit_data = df_na,
-        Xpop = Xpop,
-        domain_var = "CountyIndex",
-        popsize_var = "PopnSegments",
-        B = 2,
-        seed = 42
-      )
-      expect_type(fit_lme4_na, "list")
-      expect_true(all(c("eblup", "mse", "B") %in% names(fit_lme4_na)))
-    }
+  # 4. .pbmse_unit directly with NA in the unit data
+  res_na <- fastsae:::.pbmse_unit(
+    formula = CornHec ~ CornPix + SoyBeansPix,
+    unit_data = df_na,
+    Xpop = Xpop,
+    domain_var = "CountyIndex",
+    popsize_var = "PopnSegments",
+    B = 2,
+    seed = 42
   )
+  expect_true(all(c("eblup", "mse", "B") %in% names(res_na)))
+  expect_equal(res_na$B, 2L)
 })
 
+
+# ============================================================================
+# Tests: compiled REML/ML fit and bootstrap
+# ============================================================================
+.lmer_ref <- function(y, x, dom, reml) {
+  dd <- data.frame(y = y, x = x, dom = factor(dom))
+  lme4::lmer(y ~ x + (1 | dom), dd, REML = reml,
+    control = lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(rhoend = 1e-12))
+  )
+}
+
+test_that("compiled BHF fit agrees with lme4 (REML, ML, and the s2u = 0 boundary)", {
+  skip_if_not_installed("lme4")
+  set.seed(11)
+  D <- 40
+  nd <- sample(2:12, D, TRUE)
+  dom <- rep(seq_len(D), nd)
+  n <- length(dom)
+  x <- rnorm(n, 50, 10)
+  for (su in c(1, 0)) {
+    y <- 100 + 2 * x + rnorm(D, sd = su)[dom] + rnorm(n, sd = 2)
+    for (reml in c(TRUE, FALSE)) {
+      f <- fastsae:::.bhf_fit(cbind(1, x), y, dom - 1L, D, if (reml) "REML" else "ML")
+      m <- suppressMessages(.lmer_ref(y, x, dom, reml))
+      expect_equal(as.numeric(f$beta), as.numeric(lme4::fixef(m)), tolerance = 1e-6)
+      expect_equal(f$sigma2_e, sigma(m)^2, tolerance = 1e-6)
+      expect_equal(f$sigma2_u, lme4::VarCorr(m)$dom[1], tolerance = 1e-4)
+      expect_equal(f$vcov, unname(as.matrix(vcov(m))), tolerance = 1e-5)
+      if (su == 0) expect_equal(f$sigma2_u, 0)
+      # the compiled maximiser is never worse than lme4's
+      devf <- lme4::lmer(y ~ x + (1 | dom), data.frame(y, x, dom = factor(dom)), REML = reml, devFunOnly = TRUE)
+      expect_lte(devf(sqrt(f$sigma2_u / f$sigma2_e)), devf(lme4::getME(m, "theta")) + 1e-8)
+    }
+  }
+})
+
+test_that("eblup_bhf returns lme4-equivalent coefficients and residuals", {
+  skip_if_not_installed("lme4")
+  m <- suppressMessages(.lmer_ref(df_cornsoybean$CornHec, df_cornsoybean$CornPix, df_cornsoybean$CountyIndex, TRUE))
+  fit <- eblup_bhf(CornHec ~ CornPix, unit_data = df_cornsoybean, Xpop = Xpop,
+    domain_var = "CountyIndex", popsize_var = "PopnSegments", print_result = FALSE)
+  expect_equal(fit$estcoef$std.error, unname(sqrt(diag(as.matrix(vcov(m))))), tolerance = 1e-5)
+  expect_equal(residuals(fit), unname(residuals(m)), tolerance = 1e-5)
+  expect_true(fit$convergence)
+})
+
+test_that("bootstrap MSE matches a reference refit-based bootstrap and is thread invariant", {
+  skip_on_cran()
+  skip_if_not_installed("lme4")
+  args <- list(formula = CornHec ~ CornPix + SoyBeansPix, unit_data = df_cornsoybean, Xpop = Xpop,
+    domain_var = "CountyIndex", popsize_var = "PopnSegments", B = 30, seed = 3)
+  r1 <- do.call(fastsae:::.pbmse_unit, args)
+  r2 <- do.call(fastsae:::.pbmse_unit, c(args, n_threads = 2))
+  expect_identical(r1$mse, r2$mse)
+
+  # Reference: same draws (same order), lme4 refit, true population mean
+  formuladata <- model.frame(args$formula, df_cornsoybean)
+  Xs <- model.matrix(args$formula, formuladata)
+  dom <- df_cornsoybean$CountyIndex
+  sel <- unique(c(dom, Xpop$CountyIndex))
+  xp <- Xpop[match(sel, Xpop$CountyIndex), ]
+  Xbar <- cbind(1, xp$CornPix, xp$SoyBeansPix)
+  di <- match(dom, sel)
+  m0 <- lme4::lmer(CornHec ~ CornPix + SoyBeansPix + (1 | di), data.frame(formuladata, di = factor(di)))
+  b <- lme4::fixef(m0); s2u <- lme4::VarCorr(m0)$di[1]; s2e <- sigma(m0)^2
+  nd <- tabulate(di, length(sel)); N <- xp$PopnSegments; rd <- N - nd
+  set.seed(3)
+  mse <- 0
+  for (k in seq_len(30)) {
+    u <- rnorm(length(sel), sd = sqrt(s2u)); e <- rnorm(length(di), sd = sqrt(s2e))
+    er <- rnorm(length(sel), 0, sqrt(s2e / rd))
+    yb <- drop(Xs %*% b) + u[di] + e
+    mb <- lme4::refit(m0, newresp = yb)
+    ub <- lme4::ranef(mb)$di[, 1]; bb <- lme4::fixef(mb)
+    fd <- nd / N
+    est <- fd * tapply(yb, di, mean) + drop((Xbar - fd * rowsum(Xs, di) / nd) %*% bb) + (1 - fd) * ub
+    truth <- drop(Xbar %*% b) + u + (nd * tapply(e, di, mean) + rd * er) / N
+    mse <- mse + (est - truth)^2 / 30
+  }
+  expect_equal(unname(r1$mse), as.numeric(mse), tolerance = 1e-3)
+})
+
+test_that("compiled BHF fit rejects unidentifiable designs", {
+  x <- rnorm(20)
+  expect_error(fastsae:::.bhf_fit(cbind(1, x, 2 * x), rnorm(20), rep(0:3, 5), 4, "REML"), "rank deficient")
+  expect_error(fastsae:::.bhf_fit(cbind(1, x), rnorm(20), 0:19, 20, "REML"), "must exceed")
+})

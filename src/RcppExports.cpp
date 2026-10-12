@@ -11,6 +11,42 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// bhf_fit_cpp
+Rcpp::List bhf_fit_cpp(const arma::mat& Xs, const arma::vec& ys, const arma::ivec& dom, int D, bool reml);
+RcppExport SEXP _fastsae_bhf_fit_cpp(SEXP XsSEXP, SEXP ysSEXP, SEXP domSEXP, SEXP DSEXP, SEXP remlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Xs(XsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ys(ysSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type dom(domSEXP);
+    Rcpp::traits::input_parameter< int >::type D(DSEXP);
+    Rcpp::traits::input_parameter< bool >::type reml(remlSEXP);
+    rcpp_result_gen = Rcpp::wrap(bhf_fit_cpp(Xs, ys, dom, D, reml));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pbmse_bhf_cpp
+Rcpp::List pbmse_bhf_cpp(const arma::mat& Xs, const arma::ivec& dom, int D, const arma::mat& meanxpop, const arma::vec& popnsize, const arma::vec& beta, double sigma2_u, double sigma2_e, int B, bool reml, int n_threads);
+RcppExport SEXP _fastsae_pbmse_bhf_cpp(SEXP XsSEXP, SEXP domSEXP, SEXP DSEXP, SEXP meanxpopSEXP, SEXP popnsizeSEXP, SEXP betaSEXP, SEXP sigma2_uSEXP, SEXP sigma2_eSEXP, SEXP BSEXP, SEXP remlSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Xs(XsSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type dom(domSEXP);
+    Rcpp::traits::input_parameter< int >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type meanxpop(meanxpopSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type popnsize(popnsizeSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma2_u(sigma2_uSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma2_e(sigma2_eSEXP);
+    Rcpp::traits::input_parameter< int >::type B(BSEXP);
+    Rcpp::traits::input_parameter< bool >::type reml(remlSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(pbmse_bhf_cpp(Xs, dom, D, meanxpop, popnsize, beta, sigma2_u, sigma2_e, B, reml, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // eblup_core
 List eblup_core(const arma::mat& Xall, const arma::vec& yall, const arma::vec& vardirall, std::string method, int maxiter, double precision);
 RcppExport SEXP _fastsae_eblup_core(SEXP XallSEXP, SEXP yallSEXP, SEXP vardirallSEXP, SEXP methodSEXP, SEXP maxiterSEXP, SEXP precisionSEXP) {
@@ -171,6 +207,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_fastsae_bhf_fit_cpp", (DL_FUNC) &_fastsae_bhf_fit_cpp, 5},
+    {"_fastsae_pbmse_bhf_cpp", (DL_FUNC) &_fastsae_pbmse_bhf_cpp, 11},
     {"_fastsae_eblup_core", (DL_FUNC) &_fastsae_eblup_core, 6},
     {"_fastsae_seblup_core", (DL_FUNC) &_fastsae_seblup_core, 8},
     {"_fastsae_seblup_npbmse", (DL_FUNC) &_fastsae_seblup_npbmse, 11},

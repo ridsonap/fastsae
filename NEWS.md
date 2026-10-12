@@ -88,13 +88,21 @@
 * `benchmark_sae()`: the MSE covariance between areas is applied as a matrix-free operator
   (FH: $O(n p^2)$, no $n \times n$ matrices). FH with $m = 2000$: 9.4 s / 490 MB -> 0.002 s / 1.7 MB;
   $m = 20000$ now runs in about 0.01 s.
-* `eblup_bhf()` bootstrap MSE: replicates are re-fitted with `lme4::refit()` (no formula re-parsing or
-  model-matrix rebuilding) and the bootstrap population means are computed vectorised over domains;
-  about 1.5x faster and about 3x less memory, same results for a given seed.
+* `eblup_bhf()`: the REML/ML fit and the bootstrap MSE now run in C++ (`src/eblup_bhf_core.cpp`).
+  The likelihood is profiled to $\gamma = \sigma_u^2/\sigma_e^2 \ge 0$ and evaluated from within-domain
+  cross-products and domain means ($O(Dp^2)$ per evaluation, independent of the number of units); the
+  maximum is found from a log-grid scan plus Brent refinement, so $\sigma_u^2 = 0$ is handled exactly.
+  Estimates agree with `lme4`/`sae` up to their optimiser tolerance (deviance never worse), and the
+  bootstrap uses the same random draws as before, so MSEs agree with the previous `lme4`-based
+  implementation to about 1e-5 for a given seed. Bootstrap: cornsoybean $B = 200$ 0.64 s -> 0.005 s;
+  $D = 300$, $n = 6000$, $B = 100$ 0.96 s -> 0.035 s. `n_threads` now runs replicates in parallel
+  (results do not depend on it); for small models R's sequential RNG dominates the run time.
+* `eblup_bhf()` output: `fit$lme` (the `lmerMod` object) is replaced by `fit$residuals` (unit-level
+  conditional residuals, used by `residuals()`); `estcoef` standard errors are $(X'\hat V^{-1}X)^{-1}$
+  as in `lme4`. Rank-deficient designs now give an explicit error.
 * `eblup_sfh()`: $(I - \rho W')(I - \rho W)$ is formed from the precomputed $W'W$ (no $D^3$ product per
   iteration); $g_3$ is vectorised; the MSE of unsampled (kriged) domains reuses the SAR derivative
   matrices and only uses (#unsampled x m) products. $D = 400$ with 20 unsampled domains: 3.8 s -> 2.1 s.
-* `eblup_bhf(n_threads)` is documented as unused (the bootstrap is sequential).
 
 ### Major New Features & Enhancements
 * **Two-Fold Subarea EBLUP (`eblup_twofold`)**:

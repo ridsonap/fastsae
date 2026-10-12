@@ -13,12 +13,29 @@
 #' @param popnmean_xpop Population mean of auxiliary variables per domain.
 #' @param B Number of bootstrap replicates for MSE (if compute_mse = TRUE).
 #' @param compute_mse If TRUE, compute bootstrap MSE.
-#' @param n_threads Currently unused: the bootstrap MSE runs sequentially (each replicate
-#'   is a \code{lme4} refit). Kept for interface compatibility.
+#' @param n_threads Number of OpenMP threads for the bootstrap MSE. Results depend on
+#'   \code{seed} only, not on the number of threads.
 #' @param seed Random seed for reproducibility.
 #' @param print_result Print results (default TRUE).
 #'
-#' @returns List containing EBLUP estimates, fit, and optionally MSE.
+#' @details
+#' The nested error model \eqn{y_{dj} = x_{dj}'\beta + u_d + e_{dj}} is fitted by
+#' REML or ML in compiled code. With \eqn{\gamma = \sigma_u^2/\sigma_e^2},
+#' \eqn{\beta} and \eqn{\sigma_e^2} are profiled out, so the fit is a
+#' one-dimensional maximisation over \eqn{\gamma \ge 0} (including the boundary
+#' \eqn{\sigma_u^2 = 0}); each evaluation uses only within-domain cross-products
+#' and domain means. The estimates are those of \code{lme4::lmer} and
+#' \code{sae::eblupBHF} up to the optimiser tolerance of those packages. The
+#' standard errors in \code{estcoef} are from \eqn{(X'\hat V^{-1}X)^{-1}}.
+#'
+#' The bootstrap MSE refits the model in each replicate with the same code and
+#' runs replicates in parallel (\code{n_threads}); random draws are generated
+#' sequentially from R's RNG, so a given \code{seed} gives the same result for
+#' any number of threads.
+#'
+#' @returns List containing EBLUP estimates, fit, and optionally MSE. The
+#'   \code{fit} element holds the variance components, \code{beta}, the
+#'   predicted random effects and the unit-level conditional residuals.
 #'
 #' @references
 #' Battese, G. E., Harter, R. M., and Fuller, W. A. (1988). An error-components
@@ -70,21 +87,16 @@ eblup_bhf <- function(
   ys <- stats::model.response(formuladata)
   Xs <- stats::model.matrix(formula, formuladata)
 
-  # --- fit linear mixed model with method (REML vs ML) ---
-  term_labels <- attr(stats::terms(formula), "term.labels")
-  lmer_data <- as.data.frame(formuladata)
-  lmer_data$dom <- dom
-  lmer_data$..y_var.. <- ys
-  fixed_part <- if (length(term_labels) > 0) paste(term_labels, collapse = " + ") else "1"
-  formula_lmer <- stats::as.formula(paste("..y_var.. ~", fixed_part, "+ (1 | dom)"))
-
-  fit <- lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML"))
-  betaest <- matrix(lme4::fixef(fit), ncol = 1)
-  upred <- lme4::ranef(fit)$dom
-
   # --- prepare population data sorted to match selectdom ---
   pop_dom <- .get_variable(Xpop, domain_var)
   selectdom <- unique(c(selectdom, pop_dom))
+  dom_int <- match(dom, selectdom) - 1L
+
+  # --- fit the nested error model (REML/ML, profiled in s2u/s2e; C++) ---
+  fit <- .bhf_fit(Xs, ys, dom_int, length(selectdom), method)
+  betaest <- matrix(fit$beta, ncol = 1, dimnames = list(colnames(Xs), NULL))
+  upred <- .bhf_upred(fit, selectdom)
+
   Xpop <- Xpop[order(match(pop_dom, selectdom)), , drop = FALSE]
   popnsize <- .get_variable(Xpop, popsize_var)
 
@@ -102,9 +114,8 @@ eblup_bhf <- function(
     cli::cli_abort("Number of columns in auxiliary population means ({ncol(meanxpop)}) must match design matrix ({ncol(Xs)}).")
   }
 
-  # --- extract variance components ---
-  sigma2_u <- lme4::VarCorr(fit)$dom[1, 1]
-  sigma2_e <- attr(lme4::VarCorr(fit), "sc")^2
+  sigma2_u <- fit$sigma2_u
+  sigma2_e <- fit$sigma2_e
 
   # --- compute EBLUP ---
   result <- .eblup_bhf_cpp(
@@ -167,17 +178,17 @@ eblup_bhf <- function(
     df_eblup$rse <- NA_real_
   }
 
-  # Build standardized estcoef
-  lmer_sum <- summary(fit)
-  coef_mat <- as.data.frame(lmer_sum$coefficients)
+  # Build standardized estcoef (Var(beta) = (X' V^-1 X)^-1 at the estimates)
+  se_beta <- sqrt(diag(fit$vcov))
+  tval <- fit$beta / se_beta
   estcoef <- data.frame(
-    beta = coef_mat[, 1],
-    std.error = coef_mat[, 2],
-    stderr_beta = coef_mat[, 2],
-    tvalue = coef_mat[, 3],
-    zvalue = coef_mat[, 3],
-    pvalue = 2 * stats::pnorm(abs(coef_mat[, 3]), lower.tail = FALSE),
-    row.names = rownames(coef_mat)
+    beta = fit$beta,
+    std.error = se_beta,
+    stderr_beta = se_beta,
+    tvalue = tval,
+    zvalue = tval,
+    pvalue = 2 * stats::pnorm(abs(tval), lower.tail = FALSE),
+    row.names = colnames(Xs)
   )
 
   # --- assemble output ---
@@ -192,12 +203,12 @@ eblup_bhf <- function(
       sigma2_e = sigma2_e,
       beta = betaest,
       random_effect = upred,
-      lme = fit
+      residuals = as.numeric(ys - Xs %*% betaest - fit$u[dom_int + 1L])
     ),
     formula = formula,
     model = "BHF",
     level = "unit",
-    convergence = TRUE,
+    convergence = fit$convergence,
     data = unit_data,
     call = match.call()
   )
@@ -209,6 +220,28 @@ eblup_bhf <- function(
   }
 
   return(out)
+}
+
+#' Fit the nested error model by REML/ML (C++, profiled likelihood)
+#' @noRd
+.bhf_fit <- function(Xs, ys, dom_int, n_dom, method) {
+  n <- nrow(Xs)
+  if (qr(Xs)$rank < ncol(Xs)) {
+    cli::cli_abort("The fixed-effects design matrix is rank deficient; remove collinear covariates.")
+  }
+  if (length(unique(dom_int)) >= n || n <= ncol(Xs)) {
+    cli::cli_abort("The number of sampled units must exceed both the number of sampled domains and the number of coefficients.")
+  }
+  .bhf_fit_cpp(Xs, as.numeric(ys), as.integer(dom_int), as.integer(n_dom), method == "REML")
+}
+
+#' Predicted random effects of the sampled domains as the data frame used by
+#' .eblup_bhf_cpp
+#' @noRd
+.bhf_upred <- function(fit, selectdom) {
+  sampled <- !is.na(fit$u)
+  data.frame(`(Intercept)` = fit$u[sampled], row.names = as.character(selectdom[sampled]),
+             check.names = FALSE)
 }
 
 #' @noRd
@@ -243,6 +276,7 @@ eblup_bhf <- function(
   selectdom <- unique(c(selectdom, pop_dom))
   Xpop <- Xpop[order(match(pop_dom, selectdom)), , drop = FALSE]
   popnsize <- .get_variable(Xpop, popsize_var)
+  dom_int <- match(dom, selectdom) - 1L
 
   # Use the same population means as the point estimate (incl. a user-supplied
   # popnmean_xpop), so that the bootstrap targets the same estimator.
@@ -253,114 +287,39 @@ eblup_bhf <- function(
       meanxpop <- cbind(`(Intercept)` = 1, meanxpop)
     }
   }
+  meanxpop <- as.matrix(meanxpop)
+  storage.mode(meanxpop) <- "double"
 
-  # --- initial fit ---
-  term_labels <- attr(stats::terms(formula), "term.labels")
-  lmer_data <- as.data.frame(formuladata)
-  lmer_data$dom <- dom
-  lmer_data$..y_boot.. <- ys
-  fixed_part <- if (length(term_labels) > 0) paste(term_labels, collapse = " + ") else "1"
-  formula_lmer <- stats::as.formula(paste("..y_boot.. ~", fixed_part, "+ (1 | dom)"))
-
-  fit <- lme4::lmer(formula_lmer, data = lmer_data, REML = (method == "REML"))
-  betaest <- matrix(lme4::fixef(fit), ncol = 1)
-  upred <- lme4::ranef(fit)$dom
-
-  sigma2_u <- lme4::VarCorr(fit)$dom[1, 1]
-  sigma2_e <- attr(lme4::VarCorr(fit), "sc")^2
-
-  # --- initial EBLUP ---
-  init_result <- .eblup_bhf_cpp(
+  # --- initial fit and EBLUP ---
+  fit <- .bhf_fit(Xs, ys, dom_int, length(selectdom), method)
+  eblup_init <- .eblup_bhf_cpp(
     selectdom = as.character(selectdom),
     dom = as.character(dom),
     Xs = Xs,
     meanxpop = meanxpop,
     ys = ys,
     popnsize = popnsize,
-    betaest = betaest,
-    upred = upred
-  )
-
-  eblup_init <- init_result$eblup
+    betaest = matrix(fit$beta, ncol = 1),
+    upred = .bhf_upred(fit, selectdom)
+  )$eblup
   names(eblup_init) <- as.character(selectdom)
 
-  # --- bootstrap loop ---
+  # --- bootstrap (C++): y* = X beta + u* + e*, refit, EBLUP vs. true mean ---
+  # Draws come from R's RNG in a fixed order, so results depend on the seed
+  # only, not on n_threads.
   if (seed >= 0) set.seed(seed)
-
-  mse <- numeric(length(selectdom))
-  valid_B <- 0L
-
-  # Domain bookkeeping, computed once (the loop below is vectorised over domains)
-  dom_factor <- factor(dom, levels = as.character(selectdom))
-  Xbeta_pop <- as.numeric(Xs %*% betaest)
-  n_d <- as.numeric(table(dom_factor))                 # sample size per domain
-  N_d <- as.numeric(popnsize)
-  r_d <- pmax(N_d - n_d, 0)                            # non-sampled units
-  mu_d <- as.numeric(meanxpop %*% betaest)             # Xbar_d' beta
-  # population mean error: ebar_d = (n_d ebar_{d,s} + r_d ebar_{d,r}) / N_d,
-  # ebar_{d,r} ~ N(0, s2e / r_d); fully sampled domains (r_d = 0): ebar_{d,s};
-  # unsampled domains (n_d = 0): ebar_d ~ N(0, s2e / N_d)
-  w_s <- ifelse(n_d > 0, ifelse(r_d > 0, n_d / N_d, 1), 0)
-  w_r <- ifelse(n_d > 0, ifelse(r_d > 0, r_d / N_d, 0), 1)
-  sd_r <- ifelse(n_d > 0, ifelse(r_d > 0, sqrt(sigma2_e / r_d), 0), sqrt(sigma2_e / N_d))
-  dom_int <- as.integer(dom_factor)
-
-  for (b in seq_len(B)) {
-    # Generate bootstrap sample
-    u_boot <- stats::rnorm(length(selectdom), sd = sqrt(sigma2_u))
-
-    e_boot <- stats::rnorm(length(ys), sd = sqrt(sigma2_e))
-
-    # Fast vectorized y_boot: X * beta + u_boot[dom] + e_boot
-    y_boot <- Xbeta_pop + u_boot[dom_int] + e_boot   # integer index (no name matching)
-
-    # Re-fit the bootstrap response with the model structure of the initial
-    # fit (lme4::refit): same estimator as lmer() on the new response, without
-    # re-parsing the formula and rebuilding the model matrices every time
-    fit_boot <- tryCatch(
-      lme4::refit(fit, newresp = y_boot),
-      error = function(e) NULL
-    )
-    if (is.null(fit_boot)) next
-
-    beta_boot <- matrix(lme4::fixef(fit_boot), ncol = 1)
-    upred_boot <- lme4::ranef(fit_boot)$dom
-
-    # Compute bootstrap EBLUP
-    eblup_boot <- .eblup_bhf_cpp(
-      selectdom = as.character(selectdom),
-      dom = as.character(dom),
-      Xs = Xs,
-      meanxpop = meanxpop,
-      ys = y_boot,
-      popnsize = popnsize,
-      betaest = beta_boot,
-      upred = upred_boot
-    )$eblup
-
-    # True population mean in the bootstrap population (vectorised over domains)
-    esd <- numeric(length(n_d))
-    has_s <- n_d > 0
-    esd[has_s] <- rowsum(e_boot, dom_int)[, 1] / n_d[has_s]   # groups sorted by domain code
-    e_r <- stats::rnorm(length(n_d), 0, sd_r)
-    truemean_boot <- mu_d + as.numeric(u_boot) + w_s * esd + w_r * e_r
-
-    # Accumulate MSE: (eblup_boot - truemean_boot)^2
-    mse <- mse + (eblup_boot - truemean_boot)^2
-    valid_B <- valid_B + 1L
-  }
-
-  if (valid_B > 0L) {
-    mse <- mse / valid_B
-  } else {
-    mse <- rep(NA_real_, length(selectdom))
-  }
+  boot <- .pbmse_bhf_cpp(
+    Xs, as.integer(dom_int), length(selectdom), meanxpop, as.numeric(popnsize),
+    fit$beta, fit$sigma2_u, fit$sigma2_e, as.integer(B), method == "REML",
+    as.integer(n_threads)
+  )
+  mse <- as.numeric(boot$mse)
   names(mse) <- as.character(selectdom)
 
   return(list(
     eblup = eblup_init,
     mse = mse,
     method = method,
-    B = valid_B
+    B = boot$B
   ))
 }
