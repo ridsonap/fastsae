@@ -20,34 +20,33 @@ knitr::opts_chunk$set(
 
 Small Area Estimation often involves large administrative registries or extensive spatial networks with hundreds or thousands of domains. Traditional implementations in R often rely on interpreted loops, pure R Fisher-scoring routines, or large memory allocations for $D \times D$ dense covariance matrices.
 
-**fastsae** re-architects core estimation algorithms in compiled C++ using `RcppArmadillo` and native `OpenMP` multi-threading, delivering:
+<!-- BENCH-SUMMARY:START -->
+**fastsae** fits the frequentist models in compiled C++ (`RcppArmadillo`; sparse Cholesky factorisations for
+the SAR models) and the Bayesian models with INLA. At $n = 1,000$ domains:
 
-- **Up to 364x faster** than `sae` and **12,300x faster** than `emdi` for Fay-Herriot models at $n = 1,000$.
-- **Up to 80x faster** than `sae` for Spatial Fay-Herriot models at $n = 1,000$.
-- **Up to 31x faster** than `sae` for Spatio-Temporal models at $n = 1,000$.
-- **Massive RAM reduction**: Peak memory footprint stays under **25 MB** where existing packages require hundreds of megabytes or several gigabytes.
+- **Fay-Herriot**: 1,263x faster than `sae` and 42,874x faster than `emdi`.
+- **Spatial Fay-Herriot**: 67x faster than `sae` and 51x faster than `emdi`.
+- **Spatio-Temporal Fay-Herriot** ($T = 5$): 24x faster than `sae`.
 
 ---
 
 ## Benchmark Results Table
 
-The following benchmarks were conducted on simulated datasets across domain sizes ranging from $n = 30$ to $n = 1,000$ (with 5 auxiliary covariates):
+| Model ($n = 1,000$ domains, 5 covariates) | `fastsae` | `sae` | `emdi` |
+|:---|:--:|:--:|:--:|
+| **Fay-Herriot** | **0.00119 s** (0.503 MB) | 1.50 s (72.0 MB; 1,263x slower) | 51.0 s (3.69 GB; 42,874x slower) |
+| **Spatial Fay-Herriot** | **1.00 s** (0.203 MB) | 67.2 s (1.88 GB; 67x slower) | 51.1 s (3.68 GB; 51x slower) |
+| **Spatio-Temporal FH ($T = 5$)** | **75.3 s** (3.29 MB) | 1790 s (31.7 GB; 24x slower) | \- |
 
-| Metric | `fastsae` | `sae` (Molina & Rao) | `emdi` (Kreutzmann et al.) |
-|:---|:---:|:---:|:---:|
-| **Mean Time (EBLUP FH)** | **0.0015 s** | 0.291 s | 9.64 s |
-| **Mean Time (Spatial FH)** | **0.165 s** | 12.60 s | 8.69 s |
-| **Mean Time (Spatio-Temporal FH)** | **12.5 s** | 353.0 s | \- |
-| **Peak Memory (EBLUP FH)** | **0.055 MB** | 16.3 MB | 824 MB |
-| **Peak Memory (Spatial FH)** | **5.15 MB** | 408 MB | 824 MB |
-| **Peak Memory (Spatio-Temporal FH)** | **0.289 MB** | 7,822 MB | \- |
-| **Speedup at n = 1,000 (FH)** | **Baseline** | **~364x slower** | **~12,300x slower** |
+Times are medians of `bench::mark()`; memory is the total memory allocated by R during one call (`bench::mark()$mem_alloc`), not the peak resident memory. The `fastsae` rows were re-measured on 2026-10-13 (fastsae 1.0.0, `benchmarks/bench_frequentist_fastsae.R`); the `sae`/`emdi` rows come from an earlier run of the same design (simulated data, 5 covariates) on different random draws.
+
+<!-- BENCH-SUMMARY:END -->
 
 ---
 
 ## Interactive Benchmark Explorer
 
-Use the interactive controls below to compare execution time, RAM consumption, and iterations per second across sample sizes:
+Use the interactive controls below to compare execution time, memory allocated, and iterations per second across sample sizes:
 
 ```{=html}
 <div class="my-4 p-3 border rounded bg-light">
@@ -59,7 +58,7 @@ Use the interactive controls below to compare execution time, RAM consumption, a
     </div>
     <div class="btn-group" role="group" aria-label="Metric selection">
       <button type="button" class="btn btn-sm btn-success active" id="btn-metric-time" onclick="setBenchmarkMetric('time')">Execution Time</button>
-      <button type="button" class="btn btn-sm btn-outline-success" id="btn-metric-mem" onclick="setBenchmarkMetric('mem')">Peak Memory</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-metric-mem" onclick="setBenchmarkMetric('mem')">Memory Allocated</button>
       <button type="button" class="btn btn-sm btn-outline-success" id="btn-metric-ips" onclick="setBenchmarkMetric('ips')">Throughput (iter/s)</button>
     </div>
   </div>
@@ -88,58 +87,56 @@ Use the interactive controls below to compare execution time, RAM consumption, a
 (function() {
   const RAW_DATA = [
     // FH
-    { Method: "fastsae", Median: 0.000588, Mem: 0.005, IPS: 1623, n: 30, Algo: "FH" },
-    { Method: "emdi", Median: 0.01088, Mem: 4.18, IPS: 91, n: 30, Algo: "FH" },
-    { Method: "sae", Median: 0.00155, Mem: 0.153, IPS: 632, n: 30, Algo: "FH" },
-    { Method: "fastsae", Median: 0.000511, Mem: 0.009, IPS: 1912, n: 50, Algo: "FH" },
-    { Method: "emdi", Median: 0.01806, Mem: 10.47, IPS: 52, n: 50, Algo: "FH" },
-    { Method: "sae", Median: 0.00195, Mem: 0.373, IPS: 494, n: 50, Algo: "FH" },
-    { Method: "fastsae", Median: 0.00055, Mem: 0.016, IPS: 1761, n: 100, Algo: "FH" },
-    { Method: "emdi", Median: 0.0505, Mem: 37.34, IPS: 19, n: 100, Algo: "FH" },
-    { Method: "sae", Median: 0.00344, Mem: 0.918, IPS: 288, n: 100, Algo: "FH" },
-    { Method: "fastsae", Median: 0.0009, Mem: 0.039, IPS: 1081, n: 250, Algo: "FH" },
-    { Method: "emdi", Median: 0.857, Mem: 240.89, IPS: 1.16, n: 250, Algo: "FH" },
-    { Method: "sae", Median: 0.0376, Mem: 6.35, IPS: 26, n: 250, Algo: "FH" },
-    { Method: "fastsae", Median: 0.0014, Mem: 0.076, IPS: 697, n: 500, Algo: "FH" },
-    { Method: "emdi", Median: 5.86, Mem: 880.31, IPS: 0.17, n: 500, Algo: "FH" },
-    { Method: "sae", Median: 0.197, Mem: 18.24, IPS: 5.03, n: 500, Algo: "FH" },
-    { Method: "fastsae", Median: 0.00413, Mem: 0.186, IPS: 176, n: 1000, Algo: "FH" },
-    { Method: "emdi", Median: 51.02, Mem: 3773.6, IPS: 0.02, n: 1000, Algo: "FH" },
-    { Method: "sae", Median: 1.504, Mem: 72.0, IPS: 0.66, n: 1000, Algo: "FH" },
-
+    { Method: "emdi", Median: 0.01088, Mem: 4.183, IPS: 91.19, n: 30, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0005491, Mem: 0.3393, IPS: 1734, n: 30, Algo: "FH" },
+    { Method: "sae", Median: 0.001552, Mem: 0.1534, IPS: 631.9, n: 30, Algo: "FH" },
+    { Method: "emdi", Median: 0.01806, Mem: 10.47, IPS: 51.95, n: 50, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0005808, Mem: 0.009308, IPS: 1716, n: 50, Algo: "FH" },
+    { Method: "sae", Median: 0.001951, Mem: 0.3731, IPS: 494.4, n: 50, Algo: "FH" },
+    { Method: "emdi", Median: 0.05051, Mem: 37.34, IPS: 19.42, n: 100, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0006409, Mem: 0.01770, IPS: 1551, n: 100, Algo: "FH" },
+    { Method: "sae", Median: 0.003443, Mem: 0.9175, IPS: 288.1, n: 100, Algo: "FH" },
+    { Method: "emdi", Median: 0.8573, Mem: 240.9, IPS: 1.163, n: 250, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0006767, Mem: 0.04288, IPS: 1471, n: 250, Algo: "FH" },
+    { Method: "sae", Median: 0.03758, Mem: 6.350, IPS: 26.02, n: 250, Algo: "FH" },
+    { Method: "emdi", Median: 5.864, Mem: 880.3, IPS: 0.1699, n: 500, Algo: "FH" },
+    { Method: "fastsae", Median: 0.001067, Mem: 0.08484, IPS: 800.1, n: 500, Algo: "FH" },
+    { Method: "sae", Median: 0.1967, Mem: 18.24, IPS: 5.028, n: 500, Algo: "FH" },
+    { Method: "emdi", Median: 51.02, Mem: 3774, IPS: 0.01958, n: 1000, Algo: "FH" },
+    { Method: "fastsae", Median: 0.001190, Mem: 0.5031, IPS: 891.7, n: 1000, Algo: "FH" },
+    { Method: "sae", Median: 1.504, Mem: 71.98, IPS: 0.6641, n: 1000, Algo: "FH" },
     // SFH
-    { Method: "fastsae", Median: 0.000735, Mem: 0.03, IPS: 1312, n: 30, Algo: "SFH" },
-    { Method: "emdi", Median: 0.01071, Mem: 4.18, IPS: 93, n: 30, Algo: "SFH" },
-    { Method: "sae", Median: 0.0041, Mem: 1.37, IPS: 246, n: 30, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.00115, Mem: 0.074, IPS: 841, n: 50, Algo: "SFH" },
-    { Method: "emdi", Median: 0.018, Mem: 10.47, IPS: 44, n: 50, Algo: "SFH" },
-    { Method: "sae", Median: 0.00968, Mem: 3.31, IPS: 103, n: 50, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.00473, Mem: 0.259, IPS: 208, n: 100, Algo: "SFH" },
-    { Method: "emdi", Median: 0.053, Mem: 37.34, IPS: 17, n: 100, Algo: "SFH" },
-    { Method: "sae", Median: 0.0705, Mem: 18.0, IPS: 13, n: 100, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.0238, Mem: 1.5, IPS: 37, n: 250, Algo: "SFH" },
-    { Method: "emdi", Median: 0.844, Mem: 240.89, IPS: 1.17, n: 250, Algo: "SFH" },
-    { Method: "sae", Median: 1.07, Mem: 110.39, IPS: 0.93, n: 250, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.142, Mem: 5.86, IPS: 6.96, n: 500, Algo: "SFH" },
-    { Method: "emdi", Median: 3.14, Mem: 949.86, IPS: 0.32, n: 500, Algo: "SFH" },
-    { Method: "sae", Median: 7.12, Mem: 776.4, IPS: 0.14, n: 500, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.832, Mem: 23.15, IPS: 1.19, n: 1000, Algo: "SFH" },
-    { Method: "emdi", Median: 51.06, Mem: 3772.6, IPS: 0.02, n: 1000, Algo: "SFH" },
-    { Method: "sae", Median: 67.15, Mem: 1920.0, IPS: 0.015, n: 1000, Algo: "SFH" },
-
+    { Method: "emdi", Median: 0.01071, Mem: 4.183, IPS: 93.46, n: 30, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.005877, Mem: 0.008789, IPS: 170.6, n: 30, Algo: "SFH" },
+    { Method: "sae", Median: 0.004101, Mem: 1.373, IPS: 246.2, n: 30, Algo: "SFH" },
+    { Method: "emdi", Median: 0.01800, Mem: 10.47, IPS: 43.84, n: 50, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.004562, Mem: 0.01163, IPS: 219.1, n: 50, Algo: "SFH" },
+    { Method: "sae", Median: 0.009680, Mem: 3.312, IPS: 102.6, n: 50, Algo: "SFH" },
+    { Method: "emdi", Median: 0.05299, Mem: 37.34, IPS: 17.47, n: 100, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.01388, Mem: 0.02113, IPS: 71.88, n: 100, Algo: "SFH" },
+    { Method: "sae", Median: 0.07054, Mem: 17.98, IPS: 12.79, n: 100, Algo: "SFH" },
+    { Method: "emdi", Median: 0.8438, Mem: 240.9, IPS: 1.175, n: 250, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.04791, Mem: 0.05088, IPS: 20.88, n: 250, Algo: "SFH" },
+    { Method: "sae", Median: 1.075, Mem: 110.4, IPS: 0.9256, n: 250, Algo: "SFH" },
+    { Method: "emdi", Median: 3.137, Mem: 949.9, IPS: 0.3177, n: 500, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.2131, Mem: 0.1005, IPS: 4.662, n: 500, Algo: "SFH" },
+    { Method: "sae", Median: 7.118, Mem: 776.4, IPS: 0.1396, n: 500, Algo: "SFH" },
+    { Method: "emdi", Median: 51.06, Mem: 3773, IPS: 0.01955, n: 1000, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.9998, Mem: 0.2032, IPS: 1.000, n: 1000, Algo: "SFH" },
+    { Method: "sae", Median: 67.15, Mem: 1920, IPS: 0.01488, n: 1000, Algo: "SFH" },
     // STFH
-    { Method: "fastsae", Median: 0.0367, Mem: 0.027, IPS: 25.87, n: 30, Algo: "STFH" },
-    { Method: "sae", Median: 0.1186, Mem: 43.8, IPS: 7.86, n: 30, Algo: "STFH" },
-    { Method: "fastsae", Median: 0.0898, Mem: 0.047, IPS: 10.92, n: 50, Algo: "STFH" },
-    { Method: "sae", Median: 0.42, Mem: 107.8, IPS: 2.28, n: 50, Algo: "STFH" },
-    { Method: "fastsae", Median: 2.299, Mem: 0.090, IPS: 0.434, n: 100, Algo: "STFH" },
-    { Method: "sae", Median: 17.94, Mem: 2551.1, IPS: 0.056, n: 100, Algo: "STFH" },
-    { Method: "fastsae", Median: 3.817, Mem: 0.225, IPS: 0.261, n: 250, Algo: "STFH" },
-    { Method: "sae", Median: 58.43, Mem: 3624.7, IPS: 0.017, n: 250, Algo: "STFH" },
-    { Method: "fastsae", Median: 10.36, Mem: 0.448, IPS: 0.096, n: 500, Algo: "STFH" },
-    { Method: "sae", Median: 253.34, Mem: 8124.4, IPS: 0.004, n: 500, Algo: "STFH" },
-    { Method: "fastsae", Median: 58.10, Mem: 0.894, IPS: 0.017, n: 1000, Algo: "STFH" },
-    { Method: "sae", Median: 1786.49, Mem: 32478.3, IPS: 0.0006, n: 1000, Algo: "STFH" }
+    { Method: "fastsae", Median: 0.1427, Mem: 0.1377, IPS: 6.975, n: 30, Algo: "STFH" },
+    { Method: "sae", Median: 0.1186, Mem: 43.80, IPS: 7.858, n: 30, Algo: "STFH" },
+    { Method: "fastsae", Median: 0.3938, Mem: 0.1611, IPS: 2.536, n: 50, Algo: "STFH" },
+    { Method: "sae", Median: 0.4200, Mem: 107.8, IPS: 2.279, n: 50, Algo: "STFH" },
+    { Method: "fastsae", Median: 0.2142, Mem: 0.3157, IPS: 4.663, n: 100, Algo: "STFH" },
+    { Method: "sae", Median: 17.94, Mem: 2551, IPS: 0.05566, n: 100, Algo: "STFH" },
+    { Method: "fastsae", Median: 1.514, Mem: 0.8198, IPS: 0.5714, n: 250, Algo: "STFH" },
+    { Method: "sae", Median: 58.43, Mem: 3625, IPS: 0.01707, n: 250, Algo: "STFH" },
+    { Method: "fastsae", Median: 10.04, Mem: 1.633, IPS: 0.09850, n: 500, Algo: "STFH" },
+    { Method: "sae", Median: 253.3, Mem: 8124, IPS: 0.003941, n: 500, Algo: "STFH" },
+    { Method: "fastsae", Median: 75.33, Mem: 3.293, IPS: 0.01331, n: 1000, Algo: "STFH" },
+    { Method: "sae", Median: 1786, Mem: 32480, IPS: 0.0006095, n: 1000, Algo: "STFH" }
   ];
 
   const N_LIST = [30, 50, 100, 250, 500, 1000];
@@ -161,7 +158,7 @@ Use the interactive controls below to compare execution time, RAM consumption, a
 
   function getMetricTitle(m) {
     if (m === "time") return "Execution time (median, seconds)";
-    if (m === "mem") return "Memory usage (MB)";
+    if (m === "mem") return "Memory allocated (MB)";
     if (m === "ips") return "Throughput (iterations per second)";
     return m;
   }
@@ -304,7 +301,7 @@ Use the interactive controls below to compare execution time, RAM consumption, a
 ## Architectural Insights: Why is fastsae so Fast?
 
 1. **Compiled C++ Linear Solvers**:
-   Instead of interpreting nested loops in R, `fastsae` implements Fisher-scoring parameter search and Woodbury identity matrix inversions in Armadillo C++, directly leveraging optimized BLAS/LAPACK routines.
+   Instead of interpreting nested loops in R, `fastsae` implements Fisher scoring and the analytical MSE in Armadillo C++. The spatial Fay-Herriot model never forms a $D \times D$ inverse: with $A = (I - \rho W')(I - \rho W)$ and $M = A + \sigma^2 E'\Psi^{-1}E$, $V^{-1}$, $g_1, \dots, g_4$ and the kriging terms follow from sparse Cholesky solves with $A$ and $M$ (Eigen, AMD ordering).
 
 2. **Zero-Copy Matrix Operations**:
    Memory allocations for large intermediate structures ($V$, $V^{-1}$, $P$) are avoided or reused across Fisher iterations rather than reallocated on the heap.
@@ -349,7 +346,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
     </div>
     <div class="btn-group" role="group" aria-label="Metric selection">
       <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
-      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Peak Memory</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Memory Allocated</button>
       <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-ips" onclick="setBetaMetric('ips')">Throughput (iter/s)</button>
     </div>
   </div>
@@ -377,40 +374,38 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 (function() {
   const BETA_DATA = {
     STD: [
-      { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
-      { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
-      { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
-      { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
-      { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
-      { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
-      { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
-      { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
-      { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
-      { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
-      { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
-      { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
+    { Method: "fastsae", Median: 1.245, Mem: 109.7, IPS: 0.8063, n: 30 },
+    { Method: "tipsae", Median: 2.349, Mem: 500.0, IPS: 0.4156, n: 30 },
+    { Method: "fastsae", Median: 1.332, Mem: 2.595, IPS: 0.7466, n: 50 },
+    { Method: "tipsae", Median: 3.775, Mem: 861.4, IPS: 0.2615, n: 50 },
+    { Method: "fastsae", Median: 1.272, Mem: 3.821, IPS: 0.7851, n: 100 },
+    { Method: "tipsae", Median: 8.236, Mem: 1781, IPS: 0.1209, n: 100 },
+    { Method: "fastsae", Median: 1.315, Mem: 115.2, IPS: 0.7606, n: 250 },
+    { Method: "tipsae", Median: 26.28, Mem: 4545, IPS: 0.03800, n: 250 },
+    { Method: "fastsae", Median: 1.412, Mem: 121.3, IPS: 0.7008, n: 500 },
+    { Method: "tipsae", Median: 64.21, Mem: 9142, IPS: 0.01557, n: 500 },
+    { Method: "fastsae", Median: 1.640, Mem: 133.6, IPS: 0.5965, n: 1000 },
+    { Method: "tipsae", Median: 187.2, Mem: 18340, IPS: 0.005329, n: 1000 }
     ],
     SPATIAL: [
-      { Method: "fastsae", Median: 0.613834, Mem: 94.46, IPS: 1.6302, n: 30 },
-      { Method: "tipsae",  Median: 25.723298, Mem: 642.84, IPS: 0.0389, n: 30 },
-      { Method: "fastsae", Median: 0.620765, Mem: 3.36,   IPS: 1.6119, n: 50 },
-      { Method: "tipsae",  Median: 65.723465, Mem: 1096.35, IPS: 0.0154, n: 50 },
-      { Method: "fastsae", Median: 1.373156, Mem: 5.97,   IPS: 0.7385, n: 100 },
-      { Method: "tipsae",  Median: 100.019847, Mem: 2245.87, IPS: 0.00997, n: 100 },
-      { Method: "fastsae", Median: 1.315476, Mem: 109.56, IPS: 0.7505, n: 250 },
-      { Method: "tipsae",  Median: 155.898179, Mem: 5706.48, IPS: 0.00641, n: 250 },
-      { Method: "fastsae", Median: 1.434125, Mem: 49.65,  IPS: 0.6879, n: 500 },
-      { Method: "tipsae",  Median: 248.821402, Mem: 11466.90, IPS: 0.00401, n: 500 },
-      { Method: "fastsae", Median: 1.728121, Mem: 161.03, IPS: 0.4367, n: 1000 },
-      { Method: "tipsae",  Median: 404.341829, Mem: 23038.65, IPS: 0.00247, n: 1000 }
+    { Method: "fastsae", Median: 0.6138, Mem: 94.46, IPS: 1.630, n: 30 },
+    { Method: "tipsae", Median: 25.72, Mem: 642.8, IPS: 0.03885, n: 30 },
+    { Method: "fastsae", Median: 0.6208, Mem: 3.361, IPS: 1.612, n: 50 },
+    { Method: "tipsae", Median: 65.72, Mem: 1096, IPS: 0.01538, n: 50 },
+    { Method: "fastsae", Median: 1.373, Mem: 5.965, IPS: 0.7385, n: 100 },
+    { Method: "tipsae", Median: 100.0, Mem: 2246, IPS: 0.009969, n: 100 },
+    { Method: "fastsae", Median: 1.315, Mem: 109.6, IPS: 0.7505, n: 250 },
+    { Method: "tipsae", Median: 155.9, Mem: 5706, IPS: 0.006411, n: 250 },
+    { Method: "fastsae", Median: 1.434, Mem: 49.65, IPS: 0.6879, n: 500 },
+    { Method: "tipsae", Median: 248.8, Mem: 11470, IPS: 0.004011, n: 500 },
+    { Method: "fastsae", Median: 1.728, Mem: 161.0, IPS: 0.4367, n: 1000 },
+    { Method: "tipsae", Median: 404.3, Mem: 23040, IPS: 0.002471, n: 1000 }
     ],
     ST: [
-      { Method: "fastsae", Median: 1.442055, Mem: 102.73, IPS: 0.6877, n: 30 },
-      { Method: "tipsae",  Median: 540.573372, Mem: 2947.08, IPS: 0.00185, n: 30 },
-      { Method: "fastsae", Median: 1.667670, Mem: 109.01, IPS: 0.5885, n: 50 },
-      { Method: "tipsae",  Median: 908.173062, Mem: 4880.13, IPS: 0.00108, n: 50 },
-      { Method: "fastsae", Median: 2.626624, Mem: 125.42, IPS: 0.3494, n: 100 },
-      { Method: "tipsae",  Median: 1840.630400, Mem: 9712.29, IPS: 0.000533, n: 100 }
+    { Method: "fastsae", Median: 1.442, Mem: 102.7, IPS: 0.6877, n: 30 },
+    { Method: "tipsae", Median: 540.6, Mem: 2947, IPS: 0.001849, n: 30 },
+    { Method: "fastsae", Median: 1.668, Mem: 109.0, IPS: 0.5885, n: 50 },
+    { Method: "tipsae", Median: 908.2, Mem: 4880, IPS: 0.001079, n: 50 }
     ]
   };
 
@@ -435,7 +430,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 
   function getBetaMetricTitle(m) {
     if (m === "time") return "Execution time (median, seconds)";
-    if (m === "mem") return "Memory usage (MB)";
+    if (m === "mem") return "Memory allocated (MB)";
     if (m === "ips") return "Throughput (iterations per second)";
     return m;
   }
@@ -586,7 +581,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
             borderRadius: 4
           },
           {
-            label: "Memory Reduction (x less RAM)",
+            label: "Memory Reduction (x less allocated)",
             data: [],
             backgroundColor: "#2B83BA",
             borderRadius: 4

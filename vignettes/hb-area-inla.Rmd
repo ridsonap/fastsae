@@ -215,7 +215,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
     </div>
     <div class="btn-group" role="group" aria-label="Metric selection">
       <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
-      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Peak Memory</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Memory Allocated</button>
       <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-ips" onclick="setBetaMetric('ips')">Throughput (iter/s)</button>
     </div>
   </div>

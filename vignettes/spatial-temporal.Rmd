@@ -123,7 +123,7 @@ data("mys_panel")
 panel_data <- mys_panel[!is.na(mys_panel$y) & mys_panel$year >= 2024, ]
 W_sub <- mys_proxmat[-c(21, 25), -c(21, 25)]
 
-# Fit Spatio-Temporal model with bootstrap MSE
+# Fit Spatio-Temporal model with the analytical MSE
 fit_stfh <- eblup_stfh(
   formula = y ~ x1 + x2 + x3,
   data = panel_data,
@@ -133,8 +133,6 @@ fit_stfh <- eblup_stfh(
   W = W_sub,
   model = "ST",
   compute_mse = TRUE,
-  B = 25,
-  seed = 42,
   print_result = FALSE
 )
 
@@ -146,6 +144,11 @@ The estimated variance and correlation components include:
 - `rho1`: Spatial autocorrelation ($\rho_1$).
 - `sigma22`: Temporal random effect variance ($\sigma_{u2}^2$).
 - `rho2`: Temporal AR(1) autoregression coefficient ($\rho_2$).
+
+The analytical MSE is $g_1 + g_2 + 2 g_3 - g_4$ (Prasad-Rao type, with the exact derivative of the
+EBLUP in $g_3$ and the curvature term $g_4$ for the nonlinear $\rho_1$, $\rho_2$); the components are
+returned as `fit_stfh$g1`, ..., `fit_stfh$g4`. A parametric bootstrap MSE is available with
+`mse_type = "bootstrap"` (and `B`, `seed`).
 
 ---
 

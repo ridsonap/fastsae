@@ -22,18 +22,18 @@ editor_options:
 
 <!-- badges: end -->
 
-**fastsae** provides a high-performance, unified framework for Small Area Estimation (SAE) in R. It combines ultra-fast compiled **C++** (`RcppArmadillo` + OpenMP) for frequentist EBLUP models with **INLA** (Integrated Nested Laplace Approximations) for fast Bayesian hierarchical models—achieving **50× to 6,400× speedups** over classical packages (`sae`, `emdi`) and **>230× speedups** over MCMC (`tipsae`), with near-zero memory footprint and exact numerical equivalence.
+**fastsae** provides a high-performance, unified framework for Small Area Estimation (SAE) in R. It combines compiled **C++** (`RcppArmadillo`, OpenMP, sparse Cholesky factorisations for the spatial models) for frequentist EBLUP models with **INLA** (Integrated Nested Laplace Approximations) for Bayesian hierarchical models. It is orders of magnitude faster than classical packages (`sae`, `emdi`) and MCMC (`tipsae`) at realistic numbers of domains (see the benchmarks below), and reproduces the `sae` estimates where both use the same method.
 
 ---
 
 ### Highlights
 
 - ⚡ **Blazing Fast**: Optimized C++ Fisher-scoring and deterministic INLA Laplace approximations turn minutes of runtime into milliseconds.
-- 🎯 **Exact Concordance**: Frequentist estimates match `sae` to machine tolerance; Bayesian posteriors match Stan HMC ($r = 0.989$).
+- 🎯 **Validated Against Reference Packages**: REML estimates and analytical MSEs agree with `sae` for interior estimates; deliberate, documented differences where `sae` is not valid (e.g. $\hat\rho$ on the boundary, ML information for ML). Bayesian posteriors agree closely with Stan HMC ($r = 0.989$).
 - 🔀 **Unified Interface**: Common S3 workflow (`summary`, `coef`, `fitted`, `residuals`, `autoplot`, `compare_sae`) for both paradigms.
 - 🧵 **Multi-Threaded Bootstrap**: OpenMP-accelerated parametric and non-parametric bootstrap MSE.
 - 🗺️ **Comprehensive Spatial & Temporal**: SAR, Besag ICAR, BYM2, Spatial Lag, AR(1), and RW(1/2).
-- 💾 **Ultra-Low Memory**: Avoids large dense matrix allocations, scaling effortlessly to $n > 10,000$ domains.
+- 💾 **Low Memory**: Structured and sparse linear algebra instead of dense $D \times D$ inverses (spatial FH with a few thousand domains runs in seconds).
 
 ---
 
@@ -45,8 +45,8 @@ editor_options:
 |:---|:---|:---|:---|
 | `eblup_fh()` | Area-level | Standard Fay-Herriot with IID domain effects | Analytical (Prasad-Rao) |
 | `eblup_sfh()` | Area-level | Spatial SAR(1) autoregressive effects | Analytical, Bootstrap |
-| `eblup_stfh()` | Area-level | Spatio-temporal SAR(1) + AR(1) dynamics | Bootstrap |
-| `eblup_bhf()` | Unit-level | Battese-Harter-Fuller nested error regression | Analytical, Bootstrap |
+| `eblup_stfh()` | Area-level | Spatio-temporal SAR(1) + AR(1) dynamics | Analytical, Bootstrap |
+| `eblup_bhf()` | Unit-level | Battese-Harter-Fuller nested error regression | Bootstrap |
 
 #### Bayesian Hierarchical Models (INLA)
 
@@ -59,21 +59,26 @@ editor_options:
 
 ### Performance at a Glance
 
-#### 1. Frequentist Fay-Herriot Benchmark ($n = 1,000$ areas, 5 covariates)
+<!-- BENCH-README:START -->
+#### 1. Frequentist EBLUP with analytical MSE
 
-| Task | `fastsae` | `sae` (Molina & Marhuenda) | `emdi` |
+| Model ($n = 1,000$ domains, 5 covariates) | `fastsae` | `sae` | `emdi` |
 |:---|:--:|:--:|:--:|
-| **Standard Fay-Herriot** | $\color{#2ea44f}{\mathbf{0.0015\text{ s}}}$ | 0.291 s (~190x slower) | 9.64 s (~6,400x slower) |
-| **Spatial Fay-Herriot** | $\color{#2ea44f}{\mathbf{0.165\text{ s}}}$ | 12.60 s (~76x slower) | 8.69 s (~53x slower) |
-| **Peak RAM Usage** | $\color{#2ea44f}{\mathbf{< 10\text{ MB}}}$ | ~400 MB | ~800 MB |
+| **Fay-Herriot** | **0.00119 s** (0.503 MB) | 1.50 s (72.0 MB; 1,263x slower) | 51.0 s (3.69 GB; 42,874x slower) |
+| **Spatial Fay-Herriot** | **1.00 s** (0.203 MB) | 67.2 s (1.88 GB; 67x slower) | 51.1 s (3.68 GB; 51x slower) |
+| **Spatio-Temporal FH ($T = 5$)** | **75.3 s** (3.29 MB) | 1790 s (31.7 GB; 24x slower) | \- |
 
-#### 2. Bayesian Beta SAE Benchmark ($n = 1,000$ areas, compared against Stan MCMC)
+#### 2. Bayesian Beta models: INLA vs Stan MCMC (largest $n$ benchmarked)
 
-| Model Specification | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan HMC) | Speedup & Efficiency |
-|:---|:--:|:--:|:--:|
-| **Standard Beta** | $\color{#2ea44f}{\mathbf{1.64\text{ s (134 MB)}}}$ | 187.16 s (18.3 GB) | $\color{#2ea44f}{\mathbf{\sim 114\times\text{ faster, } >135\times\text{ less RAM}}}$ |
-| **Spatial Beta (Besag ICAR)** | $\color{#2ea44f}{\mathbf{1.73\text{ s (161 MB)}}}$ | 412.39 s (22.9 GB) | $\color{#2ea44f}{\mathbf{\sim 238\times\text{ faster, } >140\times\text{ less RAM}}}$ |
-| **Concordance vs MCMC** | $\color{#2ea44f}{\mathbf{r = 0.9893}}$ | Baseline | $\color{#2ea44f}{\mathbf{\text{MAE} = 0.003\text{ (Exact match)}}}$ |
+| Model | $n$ | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) | Speedup |
+|:---|:--:|:--:|:--:|:--:|
+| **Beta** | 1,000 | **1.64 s** (134 MB) | 187 s (17.9 GB) | 114x |
+| **Spatial Beta (Besag ICAR)** | 1,000 | **1.73 s** (161 MB) | 404 s (22.5 GB) | 234x |
+| **Spatio-Temporal Beta (Besag + RW1, $T = 5$)** | 50 | **1.67 s** (109 MB) | 908 s (4.77 GB) | 545x |
+
+Times are medians of `bench::mark()`; memory is the total memory allocated by R during one call (`bench::mark()$mem_alloc`), not the peak resident memory. The `fastsae` rows were re-measured on 2026-10-13 (fastsae 1.0.0, `benchmarks/bench_frequentist_fastsae.R`); the `sae`/`emdi` rows come from an earlier run of the same design (simulated data, 5 covariates) on different random draws. See the [benchmark article](https://ridsonap.github.io/fastsae/articles/benchmarks.html) for all sizes.
+
+<!-- BENCH-README:END -->
 
 ---
 
