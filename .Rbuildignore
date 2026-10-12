@@ -34,3 +34,4 @@
 
 ^calc_cov\.R$
 ^cov_res\.rds$
+^playground$
