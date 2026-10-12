@@ -148,3 +148,37 @@ test_that("print.fastsae_weights formats sparsity percentage cleanly", {
   expect_message(print(W), "Sparsity: .*\\% zeros")
 })
 
+
+test_that("block-wise distances (several row blocks) match a dense computation", {
+  set.seed(4)
+  n <- 1100 # > 2^20 / n rows per block, so the distances are processed in 2 blocks
+  co <- cbind(x = runif(n) * 1e3, y = runif(n) * 1e3)
+  expect_gt(length(fastsae:::.row_blocks(n)), 1)
+  Dm <- unname(as.matrix(dist(co)))
+  diag(Dm) <- Inf
+  strip <- function(w) { w <- unclass(w); attributes(w) <- attributes(w)[c("dim")]; w }
+
+  # knn, row-standardised
+  w <- suppressMessages(create_weights(co, method = "knn", k = 3, style = "W"))
+  ref <- t(apply(Dm, 1, function(d) replace(numeric(n), order(d)[1:3], 1 / 3)))
+  expect_equal(strip(w), ref)
+
+  # distance with automatic threshold, binary
+  w <- suppressMessages(create_weights(co, method = "distance", style = "B"))
+  dmax <- max(apply(Dm, 1, min)) * 1.001
+  expect_equal(attr(w, "d_max"), dmax)
+  expect_equal(strip(w), (Dm <= dmax) * 1)
+
+  # inverse distance, globally standardised
+  w <- suppressMessages(create_weights(co, method = "idw", style = "C"))
+  R <- 1 / Dm
+  expect_equal(strip(w), n / sum(R) * R, tolerance = 1e-12)
+})
+
+test_that("coordinate columns are matched case-insensitively (e.g. X/Y from sf::st_coordinates)", {
+  set.seed(5)
+  co <- cbind(id = 1:30, X = runif(30), Y = runif(30))
+  w_upper <- create_weights(co, method = "knn", k = 2)
+  w_lower <- create_weights(cbind(x = co[, "X"], y = co[, "Y"]), method = "knn", k = 2)
+  expect_equal(unclass(w_upper)[, ], unclass(w_lower)[, ])
+})

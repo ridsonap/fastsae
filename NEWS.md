@@ -109,6 +109,19 @@
   differences below 2e-10). Analytical: $D = 400$ 2.2 s -> 0.10 s, $D = 1600$ 80 s -> 2.5 s,
   $D = 2500$ about 6 s; bootstrap ($D = 400$, $B = 20$): 16 s -> 1.3 s. `RcppEigen` is added to
   `LinkingTo`.
+* `create_weights()`: distances for `knn`, `distance` and `idw` are computed in blocks of rows (at most
+  about 1M distances at a time) instead of a full $D \times D$ distance matrix, and the weight matrix is
+  filled once from the neighbour pairs (no intermediate 0/1 matrix and no normalisation copies; `idw`
+  styles are applied per block). The result is the same matrix as before (identical, or within 1e-16
+  for `idw`). Peak memory at $D = 10000$: queen 2.3 GB -> 0.8 GB, knn 3.1 GB -> 0.8 GB, distance
+  3.8 GB -> 0.8 GB, i.e. essentially the returned matrix itself (764 MB).
+
+### Bug fixes
+* `create_weights()` with a coordinate matrix whose columns are named `X`/`Y` (e.g. from
+  `sf::st_coordinates()`) failed with "undefined columns selected"; coordinate column names are now
+  matched case-insensitively.
+
+### Major New Features & Enhancements
 * **Two-Fold Subarea EBLUP (`eblup_twofold`)**:
   * Implements nested two-fold sub-area level models (Torabi & Rao, 2014) with area effects $v_i$ and sub-area effects $u_{ij}$.
   * Ultra-fast Fisher-scoring algorithms in C++ for REML and ML estimation.

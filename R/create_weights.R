@@ -106,7 +106,10 @@ create_weights <- function(
 
   n <- 0
   adj_list <- NULL
-  dist_mat <- NULL
+  # Points used for distances: an sfc of centroids/points or an n x 2 coordinate
+  # matrix. Distances are computed in row blocks (.dist_rows), never as a full
+  # n x n matrix, unless the method needs all of them (idw).
+  dist_src <- NULL
 
   # 2. Extract spatial adjacency or coordinates based on data type
   if (inherits(data, "sf")) {
@@ -141,17 +144,13 @@ create_weights <- function(
           adj_list <- lapply(seq_len(n), function(i) setdiff(rel_mat[[i]], i))
         }
       }
-
-      # Centroids and distance matrix are evaluated lazily only if island fallback is needed
-      dist_mat <- NULL
+      # Centroids are evaluated lazily, only if the island fallback is needed
 
     } else {
       # Distance-based methods (knn, distance, idw) for sf
       suppressWarnings({
-        centr <- if (is_polygon) sf::st_centroid(sf::st_geometry(data)) else sf::st_geometry(data)
+        dist_src <- if (is_polygon) sf::st_centroid(sf::st_geometry(data)) else sf::st_geometry(data)
       })
-      dist_mat <- as.matrix(sf::st_distance(centr, centr))
-      storage.mode(dist_mat) <- "double"
     }
 
   } else if (inherits(data, "listw")) {
@@ -159,6 +158,7 @@ create_weights <- function(
       W_mat <- spdep::listw2mat(data)
       n <- nrow(W_mat)
       adj_list <- lapply(seq_len(n), function(i) which(W_mat[i, ] > 0))
+      rm(W_mat)
     } else {
       cli::cli_abort("Package {.pkg spdep} is required to process {.cls listw} objects.")
     }
@@ -174,7 +174,8 @@ create_weights <- function(
     # Matrix / data.frame of coordinates
     df_coords <- as.data.frame(data)
     # Check for known coordinate column names
-    coord_cols <- intersect(tolower(names(df_coords)), c("x", "y", "lon", "lat", "longitude", "latitude"))
+    # (matched case-insensitively, e.g. "X"/"Y" from sf::st_coordinates())
+    coord_cols <- names(df_coords)[tolower(names(df_coords)) %in% c("x", "y", "lon", "lat", "longitude", "latitude")]
     if (length(coord_cols) >= 2) {
       coords_mat <- as.matrix(df_coords[, coord_cols[1:2]])
     } else if (ncol(df_coords) >= 2) {
@@ -188,9 +189,8 @@ create_weights <- function(
       cli::cli_alert_warning("Contiguity methods (Queen/Rook) require polygon geometry. Automatically falling back to k-NN (k = {k}).")
       method <- "knn"
     }
-
-    dist_mat <- as.matrix(stats::dist(coords_mat))
-    storage.mode(dist_mat) <- "double"
+    storage.mode(coords_mat) <- "double"
+    dist_src <- coords_mat
 
   } else {
     cli::cli_abort("Unsupported input type for {.arg data}. Expected an {.cls sf} object, coordinate matrix, or {.cls nb}/{.cls listw} object.")
@@ -206,38 +206,78 @@ create_weights <- function(
   }
 
   # 3. Handle Distance-Based Methods
+  # (distances are computed per block of rows; plain loops so that the
+  # sub-assignments below modify the objects in place)
+  W_out <- NULL
+  blocks <- .row_blocks(n)
   if (method == "knn") {
     k_eff <- min(max(1L, as.integer(k)), n - 1L)
     adj_list <- vector("list", n)
-    for (i in seq_len(n)) {
-      dists_i <- dist_mat[i, ]
-      dists_i[i] <- Inf
-      nn_idx <- order(dists_i)[seq_len(k_eff)]
-      adj_list[[i]] <- nn_idx
+    for (rows in blocks) {
+      d <- .dist_rows(dist_src, rows)
+      d[cbind(seq_along(rows), rows)] <- Inf
+      for (j in seq_along(rows)) adj_list[[rows[j]]] <- order(d[j, ])[seq_len(k_eff)]
     }
 
   } else if (method == "distance") {
+    d_all <- if (length(blocks) == 1L) .dist_rows(dist_src, blocks[[1]]) else NULL
+    if (!is.null(d_all)) diag(d_all) <- Inf
     if (is.null(d_max)) {
       # Compute minimum distance ensuring every node has at least 1 neighbor
-      dist_temp <- dist_mat
-      diag(dist_temp) <- Inf
-      min_dists <- apply(dist_temp, 1, min)
+      min_dists <- numeric(n)
+      for (rows in blocks) {
+        d <- d_all
+        if (is.null(d)) {
+          d <- .dist_rows(dist_src, rows)
+          d[cbind(seq_along(rows), rows)] <- Inf
+        }
+        min_dists[rows] <- apply(d, 1, min)
+      }
       d_max <- max(min_dists) * 1.001
       cli::cli_alert_info("Distance threshold {.code d_max} set automatically to {.val {round(d_max, 2)}} to guarantee connectivity.")
     }
     adj_list <- vector("list", n)
-    for (i in seq_len(n)) {
-      dists_i <- dist_mat[i, ]
-      dists_i[i] <- Inf
-      adj_list[[i]] <- which(dists_i <= d_max)
+    for (rows in blocks) {
+      d <- d_all
+      if (is.null(d)) {
+        d <- .dist_rows(dist_src, rows)
+        d[cbind(seq_along(rows), rows)] <- Inf
+      }
+      for (j in seq_along(rows)) adj_list[[rows[j]]] <- which(d[j, ] <= d_max)
     }
+    rm(d_all)
 
   } else if (method == "idw") {
-    # Inverse distance matrix (vectorized)
-    W_raw <- matrix(0, nrow = n, ncol = n)
-    pos_dist <- is.finite(dist_mat) & (dist_mat > 0)
-    W_raw[pos_dist] <- 1 / (dist_mat[pos_dist]^alpha)
-    diag(W_raw) <- 0
+    # Inverse distance weights written block by block into the result, with
+    # the row-wise styles applied per block (no n x n temporaries)
+    W_out <- matrix(0, nrow = n, ncol = n)
+    total_w <- 0
+    for (rows in blocks) {
+      d <- .dist_rows(dist_src, rows)
+      pos <- is.finite(d) & (d > 0)
+      d[pos] <- 1 / (d[pos]^alpha)
+      d[!pos] <- 0
+      if (style == "W") {
+        # Row-standardized (row sums equal 1)
+        rs <- rowSums(d)
+        d <- d / ifelse(rs > 0, rs, 1)
+      } else if (style == "B") {
+        # Binary adjacency (0/1)
+        d[d > 0] <- 1
+      } else if (style == "U") {
+        # Equal weight 1 / n
+        d <- d / n
+      } else if (style == "C") {
+        total_w <- total_w + sum(d)
+      }
+      W_out[rows, ] <- d
+    }
+    rm(d, pos)
+    if (style == "C" && total_w > 0) {
+      # Globally standardized
+      for (rows in blocks) W_out[rows, ] <- (n / total_w) * W_out[rows, ]
+    }
+    if (style == "minmax") W_out <- .minmax_scale(W_out)
   }
 
   # 4. Handle Isolated Islands (Zero Neighbors) if Contiguity / Distance
@@ -252,15 +292,25 @@ create_weights <- function(
     if (n_islands > 0) {
       if (isTRUE(island_fallback)) {
         k_conn <- min(k_fallback, n - 1L)
-        if (is.null(dist_mat) && inherits(data, "sf")) {
+        isl_src <- dist_src
+        if (is.null(isl_src) && inherits(data, "sf")) {
           cli::cli_alert_info(
             "{n_islands} island/isolated domain(s) detected with zero neighbors ({paste(dom_names[island_idx], collapse = ', ')}). Automatically connecting to nearest neighbor(s) via centroid distance."
           )
           suppressWarnings({
-            centr <- sf::st_centroid(sf::st_geometry(data))
+            isl_src <- sf::st_centroid(sf::st_geometry(data))
           })
-          dist_islands <- as.matrix(sf::st_distance(centr[island_idx], centr))
-          storage.mode(dist_islands) <- "double"
+        } else if (!is.null(isl_src)) {
+          cli::cli_alert_info(
+            "{n_islands} island/isolated domain(s) detected with zero neighbors ({paste(dom_names[island_idx], collapse = ', ')}). Automatically connecting to nearest neighbor(s) via distance matrix."
+          )
+        } else {
+          cli::cli_alert_warning(
+            "{n_islands} domain(s) have zero neighbors in the spatial graph ({paste(dom_names[island_idx], collapse = ', ')}). Island fallback could not connect them because {.arg data} has no coordinate/geometric spatial information."
+          )
+        }
+        if (!is.null(isl_src)) {
+          dist_islands <- .dist_rows(isl_src, island_idx)
           for (k_i in seq_along(island_idx)) {
             idx <- island_idx[k_i]
             dists_i <- dist_islands[k_i, ]
@@ -271,23 +321,6 @@ create_weights <- function(
               adj_list[[k_neighbor]] <- sort(unique(c(adj_list[[k_neighbor]], idx)))
             }
           }
-        } else if (!is.null(dist_mat)) {
-          cli::cli_alert_info(
-            "{n_islands} island/isolated domain(s) detected with zero neighbors ({paste(dom_names[island_idx], collapse = ', ')}). Automatically connecting to nearest neighbor(s) via distance matrix."
-          )
-          for (idx in island_idx) {
-            dists_i <- dist_mat[idx, ]
-            dists_i[idx] <- Inf
-            nearest_k <- order(dists_i)[seq_len(k_conn)]
-            adj_list[[idx]] <- nearest_k
-            for (k_neighbor in nearest_k) {
-              adj_list[[k_neighbor]] <- sort(unique(c(adj_list[[k_neighbor]], idx)))
-            }
-          }
-        } else {
-          cli::cli_alert_warning(
-            "{n_islands} domain(s) have zero neighbors in the spatial graph ({paste(dom_names[island_idx], collapse = ', ')}). Island fallback could not connect them because {.arg data} has no coordinate/geometric spatial information."
-          )
         }
       } else {
         cli::cli_alert_warning(
@@ -296,53 +329,26 @@ create_weights <- function(
       }
     }
 
-    # Build raw weight matrix from adjacency list (vectorized)
-    W_raw <- matrix(0, nrow = n, ncol = n)
+    # 5a. Weight matrix filled once from the neighbour pairs (no intermediate
+    # dense 0/1 matrix): duplicated pairs and self-pairs are dropped
     lens <- lengths(adj_list)
-    if (any(lens > 0)) {
-      rows <- rep.int(seq_len(n), lens)
-      cols <- unlist(adj_list, use.names = FALSE)
-      W_raw[cbind(rows, cols)] <- 1
-    }
-    diag(W_raw) <- 0
-  }
+    rows <- rep.int(seq_len(n), lens)
+    cols <- as.integer(unlist(adj_list, use.names = FALSE))
+    keep <- rows != cols & !duplicated(rows + (cols - 1) * as.double(n))
+    rows <- rows[keep]
+    cols <- cols[keep]
+    deg <- tabulate(rows, nbins = n)
+    vals <- switch(style,
+      "W" = 1 / deg[rows],
+      "B" = rep(1, length(rows)),
+      "C" = rep(if (length(rows) > 0) n / length(rows) else 0, length(rows)),
+      "U" = rep(1 / n, length(rows)),
+      "minmax" = rep(1, length(rows))
+    )
+    W_out <- matrix(0, nrow = n, ncol = n)
+    if (length(rows) > 0) W_out[cbind(rows, cols)] <- vals
+    if (style == "minmax") W_out <- .minmax_scale(W_out)
 
-  # Ensure zero on diagonal
-  diag(W_raw) <- 0
-
-  # 5. Apply Normalization Style
-  W_out <- matrix(0, nrow = n, ncol = n)
-
-  if (style == "W") {
-    # Row-standardized (row sums equal 1)
-    rs <- rowSums(W_raw)
-    scale_factor <- ifelse(rs > 0, rs, 1)
-    W_out <- W_raw / scale_factor
-
-  } else if (style == "B") {
-    # Binary adjacency (0/1)
-    W_out <- (W_raw > 0) * 1
-
-  } else if (style == "C") {
-    # Globally standardized
-    total_w <- sum(W_raw)
-    if (total_w > 0) {
-      W_out <- (n / total_w) * W_raw
-    }
-
-  } else if (style == "U") {
-    # Equal weight 1 / n
-    W_out <- W_raw / n
-
-  } else if (style == "minmax") {
-    # Normalized by maximum eigenvalue
-    ev <- eigen(W_raw, only.values = TRUE)$values
-    max_ev <- max(abs(Re(ev)))
-    if (max_ev > 0) {
-      W_out <- W_raw / max_ev
-    } else {
-      W_out <- W_raw
-    }
   }
 
   # Attach domain names
@@ -363,6 +369,36 @@ create_weights <- function(
   class(W_out) <- c("fastsae_weights", "matrix")
   return(W_out)
 }
+
+# Rows per block so that a block of distances has at most ~1M entries (8 MB)
+#' @noRd
+.row_block_size <- function(n, max_cells = 2^20) max(1L, as.integer(floor(max_cells / max(n, 1))))
+
+#' @noRd
+.row_blocks <- function(n) {
+  bs <- .row_block_size(n)
+  lapply(seq(1L, n, by = bs), function(st) st:min(n, st + bs - 1L))
+}
+
+# Distances from the points `idx` to all points of `src` (an sfc, or an n x 2
+# coordinate matrix with Euclidean distances, computed exactly as stats::dist)
+#' @noRd
+.dist_rows <- function(src, idx) {
+  if (inherits(src, "sfc")) {
+    d <- sf::st_distance(src[idx], src)
+    return(matrix(as.numeric(d), nrow = length(idx)))
+  }
+  sqrt(outer(src[idx, 1], src[, 1], "-")^2 + outer(src[idx, 2], src[, 2], "-")^2)
+}
+
+# Normalise by the largest absolute eigenvalue (style = "minmax")
+#' @noRd
+.minmax_scale <- function(W) {
+  ev <- eigen(W, only.values = TRUE)$values
+  max_ev <- max(abs(Re(ev)))
+  if (max_ev > 0) W / max_ev else W
+}
+
 
 #' @export
 print.fastsae_weights <- function(x, ...) {
