@@ -53,6 +53,7 @@ Suggests:
     spdep,
     spam,
     sf,
+    sn,
     tipsae,
     rstantools,
     writexl,

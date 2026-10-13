@@ -3,6 +3,7 @@ library(fastsae)
 
 test_that("hb_area self-benchmarking works for Gaussian Fay-Herriot with default direct target", {
   skip_if_not_installed("INLA")
+  skip_if_not_installed("sn")
 
   data("mys", package = "fastsae")
 
@@ -40,6 +41,7 @@ test_that("hb_area self-benchmarking works for Gaussian Fay-Herriot with default
 
 test_that("hb_area self-benchmarking works with external fixed target", {
   skip_if_not_installed("INLA")
+  skip_if_not_installed("sn")
 
   data("mys", package = "fastsae")
 
@@ -67,6 +69,7 @@ test_that("hb_area self-benchmarking works with external fixed target", {
 
 test_that("hb_area self-benchmarking works with groups (e.g. provinces)", {
   skip_if_not_installed("INLA")
+  skip_if_not_installed("sn")
 
   data("mys", package = "fastsae")
   mys$prov <- rep(c("Region_A", "Region_B", "Region_C"), length.out = nrow(mys))
@@ -93,6 +96,7 @@ test_that("hb_area self-benchmarking works with groups (e.g. provinces)", {
 
 test_that("hb_area self-benchmarking works with spatial BYM2 model", {
   skip_if_not_installed("INLA")
+  skip_if_not_installed("sn")
 
   data("mys", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
@@ -361,6 +365,7 @@ test_that("Log-FH self-benchmarking holds exactly on the original scale", {
 
 test_that("hb_area posterior self-benchmarking is exact for every family", {
   skip_if_not_installed("INLA")
+  skip_if_not_installed("sn")
   data(sim_area, package = "fastsae")
   set.seed(1)
   n <- 30
@@ -385,4 +390,20 @@ test_that("hb_area posterior self-benchmarking is exact for every family", {
     expect_lt(max(abs(fit$benchmark_summary$discrepancy)), 1e-8)
     expect_true(all(fit$df_hb$ci_lower <= fit$df_hb$hb & fit$df_hb$hb <= fit$df_hb$ci_upper))
   }
+})
+
+test_that("hb_area falls back to WFQ benchmarking when 'sn' is not installed", {
+  skip_if_not_installed("INLA")
+  set.seed(2)
+  n <- 20
+  d <- data.frame(area = seq_len(n), x1 = rnorm(n), w = runif(n, 1, 5), vardir = runif(n, 0.05, 0.2))
+  d$y <- 1 + d$x1 + rnorm(n, sd = 0.3) + rnorm(n, sd = sqrt(d$vardir))
+  testthat::local_mocked_bindings(.has_sn = function() FALSE)
+  expect_warning(
+    fit <- hb_area(y ~ x1, data = d, domain = "area", vardir = "vardir", family = "gaussian",
+                   self_benchmark = TRUE, benchmark_weight = "w", print_result = FALSE),
+    "sn"
+  )
+  expect_equal(fit$benchmark_method, "wfq")
+  expect_true(fit$self_benchmark)
 })

@@ -101,7 +101,8 @@
 #'   models it holds only approximately (non-flat prior on the coefficients, integration over
 #'   the hyperparameters) and not at all for non-Gaussian likelihoods. With
 #'   \code{method = "laplace"} (no posterior draws) the same adjustment is applied to the point
-#'   estimates.
+#'   estimates. Posterior draws need the package \pkg{sn} (used by
+#'   \code{INLA::inla.posterior.sample()}); without it \code{"wfq"} is used with a warning.
 #' @param benchmark_draws Number of posterior draws for \code{benchmark_method = "posterior"}.
 #' @param benchmark_seed Seed for \code{INLA::inla.posterior.sample()} (\code{0} = random).
 #' @param benchmark_weight Optional vector, column name, or one-sided formula referencing the domain
@@ -165,7 +166,7 @@
 #'     family = "gaussian"
 #'   )
 #'
-#'   # 2. Self-benchmarking Fay-Herriot with INLA (Wang, Fuller, and Qu, 2008)
+#'   # 2. Self-benchmarking Fay-Herriot with INLA (benchmarked posterior draws)
 #'   m_bench <- hb_area(
 #'     y ~ x1 + x2 + x3,
 #'     data = mys,
@@ -306,6 +307,17 @@ hb_area <- function(
 
   # 4. Self-benchmarking setup (Wang, Fuller, and Qu, 2008)
   sb_info <- NULL
+  # Posterior benchmarking draws with INLA::inla.posterior.sample(), which needs
+  # the package 'sn'; without it fall back to WFQ (the Laplace route has no draws)
+  uses_laplace <- method == "laplace" && spatial == "none" && temporal == "none" &&
+    family %in% c("binomial", "poisson")
+  if (isTRUE(self_benchmark) && benchmark_method == "posterior" && !uses_laplace && !.has_sn()) {
+    cli::cli_warn(c(
+      "Package {.pkg sn} (needed by {.fn INLA::inla.posterior.sample}) is not installed; using {.code benchmark_method = \"wfq\"} instead.",
+      "i" = "Install it with {.code install.packages(\"sn\")} for posterior benchmarking."
+    ))
+    benchmark_method <- "wfq"
+  }
   if (isTRUE(self_benchmark)) {
     # Direct estimates on the scale of the area parameter (the scale of `hb`):
     # proportions for binomial, rates per unit exposure for counts. The

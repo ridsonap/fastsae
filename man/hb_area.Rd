@@ -165,7 +165,8 @@ Wang, Fuller and Qu (2008), which is exact only for the linear Gaussian EBLUP; f
 models it holds only approximately (non-flat prior on the coefficients, integration over
 the hyperparameters) and not at all for non-Gaussian likelihoods. With
 \code{method = "laplace"} (no posterior draws) the same adjustment is applied to the point
-estimates.}
+estimates. Posterior draws need the package \pkg{sn} (used by
+\code{INLA::inla.posterior.sample()}); without it \code{"wfq"} is used with a warning.}
 
 \item{benchmark_draws}{Number of posterior draws for \code{benchmark_method = "posterior"}.}
 
@@ -218,7 +219,7 @@ if (requireNamespace("INLA", quietly = TRUE)) {
     family = "gaussian"
   )
 
-  # 2. Self-benchmarking Fay-Herriot with INLA (Wang, Fuller, and Qu, 2008)
+  # 2. Self-benchmarking Fay-Herriot with INLA (benchmarked posterior draws)
   m_bench <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,

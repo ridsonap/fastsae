@@ -2,6 +2,9 @@
 # Utility functions for INLA integration in fastsae
 # ============================================================================
 
+# Is the package 'sn' (needed by INLA::inla.posterior.sample) available?
+.has_sn <- function() requireNamespace("sn", quietly = TRUE)
+
 #' Check if INLA package is available
 #'
 #' @noRd
