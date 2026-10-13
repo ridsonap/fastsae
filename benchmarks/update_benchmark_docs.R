@@ -4,7 +4,9 @@
 # Write the benchmark numbers of inst/extdata/*_benchmark.rds into
 #   - vignettes/benchmarks.Rmd: the RAW_DATA / BETA_DATA arrays of the
 #     interactive charts and the summary between <!-- BENCH-SUMMARY:START/END -->
-#   - README.Rmd: the tables between <!-- BENCH-README:START/END -->
+#   - vignettes/hb-area-inla.Rmd: the BETA_DATA array of its scalability chart
+#   - README.Rmd and pkgdown/index.md (the site home page): the tables between
+#     <!-- BENCH-README:START/END -->
 # (inst/extdata is excluded from the package build, so the vignette cannot read
 # the files itself.) Run from the package root after updating the .rds files:
 #   Rscript benchmarks/update_benchmark_docs.R
@@ -72,10 +74,14 @@ mem_note <- paste(
   "Times are medians of `bench::mark()`; memory is the total memory allocated by R during one call",
   "(`bench::mark()$mem_alloc`), not the peak resident memory."
 )
+# Dates of the last fastsae re-measurement (update when re-running the generators)
+date_freq <- "2026-10-13"   # benchmarks/bench_frequentist_fastsae.R
+date_bayes <- "2026-10-14"  # benchmarks/bench_bayes_fastsae.R
 freq_note <- paste0(
-  "The `fastsae` rows were re-measured on ", format(Sys.Date(), "%Y-%m-%d"), " (fastsae ",
-  as.character(utils::packageVersion("fastsae")), ", `benchmarks/bench_frequentist_fastsae.R`); the `sae`/`emdi` rows ",
-  "come from an earlier run of the same design (simulated data, 5 covariates) on different random draws."
+  "The `fastsae` rows were re-measured with fastsae ", as.character(utils::packageVersion("fastsae")),
+  " (frequentist on ", date_freq, ", `benchmarks/bench_frequentist_fastsae.R`; Bayesian on ", date_bayes,
+  ", `benchmarks/bench_bayes_fastsae.R`); the `sae`/`emdi` rows come from an earlier run of the same design ",
+  "(simulated data, 5 covariates) on different random draws, the `tipsae` rows from an earlier run on the same data."
 )
 
 # ---- vignette ------------------------------------------------------------------
@@ -114,6 +120,9 @@ summary_block <- c(
 )
 vig <- replace_block(vig, "<!-- BENCH-SUMMARY:START -->", "<!-- BENCH-SUMMARY:END -->", summary_block)
 writeLines(vig, "vignettes/benchmarks.Rmd")
+hb_vig <- readLines("vignettes/hb-area-inla.Rmd")
+hb_vig <- replace_block(hb_vig, "const BETA_DATA = \\{", "^  \\};", bd)
+writeLines(hb_vig, "vignettes/hb-area-inla.Rmd")
 
 # ---- README --------------------------------------------------------------------
 rme <- readLines("README.Rmd")
@@ -131,4 +140,8 @@ readme_block <- c(
 )
 rme <- replace_block(rme, "<!-- BENCH-README:START -->", "<!-- BENCH-README:END -->", readme_block)
 writeLines(rme, "README.Rmd")
-cat("Updated vignettes/benchmarks.Rmd and README.Rmd\n")
+home <- readLines("pkgdown/index.md")
+home <- replace_block(home, "<!-- BENCH-README:START -->", "<!-- BENCH-README:END -->", readme_block)
+writeLines(home, "pkgdown/index.md")
+cat("Updated vignettes/benchmarks.Rmd, vignettes/hb-area-inla.Rmd, README.Rmd and pkgdown/index.md",
+    "(run devtools::build_readme() next)\n")

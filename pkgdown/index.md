@@ -6,7 +6,7 @@
 [![License: GPL-3](https://img.shields.io/badge/License-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 <!-- badges: end -->
 
-**fastsae** implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled **C++** (`RcppArmadillo`) with **OpenMP** multi-threading, and Bayesian estimation uses **INLA** (Integrated Nested Laplace Approximations). It provides massive speedups (up to **6,400x faster**) while maintaining **exact numerical equivalence** with gold-standard implementations.
+**fastsae** implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled **C++** (`RcppArmadillo`) with **OpenMP** multi-threading, and Bayesian estimation uses **INLA** (Integrated Nested Laplace Approximations). It is orders of magnitude faster than existing R implementations (see [Performance at a Glance](#performance-at-a-glance)) while agreeing numerically with reference packages such as `sae`.
 
 ---
 
@@ -67,7 +67,6 @@ where:
 | **Numerical Consistency** | **Reference baseline** | Baseline | Approximations |
 | **Unsampled Area Support** | **Automatic (Spatial Kriging)** | Manual subsetting required | Limited |
 | **Bootstrap Speed** | **Parallel C++ (Ultra-Fast)** | Slow (Interpreted R loops) | Moderate |
-| **RAM Consumption** | **Minimal (< 25 MB)** | Moderate (~100 MB) | High (~800+ MB to 4 GB) |
 | **S3 Methods Support** | `print`, `summary`, `coef`, `fitted`, `residuals`, `autoplot` | Custom lists | Standard S3 |
 
 ---
@@ -80,7 +79,7 @@ where:
 |:---|:---|:---|:---|
 | **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects | Analytical (Prasad-Rao) |
 | **Spatial Fay-Herriot** | `eblup_sfh()` | SAR(1) spatial autocorrelation | Analytical, Bootstrap |
-| **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | SAR(1) + Temporal AR(1) | Bootstrap |
+| **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | SAR(1) + Temporal AR(1) | Analytical, Bootstrap |
 | **Battese-Harter-Fuller** (Unit-level) | `eblup_bhf()` | Random intercept nested in domains | Bootstrap |
 | **Two-Fold Subarea** | `eblup_twofold()` | Area + Subarea nested effects | Analytical, Bootstrap |
 
@@ -92,17 +91,32 @@ where:
 | **Unit-level HB** | `hb_unit()` | Gaussian | ✓ Via nested error |
 | **Two-Fold HB** | `hb_twofold()` | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
 
+The Bayesian models are fitted with `engine = inla_engine()` (default). `hb_area()` can also be fitted by MCMC in Python (JAX/NumPyro) with `engine = jax_engine()`.
+
 ---
 
 ## Performance at a Glance
 
-Benchmark across $n = 1,000$ areas (5 covariates):
+<!-- BENCH-README:START -->
+#### 1. Frequentist EBLUP with analytical MSE
 
-| Task | `fastsae` | `sae` | `emdi` |
+| Model ($n = 1,000$ domains, 5 covariates) | `fastsae` | `sae` | `emdi` |
 |:---|:--:|:--:|:--:|
-| **Standard Fay-Herriot** | **0.0015 s** | 0.291 s (~190x slower) | 9.64 s (~6,400x slower) |
-| **Spatial Fay-Herriot** | **0.165 s** | 12.60 s (~76x slower) | 8.69 s (~53x slower) |
-| **Peak RAM usage** | **< 10 MB** | ~400 MB | ~800 MB |
+| **Fay-Herriot** | **0.00119 s** (0.503 MB) | 1.50 s (72.0 MB; 1,263x slower) | 51.0 s (3.69 GB; 42,874x slower) |
+| **Spatial Fay-Herriot** | **1.00 s** (0.203 MB) | 67.2 s (1.88 GB; 67x slower) | 51.1 s (3.68 GB; 51x slower) |
+| **Spatio-Temporal FH ($T = 5$)** | **75.3 s** (3.29 MB) | 1790 s (31.7 GB; 24x slower) | \- |
+
+#### 2. Bayesian Beta models: INLA vs Stan MCMC (largest $n$ benchmarked)
+
+| Model | $n$ | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) | Speedup |
+|:---|:--:|:--:|:--:|:--:|
+| **Beta** | 1,000 | **1.61 s** (25.9 MB) | 187 s (17.9 GB) | 117x |
+| **Spatial Beta (Besag ICAR)** | 1,000 | **1.87 s** (161 MB) | 404 s (22.5 GB) | 217x |
+| **Spatio-Temporal Beta (Besag + RW1, $T = 5$)** | 50 | **1.71 s** (17.1 MB) | 908 s (4.77 GB) | 530x |
+
+Times are medians of `bench::mark()`; memory is the total memory allocated by R during one call (`bench::mark()$mem_alloc`), not the peak resident memory. The `fastsae` rows were re-measured with fastsae 1.0.0 (frequentist on 2026-10-13, `benchmarks/bench_frequentist_fastsae.R`; Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the `sae`/`emdi` rows come from an earlier run of the same design (simulated data, 5 covariates) on different random draws, the `tipsae` rows from an earlier run on the same data. See the [benchmark article](https://ridsonap.github.io/fastsae/articles/benchmarks.html) for all sizes.
+
+<!-- BENCH-README:END -->
 
 ---
 

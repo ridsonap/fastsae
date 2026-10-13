@@ -249,40 +249,38 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 (function() {
   const BETA_DATA = {
     STD: [
-      { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
-      { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
-      { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
-      { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
-      { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
-      { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
-      { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
-      { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
-      { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
-      { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
-      { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
-      { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
+    { Method: "fastsae", Median: 1.204, Mem: 2.080, IPS: 0.8278, n: 30 },
+    { Method: "tipsae", Median: 2.349, Mem: 500.0, IPS: 0.4156, n: 30 },
+    { Method: "fastsae", Median: 1.227, Mem: 2.619, IPS: 0.8150, n: 50 },
+    { Method: "tipsae", Median: 3.775, Mem: 861.4, IPS: 0.2615, n: 50 },
+    { Method: "fastsae", Median: 1.261, Mem: 3.844, IPS: 0.7904, n: 100 },
+    { Method: "tipsae", Median: 8.236, Mem: 1781, IPS: 0.1209, n: 100 },
+    { Method: "fastsae", Median: 1.319, Mem: 7.518, IPS: 0.7598, n: 250 },
+    { Method: "tipsae", Median: 26.28, Mem: 4545, IPS: 0.03800, n: 250 },
+    { Method: "fastsae", Median: 1.400, Mem: 13.66, IPS: 0.7055, n: 500 },
+    { Method: "tipsae", Median: 64.21, Mem: 9142, IPS: 0.01557, n: 500 },
+    { Method: "fastsae", Median: 1.606, Mem: 25.92, IPS: 0.6213, n: 1000 },
+    { Method: "tipsae", Median: 187.2, Mem: 18340, IPS: 0.005329, n: 1000 }
     ],
     SPATIAL: [
-      { Method: "fastsae", Median: 0.613834, Mem: 94.46, IPS: 1.6302, n: 30 },
-      { Method: "tipsae",  Median: 25.723298, Mem: 642.84, IPS: 0.0389, n: 30 },
-      { Method: "fastsae", Median: 0.620765, Mem: 3.36,   IPS: 1.6119, n: 50 },
-      { Method: "tipsae",  Median: 65.723465, Mem: 1096.35, IPS: 0.0154, n: 50 },
-      { Method: "fastsae", Median: 1.373156, Mem: 5.97,   IPS: 0.7385, n: 100 },
-      { Method: "tipsae",  Median: 100.019847, Mem: 2245.87, IPS: 0.00997, n: 100 },
-      { Method: "fastsae", Median: 1.315476, Mem: 109.56, IPS: 0.7505, n: 250 },
-      { Method: "tipsae",  Median: 155.898179, Mem: 5706.48, IPS: 0.00641, n: 250 },
-      { Method: "fastsae", Median: 1.434125, Mem: 49.65,  IPS: 0.6879, n: 500 },
-      { Method: "tipsae",  Median: 248.821402, Mem: 11466.90, IPS: 0.00401, n: 500 },
-      { Method: "fastsae", Median: 1.728121, Mem: 161.03, IPS: 0.4367, n: 1000 },
-      { Method: "tipsae",  Median: 404.341829, Mem: 23038.65, IPS: 0.00247, n: 1000 }
+    { Method: "fastsae", Median: 1.223, Mem: 2.408, IPS: 0.8056, n: 30 },
+    { Method: "tipsae", Median: 25.72, Mem: 642.8, IPS: 0.03885, n: 30 },
+    { Method: "fastsae", Median: 1.231, Mem: 3.349, IPS: 0.8021, n: 50 },
+    { Method: "tipsae", Median: 65.72, Mem: 1096, IPS: 0.01538, n: 50 },
+    { Method: "fastsae", Median: 1.245, Mem: 5.953, IPS: 0.8017, n: 100 },
+    { Method: "tipsae", Median: 100.0, Mem: 2246, IPS: 0.009969, n: 100 },
+    { Method: "fastsae", Median: 1.332, Mem: 17.50, IPS: 0.7361, n: 250 },
+    { Method: "tipsae", Median: 155.9, Mem: 5706, IPS: 0.006411, n: 250 },
+    { Method: "fastsae", Median: 1.460, Mem: 49.64, IPS: 0.6796, n: 500 },
+    { Method: "tipsae", Median: 248.8, Mem: 11470, IPS: 0.004011, n: 500 },
+    { Method: "fastsae", Median: 1.866, Mem: 161.1, IPS: 0.5463, n: 1000 },
+    { Method: "tipsae", Median: 404.3, Mem: 23040, IPS: 0.002471, n: 1000 }
     ],
     ST: [
-      { Method: "fastsae", Median: 1.442055, Mem: 102.73, IPS: 0.6877, n: 30 },
-      { Method: "tipsae",  Median: 540.573372, Mem: 2947.08, IPS: 0.00185, n: 30 },
-      { Method: "fastsae", Median: 1.667670, Mem: 109.01, IPS: 0.5885, n: 50 },
-      { Method: "tipsae",  Median: 908.173062, Mem: 4880.13, IPS: 0.00108, n: 50 },
-      { Method: "fastsae", Median: 2.626624, Mem: 125.42, IPS: 0.3494, n: 100 },
-      { Method: "tipsae",  Median: 1840.630400, Mem: 9712.29, IPS: 0.000533, n: 100 }
+    { Method: "fastsae", Median: 1.476, Mem: 10.85, IPS: 0.6763, n: 30 },
+    { Method: "tipsae", Median: 540.6, Mem: 2947, IPS: 0.001849, n: 30 },
+    { Method: "fastsae", Median: 1.714, Mem: 17.13, IPS: 0.5860, n: 50 },
+    { Method: "tipsae", Median: 908.2, Mem: 4880, IPS: 0.001079, n: 50 }
     ]
   };
 
@@ -349,7 +347,7 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
                       curBetaAlgo === "SPATIAL" ? "Spatial Beta (ICAR)" :
                       "Spatio-Temporal Beta (Besag + RW1)";
 
-    const activeNList = curBetaAlgo === "ST" ? [30, 50, 100] : BETA_N_LIST;
+    const activeNList = curBetaAlgo === "ST" ? [...new Set(rawData.map(x => x.n))].sort((a, b) => a - b) : BETA_N_LIST;
 
     const fastsaeData = activeNList.map(n => {
       const r = rawData.find(x => x.n === n && x.Method === "fastsae");
