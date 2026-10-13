@@ -173,11 +173,13 @@ domains, 5 covariates)</th>
 <p>Times are medians of <code>bench::mark()</code>; memory is the total
 memory allocated by R during one call
 (<code>bench::mark()$mem_alloc</code>), not the peak resident memory.
-The <code>fastsae</code> rows were re-measured on 2026-10-13 (fastsae
-1.0.0, <code>benchmarks/bench_frequentist_fastsae.R</code>); the
+The <code>fastsae</code> rows were re-measured with fastsae 1.0.0
+(frequentist on 2026-10-13,
+<code>benchmarks/bench_frequentist_fastsae.R</code>; Bayesian on
+2026-10-14, <code>benchmarks/bench_bayes_fastsae.R</code>); the
 <code>sae</code>/<code>emdi</code> rows come from an earlier run of the
-same design (simulated data, 5 covariates) on different random
-draws.</p>
+same design (simulated data, 5 covariates) on different random draws,
+the <code>tipsae</code> rows from an earlier run on the same data.</p>
 <!-- BENCH-SUMMARY:END -->
 <hr>
 </div>
@@ -615,37 +617,37 @@ Beta (Besag + RW1)</strong> models:</p>
 (function() {
   const BETA_DATA = {
     STD: [
-    { Method: "fastsae", Median: 1.245, Mem: 109.7, IPS: 0.8063, n: 30 },
+    { Method: "fastsae", Median: 1.204, Mem: 2.080, IPS: 0.8278, n: 30 },
     { Method: "tipsae", Median: 2.349, Mem: 500.0, IPS: 0.4156, n: 30 },
-    { Method: "fastsae", Median: 1.332, Mem: 2.595, IPS: 0.7466, n: 50 },
+    { Method: "fastsae", Median: 1.227, Mem: 2.619, IPS: 0.8150, n: 50 },
     { Method: "tipsae", Median: 3.775, Mem: 861.4, IPS: 0.2615, n: 50 },
-    { Method: "fastsae", Median: 1.272, Mem: 3.821, IPS: 0.7851, n: 100 },
+    { Method: "fastsae", Median: 1.261, Mem: 3.844, IPS: 0.7904, n: 100 },
     { Method: "tipsae", Median: 8.236, Mem: 1781, IPS: 0.1209, n: 100 },
-    { Method: "fastsae", Median: 1.315, Mem: 115.2, IPS: 0.7606, n: 250 },
+    { Method: "fastsae", Median: 1.319, Mem: 7.518, IPS: 0.7598, n: 250 },
     { Method: "tipsae", Median: 26.28, Mem: 4545, IPS: 0.03800, n: 250 },
-    { Method: "fastsae", Median: 1.412, Mem: 121.3, IPS: 0.7008, n: 500 },
+    { Method: "fastsae", Median: 1.400, Mem: 13.66, IPS: 0.7055, n: 500 },
     { Method: "tipsae", Median: 64.21, Mem: 9142, IPS: 0.01557, n: 500 },
-    { Method: "fastsae", Median: 1.640, Mem: 133.6, IPS: 0.5965, n: 1000 },
+    { Method: "fastsae", Median: 1.606, Mem: 25.92, IPS: 0.6213, n: 1000 },
     { Method: "tipsae", Median: 187.2, Mem: 18340, IPS: 0.005329, n: 1000 }
     ],
     SPATIAL: [
-    { Method: "fastsae", Median: 0.6138, Mem: 94.46, IPS: 1.630, n: 30 },
+    { Method: "fastsae", Median: 1.223, Mem: 2.408, IPS: 0.8056, n: 30 },
     { Method: "tipsae", Median: 25.72, Mem: 642.8, IPS: 0.03885, n: 30 },
-    { Method: "fastsae", Median: 0.6208, Mem: 3.361, IPS: 1.612, n: 50 },
+    { Method: "fastsae", Median: 1.231, Mem: 3.349, IPS: 0.8021, n: 50 },
     { Method: "tipsae", Median: 65.72, Mem: 1096, IPS: 0.01538, n: 50 },
-    { Method: "fastsae", Median: 1.373, Mem: 5.965, IPS: 0.7385, n: 100 },
+    { Method: "fastsae", Median: 1.245, Mem: 5.953, IPS: 0.8017, n: 100 },
     { Method: "tipsae", Median: 100.0, Mem: 2246, IPS: 0.009969, n: 100 },
-    { Method: "fastsae", Median: 1.315, Mem: 109.6, IPS: 0.7505, n: 250 },
+    { Method: "fastsae", Median: 1.332, Mem: 17.50, IPS: 0.7361, n: 250 },
     { Method: "tipsae", Median: 155.9, Mem: 5706, IPS: 0.006411, n: 250 },
-    { Method: "fastsae", Median: 1.434, Mem: 49.65, IPS: 0.6879, n: 500 },
+    { Method: "fastsae", Median: 1.460, Mem: 49.64, IPS: 0.6796, n: 500 },
     { Method: "tipsae", Median: 248.8, Mem: 11470, IPS: 0.004011, n: 500 },
-    { Method: "fastsae", Median: 1.728, Mem: 161.0, IPS: 0.4367, n: 1000 },
+    { Method: "fastsae", Median: 1.866, Mem: 161.1, IPS: 0.5463, n: 1000 },
     { Method: "tipsae", Median: 404.3, Mem: 23040, IPS: 0.002471, n: 1000 }
     ],
     ST: [
-    { Method: "fastsae", Median: 1.442, Mem: 102.7, IPS: 0.6877, n: 30 },
+    { Method: "fastsae", Median: 1.476, Mem: 10.85, IPS: 0.6763, n: 30 },
     { Method: "tipsae", Median: 540.6, Mem: 2947, IPS: 0.001849, n: 30 },
-    { Method: "fastsae", Median: 1.668, Mem: 109.0, IPS: 0.5885, n: 50 },
+    { Method: "fastsae", Median: 1.714, Mem: 17.13, IPS: 0.5860, n: 50 },
     { Method: "tipsae", Median: 908.2, Mem: 4880, IPS: 0.001079, n: 50 }
     ]
   };
@@ -713,7 +715,7 @@ Beta (Besag + RW1)</strong> models:</p>
                       curBetaAlgo === "SPATIAL" ? "Spatial Beta (ICAR)" :
                       "Spatio-Temporal Beta (Besag + RW1)";
 
-    const activeNList = curBetaAlgo === "ST" ? [30, 50, 100] : BETA_N_LIST;
+    const activeNList = curBetaAlgo === "ST" ? [...new Set(rawData.map(x => x.n))].sort((a, b) => a - b) : BETA_N_LIST;
 
     const fastsaeData = activeNList.map(n => {
       const r = rawData.find(x => x.n === n && x.Method === "fastsae");

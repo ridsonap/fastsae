@@ -472,19 +472,19 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  18.22112  6.624169   8.631219  17.10211   34.33819</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   172.32093 78.428606  72.079575 155.47960  372.98157</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  18.22104  6.624007   8.631314  17.10207   34.33767</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   172.32075 78.428953  72.079173 155.47929  372.98241</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.06661</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   127.14730</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.06664</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   127.14683</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -976.34110 </span></span>
+<span><span class="co">#&gt;                                            -976.34108 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              56.00809 </span></span>
+<span><span class="co">#&gt;                                              56.00815 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -984.77956 </span></span>
+<span><span class="co">#&gt;                                            -984.77960 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              38.70463 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
@@ -514,19 +514,19 @@ standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                domain time      y         hb          sd       rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05555051 0.006126922 11.029460 0.04409216</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08226031 0.006130867  7.453007 0.07068557</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09342929 0.010212717 10.930959 0.07511435</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509960 0.006293808  9.667967 0.05342321</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112772 0.007869518 11.063926 0.05671575</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608208 0.012914000 13.440592 0.07314277</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05555049 0.006126912 11.029447 0.04409217</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08226030 0.006130869  7.453010 0.07068556</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09342930 0.010212724 10.930965 0.07511434</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06509959 0.006293810  9.667971 0.05342321</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.07112772 0.007869522 11.063932 0.05671574</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09608211 0.012914008 13.440596 0.07314275</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06810806</span></span>
+<span><span class="co">#&gt; 1 0.06810804</span></span>
 <span><span class="co">#&gt; 2 0.09473220</span></span>
-<span><span class="co">#&gt; 3 0.11516668</span></span>
-<span><span class="co">#&gt; 4 0.07814002</span></span>
-<span><span class="co">#&gt; 5 0.08759796</span></span>
-<span><span class="co">#&gt; 6 0.12375132</span></span></code></pre></div>
+<span><span class="co">#&gt; 3 0.11516670</span></span>
+<span><span class="co">#&gt; 4 0.07814003</span></span>
+<span><span class="co">#&gt; 5 0.08759797</span></span>
+<span><span class="co">#&gt; 6 0.12375133</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -641,40 +641,38 @@ and <strong>Spatial Beta (Besag ICAR)</strong> models:</p>
 (function() {
   const BETA_DATA = {
     STD: [
-      { Method: "fastsae", Median: 1.244891, Mem: 109.73, IPS: 0.806, n: 30 },
-      { Method: "tipsae",  Median: 2.348666, Mem: 499.97, IPS: 0.416, n: 30 },
-      { Method: "fastsae", Median: 1.331524, Mem: 2.60,   IPS: 0.747, n: 50 },
-      { Method: "tipsae",  Median: 3.774511, Mem: 861.39, IPS: 0.262, n: 50 },
-      { Method: "fastsae", Median: 1.272315, Mem: 3.82,   IPS: 0.785, n: 100 },
-      { Method: "tipsae",  Median: 8.235872, Mem: 1780.80, IPS: 0.121, n: 100 },
-      { Method: "fastsae", Median: 1.314536, Mem: 115.17, IPS: 0.761, n: 250 },
-      { Method: "tipsae",  Median: 26.276195, Mem: 4545.40, IPS: 0.038, n: 250 },
-      { Method: "fastsae", Median: 1.412389, Mem: 121.31, IPS: 0.701, n: 500 },
-      { Method: "tipsae",  Median: 64.214141, Mem: 9142.47, IPS: 0.016, n: 500 },
-      { Method: "fastsae", Median: 1.639669, Mem: 133.59, IPS: 0.597, n: 1000 },
-      { Method: "tipsae",  Median: 187.161586, Mem: 18335.20, IPS: 0.005, n: 1000 }
+    { Method: "fastsae", Median: 1.204, Mem: 2.080, IPS: 0.8278, n: 30 },
+    { Method: "tipsae", Median: 2.349, Mem: 500.0, IPS: 0.4156, n: 30 },
+    { Method: "fastsae", Median: 1.227, Mem: 2.619, IPS: 0.8150, n: 50 },
+    { Method: "tipsae", Median: 3.775, Mem: 861.4, IPS: 0.2615, n: 50 },
+    { Method: "fastsae", Median: 1.261, Mem: 3.844, IPS: 0.7904, n: 100 },
+    { Method: "tipsae", Median: 8.236, Mem: 1781, IPS: 0.1209, n: 100 },
+    { Method: "fastsae", Median: 1.319, Mem: 7.518, IPS: 0.7598, n: 250 },
+    { Method: "tipsae", Median: 26.28, Mem: 4545, IPS: 0.03800, n: 250 },
+    { Method: "fastsae", Median: 1.400, Mem: 13.66, IPS: 0.7055, n: 500 },
+    { Method: "tipsae", Median: 64.21, Mem: 9142, IPS: 0.01557, n: 500 },
+    { Method: "fastsae", Median: 1.606, Mem: 25.92, IPS: 0.6213, n: 1000 },
+    { Method: "tipsae", Median: 187.2, Mem: 18340, IPS: 0.005329, n: 1000 }
     ],
     SPATIAL: [
-      { Method: "fastsae", Median: 0.613834, Mem: 94.46, IPS: 1.6302, n: 30 },
-      { Method: "tipsae",  Median: 25.723298, Mem: 642.84, IPS: 0.0389, n: 30 },
-      { Method: "fastsae", Median: 0.620765, Mem: 3.36,   IPS: 1.6119, n: 50 },
-      { Method: "tipsae",  Median: 65.723465, Mem: 1096.35, IPS: 0.0154, n: 50 },
-      { Method: "fastsae", Median: 1.373156, Mem: 5.97,   IPS: 0.7385, n: 100 },
-      { Method: "tipsae",  Median: 100.019847, Mem: 2245.87, IPS: 0.00997, n: 100 },
-      { Method: "fastsae", Median: 1.315476, Mem: 109.56, IPS: 0.7505, n: 250 },
-      { Method: "tipsae",  Median: 155.898179, Mem: 5706.48, IPS: 0.00641, n: 250 },
-      { Method: "fastsae", Median: 1.434125, Mem: 49.65,  IPS: 0.6879, n: 500 },
-      { Method: "tipsae",  Median: 248.821402, Mem: 11466.90, IPS: 0.00401, n: 500 },
-      { Method: "fastsae", Median: 1.728121, Mem: 161.03, IPS: 0.4367, n: 1000 },
-      { Method: "tipsae",  Median: 404.341829, Mem: 23038.65, IPS: 0.00247, n: 1000 }
+    { Method: "fastsae", Median: 1.223, Mem: 2.408, IPS: 0.8056, n: 30 },
+    { Method: "tipsae", Median: 25.72, Mem: 642.8, IPS: 0.03885, n: 30 },
+    { Method: "fastsae", Median: 1.231, Mem: 3.349, IPS: 0.8021, n: 50 },
+    { Method: "tipsae", Median: 65.72, Mem: 1096, IPS: 0.01538, n: 50 },
+    { Method: "fastsae", Median: 1.245, Mem: 5.953, IPS: 0.8017, n: 100 },
+    { Method: "tipsae", Median: 100.0, Mem: 2246, IPS: 0.009969, n: 100 },
+    { Method: "fastsae", Median: 1.332, Mem: 17.50, IPS: 0.7361, n: 250 },
+    { Method: "tipsae", Median: 155.9, Mem: 5706, IPS: 0.006411, n: 250 },
+    { Method: "fastsae", Median: 1.460, Mem: 49.64, IPS: 0.6796, n: 500 },
+    { Method: "tipsae", Median: 248.8, Mem: 11470, IPS: 0.004011, n: 500 },
+    { Method: "fastsae", Median: 1.866, Mem: 161.1, IPS: 0.5463, n: 1000 },
+    { Method: "tipsae", Median: 404.3, Mem: 23040, IPS: 0.002471, n: 1000 }
     ],
     ST: [
-      { Method: "fastsae", Median: 1.442055, Mem: 102.73, IPS: 0.6877, n: 30 },
-      { Method: "tipsae",  Median: 540.573372, Mem: 2947.08, IPS: 0.00185, n: 30 },
-      { Method: "fastsae", Median: 1.667670, Mem: 109.01, IPS: 0.5885, n: 50 },
-      { Method: "tipsae",  Median: 908.173062, Mem: 4880.13, IPS: 0.00108, n: 50 },
-      { Method: "fastsae", Median: 2.626624, Mem: 125.42, IPS: 0.3494, n: 100 },
-      { Method: "tipsae",  Median: 1840.630400, Mem: 9712.29, IPS: 0.000533, n: 100 }
+    { Method: "fastsae", Median: 1.476, Mem: 10.85, IPS: 0.6763, n: 30 },
+    { Method: "tipsae", Median: 540.6, Mem: 2947, IPS: 0.001849, n: 30 },
+    { Method: "fastsae", Median: 1.714, Mem: 17.13, IPS: 0.5860, n: 50 },
+    { Method: "tipsae", Median: 908.2, Mem: 4880, IPS: 0.001079, n: 50 }
     ]
   };
 
@@ -741,7 +739,7 @@ and <strong>Spatial Beta (Besag ICAR)</strong> models:</p>
                       curBetaAlgo === "SPATIAL" ? "Spatial Beta (ICAR)" :
                       "Spatio-Temporal Beta (Besag + RW1)";
 
-    const activeNList = curBetaAlgo === "ST" ? [30, 50, 100] : BETA_N_LIST;
+    const activeNList = curBetaAlgo === "ST" ? [...new Set(rawData.map(x => x.n))].sort((a, b) => a - b) : BETA_N_LIST;
 
     const fastsaeData = activeNList.map(n => {
       const r = rawData.find(x => x.n === n && x.Method === "fastsae");
@@ -1010,41 +1008,41 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01</span></span>
-<span><span class="co">#&gt; x1           3.8369e-01  4.9803e-02  7.7041e+00  1.3179e-14  2.8564e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9735e-01  3.3472e-02 -8.8835e+00  6.4807e-19 -3.6363e-01</span></span>
+<span><span class="co">#&gt; x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3182e-14  2.8563e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9735e-01  3.3472e-02 -8.8834e+00  6.4826e-19 -3.6363e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4120</span></span>
 <span><span class="co">#&gt; x1            0.4820</span></span>
 <span><span class="co">#&gt; x2           -0.2317</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                   mean        sd 0.025quant  0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 17.0200903 4.6703625  9.5073859 16.461660</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.4756057 0.2611389  0.0537646  0.464572</span></span>
+<span><span class="co">#&gt;                                  mean        sd 0.025quant   0.5quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 17.020089 4.6703888 9.50745182 16.4616205</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.475596 0.2611254 0.05378257  0.4645539</span></span>
 <span><span class="co">#&gt;                             0.975quant       mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 27.7451790 15.4393792</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.9367088  0.2293781</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 27.7453490 15.4392397</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.9367004  0.2294498</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
 <span><span class="co">#&gt;                                             317.61486 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              31.75461 </span></span>
+<span><span class="co">#&gt;                                              31.75462 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.63799 </span></span>
+<span><span class="co">#&gt;                                             309.63796 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              17.13691 </span></span>
+<span><span class="co">#&gt;                                              17.13690 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                            -169.74604 </span></span>
+<span><span class="co">#&gt;                                            -169.74606 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; HB Summary Statistics:</span></span>
 <span><span class="co">#&gt;        hb          linear_pred            sd               mse           </span></span>
 <span><span class="co">#&gt;  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  </span></span>
 <span><span class="co">#&gt;  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665229  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665233  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  </span></span>
-<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75385   Max.   :0.5682954  </span></span>
+<span><span class="co">#&gt;  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5682996  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.790  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.156  </span></span>

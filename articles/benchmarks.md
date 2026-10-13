@@ -30,10 +30,12 @@ the Bayesian models with INLA. At $`n = 1,000`$ domains:
 
 Times are medians of `bench::mark()`; memory is the total memory
 allocated by R during one call (`bench::mark()$mem_alloc`), not the peak
-resident memory. The `fastsae` rows were re-measured on 2026-10-13
-(fastsae 1.0.0, `benchmarks/bench_frequentist_fastsae.R`); the
+resident memory. The `fastsae` rows were re-measured with fastsae 1.0.0
+(frequentist on 2026-10-13, `benchmarks/bench_frequentist_fastsae.R`;
+Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the
 `sae`/`emdi` rows come from an earlier run of the same design (simulated
-data, 5 covariates) on different random draws.
+data, 5 covariates) on different random draws, the `tipsae` rows from an
+earlier run on the same data.
 
 ------------------------------------------------------------------------
 
