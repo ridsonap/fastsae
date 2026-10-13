@@ -41,16 +41,26 @@ jobs:
         run: |
           Rscript -e 'install.packages(c("rstantools", "spam"), repos = "https://cloud.r-project.org")'
 
-      # The articles fit INLA models, so INLA comes from its own repository
+      # INLA (articles) comes from the extra repository set in setup-r
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::pkgdown, local::.
-          extra-repositories: 'https://inla.r-inla-download.org/R/stable'
           needs: website
           cache-version: 3
 
+      # rmarkdown builds the article format in this process but renders it in a
+      # subprocess; both must use the pandoc from setup-pandoc (>= 3.8 accepts
+      # --syntax-highlighting), not an older one installed as a system dependency
+      - name: Pin pandoc for rmarkdown
+        run: |
+          which -a pandoc | while read -r p; do echo "$p: $("$p" --version | head -1)"; done
+          echo "RSTUDIO_PANDOC=$(dirname "$(which pandoc)")" >> "$GITHUB_ENV"
+
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        run: |
+          str(rmarkdown::find_pandoc())
+          str(callr::r(function() rmarkdown::find_pandoc()))
+          pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
       - name: Deploy to GitHub pages
