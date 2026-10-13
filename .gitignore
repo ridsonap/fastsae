@@ -37,3 +37,7 @@ cov_res.rds
 tests/testthat/_problems/
 tests/testthat/testthat-problems.rds
 htmltools/
+
+# Python bytecode
+__pycache__/
+*.pyc

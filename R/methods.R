@@ -5,6 +5,22 @@
 # Helper operator for default value
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+#' Label of the self-benchmarking method used
+#' @noRd
+.bench_label <- function(method) {
+  if (identical(method, "posterior")) "benchmarked posterior draws" else "Wang-Fuller-Qu augmented model"
+}
+
+#' Convergence detail: MCMC R-hat or the number of iterations
+#' @noRd
+.convergence_detail <- function(x) {
+  if (!is.null(x$rhat_max)) {
+    sprintf("max R-hat = %.3f", x$rhat_max)
+  } else {
+    paste("in", x$n_iter %||% "-", "iterations")
+  }
+}
+
 #' Print a fastsae object
 #'
 #' @param x An object of class \code{fastsae}.
@@ -23,11 +39,15 @@ print.fastsae <- function(x, ...) {
   }
 
   if (!is.null(x$convergence)) {
+    conv_detail <- .convergence_detail(x)
     if (isTRUE(x$convergence)) {
-      n_it <- x$n_iter %||% "-"
-      cli::cli_alert_success("Convergence: Yes (in {n_it} iterations)")
+      cli::cli_alert_success("Convergence: Yes ({conv_detail})")
     } else {
-      cli::cli_alert_danger("Convergence: No")
+      if (is.null(x$rhat_max)) {
+        cli::cli_alert_danger("Convergence: No")
+      } else {
+        cli::cli_alert_danger("Convergence: No ({conv_detail})")
+      }
     }
   }
 
@@ -51,12 +71,16 @@ print.fastsae <- function(x, ...) {
     }
   }
 
+  if (!is.null(x$engine)) {
+    cli::cli_text("{.strong Engine}: {x$engine}")
+  }
   if (!is.null(x$method)) {
     cli::cli_text("{.strong Method}: {x$method}")
   }
 
   if (isTRUE(x$self_benchmark)) {
-    cli::cli_text("{.strong Self-Benchmarking}: Active (Wang-Fuller-Qu augmented model)")
+    bm_label <- .bench_label(x$benchmark_method)
+    cli::cli_text("{.strong Self-Benchmarking}: Active ({bm_label})")
   }
 
   if (!is.null(x$random_effect_var)) {
@@ -124,6 +148,8 @@ summary.fastsae <- function(object, ...) {
     call = object$call,
     model = object$model,
     method = object$method,
+    engine = object$engine,
+    rhat_max = object$rhat_max,
     family = object$family,
     spatial = object$spatial,
     temporal = object$temporal,
@@ -144,6 +170,7 @@ summary.fastsae <- function(object, ...) {
     df_area = object$df_area,
     df_ebp = object$df_ebp,
     self_benchmark = object$self_benchmark,
+    benchmark_method = object$benchmark_method,
     benchmark_summary = object$benchmark_summary,
     level = object$level
   )
@@ -180,11 +207,15 @@ print.summary.fastsae <- function(x, ...) {
   )
 
   if (!is.null(x$convergence)) {
+    conv_detail <- .convergence_detail(x)
     if (isTRUE(x$convergence)) {
-      n_it <- x$n_iter %||% "-"
-      cli::cli_alert_success("Convergence: Yes (in {n_it} iterations)")
+      cli::cli_alert_success("Convergence: Yes ({conv_detail})")
     } else {
-      cli::cli_alert_danger("Convergence: No")
+      if (is.null(x$rhat_max)) {
+        cli::cli_alert_danger("Convergence: No")
+      } else {
+        cli::cli_alert_danger("Convergence: No ({conv_detail})")
+      }
     }
   }
 
@@ -197,12 +228,16 @@ print.summary.fastsae <- function(x, ...) {
     }
   }
 
+  if (!is.null(x$engine)) {
+    cli::cli_text("{.strong Engine}: {x$engine}")
+  }
   if (!is.null(x$method)) {
     cli::cli_text("{.strong Method}: {x$method}")
   }
 
   if (isTRUE(x$self_benchmark)) {
-    cli::cli_text("{.strong Self-Benchmarking}: Active (Wang-Fuller-Qu augmented model)")
+    bm_label <- .bench_label(x$benchmark_method)
+    cli::cli_text("{.strong Self-Benchmarking}: Active ({bm_label})")
     if (!is.null(x$benchmark_summary)) {
       cat("\nSelf-Benchmarking Calibration Summary:\n")
       print(x$benchmark_summary, row.names = FALSE)

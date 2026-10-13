@@ -1,5 +1,42 @@
 # fastsae 1.0.0
 
+### Estimation engines for `hb_area()`, `hb_unit()` and `hb_twofold()`
+* New argument `engine`, taking an engine object from the new constructors `inla_engine()` and
+  `jax_engine()` (or the strings `"inla"`, the default, and `"jax"` for their default settings).
+  Each constructor holds all settings of its engine, so `hb_area()` itself only describes the
+  model:
+  * `inla_engine(strategy, link, scale_model, prior_prec, prior_phi, prior_rho, prior_prec_time,
+    prior_rho_time, prior_prec_subarea, draws, seed, ...)`, where `...` goes to `INLA::inla()`.
+    `control.*` lists given there are merged with the package defaults (before, they clashed with
+    them in `hb_area()` and replaced them in `hb_unit()`/`hb_twofold()`). Priors and `draws` left at `NULL`
+    take the default of the model function, so the defaults of each function are unchanged;
+    settings a function does not use are ignored with a warning.
+  * `jax_engine(warmup, samples, chains, device, seed, prior_beta, robust, keep_draws, progress)`
+    fits the same area-level models by full MCMC (NumPyro NUTS on JAX, CPU or NVIDIA GPU) through
+    'reticulate' (Suggests); the engine formerly shipped in the separate 'fastsaegpu' package now
+    lives in fastsae. It supports all six families, `bym2`/`bym`/`besag`/`generic1` (alias
+    `"leroux"`), `rw1`/`ar1`/`iid` and every `st_interaction`, plus `prior_beta = "horseshoe"` and
+    `robust = TRUE` (Student-t area effects). Results have the same structure as the INLA engine,
+    with the posterior draws in `draws`, the largest split R-hat in `rhat_max` (`convergence` is
+    `rhat_max < 1.05`), and DIC/WAIC in `goodness`. Posterior self-benchmarking (also by
+    `benchmark_group`) adjusts the MCMC draws exactly as for INLA, and `benchmark_sae()` uses the
+    draws for the MSE matrix.
+  * The engine settings are returned in `engine_spec`; `engine` holds the engine name.
+* `hb_unit()` and `hb_twofold()` take the same `engine = inla_engine(...)` (INLA only). In
+  `hb_twofold()`, `prior_prec_area` is now `inla_engine(prior_prec = )`, `n_samples` is
+  `inla_engine(draws = )`, and the posterior draws for the area aggregates honour `seed`. Their
+  results carry `engine` and `engine_spec` too.
+* New `setup_numpyro_env()` and `check_numpyro_available()` to install and check the Python side.
+  Nothing is installed or downloaded unless `setup_numpyro_env()` is called.
+* The frequentist lme4 GLMM route (`method = "laplace"` for non-spatial binomial and Poisson
+  models) has been removed; such models are now fitted by INLA. 'lme4' moved to Suggests.
+* Deprecated: `method` (`method = "laplace"` becomes `engine = inla_engine(strategy = "laplace")`),
+  and passing `strategy`, `link`, `scale_model`, `prior_*`, `benchmark_draws`, `benchmark_seed`,
+  `n_samples` or `INLA::inla()` arguments directly to `hb_area()`, `hb_unit()` or `hb_twofold()`.
+  They still work, with a warning, and are forwarded to `inla_engine()`.
+* `print()`/`summary()` show the engine, and the self-benchmarking line now names the method used
+  (posterior draws or Wang-Fuller-Qu) instead of always reporting Wang-Fuller-Qu.
+
 ### Statistical corrections (mathematical audit)
 * `eblup_stfh()`: the analytical $g_3$ was computed with the wrong matrix orientation
   ($(K_a \Psi V \Psi K_b)_{ii}$ instead of $\psi_i^2 (K_a V K_b)_{ii}$), which is wrong whenever

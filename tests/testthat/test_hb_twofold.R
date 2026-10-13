@@ -296,7 +296,7 @@ test_that("hb_twofold supports binomial, poisson, and fallback aggregation", {
     family = "binomial",
     data = dat_bin,
     compute_area = TRUE,
-    n_samples = 50,
+    engine = inla_engine(draws = 50),
     print_result = FALSE
   )
   expect_s3_class(fit_bin, "fastsae_hb_twofold")
@@ -316,7 +316,7 @@ test_that("hb_twofold supports binomial, poisson, and fallback aggregation", {
     family = "poisson",
     data = dat_pois,
     compute_area = TRUE,
-    n_samples = 50,
+    engine = inla_engine(draws = 50),
     print_result = FALSE
   )
   expect_s3_class(fit_pois, "fastsae_hb_twofold")
@@ -337,7 +337,7 @@ test_that("hb_twofold supports binomial, poisson, and fallback aggregation", {
       subarea = "subarea",
       data = dat_gauss,
       compute_area = TRUE,
-      n_samples = 0,
+      engine = inla_engine(draws = 0),
       print_result = TRUE
     ),
     "Area-Level Aggregates"
@@ -383,7 +383,7 @@ test_that("hb_twofold handles INLA failure and fallback aggregation", {
     domain = "area",
     subarea = "subarea",
     data = dat,
-    n_samples = 0L,
+    engine = inla_engine(draws = 0),
     print_result = FALSE
   )
   expect_s3_class(fit_fb, "fastsae")

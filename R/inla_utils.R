@@ -338,35 +338,7 @@
     )
   }
 
-  # If vardir provided (Gaussian FH, Beta, or Gamma)
-  if (!is.null(vardir)) {
-    df_hb$vardir <- vardir
-    if (family == "beta") {
-      phi_dir <- (y * (1 - y) / vardir) - 1
-      df_hb$precision <- pmax(phi_dir, 1, na.rm = TRUE)
-    } else if (family == "gamma") {
-      s_dir <- (y^2) / vardir
-      df_hb$precision <- s_dir
-      df_hb$cv_dir <- sqrt(vardir) / y
-    }
-  }
-
-  # If trials provided (Binomial or Beta)
-  if (!is.null(trials)) {
-    df_hb$trials <- trials
-    if (family == "binomial") {
-      df_hb$estimated_total <- hb_est * trials
-    } else if (family == "beta" && is.null(vardir)) {
-      df_hb$precision <- pmax(trials - 1, 1, na.rm = TRUE)
-    }
-  }
-
-  # If exposure provided (Poisson / NegBinom)
-  if (!is.null(exposure)) {
-    df_hb$exposure <- exposure
-    df_hb$rate <- hb_est
-    df_hb$estimated_count <- hb_est * exposure
-  }
+  df_hb <- .hb_aux_columns(df_hb, family, y, vardir, trials, exposure)
 
   # 5. Goodness of fit measures
   goodness <- c(
@@ -377,17 +349,7 @@
     Marginal_LogLik = if (!is.null(fit$mlik)) fit$mlik[1, 1] else NA_real_
   )
 
-  # Format model description
-  model_label <- paste0("HB-", toupper(family))
-  if (temporal != "none" || spatial != "none") {
-    comps <- c()
-    if (spatial != "none") comps <- c(comps, toupper(spatial))
-    if (temporal != "none") comps <- c(comps, toupper(temporal))
-    if (st_interaction != "none") comps <- c(comps, paste0("ST:", toupper(st_interaction)))
-    model_label <- paste0(model_label, " (", paste(comps, collapse = " + "), ")")
-  } else {
-    model_label <- paste0(model_label, " (Non-spatial)")
-  }
+  model_label <- .hb_model_label(family, spatial, temporal, st_interaction)
 
   out <- list(
     df_hb = df_hb,
@@ -460,4 +422,58 @@
   if (!is.null(res$df_eblup)) res$df_eblup <- df
   res$benchmark_draws <- n_draws
   res
+}
+
+#' Model description shared by the hb_area() engines
+#' @noRd
+.hb_model_label <- function(family, spatial, temporal, st_interaction) {
+  model_label <- paste0("HB-", toupper(family))
+  if (temporal != "none" || spatial != "none") {
+    comps <- c()
+    if (spatial != "none") comps <- c(comps, toupper(spatial))
+    if (temporal != "none") comps <- c(comps, toupper(temporal))
+    if (st_interaction != "none") comps <- c(comps, paste0("ST:", toupper(st_interaction)))
+    paste0(model_label, " (", paste(comps, collapse = " + "), ")")
+  } else {
+    paste0(model_label, " (Non-spatial)")
+  }
+}
+
+#' Auxiliary df_hb columns shared by the hb_area() engines
+#'
+#' Sampling variances / precisions, binomial totals and count rates, computed
+#' from the HB estimate already in `df_hb$hb`.
+#' @noRd
+.hb_aux_columns <- function(df_hb, family, y, vardir = NULL, trials = NULL, exposure = NULL) {
+  hb_est <- df_hb$hb
+  # If vardir provided (Gaussian FH, Beta, or Gamma)
+  if (!is.null(vardir)) {
+    df_hb$vardir <- vardir
+    if (family == "beta") {
+      phi_dir <- (y * (1 - y) / vardir) - 1
+      df_hb$precision <- pmax(phi_dir, 1, na.rm = TRUE)
+    } else if (family == "gamma") {
+      s_dir <- (y^2) / vardir
+      df_hb$precision <- s_dir
+      df_hb$cv_dir <- sqrt(vardir) / y
+    }
+  }
+
+  # If trials provided (Binomial or Beta)
+  if (!is.null(trials)) {
+    df_hb$trials <- trials
+    if (family == "binomial") {
+      df_hb$estimated_total <- hb_est * trials
+    } else if (family == "beta" && is.null(vardir)) {
+      df_hb$precision <- pmax(trials - 1, 1, na.rm = TRUE)
+    }
+  }
+
+  # If exposure provided (Poisson / NegBinom)
+  if (!is.null(exposure)) {
+    df_hb$exposure <- exposure
+    df_hb$rate <- hb_est
+    df_hb$estimated_count <- hb_est * exposure
+  }
+  df_hb
 }

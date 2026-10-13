@@ -10,7 +10,7 @@ hb_area(
   domain = NULL,
   time = NULL,
   family = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"),
-  spatial = c("none", "bym2", "bym", "besag", "generic1", "slm"),
+  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "slm"),
   temporal = c("none", "rw1", "rw2", "ar1", "iid"),
   st_interaction = c("none", "domain-specific", "separable", "type1", "type2", "type3",
     "type4"),
@@ -18,23 +18,14 @@ hb_area(
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
-  method = c("inla", "laplace"),
-  strategy = c("laplace", "simplified.laplace", "gaussian"),
-  link = NULL,
-  scale_model = TRUE,
-  prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
-  prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
-  prior_rho = NULL,
-  prior_prec_time = NULL,
-  prior_rho_time = NULL,
+  engine = "inla",
   self_benchmark = FALSE,
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
   benchmark_method = c("posterior", "wfq"),
-  benchmark_draws = 1000,
-  benchmark_seed = 0L,
   print_result = TRUE,
+  method = NULL,
   ...
 )
 }
@@ -116,30 +107,9 @@ per area (for \code{family = "binomial"}).}
 \item{exposure}{Vector, column name, or formula specifying expected counts or population
 exposure offsets (for \code{family = "poisson"} or \code{"nbinomial"}).}
 
-\item{method}{Estimation method: \code{"inla"} (Bayesian INLA, default) or
-\code{"laplace"} (Frequentist GLMM with Laplace approximation via \code{lme4}).}
-
-\item{strategy}{INLA approximation strategy: \code{"laplace"} (default, full Laplace approximation for highest accuracy),
-\code{"simplified.laplace"} (faster Taylor approximation), or \code{"gaussian"}.}
-
-\item{link}{Optional character string for link function. If \code{NULL}, default canonical
-link is used (identity for Gaussian, logit for Binomial/Beta, log for Poisson/NegBinom/Gamma).}
-
-\item{scale_model}{Logical. If \code{TRUE} (default), scales the spatial graph so the
-marginal variance of the structured effect is approximately 1 (recommended for BYM2/Besag).}
-
-\item{prior_prec}{List specifying the prior for random effect precision. Default is a
-Penalized Complexity (PC) prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.}
-
-\item{prior_phi}{List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
-in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.}
-
-\item{prior_rho}{Optional list specifying prior for spatial autocorrelation parameter (generic1/slm).}
-
-\item{prior_prec_time}{Optional list specifying the prior for temporal precision. Default is
-a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.}
-
-\item{prior_rho_time}{Optional list specifying prior for temporal autocorrelation parameter in AR(1).}
+\item{engine}{Estimation engine: \code{\link{inla_engine}()} or \code{\link{jax_engine}()},
+or the strings \code{"inla"} (default) and \code{"jax"} for their default settings.
+See the Engines section.}
 
 \item{self_benchmark}{Logical. If \code{TRUE}, the weighted aggregate of the area
 estimates is made to match the direct survey aggregate or \code{benchmark_target}; see
@@ -163,18 +133,20 @@ mean and the reported SD / credible intervals refer to the benchmarked estimator
 benchmarking, cf. Datta et al., 2011). \code{"wfq"} uses the augmented-covariate approach of
 Wang, Fuller and Qu (2008), which is exact only for the linear Gaussian EBLUP; for the HB
 models it holds only approximately (non-flat prior on the coefficients, integration over
-the hyperparameters) and not at all for non-Gaussian likelihoods. With
-\code{method = "laplace"} (no posterior draws) the same adjustment is applied to the point
-estimates. Posterior draws need the package \pkg{sn} (used by
+the hyperparameters) and not at all for non-Gaussian likelihoods. With INLA,
+posterior draws need the package \pkg{sn} (used by
 \code{INLA::inla.posterior.sample()}); without it \code{"wfq"} is used with a warning.}
-
-\item{benchmark_draws}{Number of posterior draws for \code{benchmark_method = "posterior"}.}
-
-\item{benchmark_seed}{Seed for \code{INLA::inla.posterior.sample()} (\code{0} = random).}
 
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 
-\item{...}{Additional arguments passed to \code{INLA::inla()}.}
+\item{method}{Deprecated; use \code{engine}. \code{method = "laplace"} becomes
+\code{engine = inla_engine(strategy = "laplace")}; the former \pkg{lme4} GLMM route for
+binomial and Poisson models has been removed.}
+
+\item{...}{Deprecated. \code{strategy}, \code{link}, \code{scale_model}, \code{prior_*},
+\code{benchmark_draws}, \code{benchmark_seed} and arguments of \code{INLA::inla()} are
+now given to \code{\link{inla_engine}()}; passed here they are forwarded to it with a
+warning.}
 }
 \value{
 An object of class \code{c("fastsae_hb_area", "fastsae")} containing:
@@ -196,16 +168,55 @@ An object of class \code{c("fastsae_hb_area", "fastsae")} containing:
   \item \code{st_interaction}: Spatio-temporal interaction type used.
   \item \code{self_benchmark}: Logical indicating whether self-benchmarking was active.
   \item \code{benchmark_summary}: Summary table of benchmark calibration (if self-benchmarking).
-  \item \code{fit}: Raw fitted model object.
+  \item \code{fit}: Raw fitted model object (\code{inla}, or the list returned by the
+    Python backend for the JAX engine).
+  \item \code{engine}: Name of the estimation engine (\code{"inla"} or \code{"jax"});
+    \code{engine_spec} holds its settings (\code{\link{inla_engine}()} or
+    \code{\link{jax_engine}()} object).
+  \item \code{draws}, \code{rhat_max}, \code{device}, \code{elapsed_seconds}: With the
+    JAX engine, the posterior draws of the area parameters (rows of \code{df_hb}
+    by draws), the largest split R-hat (\code{convergence} is \code{rhat_max < 1.05}), the
+    JAX device and the sampling time.
   \item \code{call}: Matched function call.
 }
 }
 \description{
 Estimates small area parameters using area-level Hierarchical Bayesian models
 under various distributions (Gaussian, Binomial, Poisson, Negative Binomial, Beta, Gamma)
-and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux) using
-Integrated Nested Laplace Approximations (INLA) or frequentist Laplace Approximation.
+and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux).
+Two estimation engines are available through \code{engine}:
+\itemize{
+  \item \code{\link{inla_engine}()} (default, or \code{"inla"}): Integrated Nested
+    Laplace Approximations (\pkg{INLA}; Rue et al., 2009).
+  \item \code{\link{jax_engine}()} (or \code{"jax"}): full MCMC with the No-U-Turn sampler
+    of 'NumPyro' (Phan et al., 2019) on 'JAX', on the CPU or an NVIDIA GPU. Needs Python
+    with \code{jax} and \code{numpyro} through \pkg{reticulate}; see
+    \code{\link{setup_numpyro_env}}.
 }
+The engine constructors hold all engine settings (priors, approximation strategy and
+further \code{INLA::inla()} arguments for INLA; MCMC length, device and coefficient prior
+for JAX), so \code{hb_area()} itself only describes the model.
+}
+\section{Engines}{
+
+Both engines return the same structure, so \code{print}, \code{summary},
+\code{\link{benchmark_sae}}, \code{\link{compare_sae}} and the other methods work
+with either. Feature support:
+\tabular{lcc}{
+  \strong{Feature} \tab \strong{inla} \tab \strong{jax} \cr
+  Families \tab all six \tab all six \cr
+  \code{spatial} \tab all \tab all but \code{"slm"} \cr
+  \code{temporal} \tab all \tab all but \code{"rw2"} \cr
+  \code{st_interaction} \tab all \tab all \cr
+  Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
+  Horseshoe prior, Student-t errors \tab -- \tab yes \cr
+}
+The \code{"jax"} engine uses weakly informative priors (half-normal standard deviations,
+uniform spatial mixing / autocorrelation parameters) instead of the PC priors of INLA, so its
+estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
+not use \code{vardir}.
+}
+
 \examples{
 \donttest{
 if (requireNamespace("INLA", quietly = TRUE)) {
@@ -228,14 +239,25 @@ if (requireNamespace("INLA", quietly = TRUE)) {
     benchmark_weight = "n"
   )
 
-  # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA
+  # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA, faster approximation
   m_bym2 <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
     vardir = "vardir",
     family = "gaussian",
     spatial = "bym2",
-    W = mys_proxmat
+    W = mys_proxmat,
+    engine = inla_engine(strategy = "simplified.laplace")
+  )
+}
+
+# 4. The same Fay-Herriot model by MCMC (NumPyro NUTS on JAX)
+if (check_numpyro_available()) {
+  m_jax <- hb_area(
+    y ~ x1 + x2 + x3,
+    data = mys,
+    vardir = "vardir",
+    engine = jax_engine(samples = 500, chains = 2)
   )
 }
 }
@@ -251,6 +273,10 @@ if (requireNamespace("INLA", quietly = TRUE)) {
     \emph{Computational Statistics & Data Analysis}, 58, 308-325.
   \item De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools for Mapping Proportions and Indicators on the Unit Interval.
     \emph{Journal of Statistical Software}, 108(1), 1-36.
+  \item Phan, D., Pradhan, N., and Jankowiak, M. (2019). Composable effects for flexible and
+    accelerated probabilistic programming in NumPyro. \emph{arXiv:1912.11554}.
+  \item Piironen, J., and Vehtari, A. (2017). Sparsity information and regularization in the
+    horseshoe and other shrinkage priors. \emph{Electronic Journal of Statistics}, 11(2), 5018-5051.
   \item Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
     models by using integrated nested Laplace approximations. \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
 }

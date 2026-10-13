@@ -97,11 +97,16 @@ and
 $$\pi(u_d \mid y) \approx \tilde{\pi}(u_d \mid y) = \sum_k \tilde{\pi}(u_d \mid \theta_k, y) \tilde{\pi}(\theta_k \mid y) \Delta_k$$
 
 where the integrals are evaluated using **Laplace approximations** and **numerical
-integration**. Three computational strategies are available:
+integration**. Three computational strategies are available through
+`hb_area(..., engine = inla_engine(strategy = ...))`, which also takes the priors and any
+further `INLA::inla()` arguments:
 
 - **`strategy = "gaussian"`**: Fastest, best for well-behaved problems
 - **`strategy = "laplace"`**: Default, good accuracy/speed balance
 - **`strategy = "simplified.laplace"`**: Slightly faster Laplace, good for large models
+
+The same models can be fitted by MCMC on CPU or GPU with `engine = jax_engine()`
+(NumPyro NUTS on JAX; see `?jax_engine`).
 
 ---
 

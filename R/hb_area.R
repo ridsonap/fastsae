@@ -3,8 +3,37 @@
 #' @description
 #' Estimates small area parameters using area-level Hierarchical Bayesian models
 #' under various distributions (Gaussian, Binomial, Poisson, Negative Binomial, Beta, Gamma)
-#' and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux) using
-#' Integrated Nested Laplace Approximations (INLA) or frequentist Laplace Approximation.
+#' and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux).
+#' Two estimation engines are available through \code{engine}:
+#' \itemize{
+#'   \item \code{\link{inla_engine}()} (default, or \code{"inla"}): Integrated Nested
+#'     Laplace Approximations (\pkg{INLA}; Rue et al., 2009).
+#'   \item \code{\link{jax_engine}()} (or \code{"jax"}): full MCMC with the No-U-Turn sampler
+#'     of 'NumPyro' (Phan et al., 2019) on 'JAX', on the CPU or an NVIDIA GPU. Needs Python
+#'     with \code{jax} and \code{numpyro} through \pkg{reticulate}; see
+#'     \code{\link{setup_numpyro_env}}.
+#' }
+#' The engine constructors hold all engine settings (priors, approximation strategy and
+#' further \code{INLA::inla()} arguments for INLA; MCMC length, device and coefficient prior
+#' for JAX), so \code{hb_area()} itself only describes the model.
+#'
+#' @section Engines:
+#' Both engines return the same structure, so \code{print}, \code{summary},
+#' \code{\link{benchmark_sae}}, \code{\link{compare_sae}} and the other methods work
+#' with either. Feature support:
+#' \tabular{lcc}{
+#'   \strong{Feature} \tab \strong{inla} \tab \strong{jax} \cr
+#'   Families \tab all six \tab all six \cr
+#'   \code{spatial} \tab all \tab all but \code{"slm"} \cr
+#'   \code{temporal} \tab all \tab all but \code{"rw2"} \cr
+#'   \code{st_interaction} \tab all \tab all \cr
+#'   Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
+#'   Horseshoe prior, Student-t errors \tab -- \tab yes \cr
+#' }
+#' The \code{"jax"} engine uses weakly informative priors (half-normal standard deviations,
+#' uniform spatial mixing / autocorrelation parameters) instead of the PC priors of INLA, so its
+#' estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
+#' not use \code{vardir}.
 #'
 #' @param formula An object of class \code{formula} specifying the fixed-effects model
 #'   (e.g., \code{y ~ x1 + x2}).
@@ -48,19 +77,9 @@
 #'   per area (for \code{family = "binomial"}).
 #' @param exposure Vector, column name, or formula specifying expected counts or population
 #'   exposure offsets (for \code{family = "poisson"} or \code{"nbinomial"}).
-#' @param method Estimation method: \code{"inla"} (Bayesian INLA, default) or
-#'   \code{"laplace"} (Frequentist GLMM with Laplace approximation via \code{lme4}).
-#' @param strategy INLA approximation strategy: \code{"laplace"} (default, full Laplace approximation for highest accuracy),
-#'   \code{"simplified.laplace"} (faster Taylor approximation), or \code{"gaussian"}.
-#' @param link Optional character string for link function. If \code{NULL}, default canonical
-#'   link is used (identity for Gaussian, logit for Binomial/Beta, log for Poisson/NegBinom/Gamma).
-#' @param scale_model Logical. If \code{TRUE} (default), scales the spatial graph so the
-#'   marginal variance of the structured effect is approximately 1 (recommended for BYM2/Besag).
-#' @param prior_prec List specifying the prior for random effect precision. Default is a
-#'   Penalized Complexity (PC) prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.
-#' @param prior_phi List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
-#'   in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.
-#' @param prior_rho Optional list specifying prior for spatial autocorrelation parameter (generic1/slm).
+#' @param engine Estimation engine: \code{\link{inla_engine}()} or \code{\link{jax_engine}()},
+#'   or the strings \code{"inla"} (default) and \code{"jax"} for their default settings.
+#'   See the Engines section.
 #' @param time Vector, column name, or one-sided formula referencing the time period
 #'   identifier in \code{data} (e.g. \code{time = "year"} or \code{~year}). Required
 #'   when \code{temporal != "none"}.
@@ -84,9 +103,6 @@
 #'     \item \code{"type3"}: Knorr-Held Type III interaction (structured space \eqn{\times} unstructured time).
 #'     \item \code{"type4"}: Knorr-Held Type IV interaction (structured space \eqn{\times} structured time).
 #'   }
-#' @param prior_prec_time Optional list specifying the prior for temporal precision. Default is
-#'   a PC prior: \code{list(prior = "pc.prec", param = c(1, 0.01))}.
-#' @param prior_rho_time Optional list specifying prior for temporal autocorrelation parameter in AR(1).
 #' @param self_benchmark Logical. If \code{TRUE}, the weighted aggregate of the area
 #'   estimates is made to match the direct survey aggregate or \code{benchmark_target}; see
 #'   \code{benchmark_method}.
@@ -99,12 +115,9 @@
 #'   benchmarking, cf. Datta et al., 2011). \code{"wfq"} uses the augmented-covariate approach of
 #'   Wang, Fuller and Qu (2008), which is exact only for the linear Gaussian EBLUP; for the HB
 #'   models it holds only approximately (non-flat prior on the coefficients, integration over
-#'   the hyperparameters) and not at all for non-Gaussian likelihoods. With
-#'   \code{method = "laplace"} (no posterior draws) the same adjustment is applied to the point
-#'   estimates. Posterior draws need the package \pkg{sn} (used by
+#'   the hyperparameters) and not at all for non-Gaussian likelihoods. With INLA,
+#'   posterior draws need the package \pkg{sn} (used by
 #'   \code{INLA::inla.posterior.sample()}); without it \code{"wfq"} is used with a warning.
-#' @param benchmark_draws Number of posterior draws for \code{benchmark_method = "posterior"}.
-#' @param benchmark_seed Seed for \code{INLA::inla.posterior.sample()} (\code{0} = random).
 #' @param benchmark_weight Optional vector, column name, or one-sided formula referencing the domain
 #'   benchmarking weights in \code{data} (e.g. population sizes or shares). Defaults to equal weights.
 #' @param benchmark_target Optional numeric scalar or named vector specifying fixed aggregate
@@ -112,7 +125,13 @@
 #' @param benchmark_group Optional vector, column name, or one-sided formula referencing the
 #'   grouping / stratum column in \code{data} (e.g. province) for group-specific self-benchmarking.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
-#' @param ... Additional arguments passed to \code{INLA::inla()}.
+#' @param method Deprecated; use \code{engine}. \code{method = "laplace"} becomes
+#'   \code{engine = inla_engine(strategy = "laplace")}; the former \pkg{lme4} GLMM route for
+#'   binomial and Poisson models has been removed.
+#' @param ... Deprecated. \code{strategy}, \code{link}, \code{scale_model}, \code{prior_*},
+#'   \code{benchmark_draws}, \code{benchmark_seed} and arguments of \code{INLA::inla()} are
+#'   now given to \code{\link{inla_engine}()}; passed here they are forwarded to it with a
+#'   warning.
 #'
 #' @returns An object of class \code{c("fastsae_hb_area", "fastsae")} containing:
 #' \itemize{
@@ -133,7 +152,15 @@
 #'   \item \code{st_interaction}: Spatio-temporal interaction type used.
 #'   \item \code{self_benchmark}: Logical indicating whether self-benchmarking was active.
 #'   \item \code{benchmark_summary}: Summary table of benchmark calibration (if self-benchmarking).
-#'   \item \code{fit}: Raw fitted model object.
+#'   \item \code{fit}: Raw fitted model object (\code{inla}, or the list returned by the
+#'     Python backend for the JAX engine).
+#'   \item \code{engine}: Name of the estimation engine (\code{"inla"} or \code{"jax"});
+#'     \code{engine_spec} holds its settings (\code{\link{inla_engine}()} or
+#'     \code{\link{jax_engine}()} object).
+#'   \item \code{draws}, \code{rhat_max}, \code{device}, \code{elapsed_seconds}: With the
+#'     JAX engine, the posterior draws of the area parameters (rows of \code{df_hb}
+#'     by draws), the largest split R-hat (\code{convergence} is \code{rhat_max < 1.05}), the
+#'     JAX device and the sampling time.
 #'   \item \code{call}: Matched function call.
 #' }
 #'
@@ -148,6 +175,10 @@
 #'     \emph{Computational Statistics & Data Analysis}, 58, 308-325.
 #'   \item De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools for Mapping Proportions and Indicators on the Unit Interval.
 #'     \emph{Journal of Statistical Software}, 108(1), 1-36.
+#'   \item Phan, D., Pradhan, N., and Jankowiak, M. (2019). Composable effects for flexible and
+#'     accelerated probabilistic programming in NumPyro. \emph{arXiv:1912.11554}.
+#'   \item Piironen, J., and Vehtari, A. (2017). Sparsity information and regularization in the
+#'     horseshoe and other shrinkage priors. \emph{Electronic Journal of Statistics}, 11(2), 5018-5051.
 #'   \item Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
 #'     models by using integrated nested Laplace approximations. \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
 #' }
@@ -175,14 +206,25 @@
 #'     benchmark_weight = "n"
 #'   )
 #'
-#'   # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA
+#'   # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA, faster approximation
 #'   m_bym2 <- hb_area(
 #'     y ~ x1 + x2 + x3,
 #'     data = mys,
 #'     vardir = "vardir",
 #'     family = "gaussian",
 #'     spatial = "bym2",
-#'     W = mys_proxmat
+#'     W = mys_proxmat,
+#'     engine = inla_engine(strategy = "simplified.laplace")
+#'   )
+#' }
+#'
+#' # 4. The same Fay-Herriot model by MCMC (NumPyro NUTS on JAX)
+#' if (check_numpyro_available()) {
+#'   m_jax <- hb_area(
+#'     y ~ x1 + x2 + x3,
+#'     data = mys,
+#'     vardir = "vardir",
+#'     engine = jax_engine(samples = 500, chains = 2)
 #'   )
 #' }
 #' }
@@ -192,40 +234,48 @@ hb_area <- function(
   domain = NULL,
   time = NULL,
   family = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"),
-  spatial = c("none", "bym2", "bym", "besag", "generic1", "slm"),
+  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "slm"),
   temporal = c("none", "rw1", "rw2", "ar1", "iid"),
   st_interaction = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"),
   W = NULL,
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
-  method = c("inla", "laplace"),
-  strategy = c("laplace", "simplified.laplace", "gaussian"),
-  link = NULL,
-  scale_model = TRUE,
-  prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
-  prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
-  prior_rho = NULL,
-  prior_prec_time = NULL,
-  prior_rho_time = NULL,
+  engine = "inla",
   self_benchmark = FALSE,
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
   benchmark_method = c("posterior", "wfq"),
-  benchmark_draws = 1000,
-  benchmark_seed = 0L,
   print_result = TRUE,
+  method = NULL,
   ...
 ) {
   call_matched <- match.call()
   benchmark_method <- match.arg(benchmark_method)
   family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"))
-  spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "bym", "besag", "generic1", "slm"))
+  spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "bym", "besag", "generic1", "leroux", "slm"))
+  if (spatial == "leroux") spatial <- "generic1" # same model; INLA calls it generic1
   temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
   st_interaction <- match.arg(tolower(st_interaction), choices = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"))
-  method <- match.arg(tolower(method), choices = c("inla", "laplace"))
-  strategy <- match.arg(tolower(strategy), choices = c("laplace", "simplified.laplace", "gaussian"))
+  engine <- .resolve_inla_engine(
+    engine, missing(engine), list(...), "hb_area",
+    defaults = list(
+      prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
+      prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+      draws = 1000L
+    ),
+    used = c("link", "scale_model", "prior_prec", "prior_phi", "prior_rho", "prior_prec_time", "prior_rho_time", "draws"),
+    method = method
+  )
+  if (engine$name == "jax") {
+    .check_jax_model(
+      spatial = spatial, temporal = temporal, family = family,
+      self_benchmark = self_benchmark, benchmark_method = benchmark_method
+    )
+  } else if (isTRUE(self_benchmark) && benchmark_method == "posterior" && engine$draws < 1) {
+    cli::cli_abort("Posterior self-benchmarking needs {.code inla_engine(draws = )} of at least 1.")
+  }
 
   if (!is.data.frame(data)) {
     cli::cli_abort("{.arg data} must be a data frame or tibble.")
@@ -308,10 +358,8 @@ hb_area <- function(
   # 4. Self-benchmarking setup (Wang, Fuller, and Qu, 2008)
   sb_info <- NULL
   # Posterior benchmarking draws with INLA::inla.posterior.sample(), which needs
-  # the package 'sn'; without it fall back to WFQ (the Laplace route has no draws)
-  uses_laplace <- method == "laplace" && spatial == "none" && temporal == "none" &&
-    family %in% c("binomial", "poisson")
-  if (isTRUE(self_benchmark) && benchmark_method == "posterior" && !uses_laplace && !.has_sn()) {
+  # the package 'sn'; without it fall back to WFQ
+  if (isTRUE(self_benchmark) && benchmark_method == "posterior" && engine$name == "inla" && !.has_sn()) {
     cli::cli_warn(c(
       "Package {.pkg sn} (needed by {.fn INLA::inla.posterior.sample}) is not installed; using {.code benchmark_method = \"wfq\"} instead.",
       "i" = "Install it with {.code install.packages(\"sn\")} for posterior benchmarking."
@@ -347,60 +395,10 @@ hb_area <- function(
   }
 
   # --------------------------------------------------------------------------
-  # Route estimation: Frequentist Laplace (lme4) vs Bayesian INLA
+  # Route estimation: NumPyro/JAX MCMC or INLA
   # --------------------------------------------------------------------------
-  if (method == "laplace" && spatial == "none" && temporal == "none" && family %in% c("binomial", "poisson")) {
-    out <- .fit_glmm_laplace(
-      formula = formula,
-      data = data,
-      domain = domain_vec,
-      family = family,
-      trials = trials_vec,
-      exposure = exposure_vec,
-      call = call_matched
-    )
-    if (!is.null(sb_info)) {
-      if (benchmark_method == "posterior") {
-        # no posterior draws on this route: benchmark the point estimates
-        out$df_hb$hb_unbenchmarked <- out$df_hb$hb
-        out$df_hb$hb <- as.vector(.benchmark_adjust(
-          matrix(out$df_hb$hb, ncol = 1), sb_info, .benchmark_type_for_family(family)
-        ))
-        out$hb <- out$df_hb
-        out$df_eblup <- out$df_hb
-      }
-      out$self_benchmark <- TRUE
-      out$benchmark_method <- benchmark_method
-      out$benchmark_weight <- benchmark_weight
-      out$benchmark_target <- benchmark_target
-      out$benchmark_group <- benchmark_group
-      out$benchmark_summary <- .compute_benchmark_summary(
-        unique_groups = sb_info$unique_groups,
-        group_vec = sb_info$group_vec,
-        w_norm = sb_info$w_norm,
-        y = sb_info$original_y,
-        target_vec = sb_info$target_vec,
-        estimates = out$df_hb$hb
-      )
-      if (benchmark_method == "wfq") {
-        out$df_hb$y <- sb_info$original_y
-        out$hb$y <- sb_info$original_y
-        out$df_eblup$y <- sb_info$original_y
-      }
-    }
-  } else {
-    if (method == "laplace") {
-      if (family == "gaussian") {
-        cli::cli_alert_info("For Gaussian area-level models with known sampling variance, utilizing INLA's full Laplace approximation strategy.")
-      } else if (spatial != "none" || temporal != "none") {
-        cli::cli_alert_info("Spatial and temporal models require INLA; utilizing INLA's full Laplace approximation strategy.")
-      }
-      strategy <- "laplace"
-    }
-
-    .check_inla_installed()
-
-    out <- .fit_inla_area(
+  if (engine$name == "jax") {
+    out <- .fit_jax_area(
       formula = formula,
       data = data,
       y = y,
@@ -414,25 +412,53 @@ hb_area <- function(
       vardir = vardir_vec,
       trials = trials_vec,
       exposure = exposure_vec,
-      strategy = strategy,
-      link = link,
-      scale_model = scale_model,
-      prior_prec = prior_prec,
-      prior_phi = prior_phi,
-      prior_rho = prior_rho,
-      prior_prec_time = prior_prec_time,
-      prior_rho_time = prior_rho_time,
+      engine = engine,
       sb_info = sb_info,
       benchmark_weight = benchmark_weight,
       benchmark_target = benchmark_target,
       benchmark_group = benchmark_group,
-      benchmark_draws = benchmark_draws,
-      benchmark_seed = benchmark_seed,
-      call = call_matched,
-      ...
+      call = call_matched
     )
+  } else {
+    .check_inla_installed()
+
+    out <- do.call(.fit_inla_area, quote = TRUE, c(
+      list(
+        formula = formula,
+        data = data,
+        y = y,
+        domain = domain_vec,
+        time = time_vec,
+        family = family,
+        spatial = spatial,
+        temporal = temporal,
+        st_interaction = st_interaction,
+        W_obj = W_obj,
+        vardir = vardir_vec,
+        trials = trials_vec,
+        exposure = exposure_vec,
+        strategy = engine$strategy,
+        link = engine$link,
+        scale_model = engine$scale_model,
+        prior_prec = engine$prior_prec,
+        prior_phi = engine$prior_phi,
+        prior_rho = engine$prior_rho,
+        prior_prec_time = engine$prior_prec_time,
+        prior_rho_time = engine$prior_rho_time,
+        sb_info = sb_info,
+        benchmark_weight = benchmark_weight,
+        benchmark_target = benchmark_target,
+        benchmark_group = benchmark_group,
+        benchmark_draws = engine$draws,
+        benchmark_seed = engine$seed,
+        call = call_matched
+      ),
+      engine$inla_args
+    ))
   }
 
+  out$engine <- engine$name
+  out$engine_spec <- engine
   out$W <- W
 
   if (print_result) {
@@ -731,9 +757,10 @@ hb_area <- function(
     data = inla_data,
     control.compute = control_compute,
     control.predictor = control_predictor,
-    control.inla = control_inla,
-    ...
+    control.inla = control_inla
   )
+  # User settings (inla_engine(...)) override; control.* lists are merged
+  inla_args <- utils::modifyList(inla_args, list(...))
 
   # WFQ self-benchmarking: diffuse fixed-effects prior so the augmented covariate is not shrunk
   if (!is.null(sb_info) && identical(sb_info$method, "wfq")) {
@@ -878,113 +905,4 @@ hb_area <- function(
   }
 
   return(res)
-}
-
-#' Internal worker to fit non-spatial model via frequentist GLMM (Laplace approximation)
-#' @noRd
-.fit_glmm_laplace <- function(
-  formula,
-  data,
-  domain,
-  family,
-  trials = NULL,
-  exposure = NULL,
-  call = NULL
-) {
-  n_domains <- nrow(data)
-  lmer_data <- data
-  lmer_data$..domain_id.. <- factor(domain)
-
-  response_var <- all.vars(formula)[1]
-  terms_fixed <- attr(stats::terms(formula), "term.labels")
-  fixed_str <- if (length(terms_fixed) > 0) paste(terms_fixed, collapse = " + ") else "1"
-  formula_lmer <- stats::as.formula(paste(response_var, "~", fixed_str, "+ (1 | ..domain_id..)"))
-
-  y <- stats::model.response(stats::model.frame(formula, data, na.action = stats::na.pass))
-
-  fit <- NULL
-  if (family == "gaussian") {
-    fit <- lme4::lmer(formula_lmer, data = lmer_data, REML = FALSE)
-  } else if (family == "binomial") {
-    if (!is.null(trials)) {
-      lmer_data$..successes.. <- y
-      lmer_data$..failures.. <- trials - y
-      formula_bin <- stats::as.formula(paste("cbind(..successes.., ..failures..) ~", fixed_str, "+ (1 | ..domain_id..)"))
-      fit <- lme4::glmer(formula_bin, data = lmer_data, family = stats::binomial(link = "logit"), nAGQ = 1)
-    } else {
-      fit <- lme4::glmer(formula_lmer, data = lmer_data, family = stats::binomial(link = "logit"), nAGQ = 1)
-    }
-  } else if (family == "poisson") {
-    if (!is.null(exposure)) {
-      lmer_data$..offset.. <- log(exposure)
-      formula_pois <- stats::as.formula(paste(response_var, "~", fixed_str, "+ offset(..offset..) + (1 | ..domain_id..)"))
-      fit <- lme4::glmer(formula_pois, data = lmer_data, family = stats::poisson(link = "log"), nAGQ = 1)
-    } else {
-      fit <- lme4::glmer(formula_lmer, data = lmer_data, family = stats::poisson(link = "log"), nAGQ = 1)
-    }
-  }
-
-  # Extract coefficients
-  sum_fit <- summary(fit)
-  coef_mat <- as.data.frame(sum_fit$coefficients)
-  estcoef <- data.frame(
-    beta = coef_mat[, 1],
-    std.error = coef_mat[, 2],
-    zvalue = coef_mat[, 3],
-    pvalue = 2 * stats::pnorm(abs(coef_mat[, 3]), lower.tail = FALSE),
-    ci_lower = coef_mat[, 1] - 1.96 * coef_mat[, 2],
-    ci_upper = coef_mat[, 1] + 1.96 * coef_mat[, 2],
-    row.names = rownames(coef_mat)
-  )
-
-  # Random effect variance
-  vc <- lme4::VarCorr(fit)
-  sigma2_u <- as.numeric(vc[[1]])
-
-  # Predictions
-  preds <- stats::predict(fit, newdata = lmer_data, type = "response", allow.new.levels = TRUE)
-  linpred <- stats::predict(fit, newdata = lmer_data, type = "link", allow.new.levels = TRUE)
-  ranefs <- lme4::ranef(fit)$..domain_id..[, 1]
-
-  df_hb <- data.frame(
-    domain = domain,
-    y = y,
-    hb = preds,
-    linear_pred = linpred,
-    sd = NA_real_,
-    mse = NA_real_,
-    rse = NA_real_,
-    ci_lower = NA_real_,
-    ci_upper = NA_real_,
-    random_effect = if (length(ranefs) == n_domains) ranefs else rep(NA_real_, n_domains),
-    stringsAsFactors = FALSE
-  )
-
-  goodness <- c(
-    AIC = stats::AIC(fit),
-    BIC = stats::BIC(fit),
-    LogLik = as.numeric(stats::logLik(fit))
-  )
-
-  out <- list(
-    df_hb = df_hb,
-    hb = df_hb,
-    df_eblup = df_hb,
-    estcoef = estcoef,
-    hyperpar = data.frame(Parameter = "sigma2_u", Estimate = sigma2_u),
-    random_effect_var = sigma2_u,
-    phi = NULL,
-    goodness = goodness,
-    family = family,
-    spatial = "none",
-    level = "area",
-    model = paste0("HB-", toupper(family), " (Laplace GLMM)"),
-    convergence = TRUE,
-    fit = fit,
-    data = data,
-    call = call
-  )
-
-  class(out) <- c("fastsae_hb_area", "fastsae")
-  return(out)
 }

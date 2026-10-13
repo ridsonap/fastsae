@@ -126,11 +126,12 @@ Tidak ada Fisher scoring: seluruh inferensi diserahkan ke
 Likelihood Gaussian dengan \code{vardir} memakai \code{scale} $=1/\psi_d$
 dan presisi tetap $1$ sehingga $\Var(y_d)=\psi_d$ persis; family lain
 memakai \code{scale}/(\code{Ntrials}, \code{E}) sesuai parameterisasi
-\pkg{INLA} (baris 612-667). \code{method = "laplace"} berarti
-\code{strategy} dipaksa \code{"laplace"}, sedangkan jalur
-\code{lme4} (baris 258-267) hanya terbuka untuk
-binomial/poisson tanpa struktur spasial/temporal (HB-14) dan tidak
-menghasilkan ketidakpastian (HB-15).
+\pkg{INLA} (baris 612-667). Pengaturan engine diberikan lewat
+\code{engine = inla_engine(strategy, prior\_*, ...)} atau
+\code{engine = jax_engine(...)} (MCMC NumPyro). Argumen lama
+\code{method = "laplace"} kini usang dan dipetakan ke
+\code{inla\_engine(strategy = "laplace")}; jalur \code{lme4}
+(HB-14, HB-15) telah dihapus.
 
 \subsection{Estimasi MSE}\label{sec:hbarea-mse}
 
@@ -152,7 +153,7 @@ area dengan sampling posterior (bagian~\ref{sec:hbtwofold-mse}).
 \label{alg:hbarea}
 \KwIn{formula, \code{data}, \code{domain}, \code{time}, \code{family},
   \code{spatial}, \code{temporal}, \code{st\_interaction}, $W$, \code{vardir},
-  \code{trials}, \code{exposure}, \code{method}, \code{strategy}, prior, \code{...}}
+  \code{trials}, \code{exposure}, \code{engine}}
 \KwOut{objek \code{fastsae\_hb\_area} berisi \code{df\_hb}, \code{fit}, \code{hyperpar}}
 \code{match.arg} untuk 6 argumen pilihan (174-179)\;
 \code{domain\_vec} $\leftarrow$ \code{.get\_variable}; \code{time} wajib bila
@@ -164,9 +165,7 @@ area dengan sampling posterior (bagian~\ref{sec:hbtwofold-mse}).
 \uIf{family $=$ gamma}{$y>0$ wajib (242-247)}\;
 $W_{\text{obj}}\leftarrow$ \texttt{.convert\_spatial\_weights} bila
   \code{spatial} $\ne$ \code{"none"} (250-253)\;
-\If{\code{method} $=$ laplace \textbf{dan} tanpa spasial/temporal \textbf{dan} family $\in$\{binomial, poisson\}}{
-  \KwRet \texttt{.fit\_glmm\_laplace} (258-267, tanpa ketidakpastian)}
-\If{\code{method} $=$ laplace}{\code{strategy} $\leftarrow$ \texttt{"laplace"} (269-276)}\;
+\If{\code{engine} $=$ \code{jax\_engine()}}{\KwRet \texttt{.fit\_jax\_area} (MCMC NumPyro)}\;
 \caption*{}
 \tcp*{\emph{.fit\_inla\_area} (318-704)}
 indeks \code{..domain\_id..}, \code{..obs\_id..}, \code{..time\_id..} (363-377)\;
@@ -196,13 +195,18 @@ hb_area(formula, data, domain = NULL, time = NULL,
         st_interaction = c("none","domain-specific","separable",
                            "type1","type2","type3","type4"),
         W = NULL, vardir = NULL, trials = NULL, exposure = NULL,
-        method = c("inla","laplace"),
-        strategy = c("laplace","simplified.laplace","gaussian"),
-        link = NULL, scale_model = TRUE,
-        prior_prec  = list(prior = "pc.prec", param = c(1, 0.01)),
-        prior_phi   = list(prior = "pc",      param = c(0.5, 0.5)),
-        prior_rho = NULL, prior_prec_time = NULL, prior_rho_time = NULL,
-        print_result = TRUE, ...)
+        engine = "inla",   # atau inla_engine(...) / jax_engine(...)
+        self_benchmark = FALSE, benchmark_weight = NULL,
+        benchmark_target = NULL, benchmark_group = NULL,
+        benchmark_method = c("posterior","wfq"),
+        print_result = TRUE, method = NULL, ...)
+
+inla_engine(strategy = c("laplace","simplified.laplace","gaussian"),
+            link = NULL, scale_model = TRUE,
+            prior_prec  = list(prior = "pc.prec", param = c(1, 0.01)),
+            prior_phi   = list(prior = "pc",      param = c(0.5, 0.5)),
+            prior_rho = NULL, prior_prec_time = NULL, prior_rho_time = NULL,
+            draws = 1000, seed = 0L, ...)
 \end{lstlisting}
 
 \begin{itemize}

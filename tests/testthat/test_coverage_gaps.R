@@ -97,7 +97,7 @@ test_that("hb_area slm with prior_phi non-pc", {
   data(mys, package = "fastsae")
   data(mys_proxmat, package = "fastsae")
   fit <- hb_area(y ~ x1, data = mys, W = mys_proxmat, spatial = "slm",
-                 prior_phi = list(prior = "normal", param = c(0, 1)))
+                 engine = inla_engine(prior_phi = list(prior = "normal", param = c(0, 1))))
   expect_s3_class(fit, "fastsae")
 })
 
@@ -464,7 +464,7 @@ test_that("hb_area generic1 with prior_rho and bym separable paths", {
 
   # L444: prior_rho passed to generic1 (hits hyper_generic1$beta <- prior_rho)
   fit_g1 <- hb_area(y ~ x1, data = mys, W = mys_proxmat, spatial = "generic1",
-                    prior_rho = list(prior = "normal", param = c(0, 1)))
+                    engine = inla_engine(prior_rho = list(prior = "normal", param = c(0, 1))))
   expect_s3_class(fit_g1, "fastsae")
 
   # L424-428: bym + separable ST interaction (bym, separable)
@@ -484,7 +484,7 @@ test_that("hb_area generic1 prior_phi fallback to beta hyper", {
   data(mys, package = "fastsae")
   data(mys_proxmat, package = "fastsae")
   fit <- hb_area(y ~ x1, data = mys, W = mys_proxmat, spatial = "generic1",
-                 prior_phi = list(prior = "normal", param = c(0, 1)))
+                 engine = inla_engine(prior_phi = list(prior = "normal", param = c(0, 1))))
   expect_s3_class(fit, "fastsae")
 })
 
@@ -523,42 +523,13 @@ test_that("hb_area errors on non-positive vardir for sampled gaussian domains", 
   )
 })
 
-# ── hb_area.R L730 (laplace gaussian path: lme4::lmer)
-test_that("hb_area laplace method gaussian uses lmer", {
+# ── deprecated method = "laplace" now maps to INLA with the full Laplace strategy
+test_that("hb_area deprecated method = 'laplace' fits with INLA", {
+  skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
   data(mys, package = "fastsae")
-  fit <- hb_area(y ~ x1, data = mys, method = "laplace", family = "gaussian")
+  expect_warning(fit <- hb_area(y ~ x1, data = mys, method = "laplace", family = "gaussian"), "deprecated")
   expect_s3_class(fit, "fastsae")
-})
-
-# ── hb_area.R L738 (laplace binomial WITHOUT trials: glmer with proportion)
-# This branch is only reachable via the internal .fit_glmm_laplace directly,
-# since hb_area validates trials before calling it. We test it via hb_area
-# with trials (which hits L736) and via direct internal call for L738.
-test_that("hb_area laplace binomial with trials uses glmer cbind formula (L736)", {
-  set.seed(42)
-  df <- data.frame(
-    domain  = 1:20,
-    y_count = rbinom(20, 50, 0.3),
-    trials  = rep(50L, 20),
-    x1      = rnorm(20)
-  )
-  fit <- hb_area(y_count ~ x1, data = df, family = "binomial",
-                 trials = "trials", method = "laplace")
-  expect_s3_class(fit, "fastsae")
-  expect_true(all(fit$df_hb$hb >= 0 & fit$df_hb$hb <= 1))
-})
-
-test_that(".fit_glmm_laplace binomial without trials uses glmer proportion (L738)", {
-  set.seed(42)
-  df <- data.frame(
-    domain = 1:15,
-    y_prop = runif(15, 0.1, 0.9),
-    x1     = rnorm(15)
-  )
-  fn <- fastsae:::.fit_glmm_laplace
-  fit <- fn(y_prop ~ x1, data = df, domain = df$domain, family = "binomial",
-            trials = NULL)
-  expect_false(is.null(fit))
+  expect_equal(fit$engine_spec$strategy, "laplace")
 })
 
 # ── hb_twofold.R L296-299 (INLA fit error -> cli_abort)
@@ -582,7 +553,7 @@ test_that("hb_twofold fallback aggregation when n_samples=0", {
   mys2$subarea <- paste0(mys2$area, "_s")
   fit <- hb_twofold(y ~ x1, vardir = "vardir",
                     domain = "area", subarea = "subarea", data = mys2,
-                    n_samples = 0L)
+                    engine = inla_engine(draws = 0))
   expect_s3_class(fit, "fastsae")
   expect_false(any(is.na(fit$df_area$hb)))
 })
@@ -1001,7 +972,7 @@ test_that("hb_twofold falls back when posterior latent names mismatch", {
     {
       fit <- hb_twofold(
         y ~ x, vardir = "vardir", domain = "area", subarea = "subarea",
-        data = dat, compute_area = TRUE, n_samples = 5, print_result = FALSE
+        data = dat, compute_area = TRUE, engine = inla_engine(draws = 5), print_result = FALSE
       )
       expect_s3_class(fit, "fastsae_hb_twofold")
       # fallback path still yields finite area uncertainties

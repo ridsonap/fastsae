@@ -16,13 +16,8 @@ hb_twofold(
   weight = NULL,
   trials = NULL,
   exposure = NULL,
-  strategy = c("laplace", "simplified.laplace"),
-  scale_model = TRUE,
-  prior_prec_area = list(prior = "pc.prec", param = c(1, 0.01)),
-  prior_prec_subarea = list(prior = "pc.prec", param = c(1, 0.01)),
-  prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+  engine = "inla",
   compute_area = TRUE,
-  n_samples = 200,
   print_result = TRUE,
   ...
 )
@@ -70,30 +65,22 @@ Required when \code{family = "binomial"}.}
 \item{exposure}{Optional character string or vector specifying expected baseline exposures per sub-area.
 Required when \code{family = "poisson"}.}
 
-\item{strategy}{INLA approximation strategy: \code{"laplace"} (default, highest accuracy) or
-\code{"simplified.laplace"} (faster).}
-
-\item{scale_model}{Logical. If \code{TRUE} (default), scales the spatial graph so the
-marginal variance of the structured effect is approximately 1 (recommended for BYM2/Besag).}
-
-\item{prior_prec_area}{List specifying the prior for area random effect precision (\eqn{\tau_v}).
-Default is \code{list(prior = "pc.prec", param = c(1, 0.01))}.}
-
-\item{prior_prec_subarea}{List specifying the prior for sub-area random effect precision (\eqn{\tau_u}).
-Default is \code{list(prior = "pc.prec", param = c(1, 0.01))}.}
-
-\item{prior_phi}{List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
-in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.}
+\item{engine}{Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
+object holding the approximation strategy, the priors (\code{prior_prec} for the area
+effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
+both by default \code{list(prior = "pc.prec", param = c(1, 0.01))}; \code{prior_phi} for
+BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
+(default 200) and their \code{seed}, and further \code{INLA::inla()} arguments.}
 
 \item{compute_area}{Logical. If \code{TRUE} (default), computes aggregate primary area-level
 estimates and posterior standard errors via posterior sampling.}
 
-\item{n_samples}{Integer specifying the number of posterior draws used to compute
-area-level aggregate uncertainties. Default is \code{200}.}
-
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 
-\item{...}{Additional arguments passed to \code{INLA::inla()}.}
+\item{...}{Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec_area} (now
+\code{prior_prec}), \code{prior_prec_subarea}, \code{prior_phi}, \code{n_samples} (now
+\code{draws}) and arguments of \code{INLA::inla()} are now given to
+\code{\link{inla_engine}()}; passed here they are forwarded to it with a warning.}
 }
 \value{
 An object of class \code{c("fastsae_hb_twofold", "fastsae_hb", "fastsae")} containing:
@@ -138,6 +125,7 @@ An object of class \code{c("fastsae_hb_twofold", "fastsae_hb", "fastsae")} conta
   \item \code{convergence}: Logical indicating convergence.
   \item \code{level}: \code{"subarea"}.
   \item \code{fit}: Raw fitted INLA model object.
+  \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
   \item \code{call}: Matched function call.
 }
 }

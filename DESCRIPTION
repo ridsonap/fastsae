@@ -8,7 +8,9 @@ Authors@R: c(
     )
 Description: High-performance Small Area Estimation (SAE) in R, implementing
     frequentist EBLUP models via compiled C++ and Bayesian hierarchical models
-    via INLA (Integrated Nested Laplace Approximations). Frequentist models
+    via INLA (Integrated Nested Laplace Approximations) or, optionally, full
+    MCMC with 'NumPyro' (Phan et al., 2019) <doi:10.48550/arXiv.1912.11554>
+    on 'JAX' (CPU or NVIDIA GPU). Frequentist models
     include the area-level Fay-Herriot model (Fay and Herriot, 1979
     <doi:10.1080/01621459.1979.10482505>), spatial Fay-Herriot (Pratesi and
     Salvati, 2008 <doi:10.1007/s10260-007-0061-9>), spatio-temporal
@@ -33,7 +35,6 @@ Additional_repositories: https://inla.r-inla-download.org/R/stable
 Imports:
     cli,
     ggplot2,
-    lme4,
     Matrix,
     methods,
     Rcpp,
@@ -47,8 +48,10 @@ Suggests:
     emdi,
     foreach,
     INLA,
+    lme4,
     MASS,
     parallel,
+    reticulate,
     sae,
     spdep,
     spam,
@@ -62,6 +65,8 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
+SystemRequirements: Python (>= 3.10) with 'jax' and 'numpyro' (optional,
+    for hb_area(engine = "jax"); see setup_numpyro_env())
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
@@ -82,7 +87,10 @@ Collate:
     eblup_stfh.R
     eblup_twofold.R
     eblup_bhf.R
+    engine.R
     hb_area.R
+    hb_area_jax.R
+    python_env.R
     hb_unit.R
     hb_twofold.R
     sim_spatial_weights.R

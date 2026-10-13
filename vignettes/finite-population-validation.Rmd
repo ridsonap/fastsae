@@ -103,7 +103,7 @@ Across $R = 100$ independent survey sample replications, the empirical propertie
 
 ## Empirical Benchmark Results ($R = 100$ Replications, $D = 60$)
 
-The table below summarizes the macro-averaged empirical metrics across all 60 domains from the full $R = 100$ Monte Carlo simulation, evaluating `fastsae` with Full Laplace approximation (`strategy = "laplace"`) and calibrated PC-Prior (`param = c(1, 0.05)`):
+The table below summarizes the macro-averaged empirical metrics across all 60 domains from the full $R = 100$ Monte Carlo simulation, evaluating `fastsae` with Full Laplace approximation (`inla_engine(strategy = "laplace")`) and calibrated PC-Prior (`param = c(1, 0.05)`):
 
 *(Cells highlighted in <span style="background-color: rgba(25, 135, 84, 0.18); color: #198754; padding: 1px 5px; border-radius: 3px; font-weight: bold;">green</span> indicate superior performance for each evaluation criterion).*
 

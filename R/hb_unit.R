@@ -38,16 +38,14 @@
 #'   match the total number of unique domains in \code{Xpop}. Required when \code{spatial != "none"}.
 #' @param popnmean_xpop Optional matrix or data frame of auxiliary population means per domain.
 #'   If \code{NULL} (default), means are extracted directly from \code{Xpop}.
-#' @param strategy INLA approximation strategy: \code{"laplace"} (default, highest accuracy) or
-#'   \code{"simplified.laplace"} (faster).
-#' @param scale_model Logical. If \code{TRUE} (default), scales the spatial graph so the
-#'   marginal variance of the structured effect is approximately 1 (recommended for BYM2/Besag).
-#' @param prior_prec List specifying the prior for domain random effect precision. Default is
-#'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}.
-#' @param prior_phi List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
-#'   in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.
+#' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
+#'   object holding the approximation strategy, the priors (\code{prior_prec}, default
+#'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}; \code{prior_phi} for BYM2),
+#'   \code{scale_model} and further \code{INLA::inla()} arguments.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
-#' @param ... Additional arguments passed to \code{INLA::inla()}.
+#' @param ... Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec},
+#'   \code{prior_phi} and arguments of \code{INLA::inla()} are now given to
+#'   \code{\link{inla_engine}()}; passed here they are forwarded to it with a warning.
 #'
 #' @returns An object of class \code{c("fastsae_hb_unit", "fastsae_hb", "fastsae")} containing:
 #' \itemize{
@@ -77,6 +75,7 @@
 #'   \item \code{spatial}: Spatial model type used.
 #'   \item \code{unsampled_domains}: Character vector of unsampled domain identifiers.
 #'   \item \code{fit}: Raw fitted INLA model object.
+#'   \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
 #'   \item \code{call}: Matched function call.
 #' }
 #'
@@ -131,19 +130,30 @@ hb_unit <- function(
   spatial = c("none", "bym2", "besag"),
   W = NULL,
   popnmean_xpop = NULL,
-  strategy = c("laplace", "simplified.laplace"),
-  scale_model = TRUE,
-  prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
-  prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+  engine = "inla",
   print_result = TRUE,
   ...
 ) {
+  engine <- .resolve_inla_engine(
+    engine, missing(engine), list(...), "hb_unit",
+    defaults = list(
+      prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
+      prior_phi = list(prior = "pc", param = c(0.5, 0.5))
+    ),
+    used = c("scale_model", "prior_prec", "prior_phi")
+  )
+  .require_inla_engine(engine, "hb_unit")
+  strategy <- engine$strategy
+  scale_model <- engine$scale_model
+  # referenced by name in the INLA formula
+  prior_prec <- engine$prior_prec
+  prior_phi <- engine$prior_phi
+
   # 1. Dependency checks
   .check_inla_installed()
 
   family <- match.arg(family)
   spatial <- match.arg(spatial)
-  strategy <- match.arg(strategy)
 
   # 2. Input validation
   if (!inherits(formula, "formula")) {
@@ -299,8 +309,8 @@ hb_unit <- function(
     control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, mlik = TRUE),
     num.threads = 1
   )
-  extra_args <- list(...)
-  inla_args[names(extra_args)] <- extra_args
+  # inla_engine(...) settings override; control.* lists are merged
+  inla_args <- utils::modifyList(inla_args, engine$inla_args)
 
   # 8. Fit INLA model
   fit <- tryCatch(
@@ -495,6 +505,8 @@ hb_unit <- function(
     level = "unit",
     formula = formula,
     fit = fit,
+    engine = "inla",
+    engine_spec = engine,
     call = match.call()
   )
 

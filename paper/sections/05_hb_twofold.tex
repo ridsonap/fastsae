@@ -74,8 +74,8 @@ Tingkat sub-area (baris 320-321):
 Tingkat area memakai sampling posterior (baris 366-407), bila
 \code{compute\_area = TRUE}:
 \begin{enumerate}[label=\arabic*.]
-  \item \code{ps $\leftarrow$ INLA::inla.posterior.sample(n = n\_samples, fit)}
-        dengan \code{n\_samples} default $200$;
+  \item \code{ps $\leftarrow$ INLA::inla.posterior.sample(n = draws, fit, seed)}
+        dengan \code{inla\_engine(draws = )} default $200$;
   \item tarik baris \code{Predictor:1}..\code{Predictor:$n_{\text{subarea}}$}
         dari \code{rownames(ps[[1]]\$latent)};
   \item transformasi balik link manual (binomial $1/(1+e^{-x})$, Poisson
@@ -104,8 +104,7 @@ jatuh ke $\pm1.96\,\mathrm{sd}$ (HB-18). Bila \code{compute\_area = FALSE},
 \label{alg:hbtwofold}
 \KwIn{formula, \code{vardir} (wajib bila Gaussian), \code{domain} (wajib),
   \code{subarea}, \code{data}, \code{family}, \code{spatial}, $W$,
-  \code{weight}, \code{trials}, \code{exposure}, prior, \code{compute\_area},
-  \code{n\_samples}, \code{...}}
+  \code{weight}, \code{trials}, \code{exposure}, \code{engine}, \code{compute\_area}}
 \KwOut{\code{df\_hb} (sub-area), \code{df\_area} (area, bila diaktifkan), \code{goodness}}
 \texttt{.check\_inla\_installed()} (161);\quad \code{match.arg} (163-165)\;
 \code{domain} wajib;\quad \code{subarea} $\leftarrow$ \code{1..n} bila \code{NULL} (177-186)\;
@@ -140,11 +139,10 @@ hb_twofold(formula, vardir = NULL, domain, subarea = NULL, data,
            family = c("gaussian","binomial","poisson"),
            spatial = c("none","bym2","besag"), W = NULL, weight = NULL,
            trials = NULL, exposure = NULL,
-           strategy = c("laplace","simplified.laplace"), scale_model = TRUE,
-           prior_prec_area    = list(prior = "pc.prec", param = c(1, 0.01)),
-           prior_prec_subarea = list(prior = "pc.prec", param = c(1, 0.01)),
-           prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
-           compute_area = TRUE, n_samples = 200, print_result = TRUE, ...)
+           engine = "inla",  # atau inla_engine(strategy, scale_model,
+                             #   prior_prec (area), prior_prec_subarea,
+                             #   prior_phi, draws = 200 bila NULL, seed, ...)
+           compute_area = TRUE, print_result = TRUE, ...)  # ...: argumen lama, usang
 \end{lstlisting}
 
 Objek keluaran: \code{c("fastsae\_hb\_twofold", "fastsae\_hb", "fastsae")}

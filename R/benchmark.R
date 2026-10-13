@@ -884,6 +884,12 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
     }
     return(make_op(g12_mult, g12_sorted[inv]))
   }
+  # posterior covariance from stored MCMC draws (hb_area(engine = "jax"))
+  if (inherits(object, "fastsae_hb_area") && is.matrix(object$draws) && nrow(object$draws) == nrow(df)) {
+    Tc <- object$draws - rowMeans(object$draws)
+    S1 <- ncol(Tc) - 1
+    return(make_op(function(v) Tc %*% crossprod(Tc, v) / S1, rowSums(Tc^2) / S1))
+  }
   if (inherits(object, "fastsae_hb_area") && !is.null(object$fit) && inherits(object$fit, "inla") &&
       requireNamespace("INLA", quietly = TRUE)) {
     fam <- object$family %||% "gaussian"

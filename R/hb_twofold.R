@@ -40,22 +40,19 @@
 #'   Required when \code{family = "binomial"}.
 #' @param exposure Optional character string or vector specifying expected baseline exposures per sub-area.
 #'   Required when \code{family = "poisson"}.
-#' @param strategy INLA approximation strategy: \code{"laplace"} (default, highest accuracy) or
-#'   \code{"simplified.laplace"} (faster).
-#' @param scale_model Logical. If \code{TRUE} (default), scales the spatial graph so the
-#'   marginal variance of the structured effect is approximately 1 (recommended for BYM2/Besag).
-#' @param prior_prec_area List specifying the prior for area random effect precision (\eqn{\tau_v}).
-#'   Default is \code{list(prior = "pc.prec", param = c(1, 0.01))}.
-#' @param prior_prec_subarea List specifying the prior for sub-area random effect precision (\eqn{\tau_u}).
-#'   Default is \code{list(prior = "pc.prec", param = c(1, 0.01))}.
-#' @param prior_phi List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
-#'   in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.
+#' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
+#'   object holding the approximation strategy, the priors (\code{prior_prec} for the area
+#'   effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
+#'   both by default \code{list(prior = "pc.prec", param = c(1, 0.01))}; \code{prior_phi} for
+#'   BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
+#'   (default 200) and their \code{seed}, and further \code{INLA::inla()} arguments.
 #' @param compute_area Logical. If \code{TRUE} (default), computes aggregate primary area-level
 #'   estimates and posterior standard errors via posterior sampling.
-#' @param n_samples Integer specifying the number of posterior draws used to compute
-#'   area-level aggregate uncertainties. Default is \code{200}.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
-#' @param ... Additional arguments passed to \code{INLA::inla()}.
+#' @param ... Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec_area} (now
+#'   \code{prior_prec}), \code{prior_prec_subarea}, \code{prior_phi}, \code{n_samples} (now
+#'   \code{draws}) and arguments of \code{INLA::inla()} are now given to
+#'   \code{\link{inla_engine}()}; passed here they are forwarded to it with a warning.
 #'
 #' @returns An object of class \code{c("fastsae_hb_twofold", "fastsae_hb", "fastsae")} containing:
 #' \itemize{
@@ -99,6 +96,7 @@
 #'   \item \code{convergence}: Logical indicating convergence.
 #'   \item \code{level}: \code{"subarea"}.
 #'   \item \code{fit}: Raw fitted INLA model object.
+#'   \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
 #'   \item \code{call}: Matched function call.
 #' }
 #'
@@ -147,22 +145,34 @@ hb_twofold <- function(
   weight = NULL,
   trials = NULL,
   exposure = NULL,
-  strategy = c("laplace", "simplified.laplace"),
-  scale_model = TRUE,
-  prior_prec_area = list(prior = "pc.prec", param = c(1, 0.01)),
-  prior_prec_subarea = list(prior = "pc.prec", param = c(1, 0.01)),
-  prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+  engine = "inla",
   compute_area = TRUE,
-  n_samples = 200,
   print_result = TRUE,
   ...
 ) {
   call_matched <- match.call()
+  pc_prec <- list(prior = "pc.prec", param = c(1, 0.01))
+  engine <- .resolve_inla_engine(
+    engine, missing(engine), list(...), "hb_twofold",
+    defaults = list(
+      prior_prec = pc_prec,
+      prior_prec_subarea = pc_prec,
+      prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+      draws = 200L
+    ),
+    used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws")
+  )
+  .require_inla_engine(engine, "hb_twofold")
+  strategy <- engine$strategy
+  scale_model <- engine$scale_model
+  # referenced by name in the INLA formula
+  prior_prec_area <- engine$prior_prec
+  prior_prec_subarea <- engine$prior_prec_subarea
+  prior_phi <- engine$prior_phi
   .check_inla_installed()
 
   family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson"))
   spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "besag"))
-  strategy <- match.arg(tolower(strategy), choices = c("laplace", "simplified.laplace"))
 
   if (!is.data.frame(data)) {
     cli::cli_abort("{.arg data} must be a data frame or tibble.")
@@ -285,8 +295,8 @@ hb_twofold <- function(
     }
   }
 
-  extra_args <- list(...)
-  inla_args[names(extra_args)] <- extra_args
+  # inla_engine(...) settings override; control.* lists are merged
+  inla_args <- utils::modifyList(inla_args, engine$inla_args)
 
   # 8. Fit INLA Model
   fit <- tryCatch(
@@ -364,7 +374,7 @@ hb_twofold <- function(
     area_upper <- rep(NA_real_, n_domains)
 
     ps_ok <- tryCatch({
-      ps <- INLA::inla.posterior.sample(n = n_samples, fit)
+      ps <- INLA::inla.posterior.sample(n = engine$draws, fit, seed = engine$seed)
       pred_names <- paste0("Predictor:", seq_len(n_subareas))
       latent_rows <- rownames(ps[[1]]$latent)
       pred_indices <- match(pred_names, latent_rows)
@@ -497,6 +507,8 @@ hb_twofold <- function(
     level = "subarea",
     formula = formula,
     fit = fit,
+    engine = "inla",
+    engine_spec = engine,
     call = call_matched
   )
 

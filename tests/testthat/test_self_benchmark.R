@@ -384,7 +384,7 @@ test_that("hb_area posterior self-benchmarking is exact for every family", {
   for (cs in cases) {
     fit <- do.call(hb_area, c(list(formula = cs$f, data = d, domain = "area", family = cs$family,
                                    self_benchmark = TRUE, benchmark_weight = "w",
-                                   benchmark_draws = 200, benchmark_seed = 1L,
+                                   engine = inla_engine(draws = 200, seed = 1L),
                                    print_result = FALSE), cs$args))
     expect_equal(fit$benchmark_method, "posterior")
     expect_lt(max(abs(fit$benchmark_summary$discrepancy)), 1e-8)

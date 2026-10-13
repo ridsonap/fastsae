@@ -106,7 +106,7 @@ $\to\bar y/n$ (baris 401-409). Tidak ada posterior sampling di fungsi ini.
 \label{alg:hbunit}
 \KwIn{formula, \code{unit\_data}, \code{Xpop}, \code{domain\_var},
   \code{popsize\_var}, \code{family}, \code{spatial}, $W$,
-  \code{popnmean\_xpop}, \code{strategy}, prior, \code{...}}
+  \code{popnmean\_xpop}, \code{engine}}
 \KwOut{objek \code{fastsae\_hb\_unit} berisi \code{df\_hb}, \code{fit}, \code{goodness}}
 \texttt{.check\_inla\_installed()} (142);\quad \code{match.arg} (144-146)\;
 sampel $\leftarrow$ \texttt{model.frame(na.omit)}; $y_s\leftarrow$ respons (172-178)\;
@@ -136,11 +136,10 @@ hb_unit(formula, unit_data, Xpop, domain_var, popsize_var = NULL,
         family = c("gaussian","binomial","poisson"),
         spatial = c("none","bym2","besag"),
         W = NULL, popnmean_xpop = NULL,
-        strategy = c("laplace","simplified.laplace"),
-        scale_model = TRUE,
-        prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
-        prior_phi  = list(prior = "pc", param = c(0.5, 0.5)),
-        print_result = TRUE, ...)
+        engine = "inla",   # atau inla_engine(strategy, scale_model,
+                           #   prior_prec = loggamma(0.01, 0.01) bila NULL,
+                           #   prior_phi = pc(0.5, 0.5) bila NULL, ...)
+        print_result = TRUE, ...)  # ...: argumen lama, usang
 \end{lstlisting}
 
 Objek keluaran: \code{c("fastsae\_hb\_unit", "fastsae\_hb", "fastsae")} berisi

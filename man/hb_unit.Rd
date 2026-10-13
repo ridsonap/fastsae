@@ -14,10 +14,7 @@ hb_unit(
   spatial = c("none", "bym2", "besag"),
   W = NULL,
   popnmean_xpop = NULL,
-  strategy = c("laplace", "simplified.laplace"),
-  scale_model = TRUE,
-  prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
-  prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
+  engine = "inla",
   print_result = TRUE,
   ...
 )
@@ -62,21 +59,16 @@ match the total number of unique domains in \code{Xpop}. Required when \code{spa
 \item{popnmean_xpop}{Optional matrix or data frame of auxiliary population means per domain.
 If \code{NULL} (default), means are extracted directly from \code{Xpop}.}
 
-\item{strategy}{INLA approximation strategy: \code{"laplace"} (default, highest accuracy) or
-\code{"simplified.laplace"} (faster).}
-
-\item{scale_model}{Logical. If \code{TRUE} (default), scales the spatial graph so the
-marginal variance of the structured effect is approximately 1 (recommended for BYM2/Besag).}
-
-\item{prior_prec}{List specifying the prior for domain random effect precision. Default is
-\code{list(prior = "loggamma", param = c(0.01, 0.01))}.}
-
-\item{prior_phi}{List specifying the PC-prior for the spatial mixing parameter \eqn{\phi}
-in the BYM2 model. Default is \code{list(prior = "pc", param = c(0.5, 0.5))}.}
+\item{engine}{Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
+object holding the approximation strategy, the priors (\code{prior_prec}, default
+\code{list(prior = "loggamma", param = c(0.01, 0.01))}; \code{prior_phi} for BYM2),
+\code{scale_model} and further \code{INLA::inla()} arguments.}
 
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 
-\item{...}{Additional arguments passed to \code{INLA::inla()}.}
+\item{...}{Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec},
+\code{prior_phi} and arguments of \code{INLA::inla()} are now given to
+\code{\link{inla_engine}()}; passed here they are forwarded to it with a warning.}
 }
 \value{
 An object of class \code{c("fastsae_hb_unit", "fastsae_hb", "fastsae")} containing:
@@ -107,6 +99,7 @@ An object of class \code{c("fastsae_hb_unit", "fastsae_hb", "fastsae")} containi
   \item \code{spatial}: Spatial model type used.
   \item \code{unsampled_domains}: Character vector of unsampled domain identifiers.
   \item \code{fit}: Raw fitted INLA model object.
+  \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
   \item \code{call}: Matched function call.
 }
 }

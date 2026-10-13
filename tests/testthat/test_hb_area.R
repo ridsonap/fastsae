@@ -155,7 +155,7 @@ test_that("hb_area works for Poisson response with exposure", {
   expect_true("estimated_count" %in% names(fit_pois$df_hb))
 })
 
-test_that("hb_area works with method = 'laplace' (Frequentist GLMM)", {
+test_that("hb_area works with inla_engine(strategy = 'laplace') for binomial", {
   set.seed(42)
   D <- 20
   x <- rnorm(D)
@@ -170,11 +170,13 @@ test_that("hb_area works with method = 'laplace' (Frequentist GLMM)", {
     domain = "id",
     family = "binomial",
     trials = "n",
-    method = "laplace",
+    engine = inla_engine(strategy = "laplace"),
     print_result = FALSE
   )
 
   expect_s3_class(fit_lap, "fastsae_hb_area")
+  expect_equal(fit_lap$engine, "inla")
+  expect_equal(fit_lap$engine_spec$strategy, "laplace")
   expect_equal(length(fit_lap$df_hb$hb), D)
   expect_equal(nrow(fit_lap$estcoef), 2)
   expect_true(all(fit_lap$df_hb$hb >= 0 & fit_lap$df_hb$hb <= 1))
@@ -332,7 +334,7 @@ test_that("hb_area works for Spatial Lag Model (spatial = slm)", {
   expect_false(any(is.na(fit_slm$df_hb$hb)))
 })
 
-test_that("hb_area works for method = laplace via lme4 (binomial & poisson) and fallback messages", {
+test_that("hb_area: full Laplace strategy (binomial & poisson) and deprecated method = 'laplace'", {
   set.seed(42)
   D <- 20
   df_glmm <- data.frame(
@@ -344,35 +346,39 @@ test_that("hb_area works for method = laplace via lme4 (binomial & poisson) and 
   df_glmm$y_bin <- rbinom(D, size = df_glmm$n, prob = plogis(-0.2 + 0.5 * df_glmm$x))
   df_glmm$y_pois <- rpois(D, lambda = df_glmm$exposure * exp(-1.5 + 0.3 * df_glmm$x))
 
-  # 1. method = "laplace" for binomial
+  # 1. binomial with the full Laplace strategy
   fit_lap_bin <- hb_area(
     y_bin ~ x,
     data = df_glmm,
     domain = "area",
     family = "binomial",
     trials = "n",
-    method = "laplace",
+    engine = inla_engine(strategy = "laplace"),
     print_result = FALSE
   )
   expect_s3_class(fit_lap_bin, "fastsae_hb_area")
-  expect_equal(fit_lap_bin$model, "HB-BINOMIAL (Laplace GLMM)")
+  expect_equal(fit_lap_bin$model, "HB-BINOMIAL (Non-spatial)")
 
-  # 2. method = "laplace" for poisson with exposure
-  fit_lap_pois <- hb_area(
-    y_pois ~ x,
-    data = df_glmm,
-    domain = "area",
-    family = "poisson",
-    exposure = "exposure",
-    method = "laplace",
-    print_result = FALSE
+  # 2. deprecated method = "laplace" for poisson: INLA with the full Laplace strategy
+  expect_warning(
+    fit_lap_pois <- hb_area(
+      y_pois ~ x,
+      data = df_glmm,
+      domain = "area",
+      family = "poisson",
+      exposure = "exposure",
+      method = "laplace",
+      print_result = FALSE
+    ),
+    "deprecated"
   )
   expect_s3_class(fit_lap_pois, "fastsae_hb_area")
-  expect_equal(fit_lap_pois$model, "HB-POISSON (Laplace GLMM)")
+  expect_equal(fit_lap_pois$engine, "inla")
+  expect_equal(fit_lap_pois$engine_spec$strategy, "laplace")
 
-  # 3. method = "laplace" for gaussian triggers message and INLA laplace strategy
+  # 3. deprecated method = "laplace" for gaussian
   data("mys", package = "fastsae")
-  expect_message(
+  expect_warning(
     fit_lap_gauss <- hb_area(
       y ~ x1,
       data = mys,
@@ -381,9 +387,10 @@ test_that("hb_area works for method = laplace via lme4 (binomial & poisson) and 
       method = "laplace",
       print_result = FALSE
     ),
-    "utilizing INLA"
+    "deprecated"
   )
   expect_s3_class(fit_lap_gauss, "fastsae_hb_area")
+  expect_equal(fit_lap_gauss$engine, "inla")
 
   # 4. Gaussian model with vardir = NULL (estimated sampling variance)
   fit_no_vardir <- hb_area(
@@ -396,8 +403,8 @@ test_that("hb_area works for method = laplace via lme4 (binomial & poisson) and 
   expect_s3_class(fit_no_vardir, "fastsae_hb_area")
   expect_true(!is.null(fit_no_vardir$random_effect_var))
 
-  # 5. method = "laplace" with spatial != "none" and non-gaussian triggers message
-  expect_message(
+  # 5. deprecated method = "laplace" with a spatial binomial model
+  expect_warning(
     hb_area(
       y_bin ~ x,
       data = df_glmm,
@@ -409,11 +416,12 @@ test_that("hb_area works for method = laplace via lme4 (binomial & poisson) and 
       method = "laplace",
       print_result = FALSE
     ),
-    "Spatial and temporal models require INLA"
+    "deprecated"
   )
 
-  # 6. method = "laplace" without exposure (Poisson)
-  fit_lap_pois2 <- hb_area(y_pois ~ x, data = df_glmm, domain = "area", family = "poisson", method = "laplace", print_result = FALSE)
+  # 6. full Laplace strategy without exposure (Poisson)
+  fit_lap_pois2 <- hb_area(y_pois ~ x, data = df_glmm, domain = "area", family = "poisson",
+                           engine = inla_engine(strategy = "laplace"), print_result = FALSE)
   expect_s3_class(fit_lap_pois2, "fastsae_hb_area")
 })
 
@@ -523,17 +531,7 @@ test_that("hb_area handles ST interaction types", {
   )
 })
 
-test_that(".fit_glmm_laplace and hb_area prior/spatial branches work", {
-  skip_if_not_installed("lme4")
-  # 1. .fit_glmm_laplace gaussian and binomial without trials
-  df_test <- data.frame(y = rnorm(10), x = rnorm(10), d = rep(1:5, 2))
-  fit_g <- fastsae:::.fit_glmm_laplace(y ~ x, data = df_test, domain = df_test$d, family = "gaussian")
-  expect_s3_class(fit_g, "fastsae")
-
-  df_bin <- data.frame(y = rbinom(10, 1, 0.5), x = rnorm(10), d = rep(1:5, 2))
-  fit_b <- fastsae:::.fit_glmm_laplace(y ~ x, data = df_bin, domain = df_bin$d, family = "binomial")
-  expect_s3_class(fit_b, "fastsae")
-
+test_that("hb_area prior/spatial branches work", {
   # 2. vardir <= 0 error for gaussian
   df_bad_var <- data.frame(y = 1:5, x = 1:5, vardir = c(1, 0, 1, 1, 1))
   expect_error(hb_area(y ~ x, data = df_bad_var, vardir = "vardir", family = "gaussian"), "strictly positive")
@@ -557,7 +555,7 @@ test_that(".fit_glmm_laplace and hb_area prior/spatial branches work", {
     time = "time",
     vardir = "vardir",
     temporal = "ar1",
-    prior_rho_time = list(prior = "normal", param = c(0, 0.15)),
+    engine = inla_engine(prior_rho_time = list(prior = "normal", param = c(0, 0.15))),
     st_interaction = "domain-specific",
     print_result = FALSE
   )
@@ -570,7 +568,7 @@ test_that(".fit_glmm_laplace and hb_area prior/spatial branches work", {
     vardir = "vardir",
     spatial = "generic1",
     W = mys_proxmat,
-    prior_rho = list(prior = "normal", param = c(0, 1)),
+    engine = inla_engine(prior_rho = list(prior = "normal", param = c(0, 1))),
     print_result = FALSE
   )
   expect_s3_class(fit_gen, "fastsae_hb_area")
@@ -581,7 +579,7 @@ test_that(".fit_glmm_laplace and hb_area prior/spatial branches work", {
     vardir = "vardir",
     spatial = "slm",
     W = mys_proxmat,
-    prior_rho = list(prior = "normal", param = c(0, 1)),
+    engine = inla_engine(prior_rho = list(prior = "normal", param = c(0, 1))),
     print_result = FALSE
   )
   expect_s3_class(fit_slm, "fastsae_hb_area")
