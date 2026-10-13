@@ -106,7 +106,7 @@ summary(fit_fh)
 #> 
 #> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> 
 #> Variance Components:
 #> sigma2_u: 2.608103 

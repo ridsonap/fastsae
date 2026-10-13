@@ -1,25 +1,24 @@
 # Add Official Statistical Reliability Flags
 
-Categorizes Small Area Estimates into standard statistical publication
-reliability tiers based on their Relative Standard Error (RSE / CV %),
-following guidelines from official statistical agencies (such as
-BPS-Statistics Indonesia, Eurostat, and US Census Bureau).
+Categorizes small area estimates into publication reliability tiers
+based on their relative standard error (RSE, %). The default thresholds
+follow the criteria used by BPS-Statistics Indonesia:
 
-Default classification thresholds:
+- **Reliable** (\\\text{RSE} \le 25\\\\): suitable for publication.
 
-- **Reliable** (\\\text{RSE} \< 20\\\\): Suitable for unconditional
-  official publication.
+- **Use with caution** (\\25\\ \< \text{RSE} \le 50\\\\): publish with a
+  cautionary note on sampling variability.
 
-- **Use with Caution** (\\20\\ \le \text{RSE} \< 30\\\\): Usable with
-  cautionary footnotes regarding sampling variability.
+- **Unreliable** (\\\text{RSE} \> 50\\\\): suppress or aggregate to a
+  higher level.
 
-- **Unreliable** (\\\text{RSE} \ge 30\\\\): High sampling error;
-  suppression or aggregation to higher geographic levels recommended.
+Other agencies use other cut-offs (for example 25% and 50% at the
+Australian Bureau of Statistics); set `thresholds` accordingly.
 
 ## Usage
 
 ``` r
-add_reliability_flags(object, rse_col = "rse", thresholds = c(20, 30))
+add_reliability_flags(object, rse_col = "rse", thresholds = c(25, 50))
 ```
 
 ## Arguments
@@ -31,16 +30,17 @@ add_reliability_flags(object, rse_col = "rse", thresholds = c(20, 30))
 - rse_col:
 
   Character string specifying the name of the RSE column. Default is
-  `"rse"`.
+  `"rse"`. If it is missing, the RSE is computed from the `mse` and
+  estimate columns.
 
 - thresholds:
 
-  Numeric vector of length 2 defining the RSE (%) cutoffs. Default is
-  `c(20, 30)`.
+  Numeric vector of length 2 with the RSE (%) cut-offs. Default is
+  `c(25, 50)`.
 
 ## Value
 
-The input object or data frame with an additional factor column
+The estimation table (a data frame) with an additional factor column
 `reliability`.
 
 ## Examples
@@ -57,7 +57,7 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.569182 
 #> 
 #> Fixed Effects Coefficients:
@@ -79,6 +79,8 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 df_flagged <- add_reliability_flags(fit_fh)
 table(df_flagged$reliability)
 #> 
-#>          Reliable (< 20%) Use with Caution (20-30%)        Unreliable (≥ 30%) 
-#>                        19                         9                        14 
+#>               Reliable (RSE ≤ 25%) Use with caution (25% < RSE ≤ 50%) 
+#>                                 22                                 19 
+#>             Unreliable (RSE > 50%) 
+#>                                  1 
 ```

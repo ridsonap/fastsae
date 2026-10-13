@@ -210,7 +210,7 @@ summary(fit_stfh)
 #> print_result = FALSE)
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
-#> Model: Spatio-Temporal Fay-Herriot (ST-FH)
+#> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
 #> 
 #> Variance & Correlation Components:

@@ -58,7 +58,7 @@ fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
 #> 
 #> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.608103 
 #> 
 #> Fixed Effects Coefficients:

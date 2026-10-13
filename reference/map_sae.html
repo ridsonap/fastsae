@@ -5,7 +5,8 @@ eblup_sfh, eblup_stfh, eblup_bhf, hb_area, and benchmark_sae).
 Intelligently handles:
 Single Model Visualizations: Point estimates ("estimate"), Relative
     Standard Error ("rse"), and 3-color official statistics reliability classification
-    ("reliability": green for reliable &amp;lt; 20%, amber for caution 20-30%, red for unreliable \(\ge 30\%\)).
+    ("reliability": green for reliable, amber for use with caution, red for unreliable; cut-offs
+    from thresholds, see add_reliability_flags).
 Direct vs Model Comparisons: Side-by-side facet maps contrasting erratic direct survey
     estimates against smoothed small area model estimates ("comparison").
 Two-Model Comparisons: Side-by-side maps or spatial difference maps ("difference")
@@ -20,7 +21,8 @@ eblup_sfh, eblup_stfh, eblup_bhf, hb_area, and benchmark_sae).
 Intelligently handles:
 Single Model Visualizations: Point estimates ("estimate"), Relative
     Standard Error ("rse"), and 3-color official statistics reliability classification
-    ("reliability": green for reliable &amp;lt; 20%, amber for caution 20-30%, red for unreliable \(\ge 30\%\)).
+    ("reliability": green for reliable, amber for use with caution, red for unreliable; cut-offs
+    from thresholds, see add_reliability_flags).
 Direct vs Model Comparisons: Side-by-side facet maps contrasting erratic direct survey
     estimates against smoothed small area model estimates ("comparison").
 Two-Model Comparisons: Side-by-side maps or spatial difference maps ("difference")
@@ -97,7 +99,8 @@ interface for Small Area Estimation models fitted with <span class="pkg">fastsae
 <code>eblup_sfh</code>, <code>eblup_stfh</code>, <code>eblup_bhf</code>, <code>hb_area</code>, and <code>benchmark_sae</code>).</p>
 <p>Intelligently handles:</p><ul><li><p><strong>Single Model Visualizations</strong>: Point estimates (<code>"estimate"</code>), Relative
     Standard Error (<code>"rse"</code>), and 3-color official statistics reliability classification
-    (<code>"reliability"</code>: green for reliable &lt; 20%, amber for caution 20-30%, red for unreliable \(\ge 30\%\)).</p></li>
+    (<code>"reliability"</code>: green for reliable, amber for use with caution, red for unreliable; cut-offs
+    from <code>thresholds</code>, see <code><a href="add_reliability_flags.html">add_reliability_flags</a></code>).</p></li>
 <li><p><strong>Direct vs Model Comparisons</strong>: Side-by-side facet maps contrasting erratic direct survey
     estimates against smoothed small area model estimates (<code>"comparison"</code>).</p></li>
 <li><p><strong>Two-Model Comparisons</strong>: Side-by-side maps or spatial difference maps (<code>"difference"</code>)
@@ -120,7 +123,7 @@ interface for Small Area Estimation models fitted with <span class="pkg">fastsae
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"rse"</span>, <span class="st">"reliability"</span>, <span class="st">"comparison"</span>, <span class="st">"difference"</span><span class="op">)</span>,</span>
 <span>  indicator <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  palette <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  thresholds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">30</span><span class="op">)</span>,</span>
+<span>  thresholds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">50</span><span class="op">)</span>,</span>
 <span>  facet_scales <span class="op">=</span> <span class="st">"fixed"</span>,</span>
 <span>  title <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  subtitle <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -161,6 +164,7 @@ interface for Small Area Estimation models fitted with <span class="pkg">fastsae
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"rse"</span>, <span class="st">"reliability"</span><span class="op">)</span>,</span>
 <span>  indicator <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  palette <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  thresholds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">50</span><span class="op">)</span>,</span>
 <span>  title <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  subtitle <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -201,10 +205,10 @@ model domain identifiers with the spatial geometry in <code>sf_geom</code>.</p><
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p>Character string specifying the visualization type:</p><ul><li><p><code>"estimate"</code>: Choropleth map of small area point estimates (EBP or EBLUP).</p></li>
+<dd><p>Character string specifying the visualization type:</p><ul><li><p><code>"estimate"</code>: Choropleth map of small area point estimates (HB or EBLUP).</p></li>
 <li><p><code>"rse"</code>: Choropleth map of Relative Standard Errors / CV (%).</p></li>
-<li><p><code>"reliability"</code>: Official statistics 3-color traffic light map (&lt; 20% Reliable,
-    20-30% Use with Caution, \(\ge 30\%\) Unreliable).</p></li>
+<li><p><code>"reliability"</code>: 3-color traffic light map of the reliability tiers
+    (by default RSE \(\le 25\%\) reliable, 25–50% use with caution, \(&gt; 50\%\) unreliable).</p></li>
 <li><p><code>"comparison"</code>: Side-by-side facet choropleth map (Direct vs Model, or Model 1 vs Model 2).</p></li>
 <li><p><code>"difference"</code>: Spatial difference map (\(\hat{\theta}^{(2)} - \hat{\theta}^{(1)}\)
     or \(\hat{\theta}^{\text{Model}} - \hat{\theta}^{\text{Direct}}\)) with divergent color palette.</p></li>
@@ -223,7 +227,8 @@ colors for reliability, and <code>"RdBu"</code> / <code>"PuOr"</code> for differ
 
 <dt id="arg-thresholds">thresholds<a class="anchor" aria-label="anchor" href="#arg-thresholds"></a></dt>
 <dd><p>Numeric vector of length 2 defining the RSE (%) thresholds for reliability
-classification. Default is <code>c(20, 30)</code> according to official statistical guidelines (BPS / Eurostat).</p></dd>
+classification (see <code><a href="add_reliability_flags.html">add_reliability_flags</a></code>). Default is <code>c(25, 50)</code>, the
+BPS-Statistics Indonesia criteria.</p></dd>
 
 
 <dt id="arg-facet-scales">facet_scales<a class="anchor" aria-label="anchor" href="#arg-facet-scales"></a></dt>
@@ -266,7 +271,7 @@ classification. Default is <code>c(20, 30)</code> according to official statisti
 <span class="r-in"><span>  <span class="co"># 3. Explicit key matching</span></span></span>
 <span class="r-in"><span>  <span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu">map_sae</span><span class="op">(</span><span class="va">fit_fh</span>, sf_geom <span class="op">=</span> <span class="va">mys_sf</span>, key <span class="op">=</span> <span class="st">"area"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="co"># 4. Reliability classification map (BPS standard &lt;20%, 20-30%, &gt;=30%)</span></span></span>
+<span class="r-in"><span>  <span class="co"># 4. Reliability classification map (BPS criteria: RSE &lt;= 25%, 25-50%, &gt; 50%)</span></span></span>
 <span class="r-in"><span>  <span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu">map_sae</span><span class="op">(</span><span class="va">fit_fh</span>, sf_geom <span class="op">=</span> <span class="va">mys_sf</span>, type <span class="op">=</span> <span class="st">"reliability"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span>  <span class="co"># 5. Side-by-side comparison map: Direct Survey vs Model SAE</span></span></span>
@@ -279,7 +284,7 @@ classification. Default is <code>c(20, 30)</code> according to official statisti
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 7 iterations)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Fay-Herriot (Area-level)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: eblup</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: REML</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.569182 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>

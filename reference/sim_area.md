@@ -4,8 +4,8 @@ A synthetic dataset containing 42 domains with multiple response
 variables representing various probability distributions (Gaussian,
 Poisson, Binomial, Beta, Negative Binomial, and Gamma). Designed for
 testing and benchmarking generalized linear and spatial small area
-estimation models (EBP / INLA). It shares the 42-domain spatial
-structure of
+estimation models (HB / INLA). It shares the 42-domain spatial structure
+of
 [`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md).
 
 ## Usage

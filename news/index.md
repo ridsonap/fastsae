@@ -286,6 +286,66 @@
   sets at `alpha = 0.05`. The Moran’s I, LM-error and LM-lag statistics
   are unchanged and agree with `spdep`.
 
+- [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md):
+  standardised residuals are $`(y - \hat\theta)/\sqrt{vardir - MSE}`$
+  (the variance of $`y - \hat\theta`$) instead of $`/\sqrt{vardir}`$,
+  which shrank them (sd 0.76 under a correct FH model) and hid outliers
+  in the residual and Q-Q plots.
+
+- Reliability tiers
+  ([`add_reliability_flags()`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md),
+  [`export_sae()`](https://ridsonap.github.io/fastsae/reference/export_sae.md),
+  [`map_sae()`](https://ridsonap.github.io/fastsae/reference/map_sae.md),
+  [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md),
+  `autoplot(type = "rse")`) default to the BPS-Statistics Indonesia
+  criteria: RSE \<= 25% reliable, 25% \< RSE \<= 50% use with caution,
+  RSE \> 50% unreliable (was 20%/30%, documented as the BPS standard).
+  `map_sae(type = "reliability")` now uses its `thresholds` argument
+  (they were ignored).
+
+- `benchmark_sae(type = "total")` in a hierarchical benchmark without
+  group targets: the group aggregates are weighted totals (they were
+  weighted means, on the wrong scale for stage 1).
+
+#### Breaking changes and clean-up
+
+- [`benchmark()`](https://rdrr.io/pkg/tipsae/man/benchmark.html), a
+  plain alias of
+  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md),
+  is removed; use
+  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md).
+- The leftover handling of `df_ebp`/`ebp` result tables (from the
+  removed `ebp_area()`) is removed from the methods and utilities;
+  results are in `df_hb` (HB) or `df_eblup` (EBLUP).
+- [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md)
+  returns `brown_test$bias_regression` instead of `brown_test$wald_test`
+  and `simulation_metrics$rrmse` instead of `mean_rrmse` (see above).
+
+#### Other fixes in the utilities
+
+- [`map_sae()`](https://ridsonap.github.io/fastsae/reference/map_sae.md)
+  works with any name of the `sf` geometry column (it assumed
+  `"geometry"`), labels HB fits correctly (they were labelled “EBP-”),
+  and stops with a clear message for panel or sub-area tables with
+  repeated domains instead of mis-merging them.
+- [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
+  and
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  plots label panel and sub-area rows uniquely (repeated domains made
+  some plots fail or overlap);
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  of an unnamed list of models names them.
+- [`print()`](https://rdrr.io/r/base/print.html)/[`summary()`](https://rdrr.io/r/base/summary.html)
+  show the estimation method of
+  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)
+  and
+  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  (REML or ML; was “eblup”) and describe `eblup_stfh(model = "S")`
+  correctly.
+- [`export_sae()`](https://ridsonap.github.io/fastsae/reference/export_sae.md)
+  lists both variance components of two-fold models in the model
+  summary.
+
 #### Performance
 
 - [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md):

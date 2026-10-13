@@ -3,7 +3,7 @@
 Provides a comprehensive evaluation and concordance comparison between
 two fitted Small Area Estimation (SAE) models (e.g. comparing Classical
 Fay-Herriot vs Spatial Fay-Herriot, Area-level vs Unit-level BHF, or
-EBLUP vs EBP).
+EBLUP vs HB).
 
 Computes empirical agreement and efficiency metrics including:
 
@@ -23,10 +23,10 @@ Computes empirical agreement and efficiency metrics including:
 ## Usage
 
 ``` r
-compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...)
+compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
 
 # Default S3 method
-compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...)
+compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
 
 # S3 method for class 'fastsae_comparison'
 print(x, ...)
@@ -65,8 +65,10 @@ autoplot(
 
 - thresholds:
 
-  Numeric vector of length 2 defining the RSE (%) thresholds for
-  reliability. Default is `c(20, 30)`.
+  Numeric vector of length 2 with the RSE (%) cut-offs drawn in
+  `autoplot(type = "rse")` (see
+  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
+  Default `c(25, 50)`.
 
 - ...:
 
@@ -130,7 +132,7 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.569182 
 #> 
 #> Fixed Effects Coefficients:

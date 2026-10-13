@@ -4,7 +4,7 @@ Exports comprehensive estimation tables and model summaries to
 multi-sheet Excel workbooks (`.xlsx`) or comma-separated files (`.csv`).
 Formatted to meet official statistics dissemination standards.
 
-The generated Excel workbook contains up to three dedicated sheets:
+The generated Excel workbook contains up to four sheets:
 
 - **Estimates**: Domain IDs, Direct survey estimates, SAE model
   predictions, Standard Errors (SE), MSE, RSE (%), 95% confidence /
@@ -19,6 +19,13 @@ The generated Excel workbook contains up to three dedicated sheets:
   adjustments, and percentage shifts when benchmarking calibration is
   applied.
 
+- **Benchmarked_Groups** (Optional): the group-level (stage 1)
+  calibration of a hierarchical benchmark.
+
+With a `.csv` file, the estimates are written to `file` and the model
+summary to `<file>_summary.csv`; the benchmark sheets are only written
+to Excel workbooks.
+
 ## Usage
 
 ``` r
@@ -26,7 +33,7 @@ export_sae(
   object,
   file,
   benchmark = NULL,
-  thresholds = c(20, 30),
+  thresholds = c(25, 50),
   overwrite = TRUE,
   ...
 )
@@ -50,8 +57,10 @@ export_sae(
 
 - thresholds:
 
-  Numeric vector of length 2 defining the RSE (%) thresholds for
-  reliability flags. Default is `c(20, 30)`.
+  Numeric vector of length 2 with the RSE (%) cut-offs of the
+  reliability flags (see
+  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
+  Default is `c(25, 50)`.
 
 - overwrite:
 
@@ -81,7 +90,7 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.569182 
 #> 
 #> Fixed Effects Coefficients:
@@ -102,6 +111,6 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #> 
 tmp_file <- tempfile(fileext = ".xlsx")
 export_sae(fit_fh, file = tmp_file)
-#> ✔ Successfully exported SAE results to Excel: /tmp/RtmprhOfWh/file253c309ee330.xlsx
+#> ✔ Successfully exported SAE results to Excel: /tmp/RtmpdxOFPQ/file2541c98f550.xlsx
 unlink(tmp_file)
 ```

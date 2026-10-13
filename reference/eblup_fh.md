@@ -169,7 +169,7 @@ m1 <- eblup_fh(
 #> 
 #> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.608103 
 #> 
 #> Fixed Effects Coefficients:
@@ -204,8 +204,8 @@ m_log <- eblup_fh(
 #> "log")
 #> 
 #> ✔ Convergence: Yes (in 4 iterations)
-#> Model: Log-FH
-#> Method: eblup
+#> Model: Fay-Herriot on the log scale (Area-level)
+#> Method: REML
 #> Random effect variance (sigma2_u): 0.049822 
 #> 
 #> Fixed Effects Coefficients:
@@ -249,7 +249,7 @@ m1_bench <- eblup_fh(
 #> 
 #> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Self-Benchmarking: Active (Wang-Fuller-Qu augmented model)
 #> Random effect variance (sigma2_u): 2.687629 
 #> 

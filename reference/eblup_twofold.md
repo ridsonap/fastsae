@@ -167,7 +167,7 @@ m1 <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area",
 #> 
 #> ✔ Convergence: Yes (in 5 iterations)
 #> Model: Two-fold Fay-Herriot (Area/Subarea-level)
-#> Method: eblup
+#> Method: REML
 #> Area effect variance (sigma2_v): 0.923152 
 #> Subarea effect variance (sigma2_u): 0.557106 
 #> 

@@ -9,8 +9,10 @@ Intelligently handles:
 
 - **Single Model Visualizations**: Point estimates (`"estimate"`),
   Relative Standard Error (`"rse"`), and 3-color official statistics
-  reliability classification (`"reliability"`: green for reliable \<
-  20%, amber for caution 20-30%, red for unreliable \\\ge 30\\\\).
+  reliability classification (`"reliability"`: green for reliable, amber
+  for use with caution, red for unreliable; cut-offs from `thresholds`,
+  see
+  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
 
 - **Direct vs Model Comparisons**: Side-by-side facet maps contrasting
   erratic direct survey estimates against smoothed small area model
@@ -41,7 +43,7 @@ map_sae(
   type = c("estimate", "rse", "reliability", "comparison", "difference"),
   indicator = NULL,
   palette = NULL,
-  thresholds = c(20, 30),
+  thresholds = c(25, 50),
   facet_scales = "fixed",
   title = NULL,
   subtitle = NULL,
@@ -82,6 +84,7 @@ map_sae(
   type = c("estimate", "rse", "reliability"),
   indicator = NULL,
   palette = NULL,
+  thresholds = c(25, 50),
   title = NULL,
   subtitle = NULL,
   ...
@@ -131,13 +134,14 @@ map_sae(
 
   Character string specifying the visualization type:
 
-  - `"estimate"`: Choropleth map of small area point estimates (EBP or
+  - `"estimate"`: Choropleth map of small area point estimates (HB or
     EBLUP).
 
   - `"rse"`: Choropleth map of Relative Standard Errors / CV (%).
 
-  - `"reliability"`: Official statistics 3-color traffic light map (\<
-    20% Reliable, 20-30% Use with Caution, \\\ge 30\\\\ Unreliable).
+  - `"reliability"`: 3-color traffic light map of the reliability tiers
+    (by default RSE \\\le 25\\\\ reliable, 25–50% use with caution, \\\>
+    50\\\\ unreliable).
 
   - `"comparison"`: Side-by-side facet choropleth map (Direct vs Model,
     or Model 1 vs Model 2).
@@ -160,8 +164,9 @@ map_sae(
 - thresholds:
 
   Numeric vector of length 2 defining the RSE (%) thresholds for
-  reliability classification. Default is `c(20, 30)` according to
-  official statistical guidelines (BPS / Eurostat).
+  reliability classification (see
+  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
+  Default is `c(25, 50)`, the BPS-Statistics Indonesia criteria.
 
 - facet_scales:
 
@@ -205,7 +210,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
   # 3. Explicit key matching
   p2 <- map_sae(fit_fh, sf_geom = mys_sf, key = "area")
 
-  # 4. Reliability classification map (BPS standard <20%, 20-30%, >=30%)
+  # 4. Reliability classification map (BPS criteria: RSE <= 25%, 25-50%, > 50%)
   p3 <- map_sae(fit_fh, sf_geom = mys_sf, type = "reliability")
 
   # 5. Side-by-side comparison map: Direct Survey vs Model SAE
@@ -218,7 +223,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.569182 
 #> 
 #> Fixed Effects Coefficients:

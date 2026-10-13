@@ -100,7 +100,6 @@ Calibrate small area estimates to aggregate targets via Ratio,
 Difference, Optimal, and Logit methods (Rao & Molina, 2015)
 
 - [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
-  [`benchmark()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
   [`print(`*`<fastsae_benchmark>`*`)`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
   [`summary(`*`<fastsae_benchmark>`*`)`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
   [`autoplot(`*`<fastsae_benchmark>`*`)`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)

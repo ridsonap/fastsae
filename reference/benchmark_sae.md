@@ -69,8 +69,6 @@ benchmark_sae(
   ...
 )
 
-benchmark(object, ...)
-
 # S3 method for class 'fastsae_benchmark'
 print(x, all_groups = FALSE, ...)
 
@@ -226,7 +224,7 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.569182 
 #> 
 #> Fixed Effects Coefficients:

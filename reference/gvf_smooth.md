@@ -161,7 +161,7 @@ fit_fh <- eblup_fh(
 #> 
 #> ✔ Convergence: Yes (in 5 iterations)
 #> Model: Fay-Herriot (Area-level)
-#> Method: eblup
+#> Method: REML
 #> Random effect variance (sigma2_u): 2.042318 
 #> 
 #> Fixed Effects Coefficients:

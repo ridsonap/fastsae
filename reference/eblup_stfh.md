@@ -245,7 +245,7 @@ m1 <- eblup_stfh(
 #> "ST")
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
-#> Model: Spatio-Temporal Fay-Herriot (ST-FH)
+#> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
 #> 
 #> Fixed Effects Coefficients:
@@ -293,7 +293,7 @@ m2 <- eblup_stfh(
 #> "ST", compute_mse = TRUE, mse_type = "analytical")
 #> 
 #> ✔ Convergence: Yes (in 7 iterations)
-#> Model: Spatio-Temporal Fay-Herriot (ST-FH)
+#> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
 #> 
 #> Fixed Effects Coefficients:
