@@ -180,6 +180,7 @@ test_that("inla_utils .convert_spatial_weights checks", {
 })
 
 test_that("hb_twofold input validation and error checking", {
+  skip_if_not_installed("INLA")
   df_sub <- data.frame(y = 1:5, x = 1:5, domain = c(1, 1, 2, 2, 3), subarea = 1:5, vardir = rep(0.5, 5))
 
   # 1. Non-dataframe data
@@ -199,6 +200,7 @@ test_that("hb_twofold input validation and error checking", {
 })
 
 test_that("hb_unit input validation and error checking", {
+  skip_if_not_installed("INLA")
   df_unit <- data.frame(y = 1:10, x = 1:10, d = rep(1:2, each = 5))
   df_pop <- data.frame(d = 1:2, x = c(5, 6), N = c(100, 100))
 

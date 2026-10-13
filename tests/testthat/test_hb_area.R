@@ -156,6 +156,7 @@ test_that("hb_area works for Poisson response with exposure", {
 })
 
 test_that("hb_area works with inla_engine(strategy = 'laplace') for binomial", {
+  skip_if_not_installed("INLA")
   set.seed(42)
   D <- 20
   x <- rnorm(D)
@@ -335,6 +336,7 @@ test_that("hb_area works for Spatial Lag Model (spatial = slm)", {
 })
 
 test_that("hb_area: full Laplace strategy (binomial & poisson) and deprecated method = 'laplace'", {
+  skip_if_not_installed("INLA")
   set.seed(42)
   D <- 20
   df_glmm <- data.frame(
@@ -532,6 +534,7 @@ test_that("hb_area handles ST interaction types", {
 })
 
 test_that("hb_area prior/spatial branches work", {
+  skip_if_not_installed("INLA")
   # 2. vardir <= 0 error for gaussian
   df_bad_var <- data.frame(y = 1:5, x = 1:5, vardir = c(1, 0, 1, 1, 1))
   expect_error(hb_area(y ~ x, data = df_bad_var, vardir = "vardir", family = "gaussian"), "strictly positive")

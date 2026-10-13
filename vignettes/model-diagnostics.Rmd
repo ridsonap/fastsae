@@ -131,7 +131,7 @@ autoplot(diag_fh, type = "all")
 
 The exact same `diagnose()` function applies directly to Bayesian models fitted with `hb_area()`:
 
-```{r diag_hb, message = FALSE, warning = FALSE}
+```{r diag_hb, message = FALSE, warning = FALSE, eval = requireNamespace("INLA", quietly = TRUE)}
 data("sim_area", package = "fastsae")
 
 # Fit Spatial EBP model with BYM2 prior

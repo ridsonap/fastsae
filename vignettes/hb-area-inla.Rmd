@@ -13,7 +13,8 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.width = 7,
   fig.height = 5,
-  eval = TRUE
+  # INLA is not on CRAN: the code is shown but not run without it
+  eval = requireNamespace("INLA", quietly = TRUE)
 )
 ```
 

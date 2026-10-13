@@ -8,7 +8,7 @@ Authors@R: c(
     )
 Description: High-performance Small Area Estimation (SAE) in R, implementing
     frequentist EBLUP models via compiled C++ and Bayesian hierarchical models
-    via INLA (Integrated Nested Laplace Approximations) or, optionally, full
+    via 'INLA' (Integrated Nested Laplace Approximations) or, optionally, full
     MCMC with 'NumPyro' (Phan et al., 2019) <doi:10.48550/arXiv.1912.11554>
     on 'JAX' (CPU or NVIDIA GPU). Frequentist models
     include the area-level Fay-Herriot model (Fay and Herriot, 1979
@@ -18,7 +18,8 @@ Description: High-performance Small Area Estimation (SAE) in R, implementing
     unit-level Battese-Harter-Fuller (Battese et al., 1988
     <doi:10.1080/01621459.1988.10478561>), and two-fold subarea models (Torabi
     and Rao, 2014 <doi:10.1016/j.jmva.2014.02.001>) for nested area-subarea
-    hierarchies. Bayesian models use INLA (Rue et al., 2009), supporting 6
+    hierarchies. Bayesian models use 'INLA' (Rue et al., 2009
+    <doi:10.1111/j.1467-9868.2008.00700.x>), supporting 6
     likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial,
     Gamma), spatial structures (BYM2, Besag ICAR), temporal dynamics (RW1, RW2,
     AR1), and spatio-temporal interactions. Key features include analytical and

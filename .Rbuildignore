@@ -36,3 +36,4 @@
 ^cov_res\.rds$
 ^playground$
 ^inst/python/__pycache__$
+^\.git$
