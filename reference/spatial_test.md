@@ -70,13 +70,37 @@ An object of class `c("fastsae_spatial_test", "list")` containing:
 
 - model_comparison:
 
-  Log-Likelihood, AIC, BIC, and Likelihood Ratio Test (LRT) comparing
-  standard vs spatial FH (if `vardir` provided).
+  ML log-likelihoods, AIC, BIC, and the likelihood ratio test (LRT) of
+  \\\rho = 0\\ comparing standard vs spatial FH, both fitted by ML (if
+  `vardir` provided).
 
-- recommendation:
+- spatial_recommended:
 
-  Character string with diagnosis and logical flag
-  `spatial_recommended`.
+  Logical recommendation, from a single test at level `alpha` (see
+  Details).
+
+- decision_test:
+
+  The test behind `spatial_recommended`: `"lrt"` or `"lm_error"`.
+
+- reason:
+
+  Character string explaining the recommendation.
+
+## Details
+
+Moran's \\I\\ uses the randomisation variance of Cliff and Ord (1981);
+the LM-error and LM-lag statistics follow Anselin (1988). These tests
+assume homoscedastic OLS errors, whereas direct estimates have
+domain-specific sampling variances, so they are descriptive. The
+recommendation therefore rests on one test, so that its false positive
+rate is `alpha`: with `vardir`, the likelihood ratio test of \\\rho =
+0\\ between
+[`eblup_fh`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)
+and
+[`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+fitted by ML (which accounts for the sampling variances); without it,
+the LM-error test.
 
 ## References
 
@@ -122,16 +146,17 @@ print(st)
 #> 
 #> ── 3. Model Comparison (Standard FH vs Spatial FH) ──
 #> 
-#> • Standard FH: sigma2_u = 2.5692, REML LogLik = -65.29, AIC = 138.59
-#> • Spatial FH (SAR): sigma2_u = 1.468, rho = -1, REML LogLik = -65.43, AIC =
-#>   140.86
+#> • Standard FH: sigma2_u = 2.2353, ML LogLik = -65.22, AIC = 138.44
+#> • Spatial FH (SAR): sigma2_u = 1.552, rho = -1, ML LogLik = -65.28, AIC =
+#>   140.56
 #> • Likelihood Ratio: Chisq = 0 (df = 1, p-value = "1") [ns]
-#> • Information Delta: Delta AIC = 2.27, Delta BIC = 3.74
+#> • Information Delta: Delta AIC = 2.13, Delta BIC = 3.59
 #> 
 #> ── 4. Final Recommendation ──
 #> 
+#> Decision test: likelihood ratio test (FH vs Spatial FH) at alpha = 0.05.
 #> ℹ STANDARD MODEL SUFFICIENT: No significant spatial spillover.
-#> ✔ Neither the response variable nor regression residuals exhibit significant
-#>   spatial autocorrelation. A standard model is sufficient.
+#> ✔ The likelihood ratio test of rho = 0 does not reject the standard Fay-Herriot
+#>   model. A standard model is sufficient.
 #> ℹ Recommended function: `eblup_fh()` (avoids unnecessary g3 MSE inflation).
 ```

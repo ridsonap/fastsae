@@ -258,6 +258,34 @@
   estimates ($`mse_i - 2 k_i (Mw)_i + adj_i^2`$; within about 1% of the
   empirical MSE in a simulation).
 
+- [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md):
+  the Brown et al. (2001) goodness-of-fit statistic $`W`$ now uses an
+  upper-tail $`\chi^2`$ decision (as
+  [`emdi::compare.fh`](https://rdrr.io/pkg/emdi/man/compare.html)); the
+  former two-sided interval flagged every correct FH fit in a
+  simulation, because $`W`$ is conservative. The bias regression of the
+  direct on the model estimates is now descriptive
+  (`brown_test$bias_regression`: `alpha`, `beta`, standard errors,
+  $`R^2`$) instead of an F test of $`\alpha = 0, \beta = 1`$, which
+  rejected 93% of correct FH fits (the slope exceeds 1 for shrinkage
+  estimators); it no longer affects `status`. `simulation_metrics$rrmse`
+  is the relative RMSE across domains (`mean_rrmse` duplicated
+  `mean_abs_rb`). DIC/WAIC/marginal likelihood are now also read for
+  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  and
+  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  fits, and CPO/PIT are only used when they are per domain.
+
+- [`spatial_test()`](https://ridsonap.github.io/fastsae/reference/spatial_test.md):
+  the FH vs spatial FH comparison uses ML fits, so the likelihood ratio
+  and AIC/BIC are computed from ML log-likelihoods at ML estimates
+  (before: at REML estimates). The recommendation now rests on a single
+  test at level `alpha` (`decision_test`: the likelihood ratio test when
+  `vardir` is given, otherwise the LM-error test); requiring any of
+  three tests recommended a spatial model for 9% of non-spatial data
+  sets at `alpha = 0.05`. The Moran’s I, LM-error and LM-lag statistics
+  are unchanged and agree with `spdep`.
+
 #### Performance
 
 - [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md):
@@ -382,9 +410,9 @@
     benchmarking (Berg & Fuller 2014).
 - **Comprehensive Diagnostics & Visualization**:
   - [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md):
-    External calibration tests (Brown et al. 2001), residual analysis,
-    spatial autocorrelation tests (Moran’s I), and official statistical
-    reliability classification (BPS standards).
+    Brown et al. (2001) goodness-of-fit and bias diagnostics, residual
+    analysis, spatial autocorrelation tests (Moran’s I), and official
+    statistical reliability classification (BPS standards).
   - [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md):
     Tabular model comparison across information criteria and error
     metrics.

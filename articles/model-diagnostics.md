@@ -29,21 +29,28 @@ model quality:
     compared to direct survey estimates. Evaluates whether areas satisfy
     the official statistics reliability threshold (typically
     $`\text{RSE} < 25\%`$ or $`20\%`$).
-2.  **External Calibration & Bias Diagnostic (Brown et al., 2001)**:
-    Tests whether model predictions are statistically unbiased
-    predictors of direct estimates using the regression:
-    ``` math
-    y_d = \alpha + \beta \hat{\theta}_d + e_d
-    ```
-    Under unbiasedness, the joint hypothesis
-    $`H_0: \alpha = 0, \beta = 1`$ should not be rejected.
-3.  **Goodness-of-Fit Statistic**: Computes the Chi-square diagnostic
-    statistic $`W`$:
+2.  **Goodness-of-Fit Statistic (Brown et al., 2001)**: Computes the
+    Chi-square diagnostic statistic $`W`$ over the sampled domains:
     ``` math
     W = \sum_{d=1}^D \frac{(y_d - \hat{\theta}_d)^2}{V_d + \text{MSE}(\hat{\theta}_d)}
     ```
-    which approximately follows a $`\chi^2(D)`$ distribution under the
-    null hypothesis of proper model specification.
+    and compares it with $`\chi^2(D)`$. Only large values indicate that
+    the model estimates differ from the direct estimates by more than
+    their uncertainty, so the p-value is upper-tailed (as in `emdi`).
+    The statistic ignores the positive correlation between $`y_d`$ and
+    $`\hat{\theta}_d`$, so it is conservative: under a correct model
+    $`W`$ is usually well below $`D`$.
+3.  **Bias Diagnostic (Brown et al., 2001)**: The regression of the
+    direct estimates on the model estimates,
+    ``` math
+    y_d = \alpha + \beta \hat{\theta}_d + e_d,
+    ```
+    is reported descriptively (with `autoplot(type = "calibration")`) to
+    look for systematic deviations. It is not used as a formal test of
+    $`\alpha = 0, \beta = 1`$: for shrinkage estimators such as the
+    EBLUP the slope exceeds 1 even when the model is correct (about
+    $`1/\gamma_d`$ for the variation not explained by the covariates),
+    so such a test would reject correct models.
 4.  **Residual Spatial Autocorrelation (Moran’s I)**: Verifies whether
     spatial autocorrelation has been fully captured by the model random
     effects. Significant residual spatial clustering indicates that
@@ -116,29 +123,24 @@ diag_fh$precision
 
 # Calibration test results
 diag_fh$brown_test
-#> $wald_test
-#> $wald_test$alpha
-#> (Intercept) 
-#>  -0.7316943 
+#> $bias_regression
+#> $bias_regression$alpha
+#> [1] -0.7316943
 #> 
-#> $wald_test$beta
-#> pred_sub 
-#> 1.155679 
+#> $bias_regression$beta
+#> [1] 1.155679
 #> 
-#> $wald_test$f_stat
-#> [1] 3.143572
+#> $bias_regression$se_alpha
+#> [1] 0.363461
 #> 
-#> $wald_test$df1
-#> [1] 2
+#> $bias_regression$se_beta
+#> [1] 0.0652052
 #> 
-#> $wald_test$df2
-#> [1] 30
+#> $bias_regression$r_squared
+#> [1] 0.9128237
 #> 
-#> $wald_test$p_value
-#> [1] 0.05761388
-#> 
-#> $wald_test$is_unbiased
-#> [1] TRUE
+#> $bias_regression$n
+#> [1] 32
 #> 
 #> 
 #> $goodness_of_fit
@@ -148,17 +150,14 @@ diag_fh$brown_test
 #> $goodness_of_fit$df
 #> [1] 32
 #> 
-#> $goodness_of_fit$crit_low
-#> [1] 18.29076
-#> 
-#> $goodness_of_fit$crit_high
-#> [1] 49.48044
+#> $goodness_of_fit$crit
+#> [1] 46.19426
 #> 
 #> $goodness_of_fit$p_value
 #> [1] 1
 #> 
 #> $goodness_of_fit$is_good_fit
-#> [1] FALSE
+#> [1] TRUE
 
 # Moran's I spatial test on residuals
 diag_fh$spatial_test
@@ -281,19 +280,19 @@ diag_hb$precision
 #> [1] 17.64954
 #> 
 #> $mean_sae_rse
-#> [1] 106.2154
+#> [1] 106.1967
 #> 
 #> $median_sae_rse
-#> [1] 18.65652
+#> [1] 18.65773
 #> 
 #> $eff_ratio_summary
 #>      Min   Q1.25%   Median     Mean   Q3.75%      Max 
-#> 1.137426 1.273229 1.319795 1.326818 1.411214 1.500986 
+#> 1.137392 1.273192 1.319754 1.326773 1.411159 1.500919 
 #> 
 #> $prop_gain
 #> [1] 100
 diag_hb$status
-#> [1] "CAUTION: Model goodness-of-fit indicates notable deviation from survey variance."
+#> [1] "WARNING: High proportions of domains with RSE >= threshold."
 ```
 
 ------------------------------------------------------------------------

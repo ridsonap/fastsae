@@ -66,8 +66,10 @@ An object of class `c("fastsae_diagnose", "list")` containing:
 
 - brown_test:
 
-  Results of the Brown et al. (2001) calibration test (\\H_0: \alpha =
-  0, \beta = 1\\) and Chi-Square goodness-of-fit statistic \\W\\.
+  Brown et al. (2001) diagnostics: `bias_regression` (descriptive OLS
+  fit of the direct estimates on the model estimates, no test; see
+  Details) and `goodness_of_fit` (the \\W\\ statistic with its
+  upper-tail \\\chi^2\\ p-value).
 
 - spatial_test:
 
@@ -76,8 +78,8 @@ An object of class `c("fastsae_diagnose", "list")` containing:
 
 - simulation_metrics:
 
-  Relative bias (RB), Relative RMSE, and coverage rates (if `truth` is
-  supplied).
+  Mean relative bias, mean absolute relative error, relative RMSE across
+  domains, and coverage rate (if `truth` is supplied).
 
 - df_diag:
 
@@ -87,6 +89,29 @@ An object of class `c("fastsae_diagnose", "list")` containing:
 - status:
 
   Overall assessment summary string.
+
+## Details
+
+**Goodness of fit.** \\W = \sum_d (y_d - \hat\theta_d)^2 / (\psi_d +
+\mathrm{MSE}\_d)\\ over the sampled domains is compared with
+\\\chi^2_m\\ (Brown et al., 2001); only large values indicate that the
+model estimates differ from the direct estimates more than their
+uncertainty allows, so the p-value is upper-tailed (as in `emdi`). The
+statistic ignores the positive correlation between \\y_d\\ and
+\\\hat\theta_d\\, so it is conservative: under a correct model \\W\\ is
+typically well below its degrees of freedom.
+
+**Bias regression.** The OLS fit \\y_d = \alpha + \beta\hat\theta_d\\ is
+reported without a formal test of \\\alpha = 0, \beta = 1\\: for
+shrinkage estimators such as the EBLUP the slope exceeds 1 even when the
+model is correct (about \\1/\gamma_d\\ for the part of the variation not
+explained by the covariates), so that test would reject correct models.
+Inspect the regression (and `autoplot(x, type = "calibration")`) for
+systematic deviations instead.
+
+**Moran's I** on the residuals \\y_d - \hat\theta_d\\ of the sampled
+domains uses the randomisation variance of Cliff and Ord (1981),
+two-sided.
 
 ## References
 
@@ -146,13 +171,13 @@ print(diag_fh)
 #> ✔ Average RSE reduction: Direct "29.49%" -> SAE "25.59%" (Gain: 3.9%)
 #> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.33, max: 4.44)
 #> 
-#> ── 2. Brown et al. (2001) Calibration Tests ──
+#> ── 2. Brown et al. (2001) Diagnostics ──
 #> 
-#> ! Bias Regression Test (H0: alpha = 0, beta = 1): F = 3.503, p-value = 0.0429 [Potential Systematic Bias]
-#> Estimated parameters: alpha = -0.723, beta = 1.1587
-#> ! Goodness-of-Fit Statistic W (Chi-Square): W = 4.57 (df = 32), p-value = 1 [Deviation from Survey Variance]
+#> ✔ Goodness-of-Fit Statistic W: W = 4.57 (df = 32), p-value = 1 [Consistent with direct estimates]
+#> ℹ Bias regression (direct ~ model, descriptive): alpha = -0.723 (SE 0.3573), beta = 1.1587 (SE 0.0643), R^2 = 0.915
+#> A slope above 1 is expected for shrinkage estimators; see ?diagnose.
 #> ────────────────────────────────────────────────────────────────────────────────
-#> ! Final Assessment: CAUTION: Potential systematic bias detected between direct and model predictions.
+#> ✖ Final Assessment: WARNING: High proportions of domains with RSE >= threshold.
 #> ────────────────────────────────────────────────────────────────────────────────
 
 # 2. Fit Spatial HB model (requires INLA)
@@ -174,7 +199,7 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  2.9985e+00  6.9159e-01  4.3356e+00  1.4533e-05  1.6566e+00
-#> x1          -3.6458e-03  8.0955e-03 -4.5035e-01  6.5246e-01 -1.9768e-02
+#> x1          -3.6458e-03  8.0956e-03 -4.5035e-01  6.5246e-01 -1.9768e-02
 #> x2           8.6096e-02  2.7872e-02  3.0890e+00  2.0084e-03  3.1167e-02
 #>             ci_upper
 #> (Intercept)   4.3809
@@ -183,19 +208,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.334871    7.334871 0.7431316 0.5522446 10.13149 5.897795
-#> 2      2 7.599650 6.513209    6.513209 0.8022367 0.6435837 12.31707 4.966320
-#> 3      3 5.514137 5.149913    5.149913 0.7842254 0.6150094 15.22793 3.622869
-#> 4      4 3.869326 4.363562    4.363562 0.7084516 0.5019037 16.23563 2.962400
-#> 5      5 6.305063 6.362973    6.362973 0.8810961 0.7763303 13.84724 4.631028
-#> 6      6 3.926807 4.147450    4.147450 0.5686370 0.3233480 13.71052 3.028118
+#> 1      1 8.359527 7.334874    7.334874 0.7431314 0.5522443 10.13148 5.897798
+#> 2      2 7.599650 6.513212    6.513212 0.8022366 0.6435836 12.31707 4.966322
+#> 3      3 5.514137 5.149914    5.149914 0.7842257 0.6150100 15.22794 3.622869
+#> 4      4 3.869326 4.363561    4.363561 0.7084518 0.5019040 16.23564 2.962398
+#> 5      5 6.305063 6.362973    6.362973 0.8810967 0.7763314 13.84725 4.631027
+#> 6      6 3.926807 4.147449    4.147449 0.5686371 0.3233482 13.71053 3.028117
 #>   ci_upper random_effect    vardir
-#> 1 8.810719    2.71676770 0.6618838
-#> 2 8.111706    2.28442832 0.8374691
-#> 3 6.701010    0.72130516 0.8822257
-#> 4 5.742048   -1.32530587 0.6581716
-#> 5 8.092071   -0.08178563 1.2788021
-#> 6 5.258778   -0.99654746 0.3878004
+#> 1 8.810721    2.71677084 0.6618838
+#> 2 8.111708    2.28443129 0.8374691
+#> 3 6.701012    0.72130586 0.8822257
+#> 4 5.742048   -1.32530772 0.6581716
+#> 5 8.092072   -0.08178582 1.2788021
+#> 6 5.258778   -0.99654852 0.3878004
 #> ... and 36 more rows.
 #> 
 #> ── fastsae Small Area Estimation Diagnostic Report ─────────────────────────────
@@ -207,11 +232,11 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Average RSE reduction: Direct "29.49%" -> SAE "22.95%" (Gain: 6.54%)
 #> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.55, max: 5.96)
 #> 
-#> ── 2. Brown et al. (2001) Calibration Tests ──
+#> ── 2. Brown et al. (2001) Diagnostics ──
 #> 
-#> ✔ Bias Regression Test (H0: alpha = 0, beta = 1): F = 3, p-value = 0.0649 [Statistically Unbiased]
-#> Estimated parameters: alpha = -0.805, beta = 1.1794
-#> ! Goodness-of-Fit Statistic W (Chi-Square): W = 7.34 (df = 32), p-value = 1 [Deviation from Survey Variance]
+#> ✔ Goodness-of-Fit Statistic W: W = 7.34 (df = 32), p-value = 1 [Consistent with direct estimates]
+#> ℹ Bias regression (direct ~ model, descriptive): alpha = -0.805 (SE 0.4398), beta = 1.1794 (SE 0.0798), R^2 = 0.879
+#> A slope above 1 is expected for shrinkage estimators; see ?diagnose.
 #> 
 #> ── 5. Bayesian Information Criteria & Predictive Diagnostics ──
 #> 
@@ -219,6 +244,6 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.084, p-value = 0.9651 [Well-calibrated predictive distribution]
 #> ✔ Leave-One-Out CPO: No numerical approximation issues (min CPO = 0.0084)
 #> ────────────────────────────────────────────────────────────────────────────────
-#> ! Final Assessment: CAUTION: Model goodness-of-fit indicates notable deviation from survey variance.
+#> ✖ Final Assessment: WARNING: High proportions of domains with RSE >= threshold.
 #> ────────────────────────────────────────────────────────────────────────────────
 ```
