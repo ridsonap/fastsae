@@ -33,6 +33,11 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     (jalur `lme4` dihapus), HB-7 (`prior_rho` didahulukan atas `prior_phi`).
   - UT-6 (metode `optimal` kini solusi KKT $\delta_i\propto w_i\mathrm{mse}_i$),
     UT-7 (logit hierarkis mensyaratkan `type = "mean"`).
+  - UT-1–UT-3 (`diagnose`): regresi bias Brown kini deskriptif tanpa uji $F$
+    (uji lama menolak 93% fit FH yang benar), uji $W$ ekor atas seperti
+    `emdi::compare.fh` (interval dua sisi lama menolak 100%); UT-4 (RRMSE
+    lintas domain). `spatial_test`: perbandingan FH vs SFH dengan ML dan
+    rekomendasi dari satu uji (sebelumnya 9% positif palsu pada α = 5%).
   - DOC-1 s.d. DOC-8 dan DOC-10 (README, beranda situs, dan vignette dihasilkan
     dari `inst/extdata` oleh `benchmarks/update_benchmark_docs.R`).
 - **Bukan kesalahan:** SFH-1 — karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik
@@ -43,7 +48,7 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
   seed = 1042)`; baris `sae`/`emdi` dan kolom `tipsae` belum).
 - **Masih berlaku:** FH-1–FH-7, BHF-2, BHF-3, BHF-6, BHF-9, BHF-10, TFH-1,
   TFH-3–TFH-9, SFH-3, SFH-6, SFH-9, SFH-10, STFH-1, STFH-4, STFH-6–STFH-8,
-  HB-1–HB-6, HB-8–HB-12, HB-16–HB-20, UT-1–UT-5, UT-8–UT-16, DOC-9 (artikel
+  HB-1–HB-6, HB-8–HB-12, HB-16–HB-20, UT-5, UT-8–UT-16, DOC-9 (artikel
   JSS lama).
 
 ---

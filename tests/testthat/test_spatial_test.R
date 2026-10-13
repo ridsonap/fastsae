@@ -33,6 +33,17 @@ test_that("spatial_test works with standard data and returns expected structure"
   expect_true(!is.na(st$model_comparison$lrt_stat))
   expect_true(!is.na(st$model_comparison$delta_aic))
   expect_true(!is.na(st$model_comparison$rho))
+  expect_identical(st$model_comparison$method, "ML")
+  # the likelihood ratio uses the ML fits of FH and SFH
+  fh_ml <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, method = "ML", print_result = FALSE)
+  sfh_ml <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, method = "ML",
+                      print_result = FALSE)
+  expect_equal(st$model_comparison$ll_fh, unname(fh_ml$goodness["loglikelihood"]))
+  expect_equal(st$model_comparison$lrt_stat,
+               max(0, 2 * unname(sfh_ml$goodness["loglikelihood"] - fh_ml$goodness["loglikelihood"])))
+  # one decision test: the LRT when vardir is given
+  expect_identical(st$decision_test, "lrt")
+  expect_identical(st$spatial_recommended, st$model_comparison$lrt_pval < st$alpha)
 
   # 4. Print method
   expect_message(print(st), "Spatial")
@@ -54,6 +65,8 @@ test_that("spatial_test handles data without vardir (ESDA only)", {
   expect_true(!is.na(st_no_var$response_test$I))
   expect_true(!is.na(st_no_var$residual_test$moran$I))
   expect_null(st_no_var$model_comparison)
+  expect_identical(st_no_var$decision_test, "lm_error")
+  expect_identical(st_no_var$spatial_recommended, st_no_var$residual_test$lm_error$p_value < st_no_var$alpha)
   expect_message(print(st_no_var), "Spatial")
 })
 
@@ -121,3 +134,31 @@ test_that("spatial_test throws informative error when auxiliary variables contai
   )
 })
 
+
+test_that("spatial_test agrees with spdep and keeps its size under no spatial effect", {
+  skip_if_not_installed("spdep")
+  set.seed(5)
+  D <- 80
+  coords <- cbind(runif(D), runif(D))
+  nb <- spdep::make.sym.nb(spdep::knn2nb(spdep::knearneigh(coords, k = 4)))
+  W <- spdep::nb2mat(nb, style = "W")
+  lw <- spdep::nb2listw(nb, style = "W")
+
+  x1 <- rnorm(D); psi <- runif(D, 0.3, 1.5)
+  dat <- data.frame(y = 1 + x1 + rnorm(D, sd = 0.8) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
+  st <- spatial_test(y ~ x1, data = dat, W = W)
+  ols <- lm(y ~ x1, data = dat)
+  expect_equal(st$residual_test$moran$I, unname(spdep::lm.morantest(ols, lw)$estimate[1]))
+  expect_equal(st$residual_test$lm_error$statistic,
+               unname(spdep::lm.RStests(ols, lw, test = "LMerr")[[1]]$statistic))
+  expect_equal(st$residual_test$lm_lag$statistic,
+               unname(spdep::lm.RStests(ols, lw, test = "LMlag")[[1]]$statistic))
+
+  # false recommendation rate of the single decision test stays near alpha
+  rec <- vapply(1:40, function(r) {
+    x1 <- rnorm(D); psi <- runif(D, 0.3, 1.5)
+    dat <- data.frame(y = 1 + x1 + rnorm(D, sd = 0.8) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
+    suppressMessages(spatial_test(y ~ x1, vardir = "psi", data = dat, W = W))$spatial_recommended
+  }, logical(1))
+  expect_lte(mean(rec), 0.15)
+})

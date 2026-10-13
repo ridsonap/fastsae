@@ -31,14 +31,14 @@ The diagnostic workflow evaluates four fundamental dimensions of SAE model quali
 
 1. **Precision Gain & RSE Reduction**:
    Quantifies the improvement in Relative Standard Error ($\text{RSE} = \frac{\sqrt{\text{MSE}}}{\hat{\theta}} \times 100\%$) compared to direct survey estimates. Evaluates whether areas satisfy the official statistics reliability threshold (typically $\text{RSE} < 25\%$ or $20\%$).
-2. **External Calibration & Bias Diagnostic (Brown et al., 2001)**:
-   Tests whether model predictions are statistically unbiased predictors of direct estimates using the regression:
-   $$y_d = \alpha + \beta \hat{\theta}_d + e_d$$
-   Under unbiasedness, the joint hypothesis $H_0: \alpha = 0, \beta = 1$ should not be rejected.
-3. **Goodness-of-Fit Statistic**:
-   Computes the Chi-square diagnostic statistic $W$:
+2. **Goodness-of-Fit Statistic (Brown et al., 2001)**:
+   Computes the Chi-square diagnostic statistic $W$ over the sampled domains:
    $$W = \sum_{d=1}^D \frac{(y_d - \hat{\theta}_d)^2}{V_d + \text{MSE}(\hat{\theta}_d)}$$
-   which approximately follows a $\chi^2(D)$ distribution under the null hypothesis of proper model specification.
+   and compares it with $\chi^2(D)$. Only large values indicate that the model estimates differ from the direct estimates by more than their uncertainty, so the p-value is upper-tailed (as in `emdi`). The statistic ignores the positive correlation between $y_d$ and $\hat{\theta}_d$, so it is conservative: under a correct model $W$ is usually well below $D$.
+3. **Bias Diagnostic (Brown et al., 2001)**:
+   The regression of the direct estimates on the model estimates,
+   $$y_d = \alpha + \beta \hat{\theta}_d + e_d,$$
+   is reported descriptively (with `autoplot(type = "calibration")`) to look for systematic deviations. It is not used as a formal test of $\alpha = 0, \beta = 1$: for shrinkage estimators such as the EBLUP the slope exceeds 1 even when the model is correct (about $1/\gamma_d$ for the variation not explained by the covariates), so such a test would reject correct models.
 4. **Residual Spatial Autocorrelation (Moran's I)**:
    Verifies whether spatial autocorrelation has been fully captured by the model random effects. Significant residual spatial clustering indicates that unmodeled spatial patterns remain.
 

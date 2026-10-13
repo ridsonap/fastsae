@@ -17,12 +17,32 @@
 #'   \describe{
 #'     \item{model_info}{Basic model characteristics (model name, sample size, unsampled count).}
 #'     \item{precision}{Summary of direct vs SAE RSE, proportion of areas with RSE < threshold, and MSE reduction ratios.}
-#'     \item{brown_test}{Results of the Brown et al. (2001) calibration test (\eqn{H_0: \alpha = 0, \beta = 1}) and Chi-Square goodness-of-fit statistic \eqn{W}.}
+#'     \item{brown_test}{Brown et al. (2001) diagnostics: \code{bias_regression} (descriptive OLS
+#'       fit of the direct estimates on the model estimates, no test; see Details) and
+#'       \code{goodness_of_fit} (the \eqn{W} statistic with its upper-tail \eqn{\chi^2} p-value).}
 #'     \item{spatial_test}{Moran's I test for spatial autocorrelation in model residuals (if \code{W} is available).}
-#'     \item{simulation_metrics}{Relative bias (RB), Relative RMSE, and coverage rates (if \code{truth} is supplied).}
+#'     \item{simulation_metrics}{Mean relative bias, mean absolute relative error, relative RMSE across
+#'       domains, and coverage rate (if \code{truth} is supplied).}
 #'     \item{df_diag}{Data frame combining direct estimates, SAE predictions, MSE, RSE, and residuals for diagnostics.}
 #'     \item{status}{Overall assessment summary string.}
 #'   }
+#'
+#' @details
+#' \strong{Goodness of fit.} \eqn{W = \sum_d (y_d - \hat\theta_d)^2 / (\psi_d + \mathrm{MSE}_d)} over the
+#' sampled domains is compared with \eqn{\chi^2_m} (Brown et al., 2001); only large values indicate
+#' that the model estimates differ from the direct estimates more than their uncertainty allows, so
+#' the p-value is upper-tailed (as in \code{emdi}). The statistic ignores the positive correlation
+#' between \eqn{y_d} and \eqn{\hat\theta_d}, so it is conservative: under a correct model \eqn{W}
+#' is typically well below its degrees of freedom.
+#'
+#' \strong{Bias regression.} The OLS fit \eqn{y_d = \alpha + \beta\hat\theta_d} is reported
+#' without a formal test of \eqn{\alpha = 0, \beta = 1}: for shrinkage estimators such as the EBLUP
+#' the slope exceeds 1 even when the model is correct (about \eqn{1/\gamma_d} for the part of the
+#' variation not explained by the covariates), so that test would reject correct models. Inspect
+#' the regression (and \code{autoplot(x, type = "calibration")}) for systematic deviations instead.
+#'
+#' \strong{Moran's I} on the residuals \eqn{y_d - \hat\theta_d} of the sampled domains uses the
+#' randomisation variance of Cliff and Ord (1981), two-sided.
 #'
 #' @references
 #' \enumerate{
@@ -132,7 +152,7 @@ diagnose <- function(object,
   # ----------------------------------------------------------------------------
   # 3. Brown et al. (2001) Calibration & Goodness-of-Fit Tests
   # ----------------------------------------------------------------------------
-  brown_res <- list(wald_test = NULL, goodness_of_fit = NULL)
+  brown_res <- list(bias_regression = NULL, goodness_of_fit = NULL)
 
   calib_mask <- sampled_mask & !is.na(direct_y) & !is.na(sae_pred)
   if (sum(calib_mask) >= 5) {
@@ -140,30 +160,22 @@ diagnose <- function(object,
     pred_sub <- sae_pred[calib_mask]
     n_sub <- length(y_sub)
 
-    # a. Bias regression: y_dir = alpha + beta * sae_pred
+    # a. Bias regression y_dir = alpha + beta * sae_pred (descriptive only).
+    # No test of alpha = 0, beta = 1: for shrinkage estimators the slope exceeds 1
+    # under a correct model (y = theta + e and theta^ = gamma y + (1 - gamma) x'b give
+    # slope 1 / gamma for the part of y not explained by x), so the F test rejects
+    # correct models (93% at the 5% level for a correct FH model with D = 100).
     fit_ols <- stats::lm(y_sub ~ pred_sub)
-    coefs <- stats::coef(fit_ols)
-    vcov_mat <- stats::vcov(fit_ols)
-
-    # Wald test for H0: alpha = 0, beta = 1
-    diff_vec <- coefs - c(0, 1)
-    wald_inv <- tryCatch(solve(vcov_mat), error = function(e) NULL)
-    if (!is.null(wald_inv)) {
-      f_stat <- as.numeric(t(diff_vec) %*% wald_inv %*% diff_vec) / 2
-      df1 <- 2
-      df2 <- n_sub - 2
-      p_val_wald <- stats::pf(f_stat, df1 = df1, df2 = df2, lower.tail = FALSE)
-
-      brown_res$wald_test <- list(
-        alpha = coefs[1],
-        beta = coefs[2],
-        f_stat = f_stat,
-        df1 = df1,
-        df2 = df2,
-        p_value = p_val_wald,
-        is_unbiased = (p_val_wald >= alpha_level)
-      )
-    }
+    coefs <- unname(stats::coef(fit_ols))
+    se <- unname(sqrt(diag(stats::vcov(fit_ols))))
+    brown_res$bias_regression <- list(
+      alpha = coefs[1],
+      beta = coefs[2],
+      se_alpha = se[1],
+      se_beta = se[2],
+      r_squared = summary(fit_ols)$r.squared,
+      n = n_sub
+    )
 
     # b. Chi-Square goodness-of-fit statistic W
     vd_sub <- vardir[calib_mask]
@@ -173,19 +185,16 @@ diagnose <- function(object,
       denom <- vd_sub[valid_w] + mse_sub[valid_w]
       w_stat <- sum(((y_sub[valid_w] - pred_sub[valid_w])^2) / denom)
       df_w <- sum(valid_w)
+      # Upper-tail test (as emdi::compare.fh): only a large W indicates a lack of
+      # fit. W is conservative (y and theta^ are positively correlated), so a small
+      # W is expected under a correct model and is no evidence against it.
       p_val_w <- stats::pchisq(w_stat, df = df_w, lower.tail = FALSE)
-      # Two-sided interval check
-      crit_low <- stats::qchisq(alpha_level / 2, df = df_w)
-      crit_high <- stats::qchisq(1 - alpha_level / 2, df = df_w)
-      is_fit <- (w_stat >= crit_low && w_stat <= crit_high)
-
       brown_res$goodness_of_fit <- list(
         w_stat = w_stat,
         df = df_w,
-        crit_low = crit_low,
-        crit_high = crit_high,
+        crit = stats::qchisq(1 - alpha_level, df = df_w),
         p_value = p_val_w,
-        is_good_fit = is_fit
+        is_good_fit = (p_val_w >= alpha_level)
       )
     }
   }
@@ -218,7 +227,7 @@ diagnose <- function(object,
           denom <- sum(z^2)
           moran_I <- (n_spat / s0) * (num / denom)
 
-          # Expected value and variance under normality
+          # Expected value and variance under randomisation (Cliff & Ord, 1981)
           E_I <- -1 / (n_spat - 1)
           s1 <- sum(W_sub^2) + sum(W_sub * t(W_sub))
           s2 <- sum((rowSums(W_sub) + colSums(W_sub))^2)
@@ -252,8 +261,12 @@ diagnose <- function(object,
   if (!is.null(truth)) {
     truth_vec <- as.numeric(truth)
     if (length(truth_vec) == N_total) {
-      rb <- ((sae_pred - truth_vec) / truth_vec) * 100
-      rrmse <- (sqrt((sae_pred - truth_vec)^2) / abs(truth_vec)) * 100
+      # One realisation per domain: per-domain relative errors, and the relative
+      # RMSE across domains (a per-domain RRMSE needs repeated samples).
+      err <- sae_pred - truth_vec
+      rb <- (err / truth_vec) * 100
+      ok <- !is.na(err) & !is.na(truth_vec)
+      rrmse <- if (any(ok)) 100 * sqrt(mean(err[ok]^2)) / mean(abs(truth_vec[ok])) else NA_real_
 
       # Coverage rate if confidence/credible intervals are present
       has_ci <- all(c("ci_lower", "ci_upper") %in% names(df))
@@ -264,7 +277,7 @@ diagnose <- function(object,
       sim_metrics <- list(
         mean_rb = mean(rb, na.rm = TRUE),
         mean_abs_rb = mean(abs(rb), na.rm = TRUE),
-        mean_rrmse = mean(rrmse, na.rm = TRUE),
+        rrmse = rrmse,
         coverage_rate = cr
       )
     }
@@ -275,17 +288,29 @@ diagnose <- function(object,
   # ----------------------------------------------------------------------------
   bayesian_metrics <- NULL
   cpo_obj <- if (!is.null(object$fit) && !is.null(object$fit$cpo)) object$fit$cpo else NULL
+  # CPO/PIT are per INLA data row; they match the domains of df only when the rows
+  # coincide (hb_area, hb_twofold), not for hb_unit (unit rows + prediction rows)
+  if (!is.null(cpo_obj) && length(cpo_obj$cpo) != N_total) cpo_obj <- NULL
   cpo_vec <- rep(NA_real_, N_total)
   pit_vec <- rep(NA_real_, N_total)
 
-  is_bayesian <- inherits(object, "fastsae_hb_area") || inherits(object, "fastsae_ebp_area") || any(c("WAIC", "DIC") %in% names(object$goodness))
+  gd <- object$goodness
+  # hb_area: named vector (WAIC, pWAIC, DIC, pD, Marginal_LogLik);
+  # hb_unit / hb_twofold: list(dic, p_eff_dic, waic, p_eff_waic, mlik)
+  gd_get <- function(...) {
+    for (nm in c(...)) {
+      if (!is.null(gd) && nm %in% names(gd)) return(as.numeric(unname(gd[[nm]]))[1])
+    }
+    NA_real_
+  }
+  is_bayesian <- inherits(object, c("fastsae_hb_area", "fastsae_hb", "fastsae_ebp_area")) ||
+    any(c("WAIC", "DIC", "waic", "dic") %in% names(gd))
   if (is_bayesian) {
-    gd <- object$goodness
-    waic_val <- if (!is.null(gd) && "WAIC" %in% names(gd)) unname(gd["WAIC"]) else NA_real_
-    p_waic <- if (!is.null(gd) && "pWAIC" %in% names(gd)) unname(gd["pWAIC"]) else NA_real_
-    dic_val <- if (!is.null(gd) && "DIC" %in% names(gd)) unname(gd["DIC"]) else NA_real_
-    p_d <- if (!is.null(gd) && "pD" %in% names(gd)) unname(gd["pD"]) else NA_real_
-    log_mlik <- if (!is.null(gd) && "Marginal_LogLik" %in% names(gd)) unname(gd["Marginal_LogLik"]) else NA_real_
+    waic_val <- gd_get("WAIC", "waic")
+    p_waic <- gd_get("pWAIC", "p_eff_waic")
+    dic_val <- gd_get("DIC", "dic")
+    p_d <- gd_get("pD", "p_eff_dic")
+    log_mlik <- gd_get("Marginal_LogLik", "mlik")
 
     cpo_summary <- NULL
     pit_test <- NULL
@@ -334,16 +359,13 @@ diagnose <- function(object,
   # ----------------------------------------------------------------------------
   # 6. Overall Evaluation Status
   # ----------------------------------------------------------------------------
-  is_unbiased <- is.null(brown_res$wald_test) || brown_res$wald_test$is_unbiased
   is_fit <- is.null(brown_res$goodness_of_fit) || brown_res$goodness_of_fit$is_good_fit
   has_high_precision <- is.na(prop_reliable) || prop_reliable >= 80
 
-  status <- if (is_unbiased && is_fit && has_high_precision) {
-    "PASS: Model is well-calibrated, statistically unbiased, and reliable."
-  } else if (!is_unbiased) {
-    "CAUTION: Potential systematic bias detected between direct and model predictions."
+  status <- if (is_fit && has_high_precision) {
+    "PASS: Model estimates are consistent with the direct estimates (Brown W test) and reliable."
   } else if (!is_fit) {
-    "CAUTION: Model goodness-of-fit indicates notable deviation from survey variance."
+    "CAUTION: Model estimates differ from the direct estimates more than their uncertainty allows (Brown W test)."
   } else {
     "WARNING: High proportions of domains with RSE >= threshold."
   }
@@ -427,27 +449,22 @@ print.fastsae_diagnose <- function(x, ...) {
   cli::cli_end()
 
   # 2. Calibration & Goodness-of-Fit Tests (Brown et al., 2001)
-  cli::cli_h2("2. Brown et al. (2001) Calibration Tests")
+  cli::cli_h2("2. Brown et al. (2001) Diagnostics")
   cli::cli_ul()
-  if (!is.null(brown$wald_test)) {
-    wt <- brown$wald_test
-    if (wt$is_unbiased) {
-      cli::cli_alert_success("Bias Regression Test (H0: alpha = 0, beta = 1): F = {.val {round(wt$f_stat, 3)}}, p-value = {.val {round(wt$p_value, 4)}} [Statistically Unbiased]")
-    } else {
-      cli::cli_alert_warning("Bias Regression Test (H0: alpha = 0, beta = 1): F = {.val {round(wt$f_stat, 3)}}, p-value = {.val {round(wt$p_value, 4)}} [Potential Systematic Bias]")
-    }
-    cli::cli_text("  Estimated parameters: {.field alpha} = {round(wt$alpha, 4)}, {.field beta} = {round(wt$beta, 4)}")
-  } else {
-    cli::cli_alert_info("Bias Regression: Insufficient sampled observations to conduct test.")
-  }
-
   if (!is.null(brown$goodness_of_fit)) {
     gof <- brown$goodness_of_fit
     if (gof$is_good_fit) {
-      cli::cli_alert_success("Goodness-of-Fit Statistic W (Chi-Square): W = {.val {round(gof$w_stat, 2)}} (df = {gof$df}), p-value = {.val {round(gof$p_value, 4)}} [Good Fit]")
+      cli::cli_alert_success("Goodness-of-Fit Statistic W: W = {.val {round(gof$w_stat, 2)}} (df = {gof$df}), p-value = {.val {round(gof$p_value, 4)}} [Consistent with direct estimates]")
     } else {
-      cli::cli_alert_warning("Goodness-of-Fit Statistic W (Chi-Square): W = {.val {round(gof$w_stat, 2)}} (df = {gof$df}), p-value = {.val {round(gof$p_value, 4)}} [Deviation from Survey Variance]")
+      cli::cli_alert_warning("Goodness-of-Fit Statistic W: W = {.val {round(gof$w_stat, 2)}} (df = {gof$df}), p-value = {.val {round(gof$p_value, 4)}} [Differs from direct estimates]")
     }
+  }
+  if (!is.null(brown$bias_regression)) {
+    br <- brown$bias_regression
+    cli::cli_alert_info("Bias regression (direct ~ model, descriptive): {.field alpha} = {round(br$alpha, 4)} (SE {round(br$se_alpha, 4)}), {.field beta} = {round(br$beta, 4)} (SE {round(br$se_beta, 4)}), R^2 = {round(br$r_squared, 3)}")
+    cli::cli_text("  A slope above 1 is expected for shrinkage estimators; see ?diagnose.")
+  } else {
+    cli::cli_alert_info("Bias regression: insufficient sampled observations.")
   }
   cli::cli_end()
 
@@ -472,7 +489,7 @@ print.fastsae_diagnose <- function(x, ...) {
     } else {
       cli::cli_alert_info("Mean Relative Bias (MRB): {.val {round(sim$mean_rb, 2)}%}")
     }
-    cli::cli_alert_info("Mean Relative RMSE (RRMSE): {.val {round(sim$mean_rrmse, 2)}%}")
+    cli::cli_alert_info("Mean absolute relative error: {.val {round(sim$mean_abs_rb, 2)}%} | Relative RMSE across domains: {.val {round(sim$rrmse, 2)}%}")
     if (!is.na(sim$coverage_rate)) {
       if (sim$coverage_rate >= 90) {
         cli::cli_alert_success("95% CI Coverage Rate: {.val {round(sim$coverage_rate, 1)}%} (Nominal target met)")

@@ -31,9 +31,12 @@ An object of class \code{c("fastsae_diagnose", "list")} containing:
   \describe{
     \item{model_info}{Basic model characteristics (model name, sample size, unsampled count).}
     \item{precision}{Summary of direct vs SAE RSE, proportion of areas with RSE < threshold, and MSE reduction ratios.}
-    \item{brown_test}{Results of the Brown et al. (2001) calibration test (\eqn{H_0: \alpha = 0, \beta = 1}) and Chi-Square goodness-of-fit statistic \eqn{W}.}
+    \item{brown_test}{Brown et al. (2001) diagnostics: \code{bias_regression} (descriptive OLS
+      fit of the direct estimates on the model estimates, no test; see Details) and
+      \code{goodness_of_fit} (the \eqn{W} statistic with its upper-tail \eqn{\chi^2} p-value).}
     \item{spatial_test}{Moran's I test for spatial autocorrelation in model residuals (if \code{W} is available).}
-    \item{simulation_metrics}{Relative bias (RB), Relative RMSE, and coverage rates (if \code{truth} is supplied).}
+    \item{simulation_metrics}{Mean relative bias, mean absolute relative error, relative RMSE across
+      domains, and coverage rate (if \code{truth} is supplied).}
     \item{df_diag}{Data frame combining direct estimates, SAE predictions, MSE, RSE, and residuals for diagnostics.}
     \item{status}{Overall assessment summary string.}
   }
@@ -43,6 +46,23 @@ Conducts a comprehensive diagnostic evaluation of small area estimation
   models (HB, EBP, or EBLUP). Evaluates estimation precision, efficiency gains over direct
   estimators, external calibration and bias diagnostics (Brown et al., 2001), goodness-of-fit
   tests, and residual spatial autocorrelation (Moran's I).
+}
+\details{
+\strong{Goodness of fit.} \eqn{W = \sum_d (y_d - \hat\theta_d)^2 / (\psi_d + \mathrm{MSE}_d)} over the
+sampled domains is compared with \eqn{\chi^2_m} (Brown et al., 2001); only large values indicate
+that the model estimates differ from the direct estimates more than their uncertainty allows, so
+the p-value is upper-tailed (as in \code{emdi}). The statistic ignores the positive correlation
+between \eqn{y_d} and \eqn{\hat\theta_d}, so it is conservative: under a correct model \eqn{W}
+is typically well below its degrees of freedom.
+
+\strong{Bias regression.} The OLS fit \eqn{y_d = \alpha + \beta\hat\theta_d} is reported
+without a formal test of \eqn{\alpha = 0, \beta = 1}: for shrinkage estimators such as the EBLUP
+the slope exceeds 1 even when the model is correct (about \eqn{1/\gamma_d} for the part of the
+variation not explained by the covariates), so that test would reject correct models. Inspect
+the regression (and \code{autoplot(x, type = "calibration")}) for systematic deviations instead.
+
+\strong{Moran's I} on the residuals \eqn{y_d - \hat\theta_d} of the sampled domains uses the
+randomisation variance of Cliff and Ord (1981), two-sided.
 }
 \examples{
 library(fastsae)

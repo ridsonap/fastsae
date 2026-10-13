@@ -21,10 +21,14 @@ test_that("diagnose works for eblup_fh objects", {
   expect_true(d_fh$precision$mean_sae_rse < d_fh$precision$mean_direct_rse)
   expect_true(!is.null(d_fh$precision$eff_ratio_summary))
 
-  # Brown calibration test
-  expect_true(!is.null(d_fh$brown_test$wald_test))
+  # Brown diagnostics: descriptive bias regression + upper-tail W test
+  expect_true(!is.null(d_fh$brown_test$bias_regression))
   expect_true(!is.null(d_fh$brown_test$goodness_of_fit))
-  expect_true(is.numeric(d_fh$brown_test$wald_test$p_value))
+  expect_true(is.numeric(d_fh$brown_test$bias_regression$beta))
+  expect_null(d_fh$brown_test$bias_regression$p_value)
+  gof <- d_fh$brown_test$goodness_of_fit
+  expect_equal(gof$p_value, pchisq(gof$w_stat, gof$df, lower.tail = FALSE))
+  expect_identical(gof$is_good_fit, gof$p_value >= 0.05)
 
   # Print method
   expect_message(print(d_fh), "Diagnostic Report")
@@ -65,7 +69,9 @@ test_that("diagnose works for hb_area and handles simulation truth", {
   expect_s3_class(d_hb, "fastsae_diagnose")
   expect_false(is.null(d_hb$simulation_metrics))
   expect_true(is.numeric(d_hb$simulation_metrics$mean_abs_rb))
-  expect_true(is.numeric(d_hb$simulation_metrics$mean_rrmse))
+  expect_true(is.numeric(d_hb$simulation_metrics$rrmse))
+  err <- fit_hb$df_hb$hb - mock_truth
+  expect_equal(d_hb$simulation_metrics$rrmse, 100 * sqrt(mean(err^2)) / mean(abs(mock_truth)))
 })
 
 test_that("autoplot.fastsae_diagnose generates valid ggplot objects", {
@@ -145,9 +151,6 @@ test_that("diagnose and print.fastsae_diagnose cover all alert branches and Baye
   d_full$precision$prop_gain <- 60
   d_full$precision$eff_ratio_summary <- c(Min = 0.5, Q1 = 0.7, Median = 0.9, Mean = 0.9, Q3 = 1.1, Max = 1.5)
 
-  # Brown wald test biased
-  d_full$brown_test$wald_test$is_unbiased <- FALSE
-
   # Goodness of fit poor
   d_full$brown_test$goodness_of_fit$is_good_fit <- FALSE
 
@@ -165,7 +168,7 @@ test_that("diagnose and print.fastsae_diagnose cover all alert branches and Baye
   d_full$simulation_metrics <- list(
     mean_rb = 12.5,
     mean_abs_rb = 12.5,
-    mean_rrmse = 18.2,
+    rrmse = 18.2,
     coverage_rate = 75.0
   )
 
@@ -181,9 +184,9 @@ test_that("diagnose and print.fastsae_diagnose cover all alert branches and Baye
   )
 
   # Status with CAUTION
-  d_full$status <- "CAUTION: Potential systematic bias detected between direct and model predictions."
-  expect_message(print(d_full), "Potential Systematic Bias")
-  expect_message(print(d_full), "Deviation from Survey Variance")
+  d_full$status <- "CAUTION: Model estimates differ from the direct estimates more than their uncertainty allows (Brown W test)."
+  expect_message(print(d_full), "Differs from direct estimates")
+  expect_message(print(d_full), "Bias regression")
   expect_message(print(d_full), "Residual Spatial Pattern Remains")
   expect_message(print(d_full), "Below nominal 90%")
   expect_message(print(d_full), "Potential dispersion/skewness deviation")
@@ -194,9 +197,9 @@ test_that("diagnose and print.fastsae_diagnose cover all alert branches and Baye
   d_full$status <- "WARNING: High proportions of domains with RSE >= threshold."
   expect_message(print(d_full), "WARNING")
 
-  # Wald test is NULL
-  d_full$brown_test$wald_test <- NULL
-  expect_message(print(d_full), "Insufficient sampled observations")
+  # Bias regression is NULL
+  d_full$brown_test$bias_regression <- NULL
+  expect_message(print(d_full), "insufficient sampled observations")
 })
 
 test_that("autoplot.fastsae_diagnose pit and cpo plots work and error when missing", {
@@ -233,22 +236,62 @@ test_that("diagnose handles df_ebp and fully passing metrics print", {
 
   # 2. Perfect passing status & print
   d_pass <- d_ebp
-  d_pass$status <- "PASS: Model is well-calibrated, statistically unbiased, and reliable."
+  d_pass$status <- "PASS: Model estimates are consistent with the direct estimates (Brown W test) and reliable."
   d_pass$precision$prop_reliable <- 95
   d_pass$precision$prop_gain <- 85
   d_pass$precision$mean_direct_rse <- 25
   d_pass$precision$mean_sae_rse <- 10
-  d_pass$brown_test$wald_test$is_unbiased <- TRUE
   d_pass$brown_test$goodness_of_fit <- list(is_good_fit = TRUE, w_stat = 3.2, df = 5, p_value = 0.6)
   d_pass$spatial_test <- list(no_residual_autocorrelation = TRUE, moran_I = 0.01, expected_I = -0.05, p_value = 0.7)
-  d_pass$simulation_metrics <- list(mean_rb = 1.2, mean_rrmse = 4.5, coverage_rate = 94.5)
+  d_pass$simulation_metrics <- list(mean_rb = 1.2, mean_abs_rb = 3.1, rrmse = 4.5, coverage_rate = 94.5)
 
   msgs <- testthat::capture_messages(print(d_pass))
   combined <- paste(msgs, collapse = " ")
   expect_true(grepl("Final Assessment.*PASS", combined))
   expect_true(grepl("High precision", combined))
-  expect_true(grepl("Good Fit", combined))
+  expect_true(grepl("Consistent with direct estimates", combined))
   expect_true(grepl("No Residual Spatial Autocorrelation", combined))
   expect_true(grepl("Low bias < 5%", combined))
   expect_true(grepl("Nominal target met", combined))
+})
+
+test_that("diagnose Brown W test keeps its size and is not driven by shrinkage", {
+  # Correct FH model without spatial effects: the upper-tail W test must not
+  # reject, and the status must not report bias (the old F test of alpha = 0,
+  # beta = 1 rejected ~93% of such fits; the old two-sided W test 100%).
+  set.seed(11)
+  D <- 80
+  rej <- vapply(1:40, function(r) {
+    x1 <- rnorm(D)
+    psi <- runif(D, 0.3, 1.5)
+    dat <- data.frame(y = 1 + x1 + rnorm(D, sd = sqrt(0.6)) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
+    fit <- eblup_fh(y ~ x1, vardir = "psi", data = dat, print_result = FALSE)
+    d <- diagnose(fit)
+    c(gof = !d$brown_test$goodness_of_fit$is_good_fit, caution = grepl("^CAUTION", d$status),
+      beta = d$brown_test$bias_regression$beta)
+  }, numeric(3))
+  expect_lte(mean(rej["gof", ]), 0.1)
+  expect_equal(mean(rej["caution", ]), mean(rej["gof", ]))
+  # the descriptive slope is above 1 under shrinkage, as documented
+  expect_gt(mean(rej["beta", ]), 1)
+})
+
+test_that("diagnose reads Bayesian criteria of hb_unit-style goodness lists", {
+  obj <- structure(
+    list(
+      model = "HB-UNIT",
+      df_hb = data.frame(domain = 1:6, y = c(1, 2, 3, 4, 5, 6), hb = c(1.1, 1.9, 3.1, 3.9, 5.1, 6.0),
+                         vardir = rep(0.2, 6), mse = rep(0.05, 6)),
+      goodness = list(dic = 101.5, p_eff_dic = 4.2, waic = 102.3, p_eff_waic = 4.8, mlik = -60.1),
+      fit = list(cpo = list(cpo = runif(20), pit = runif(20)))  # unit rows: not per domain
+    ),
+    class = c("fastsae_hb_unit", "fastsae_hb", "fastsae")
+  )
+  d <- diagnose(obj)
+  expect_equal(d$bayesian_metrics$dic, 101.5)
+  expect_equal(d$bayesian_metrics$waic, 102.3)
+  expect_equal(d$bayesian_metrics$pWAIC, 4.8)
+  expect_equal(d$bayesian_metrics$log_mlik, -60.1)
+  expect_null(d$bayesian_metrics$cpo_summary)   # CPO rows do not match the domains
+  expect_null(d$df_diag$cpo)
 })

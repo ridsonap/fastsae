@@ -33,8 +33,12 @@ An object of class \code{c("fastsae_spatial_test", "list")} containing:
   \describe{
     \item{response_test}{Global Moran's I test results on direct response variable \eqn{y}.}
     \item{residual_test}{Moran's I, Anselin LM-Error, and Anselin LM-Lag test results on regression residuals.}
-    \item{model_comparison}{Log-Likelihood, AIC, BIC, and Likelihood Ratio Test (LRT) comparing standard vs spatial FH (if \code{vardir} provided).}
-    \item{recommendation}{Character string with diagnosis and logical flag \code{spatial_recommended}.}
+    \item{model_comparison}{ML log-likelihoods, AIC, BIC, and the likelihood ratio test (LRT) of
+      \eqn{\rho = 0} comparing standard vs spatial FH, both fitted by ML (if \code{vardir} provided).}
+    \item{spatial_recommended}{Logical recommendation, from a single test at level \code{alpha}
+      (see Details).}
+    \item{decision_test}{The test behind \code{spatial_recommended}: \code{"lrt"} or \code{"lm_error"}.}
+    \item{reason}{Character string explaining the recommendation.}
   }
 }
 \description{
@@ -43,6 +47,15 @@ and regression residuals, conducts Lagrange Multiplier (LM) tests (Anselin, 1988
 and performs comparative model fit tests between the standard Fay-Herriot (\code{\link{eblup_fh}})
 and Spatial Fay-Herriot (\code{\link{eblup_sfh}}) models. Provides an explicit,
 automated recommendation on whether a spatial model is statistically necessary.
+}
+\details{
+Moran's \eqn{I} uses the randomisation variance of Cliff and Ord (1981); the LM-error and
+LM-lag statistics follow Anselin (1988). These tests assume homoscedastic OLS errors, whereas
+direct estimates have domain-specific sampling variances, so they are descriptive. The
+recommendation therefore rests on one test, so that its false positive rate is \code{alpha}:
+with \code{vardir}, the likelihood ratio test of \eqn{\rho = 0} between \code{\link{eblup_fh}}
+and \code{\link{eblup_sfh}} fitted by ML (which accounts for the sampling variances);
+without it, the LM-error test.
 }
 \examples{
 library(fastsae)

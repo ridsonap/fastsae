@@ -124,6 +124,21 @@
   between area prediction errors (full MSE matrix for FH, SFH, STFH and INLA area-level HB fits), and the
   output has a new `mse_benchmarked` column, the first-order MSE of the benchmarked estimates
   ($mse_i - 2 k_i (Mw)_i + adj_i^2$; within about 1% of the empirical MSE in a simulation).
+* `diagnose()`: the Brown et al. (2001) goodness-of-fit statistic $W$ now uses an upper-tail
+  $\chi^2$ decision (as `emdi::compare.fh`); the former two-sided interval flagged every correct
+  FH fit in a simulation, because $W$ is conservative. The bias regression of the direct on the
+  model estimates is now descriptive (`brown_test$bias_regression`: `alpha`, `beta`, standard
+  errors, $R^2$) instead of an F test of $\alpha = 0, \beta = 1$, which rejected 93% of correct
+  FH fits (the slope exceeds 1 for shrinkage estimators); it no longer affects `status`.
+  `simulation_metrics$rrmse` is the relative RMSE across domains (`mean_rrmse` duplicated
+  `mean_abs_rb`). DIC/WAIC/marginal likelihood are now also read for `hb_unit()` and
+  `hb_twofold()` fits, and CPO/PIT are only used when they are per domain.
+* `spatial_test()`: the FH vs spatial FH comparison uses ML fits, so the likelihood ratio and
+  AIC/BIC are computed from ML log-likelihoods at ML estimates (before: at REML estimates). The
+  recommendation now rests on a single test at level `alpha` (`decision_test`: the likelihood
+  ratio test when `vardir` is given, otherwise the LM-error test); requiring any of three tests
+  recommended a spatial model for 9% of non-spatial data sets at `alpha = 0.05`. The Moran's I,
+  LM-error and LM-lag statistics are unchanged and agree with `spdep`.
 
 ### Performance
 * `benchmark_sae()`: the MSE covariance between areas is applied as a matrix-free operator
@@ -194,7 +209,7 @@
   * Unified calibration framework for multi-level administrative structures (e.g., Domain -> Province -> National).
   * Implements Ratio, Difference, Optimal Variance-Weighted Quadratic Loss (Datta et al. 2011; Steorts et al. 2014), and Constrained Logit benchmarking (Berg & Fuller 2014).
 * **Comprehensive Diagnostics & Visualization**:
-  * `diagnose()`: External calibration tests (Brown et al. 2001), residual analysis, spatial autocorrelation tests (Moran's I), and official statistical reliability classification (BPS standards).
+  * `diagnose()`: Brown et al. (2001) goodness-of-fit and bias diagnostics, residual analysis, spatial autocorrelation tests (Moran's I), and official statistical reliability classification (BPS standards).
   * `compare_sae()`: Tabular model comparison across information criteria and error metrics.
   * `map_sae()`: Spatial thematic choropleth maps integrated with `sf`.
   * `export_sae()`: Export estimation results with full statistical metadata to Excel (`openxlsx`/`writexl`) and CSV.

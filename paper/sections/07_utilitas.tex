@@ -120,8 +120,8 @@ estimasi: \citet{rao2015small} (bab 10), \citet{you2002pseudo} dan
 \subsection{Diagnostik: \texttt{diagnose}}\label{sec:diagnose}
 
 \code{diagnose()} adalah fungsi biasa (bukan generic S3) dan mensyaratkan
-objek \code{fastsae} (\code{R/diagnose.R:53-60}). Kuantitas dasar
-(\code{R/diagnose.R:84-130}):
+objek \code{fastsae} (\code{R/diagnose.R:73-80}). Kuantitas dasar
+(\code{R/diagnose.R:104-150}):
 \begin{equation}
   \mathrm{RSE}^{\text{direct}}_d=100\frac{\sqrt{\psi_d}}{\abs{y_d}},
   \qquad
@@ -135,29 +135,30 @@ objek \code{fastsae} (\code{R/diagnose.R:53-60}). Kuantitas dasar
 dengan ambang default $T=25$\,\% dan area tanpa sampel dihitung
 terpisahnya (\code{N\_sampled}/\code{N\_unsampled}).
 
-\paragraph{Kalibrasi Brown et al.\ (2001) (asal: kode).} Untuk
-minimal lima pasang $(y,\hat\theta)$ ter-sampel:
+\paragraph{Diagnostik Brown et al.\ (2001).} Untuk minimal lima pasang
+$(y,\hat\theta)$ ter-sampel (\code{R/diagnose.R:153-201}):
 \begin{align}
-  y_d&=\alpha+\beta\hat\theta_d+e_d \quad\text{(OLS polos)}, \label{eq:brown-reg}\\
-  F&=\frac{c'\,V^{-1}c}{2},\quad c=(\hat\alpha,\hat\beta)'-(0,1)',
-    \quad c\sim F_{2,\,n-2}, \label{eq:brown-wald}\\
   W&=\sum_d\frac{(y_d-\hat\theta_d)^2}{\psi_d+\mathrm{mse}_d},
-    \quad W\sim\chi^2_{n_w} \text{ (asimptotik)}. \label{eq:brown-gof}
+    \quad p=\Pr\bigl(\chi^2_{n_w}\ge W\bigr), \label{eq:brown-gof}\\
+  y_d&=\alpha+\beta\hat\theta_d+e_d \quad\text{(OLS, deskriptif)}. \label{eq:brown-reg}
 \end{align}
-\code{is\_unbiased} diputuskan dari $p$-value $F$; \code{is\_good\_fit}
-diputuskan dari penerimaan interval dua sisi
-$\chi^2_{\alpha/2,n_w}\le W\le\chi^2_{1-\alpha/2,n_w}$.
+\code{is\_good\_fit} $=p\ge\alpha$ (ekor atas saja, seperti
+\code{emdi::compare.fh}): hanya $W$ yang besar menandakan estimasi model
+berbeda dari estimasi langsung melebihi ketidakpastiannya. $W$ konservatif
+karena mengabaikan korelasi positif $y_d$ dan $\hat\theta_d$; di bawah model
+FH yang benar $W/n_w\approx0{,}4$ pada simulasi. Regresi \eqref{eq:brown-reg}
+hanya dilaporkan ($\hat\alpha,\hat\beta$, galat baku, $R^2$), tanpa uji:
+untuk estimator penyusutan kemiringannya melebihi $1$ walau model benar
+(sekitar $1/\gamma_d$ untuk variasi yang tidak dijelaskan kovariat).
 
-\implnote{Empat hal pada paragraf di atas adalah temuan lapangan dan dicatat
-sebagai UT-1--UT-3: regresi memakai OLS tanpa bobot (bukan WLS
-$\propto1/(\psi+\mathrm{mse})$ seperti yang lazim dikutip), statistik Wald
-dibagi $2$ lalu dibandingkan $F(2,n-2)$ (bukan $\chi^2(2)$), keputusan GOF
-memakai interval dua sisi sedangkan $p$-value yang dicetak ekor-atas tunggal
-sehingga status bisa \code{CAUTION} walau $p\ge\alpha$, dan tidak ada teks
-rujukan Brown et al.\ dalam repo --- dokumen resminya laporan internal ONS
-yang tidak dapat diverifikasi di Crossref (lihat \code{TODO\_REFERENCES.md}).}
+\implnote{Sebelum 14 Okt 2026 kode menguji $\alpha=0,\beta=1$ dengan uji $F$
+OLS dan memutuskan $W$ dengan interval dua sisi. Simulasi 300 replikasi model
+FH yang benar ($D=100$) memberi tingkat penolakan 93\,\% dan 100\,\% (nominal
+5\,\%); keduanya kini diperbaiki (UT-1--UT-3). Rujukan Brown et al.\ adalah
+laporan internal ONS yang tidak dapat diverifikasi (lihat
+\code{TODO\_REFERENCES.md}); acuan implementasinya \code{emdi::compare.fh}.}
 
-\paragraph{Moran's I residual} (\code{R/diagnose.R:193-246}) dihitung pada
+\paragraph{Moran's I residual} (\code{R/diagnose.R:203-256}) dihitung pada
 residual mentah area ter-sampel (bukan terstandarisasi), $W$ dipotong ke
 baris ter-sampel, minimal lima area:
 \begin{align}
@@ -175,30 +176,32 @@ $\kappa=n\sum z^4/(\sum z^2)^2$, $\mathbb E I=-1/(n-1)$, dan
 $\Var\ge10^{-8}$; $z$-statistik dua sisi $2\Phi(-\abs{z})$.
 
 \paragraph{Metrik simulasi dan diagnostik Bayes.} Bila \code{truth} diberikan:
-$\mathrm{rb}=100(\hat\theta-\theta)/\theta$, $\mathrm{rrmse}=100\abs{\hat\theta-\theta}/\abs{\theta}$
-(dinamakan ``Mean Relative RMSE'' padahal ini rerata galat relatif absolut,
-UT-4), dan \code{coverage} dari kolom CI apa adanya (UT-5). Untuk model
-Bayes, DIC/WAIC/marginal likelihood diambil dari \code{goodness}, CPO/PIT dari
-\code{fit\$cpo}, jumlah \code{failure}, lalu uji KS
-\code{ks.test(pit, "punif")} (syarat lima nilai PIT di $(0,1)$).
+rerata $\mathrm{rb}_d=100(\hat\theta_d-\theta_d)/\theta_d$, rerata
+$\abs{\mathrm{rb}_d}$, RRMSE lintas domain
+$100\sqrt{\overline{(\hat\theta-\theta)^2}}/\overline{\abs\theta}$ (UT-4
+diperbaiki), dan \code{coverage} dari kolom CI apa adanya (UT-5). Untuk model
+Bayes, DIC/WAIC/marginal likelihood diambil dari \code{goodness} (vektor
+bernama pada \fct{hb\_area}, list pada \fct{hb\_unit}/\fct{hb\_twofold}),
+CPO/PIT dari \code{fit\$cpo} hanya bila barisnya per domain, jumlah
+\code{failure}, lalu uji KS \code{ks.test(pit, "punif")}.
 
-\paragraph{Status akhir} (\code{R/diagnose.R:334-349}) berurutan:
-\code{PASS} bila semua tes lolos, lalu \code{CAUTION} untuk bias, \code{CAUTION}
-untuk GOF, lalu \code{WARNING} bila proporsi RSE$\ge$ ambang terlalu besar.
+\paragraph{Status akhir} berurutan: \code{PASS} bila uji $W$ lolos dan
+proporsi RSE andal $\ge80\,\%$, \code{CAUTION} bila uji $W$ menolak, lalu
+\code{WARNING} bila proporsi RSE$\ge$ ambang terlalu besar.
 Bila suatu tes tidak tersedia dianggap lolos.
 
 \begin{algorithm}[htbp]
-\caption{\texttt{diagnose} --- alur sebenarnya (\texttt{R/diagnose.R:53-386})}\label{alg:diagnose}
+\caption{\texttt{diagnose} --- alur sebenarnya (\texttt{R/diagnose.R:73-410})}\label{alg:diagnose}
 \KwIn{objek \code{fastsae}, \code{W}, \code{truth}, \code{rse\_threshold} $=25$, \code{alpha\_level} $=0.05$}
 \KwOut{list kelas \code{fastsae\_diagnose} + string \code{status}}
-ekstrak \code{df}, $y$, $\hat\theta$, $\psi$, $\mathrm{mse}$ (63-73)\;
-\eqref{eq:diag-basic}: RSE direct/SAE, efisiensi, residual, proporsi andal (84-130)\;
-\If{$n_{\text{pasang}}\ge5$}{regresi \eqref{eq:brown-reg}; Wald \eqref{eq:brown-wald}; GOF \eqref{eq:brown-gof} (133-191)}\;
-\If{\code{W} tersedia \textbf{dan} $n\ge5$}{Moran's I \eqref{eq:moran-I}--\eqref{eq:moran-var} pada residual terpotong (193-246)}\;
-\If{\code{truth} diberikan}{rb, rrmse, coverage (251-271)}\;
-\If{objek Bayes}{DIC/WAIC/CPO/PIT + uji KS (276-332)}\;
-\code{status} $\leftarrow$ aturan berurutan pada teks (341-349)\;
-susun \code{df\_diag} (\code{domain, direct\_y, sae\_pred, vardir, mse, direct\_rse, sae\_rse, eff\_ratio, residuals, std\_residuals, is\_sampled}[, \code{cpo, pit}]) (351-382)\;
+ekstrak \code{df}, $y$, $\hat\theta$, $\psi$, $\mathrm{mse}$ (82-102)\;
+\eqref{eq:diag-basic}: RSE direct/SAE, efisiensi, residual, proporsi andal (104-150)\;
+\If{$n_{\text{pasang}}\ge5$}{regresi deskriptif \eqref{eq:brown-reg}; GOF \eqref{eq:brown-gof} ekor atas (153-201)}\;
+\If{\code{W} tersedia \textbf{dan} $n\ge5$}{Moran's I \eqref{eq:moran-I}--\eqref{eq:moran-var} pada residual terpotong (203-256)}\;
+\If{\code{truth} diberikan}{rb, rrmse, coverage (258-285)}\;
+\If{objek Bayes}{DIC/WAIC/CPO/PIT + uji KS (287-358)}\;
+\code{status} $\leftarrow$ aturan berurutan pada teks (360-371)\;
+susun \code{df\_diag} (\code{domain, direct\_y, sae\_pred, vardir, mse, direct\_rse, sae\_rse, eff\_ratio, residuals, std\_residuals, is\_sampled}[, \code{cpo, pit}]) (373-390)\;
 \end{algorithm}
 
 Keluaran dicetak \code{print.fastsae\_diagnose} dalam lima bagian (efisiensi,
@@ -322,13 +325,19 @@ model spasial diperlukan, pada domain tersampel saja:
         lewat log-likelihood, AIC, BIC, dan statistik
         $2(\ell_{\text{SFH}}-\ell_{\text{FH}})$ terhadap $\chi^2_1$.
 \end{enumerate}
-Model spasial direkomendasikan (\code{spatial\_recommended = TRUE}) bila
-Moran's $I$ residual, $\mathrm{LM}_{\text{err}}$, atau uji rasio itu signifikan
-pada \code{alpha}.
-\implnote{Log-likelihood pada \code{goodness} kedua model berbentuk ML yang
-dievaluasi di estimasi REML, sehingga statistik pembandingnya adalah
-pendekatan uji rasio likelihood, bukan LRT REML yang eksak; ia juga dibatasi
-$\ge0$.}
+Kedua model pada butir~3 dipasang dengan ML, sehingga
+$2(\ell_{\text{SFH}}-\ell_{\text{FH}})$ adalah uji rasio likelihood untuk
+$\rho=0$ (titik interior, $\chi^2_1$). Rekomendasi
+(\code{spatial\_recommended}) bersandar pada \emph{satu} uji pada taraf
+\code{alpha} (\code{decision\_test}): uji rasio likelihood bila \code{vardir}
+ada --- yang memperhitungkan varians sampling --- dan uji LM-error bila tidak;
+statistik lain dilaporkan sebagai informasi. Moran's $I$ residual, LM-error,
+dan LM-lag identik dengan \pkg{spdep} (\code{lm.morantest}, \code{lm.RStests}).
+\implnote{Sebelum 14 Okt 2026 kedua model dipasang dengan REML (log-likelihood
+ML dievaluasi di estimasi REML) dan rekomendasi diberikan bila salah satu dari
+tiga uji signifikan; pada data non-spasial itu merekomendasikan model spasial
+pada 9\,\% replikasi (nominal 5\,\%), kini 5,3\,\%. Kuasa uji rasio likelihood
+terhadap SAR $\rho=0{,}7$ ($D=100$): 93\,\%.}
 
 \paragraph{\texttt{gvf\_smooth}} (\code{R/gvf.R}) menghaluskan varians
 sampling langsung $D_i$ yang tidak stabil dengan \emph{generalized variance
@@ -441,7 +450,7 @@ untuk \code{sim\_panel}.}
 \subsection{Rujukan lapisan utilitas}\label{sec:util-ref}
 
 Blok roxygen \code{R/benchmark.R:79-93} memuat lima rujukan dan
-\code{R/diagnose.R:27-33} memuat tiga; yang berhasil diverifikasi dipakai di
+\code{R/diagnose.R} memuat tiga; yang berhasil diverifikasi dipakai di
 sini: \citet{rao2015small} (bab benchmarking), \citet{you2002pseudo},
 \citet{datta2010bayesian} (benchmarking Bayes), dan \citet{berg2014small}.
 Rujukan yang tidak dapat diverifikasi (Steorts et al.\

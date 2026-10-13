@@ -20,9 +20,22 @@
 #'   \describe{
 #'     \item{response_test}{Global Moran's I test results on direct response variable \eqn{y}.}
 #'     \item{residual_test}{Moran's I, Anselin LM-Error, and Anselin LM-Lag test results on regression residuals.}
-#'     \item{model_comparison}{Log-Likelihood, AIC, BIC, and Likelihood Ratio Test (LRT) comparing standard vs spatial FH (if \code{vardir} provided).}
-#'     \item{recommendation}{Character string with diagnosis and logical flag \code{spatial_recommended}.}
+#'     \item{model_comparison}{ML log-likelihoods, AIC, BIC, and the likelihood ratio test (LRT) of
+#'       \eqn{\rho = 0} comparing standard vs spatial FH, both fitted by ML (if \code{vardir} provided).}
+#'     \item{spatial_recommended}{Logical recommendation, from a single test at level \code{alpha}
+#'       (see Details).}
+#'     \item{decision_test}{The test behind \code{spatial_recommended}: \code{"lrt"} or \code{"lm_error"}.}
+#'     \item{reason}{Character string explaining the recommendation.}
 #'   }
+#'
+#' @details
+#' Moran's \eqn{I} uses the randomisation variance of Cliff and Ord (1981); the LM-error and
+#' LM-lag statistics follow Anselin (1988). These tests assume homoscedastic OLS errors, whereas
+#' direct estimates have domain-specific sampling variances, so they are descriptive. The
+#' recommendation therefore rests on one test, so that its false positive rate is \code{alpha}:
+#' with \code{vardir}, the likelihood ratio test of \eqn{\rho = 0} between \code{\link{eblup_fh}}
+#' and \code{\link{eblup_sfh}} fitted by ML (which accounts for the sampling variances);
+#' without it, the LM-error test.
 #'
 #' @references
 #' \enumerate{
@@ -178,7 +191,11 @@ spatial_test <- function(
   }
   lm_lag_pval <- stats::pchisq(lm_lag_stat, df = 1, lower.tail = FALSE)
 
-  # Step C: Model Comparison (Standard FH vs Spatial FH) if vardir supplied
+  # Step C: Model Comparison (Standard FH vs Spatial FH) if vardir supplied.
+  # FH is SFH with rho = 0 (an interior point of (-1, 1)), so the likelihood ratio
+  # of the two ML fits is asymptotically chi-squared(1). ML, not REML: the
+  # log-likelihoods in `goodness` are ML log-likelihoods, which would otherwise be
+  # evaluated at REML estimates and not form a likelihood ratio.
   comp_res <- NULL
   if (!is.null(vardir)) {
     vardir_vec <- if (inherits(vardir, "gvf_smooth")) {
@@ -192,7 +209,7 @@ spatial_test <- function(
         formula = formula,
         vardir = vardir_vec,
         data = data,
-        method = "REML",
+        method = "ML",
         print_result = FALSE
       )
 
@@ -201,7 +218,7 @@ spatial_test <- function(
         vardir = vardir_vec,
         data = data,
         W = W_mat,
-        method = "REML",
+        method = "ML",
         mse_method = "analytical",
         print_result = FALSE
       )
@@ -238,7 +255,8 @@ spatial_test <- function(
         delta_bic = delta_bic,
         rho = rho_est,
         sigma2_u_fh = sigma2_u_fh,
-        sigma2_u_sfh = sigma2_u_sfh
+        sigma2_u_sfh = sigma2_u_sfh,
+        method = "ML"
       )
     }, error = function(e) {
       cli::cli_alert_warning("Could not complete model comparison (FH vs SFH): {e$message}")
@@ -251,24 +269,31 @@ spatial_test <- function(
   is_lm_err_sig <- !is.na(lm_error_pval) && lm_error_pval < alpha
   is_lrt_sig <- !is.null(comp_res) && !is.na(comp_res$lrt_pval) && comp_res$lrt_pval < alpha
 
-  # Spatial model is recommended if residual spatial autocorrelation persists
-  # OR if the comparative LRT test shows significant improvement
-  spatial_rec <- (is_moran_res_sig || is_lm_err_sig || is_lrt_sig)
+  # The recommendation rests on ONE test at level alpha, so that its false
+  # positive rate is alpha: the likelihood ratio test of rho = 0 in the Fay-Herriot
+  # model when `vardir` is given (the model choice itself), otherwise the LM-error
+  # test on the OLS residuals. Requiring any of several tests would inflate it
+  # (about 9% at alpha = 0.05 for Moran + LM-error + LRT). The other statistics
+  # are reported for information.
+  decision_test <- if (!is.null(comp_res)) "lrt" else "lm_error"
+  spatial_rec <- if (decision_test == "lrt") is_lrt_sig else is_lm_err_sig
 
   reason_text <- if (spatial_rec) {
-    if (is_lrt_sig && is_lm_err_sig) {
-      "Residual spatial autocorrelation is significant and the Spatial Fay-Herriot model yields a statistically significant improvement over standard FH."
-    } else if (is_lm_err_sig || is_moran_res_sig) {
-      "Model residuals exhibit significant spatial autocorrelation; auxiliary variables do not fully capture spatial dependence."
+    if (decision_test == "lrt") {
+      "The likelihood ratio test of rho = 0 rejects the standard Fay-Herriot model in favour of the Spatial Fay-Herriot model."
     } else {
-      "Likelihood Ratio Test and information criteria favor the Spatial Fay-Herriot model."
+      "The LM-error test detects spatial autocorrelation in the regression residuals; the auxiliary variables do not capture the spatial dependence."
     }
+  } else if (decision_test == "lrt") {
+    if (is_moran_res_sig || is_lm_err_sig) {
+      "The OLS residuals show spatial autocorrelation, but once the sampling variances are accounted for the Spatial Fay-Herriot model does not fit significantly better (likelihood ratio test). A standard model is sufficient."
+    } else {
+      "The likelihood ratio test of rho = 0 does not reject the standard Fay-Herriot model. A standard model is sufficient."
+    }
+  } else if (is_moran_y_sig) {
+    "Although the direct response exhibits spatial clustering, the auxiliary variables capture the spatial pattern (no residual autocorrelation by the LM-error test). A standard model is sufficient."
   } else {
-    if (is_moran_y_sig) {
-      "Although the direct response exhibits spatial clustering, auxiliary variables adequately capture the spatial pattern (residuals are spatially random). A standard model is sufficient."
-    } else {
-      "Neither the response variable nor regression residuals exhibit significant spatial autocorrelation. A standard model is sufficient."
-    }
+    "Neither the response variable nor the regression residuals exhibit significant spatial autocorrelation. A standard model is sufficient."
   }
 
   out <- list(
@@ -280,6 +305,7 @@ spatial_test <- function(
     ),
     model_comparison = comp_res,
     spatial_recommended = spatial_rec,
+    decision_test = decision_test,
     reason = reason_text,
     alpha = alpha,
     n = n,
@@ -331,8 +357,8 @@ print.fastsae_spatial_test <- function(x, ...) {
     sig_str_lrt <- if (mc$lrt_pval < 0.001) "***" else if (mc$lrt_pval < 0.01) "**" else if (mc$lrt_pval < 0.05) "*" else "ns"
 
     cli::cli_bullets(c(
-      "*" = "Standard FH:       sigma2_u = {.val {round(mc$sigma2_u_fh, 4)}}, REML LogLik = {.val {round(mc$ll_fh, 2)}}, AIC = {.val {round(mc$aic_fh, 2)}}",
-      "*" = "Spatial FH (SAR):  sigma2_u = {.val {round(mc$sigma2_u_sfh, 4)}}, rho = {.val {round(mc$rho, 4)}}, REML LogLik = {.val {round(mc$ll_sfh, 2)}}, AIC = {.val {round(mc$aic_sfh, 2)}}",
+      "*" = "Standard FH:       sigma2_u = {.val {round(mc$sigma2_u_fh, 4)}}, ML LogLik = {.val {round(mc$ll_fh, 2)}}, AIC = {.val {round(mc$aic_fh, 2)}}",
+      "*" = "Spatial FH (SAR):  sigma2_u = {.val {round(mc$sigma2_u_sfh, 4)}}, rho = {.val {round(mc$rho, 4)}}, ML LogLik = {.val {round(mc$ll_sfh, 2)}}, AIC = {.val {round(mc$aic_sfh, 2)}}",
       "*" = "Likelihood Ratio:  Chisq = {.val {round(mc$lrt_stat, 3)}} (df = 1, p-value = {.val {format.pval(mc$lrt_pval, digits = 4)}}) [{sig_str_lrt}]",
       "*" = "Information Delta: Delta AIC = {.val {round(mc$delta_aic, 2)}}, Delta BIC = {.val {round(mc$delta_bic, 2)}}"
     ))
@@ -340,6 +366,7 @@ print.fastsae_spatial_test <- function(x, ...) {
 
   # 4. Final Recommendation
   cli::cli_h2("4. Final Recommendation")
+  cli::cli_text("Decision test: {if (identical(x$decision_test, 'lrt')) 'likelihood ratio test (FH vs Spatial FH)' else 'Anselin LM-error test'} at alpha = {x$alpha}.")
   if (x$spatial_recommended) {
     cli::cli_alert_success("SPATIAL MODEL RECOMMENDED: Significant spatial spillover detected.")
     cli::cli_bullets(c(
