@@ -200,13 +200,14 @@ $(B_d^{\text{RM}})^2\psi_d+(1-B_d^{\text{RM}})^2\sighat$ (FH-2). Jangan tertukar
 dengan $(1-B)^2(\psi_d+\sighat)$ yang kadang muncul di literatur --- bentuk itu
 bukan yang dikodekan.}
 
-Untuk model dua-parameter (dua-fold) koreksi bias berbeda: varians
-$\Var(\hat\sigma_v^2)$, $\Var(\hat\sigma_u^2)$, dan $\Cov$ diambil dari
-invers matriks informasi Fisher final, dan
-$\mathrm{MSE}=g_1+g_2+g_3$ dengan suku silang $2\E_{vu}\Cov_{vu}$ sudah
-termasuk di dalam $g_3$ (TFH-2) --- bukan $g_1+g_2+2g_3$. Untuk SFH, empat
-suku dipakai: $\mathrm{MSE}=g_1+g_2+2g_3-g_4$ plus koreksi bias ML pada
-$g_1$ (bagian~\ref{sec:sfh-mse}).
+Untuk model dua-parameter (dua-fold) varians $\Var(\hat\sigma_v^2)$,
+$\Var(\hat\sigma_u^2)$, dan $\Cov$ diambil dari invers matriks informasi Fisher
+final (ML atau REML sesuai \code{method}); suku silang $2\E_{vu}\Cov_{vu}$
+termasuk di dalam $g_3$, dan estimatornya $\mathrm{MSE}=g_1+g_2+2g_3$ (REML),
+dikurangi $\mathbf b_{\text{ML}}'\nabla g_1$ untuk ML (bagian~\ref{sec:twofold-mse};
+sebelum audit 12 Okt 2026: $g_1+g_2+g_3$, TFH-2). Untuk SFH dan STFH, empat
+suku dipakai: $\mathrm{MSE}=g_1+g_2+2g_3-g_4$, pada SFH ditambah koreksi bias
+ML pada $g_1$ (bagian~\ref{sec:sfh-mse} dan~\ref{sec:stfh-mse}).
 
 \subsection{MSE bootstrap}\label{sec:bootstrap}
 
@@ -220,8 +221,10 @@ dari distribusi model, refit, lalu
   =\frac1B\sum_{b=1}^B\bigl(\hat\theta_b^\ast-\theta_b^\ast\bigr)^2.
   \label{eq:pbmse}
 \end{equation}
-Ini persis \code{eblup\_twofold.cpp:515-517}, \code{eblup\_stfh\_pbmse.cpp:405-412},
-\code{eblup\_sfh\_pbmse.cpp:158-164}, dan \code{R/eblup\_bhf.R:360}. Varian
+Ini persis \code{eblup\_twofold.cpp:593-594}, \code{eblup\_stfh\_pbmse.cpp:209-221},
+\code{eblup\_sfh\_pbmse.cpp:166}, dan \code{eblup\_bhf\_core.cpp:300-303}; SFH dan
+STFH mengganti replikat gagal sampai tepat $B$ replikat valid, BHF membagi
+dengan jumlah replikat yang berhasil. Varian
 bias-koreksi pada SFH memakai
 \begin{equation}
   \widehat{\mathrm{MSE}}_{\mathrm{pbbc}}
@@ -230,17 +233,20 @@ bias-koreksi pada SFH memakai
 \end{equation}
 dengan $g_3^\ast$ diambil dari selisih $\hat\theta^\ast$ terhadap prediksi
 SBLUP yang bobotnya berasal dari \emph{fit awal}
-(\code{eblup\_sfh\_pbmse.cpp:127-128,164}); kesesuaian \eqref{eq:pbbc}
+(\code{eblup\_sfh\_pbmse.cpp:148, 167-172}); kesesuaian \eqref{eq:pbbc}
 dengan rumus publik tidak terikat pada referensi mana pun di repo dan
 ditandai tidak pasti (SFH-10).
 
 \paragraph{Nonparametrik.} Hanya untuk SFH dan hanya REML
-(\code{eblup\_sfh\_npbmse.cpp:32-34}): residual dibagi menjadi komponen
+(\code{eblup\_sfh\_npbmse.cpp:31-34}): residual dibagi menjadi komponen
 efek acak dan sampling lewat akar kuadrat matriks $\Psi_e=\mathrm{diag}(\psi)
-P\,\mathrm{diag}(\psi)$ dan $\Psi_u=(\Imat-\rho W)\,G\,P\,G(\Imat-\rho W)'$
+P\,\mathrm{diag}(\psi)$ dan $\Psi_u=\mathrm{Gen}^{-1}\,G\,P\,G\,\mathrm{Gen}^{-1\prime}$
 yang dieigendekomposisi (kolom $p..m-1$ dipakai untuk membuang arah proyeksi
 $\Xmat$), lalu resample indeks residual yang telah distandarisasi
-(\code{eblup\_sfh\_npbmse.cpp:70-110,143-149}).
+(\code{eblup\_sfh\_npbmse.cpp:71-140}). Generatornya $\mathrm{Gen}^{-1}=\Imat-\rho W$
+bila semua domain tersampel (seperti \code{sae::npbmseSFH}); bila ada domain
+tak-sampel, $\mathrm{Gen}$ adalah faktor Cholesky bawah dari $\Sigma_{ss}$.
+Dengan $\sigma^2=0$ tidak ada efek area yang diresample.
 
 \subsection{Domain tanpa sampel dan prediksi sintetis}\label{sec:unsampled}
 
@@ -260,19 +266,19 @@ Fungsi & Kriteria & Prediktor dan MSE \\
 \code{eblup\_fh} & \code{y = NA} & $x_{ns}'\betah$;
   $\mathrm{MSE}=\sighat+x_{ns}'\Qm x_{ns}$; \code{random\_effect = NA}
   (\code{eblup\_fh.cpp:207-222}) \\
-\code{eblup\_sfh} & \code{y = NA} & kriging $x_{ns}'\betah+G_{rs}\Vm^{-1}r$
-  dengan sub-blok $A_{full}^{-1}$; $\mathrm{MSE}=g_1+g_2$ saja
-  (\code{eblup\_sfh\_core.cpp:576-604}) \\
+\code{eblup\_sfh} & \code{y = NA} & kriging $x_{ns}'\betah+\sigma^2\Sigma_{rs}\Vm^{-1}r$
+  dari kovarians SAR penuh yang sama dengan fit; MSE orde kedua penuh
+  (\code{eblup\_sfh\_core.cpp:641-756}) \\
 \code{eblup\_stfh} & respons \code{NA} & \emph{tidak diizinkan}: panel wajib
-  lengkap, \code{cli\_abort} (\code{R/eblup\_stfh.R:129-139}) \\
+  seimbang, \code{cli\_abort} (\code{R/eblup\_stfh.R:168-176}) \\
 \code{eblup\_bhf} & domain tanpa unit sampel & prediktor sintetis
   $\bar x_{pop}'\betah$, \code{samp\_size = 0}, peringatan
   (\code{eblup\_unit.cpp:94-100}) \\
 \code{eblup\_twofold} & \code{y = NA} & area tanpa subarea: $x'\betah$;
   subarea tak-sampel pada area tersampel: $x'\betah+\hat v_i$
-  (\code{eblup\_twofold.cpp:333-363}) \\
+  (\code{eblup\_twofold.cpp:356-395}) \\
 \code{hb\_unit} & seluruh domain & menambahkan 1 baris \code{y = NA} per
-  domain, lalu memakai fitted INLA (\code{hb\_unit.R:244-249}) \\
+  domain, lalu memakai fitted INLA (\code{hb\_unit.R:244-278}) \\
 \code{hb\_area}, \code{hb\_twofold} & baris \code{y = NA} & tetap dievaluasi
   oleh INLA; domain yang \emph{tidak ada dalam data} tidak diprediksi
   (HB-17) \\

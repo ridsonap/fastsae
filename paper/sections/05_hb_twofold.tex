@@ -11,7 +11,7 @@ default penomoran unit). Perbedaannya inferensial: model ditempatkan dalam
 kerangka hierarki Bayes lewat \pkg{INLA}, dengan dua komponen acak terpisah
 (efek area dan efek sub-area) serta pilihan prediktor sintetis pada tingkat
 area. Fungsi ini diekspor dengan satu nama, \code{hb\_twofold}
-(\code{NAMESPACE:11}).
+(\code{NAMESPACE:14}); hanya \code{inla\_engine()} yang didukung.
 
 \subsection{Persamaan model}\label{sec:hbtwofold-model}
 
@@ -23,7 +23,7 @@ area. Fungsi ini diekspor dengan satu nama, \code{hb\_twofold}
 \end{equation}
 dengan $Q_v$ dipilih \code{spatial} $\in$
 \{\code{none} (i.i.d.), \code{bym2}, \code{besag}\} dan $u$ selalu i.i.d.
-pada indeks sub-area (baris 241-257):
+pada indeks sub-area (baris 250-266):
 \begin{lstlisting}[language=R]
 y ~ <fixed_str> + <rand_area> +
     f(..subarea_id.., model = 'iid',
@@ -32,14 +32,14 @@ y ~ <fixed_str> + <rand_area> +
 \code{rand\_area} adalah \code{f(..area\_id.., model='iid'|'bym2'|'besag',
 graph=..., hyper=list(prec = prior\_prec\_area[, phi = prior\_phi]))}.
 Likelihood: Gaussian (wajib \code{vardir}, dipakai sebagai
-\code{scale} $=1/\psi$, baris 212-214), Binomial (wajib \code{trials}),
-Poisson (\code{exposure} opsional; baris 277-286).
+\code{scale} $=1/\psi$, baris 216-224), Binomial (wajib \code{trials}),
+Poisson (\code{exposure} opsional; baris 286-296).
 
 \subsection{Prediktor titik}\label{sec:hbtwofold-prediktor}
 
 Prediksi sub-area diambil dari \code{summary.fitted.values} untuk
-$1..n_{\text{subarea}}$ (baris 303-310), lalu tingkat area diperoleh sebagai
-rata-rata berbobot (baris 344-358):
+$1..n_{\text{subarea}}$ (baris 312-318), lalu tingkat area diperoleh sebagai
+rata-rata berbobot (baris 352-368):
 \begin{equation}
   \hat\theta^{\text{area}}_i=\sum_{j\in i}w_{ij}\,\hat\theta_{ij},
   \qquad
@@ -48,7 +48,7 @@ rata-rata berbobot (baris 344-358):
   \label{eq:hbtwofold-area}
 \end{equation}
 Bobot yang tidak valid (NA/negatif) diubah menjadi $0$; bila jumlah bobot
-area bernilai $0$, kembali ke $1/n_i$ (baris 344-355).
+area bernilai $0$, kembali ke $1/n_i$ (baris 353-365).
 
 \subsection{Estimasi komponen varians}\label{sec:hbtwofold-varians}
 
@@ -56,22 +56,24 @@ Sama seperti dua fungsi Bayes lain: \pkg{INLA} dengan
 \code{strategy} default \code{"laplace"}, \code{control.compute} berisi
 \code{dic, waic, cpo, mlik} plus \code{config} yang diaktifkan \emph{hanya}
 bila \code{compute\_area = TRUE} (karena butuh konfigurasi untuk posterior
-sampling), dan \code{num.threads = 1} (baris 260-275). Prior:
-\code{prior\_prec\_area} dan \code{prior\_prec\_subarea} keduanya
+sampling), dan \code{num.threads = 1} (baris 269-285); argumen
+\code{inla\_engine(...)} digabung lewat \code{modifyList} (baris 298-299).
+Prior: \code{prior\_prec} (area) dan \code{prior\_prec\_subarea} keduanya
 \code{pc.prec(1, 0.01)}, \code{prior\_phi} \code{pc(0.5, 0.5)}
-(baris 138-159). Hyperparameter akhir: $\hat\sigma_v^2=1/\text{prec}$ pada
-indeks area, $\hat\sigma_u^2=1/\text{prec}$ pada indeks sub-area, dan
-\code{phi} bila ada (baris 443-467).
+(baris 155-171). Hyperparameter akhir: $\hat\sigma_v^2$ dan $\hat\sigma_u^2$
+adalah rerata posterior varians $\mathbb E[1/\tau\mid y]$ pada indeks area dan
+sub-area (\code{.post\_mean\_variance}), dan \code{phi} bila ada (baris
+450-478).
 
 \subsection{Estimasi MSE}\label{sec:hbtwofold-mse}
 
-Tingkat sub-area (baris 320-321):
+Tingkat sub-area (baris 330-331):
 \begin{equation}
   \widehat{\mathrm{MSE}}_{ij}=\mathrm{sd}_{ij}^2,\qquad
   \mathrm{RSE}_{ij}=100\,\mathrm{sd}_{ij}/\abs{\hat\theta_{ij}}.
   \label{eq:hbtwofold-mse-sub}
 \end{equation}
-Tingkat area memakai sampling posterior (baris 366-407), bila
+Tingkat area memakai sampling posterior (baris 371-406), bila
 \code{compute\_area = TRUE}:
 \begin{enumerate}[label=\arabic*.]
   \item \code{ps $\leftarrow$ INLA::inla.posterior.sample(n = draws, fit, seed)}
@@ -93,48 +95,48 @@ Tingkat area memakai sampling posterior (baris 366-407), bila
   \mathrm{sd}_{ij}\bigr)^2},
   \label{eq:hbtwofold-mse-area}
 \end{equation}
-dengan fallback itu berasumsi sub-area saling bebas (baris 397-407), dan CI
+dengan fallback itu berasumsi sub-area saling bebas (baris 407-418), dan CI
 jatuh ke $\pm1.96\,\mathrm{sd}$ (HB-18). Bila \code{compute\_area = FALSE},
-\code{df\_area = NULL} (baris 341).
+\code{df\_area = NULL} (baris 351).
 
 \subsection{Pseudo-code}\label{sec:hbtwofold-algo}
 
 \begin{algorithm}[htbp]
-\caption{\texttt{hb\_twofold} --- alur sebenarnya (\texttt{R/hb\_twofold.R:138-510})}
+\caption{\texttt{hb\_twofold} --- alur sebenarnya (\texttt{R/hb\_twofold.R:136-520})}
 \label{alg:hbtwofold}
 \KwIn{formula, \code{vardir} (wajib bila Gaussian), \code{domain} (wajib),
   \code{subarea}, \code{data}, \code{family}, \code{spatial}, $W$,
   \code{weight}, \code{trials}, \code{exposure}, \code{engine}, \code{compute\_area}}
 \KwOut{\code{df\_hb} (sub-area), \code{df\_area} (area, bila diaktifkan), \code{goodness}}
-\texttt{.check\_inla\_installed()} (161);\quad \code{match.arg} (163-165)\;
-\code{domain} wajib;\quad \code{subarea} $\leftarrow$ \code{1..n} bila \code{NULL} (177-186)\;
-$y,\texttt{terms}\leftarrow$ \texttt{model.frame(na.pass)} (196-198)\;
+\code{engine} $\leftarrow$ \texttt{.resolve\_inla\_engine}; hanya INLA (155-171)\;
+\texttt{.check\_inla\_installed()} (172);\quad \code{match.arg} (174-175)\;
+\code{domain} wajib;\quad \code{subarea} $\leftarrow$ \code{1..n} bila \code{NULL} (186-203)\;
+$y,\texttt{terms}\leftarrow$ \texttt{model.frame(na.pass)} (206-207)\;
 Gaussian: \code{vardir} wajib, \code{scale\_vec} $=1/\psi$ (baris NA/$\le0/\infty
-  \to1$) (212-214);\quad Binomial: \code{trials} wajib (216-222)\;
-$W\leftarrow$ \texttt{.convert\_spatial\_weights} (225-229)\;
-formula $\leftarrow$ \eqref{eq:hbtwofold-model} (241-257)\;
+  \to1$) (216-224);\quad Binomial: \code{trials} wajib (225-229)\;
+$W\leftarrow$ \texttt{.convert\_spatial\_weights} (234-238)\;
+formula $\leftarrow$ \eqref{eq:hbtwofold-model} (250-266)\;
 \code{num.threads} $\leftarrow$ \code{"1:1"};\quad \code{control.compute}
-  $=$ \{dic, waic, cpo, mlik, \code{config = compute\_area}\} (260-275)\;
-\code{fit} $\leftarrow$ \texttt{do.call(INLA::inla, ...)} (292-300)\;
-$\hat\theta_{ij},\mathrm{sd}_{ij},\mathrm{CI}\leftarrow$ (303-310);
-  $\widehat{\mathrm{MSE}}\leftarrow$ \eqref{eq:hbtwofold-mse-sub} (320-321)\;
-$w_{ij}\leftarrow$ \eqref{eq:hbtwofold-area} (344-355);\quad
-  $\hat\theta^{\text{area}}_i\leftarrow$ (358)\;
+  $=$ \{dic, waic, cpo, mlik, \code{config = compute\_area}\} (269-285)\;
+\code{fit} $\leftarrow$ \texttt{do.call(INLA::inla, ...)} (302-310)\;
+$\hat\theta_{ij},\mathrm{sd}_{ij},\mathrm{CI}\leftarrow$ (312-318);
+  $\widehat{\mathrm{MSE}}\leftarrow$ \eqref{eq:hbtwofold-mse-sub} (330-331)\;
+$w_{ij}\leftarrow$ \eqref{eq:hbtwofold-area} (353-365);\quad
+  $\hat\theta^{\text{area}}_i\leftarrow$ (368)\;
 \If{\code{compute\_area}}{
-  \texttt{inla.posterior.sample} $n=200$ (367-370)\;
-  transformasi balik link per gambar (377-379)\;
-  agregasi berbobot per gambar (386)\;
-  $\mathrm{sd}^{\text{area}},\mathrm{CI}\leftarrow$ kuantil (387-389)\;
-  \textbf{fallback} \eqref{eq:hbtwofold-mse-area} bila sampling gagal (397-407)
+  \texttt{inla.posterior.sample}($n=$ \code{draws}, \code{seed}) (376-378)\;
+  transformasi balik link per gambar (385-390)\;
+  agregasi berbobot per gambar; $\mathrm{sd}^{\text{area}},\mathrm{CI}\leftarrow$ kuantil (391-400)\;
+  \textbf{fallback} \eqref{eq:hbtwofold-mse-area} bila sampling gagal (407-418)
 }
-\If{\code{compute\_area} $=$ FALSE}{\code{df\_area} $\leftarrow$ \texttt{NULL} (341)}\;
-$\hat\sigma_v^2,\hat\sigma_u^2,\phi$, \code{goodness} $\leftarrow$ (443-476)\;
-kelas \code{c("fastsae\_hb\_twofold","fastsae\_hb","fastsae")} (503)\;
+\If{\code{compute\_area} $=$ FALSE}{\code{df\_area} $\leftarrow$ \texttt{NULL} (351)}\;
+$\hat\sigma_v^2,\hat\sigma_u^2,\phi$, \code{goodness} $\leftarrow$ (450-487)\;
+kelas \code{c("fastsae\_hb\_twofold","fastsae\_hb","fastsae")} (515)\;
 \end{algorithm}
 
 \subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:hbtwofold-api}
 
-\begin{lstlisting}[language=R,caption={Signature \texttt{hb\_twofold} (\texttt{R/hb\_twofold.R:138-159}).}]
+\begin{lstlisting}[language=R,caption={Signature \texttt{hb\_twofold} (\texttt{R/hb\_twofold.R:136-153}).}]
 hb_twofold(formula, vardir = NULL, domain, subarea = NULL, data,
            family = c("gaussian","binomial","poisson"),
            spatial = c("none","bym2","besag"), W = NULL, weight = NULL,
@@ -146,10 +148,11 @@ hb_twofold(formula, vardir = NULL, domain, subarea = NULL, data,
 \end{lstlisting}
 
 Objek keluaran: \code{c("fastsae\_hb\_twofold", "fastsae\_hb", "fastsae")}
-berisi \code{df\_hb} (juga \code{df\_subarea} sebagai alias, baris 485),
+berisi \code{df\_hb} (juga \code{df\_subarea} sebagai alias, baris 495),
 \code{df\_area} (atau \code{NULL}), \code{random\_effect\_var} bernama
 \code{sigma2\_v} dan \code{sigma2\_u}, \code{hyperpar}, \code{goodness}
-berupa \code{list}, \code{fit}, \code{method}, \code{call}, \code{data}.
+berupa \code{list}, \code{fit}, \code{engine}, \code{engine\_spec},
+\code{method}, \code{call}, \code{data}.
 
 \begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/hb\_twofold.Rd}).}]
 library(fastsae)
@@ -172,5 +175,5 @@ summary(fit)
 
 Blok roxygen memuat \citet{torabi2014small} (model dua-lipat),
 \citet{rao2015small}, dan \citet{riebler2016intuitive}
-(\code{R/hb\_twofold.R:105-112}); kerangka INLA mengacu ke
+(blok \code{@references} di \code{R/hb\_twofold.R}); kerangka INLA mengacu ke
 \citet{rue2009approximate} dan \citet{lindgren2015bayesian}.

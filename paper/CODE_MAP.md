@@ -1,8 +1,9 @@
 # CODE_MAP — Peta kode paket `fastsae`
 
 Sumber: `NAMESPACE`, `R/*.R`, `src/*.cpp`, `src/Makevars`, `DESCRIPTION`.
-Semua nomor baris mengacu pada keadaan repo `main` (commit `0252055`).
-Dibuat dengan membaca kode, bukan dari deskripsi luar.
+Nomor baris mengacu pada keadaan repo per 14 Okt 2026 (`main` setelah `a88ae3d`;
+versi pertama: commit `0252055`). Dibuat dengan membaca kode, bukan dari
+deskripsi luar.
 
 ---
 
@@ -12,29 +13,31 @@ Dibuat dengan membaca kode, bukan dari deskripsi luar.
 
 | Fungsi ekspor | File R | Model | Metode estimasi | Metode MSE | Bagian C++ | OpenMP |
 |---|---|---|---|---|---|---|
-| `eblup_fh` | `R/eblup_fh.R:49` | Fay–Herriot area-level, $y_d=x_d'\beta+u_d+e_d$ | Fisher scoring ML/REML (C++, `.eblup_core`) | Analitik $g_1+g_2+2g_3$ (REML) / $g_1+g_2-g_3$-bentuk ML (C++) | `src/eblup_fh.cpp:9` (`Rcpp::export(.eblup_core)`) | tidak |
-| `eblup_bhf` | `R/eblup_bhf.R:44` | Battese–Harter–Fuller unit-level | `lme4::lmer` (ML/REML) untuk $\beta,\sigma^2$; prediktor area di C++ (`.eblup_bhf_cpp`) | Analitik `VarPred` (R) + bootstrap parametrik `.pbmse_unit` (R, serial) | `src/eblup_unit.cpp:91` | tidak |
-| `eblup_twofold` | `R/eblup_twofold.R:64` | Two-fold subarea: $y_{ijk}=x_{ij}'\beta+u_i+v_{ij}+e_{ijk}$ | Fisher scoring 2 parameter $(\sigma_v^2,\sigma_u^2)$ di R, fit inti di C++ | Analitik $g_1{+}g_2{+}g_3{+}g_4$ + bootstrap parametrik di C++ | `src/eblup_twofold.cpp:273` (`.eblup_twofold_core`) | ya: `src/eblup_twofold.cpp:481` (`parallel for schedule(static)`, replikat bootstrap) |
-| `eblup_sfh` | `R/eblup_sfh.R:85` | Spatial FH (error-components/SAR, $A=(I-\rho W')(I-\rho W)$) | Fisher scoring 2 parameter $(\sigma^2,\rho)$ di C++ | Analitik $g_1{+}g_2{+}2g_3{-}g_4$; `pbmse`; `npbmse` | `src/eblup_sfh_core.cpp:209` (`.seblup_core`), `eblup_sfh_pbmse.cpp:15` (`.seblup_pbmse`), `eblup_sfh_npbmse.cpp:15` (`.seblup_npbmse`) | ya: `eblup_sfh_pbmse.cpp:108`, `eblup_sfh_npbmse.cpp:159` (`parallel for schedule(dynamic)`) |
-| `eblup_stfh` | `R/eblup_stfh.R:103` | Spatio-temporal FH (efek spasial konstan-waktu + AR(1) waktu per domain) | Fisher scoring/REML 4 parameter $(\sigma_1^2,\rho_1,\sigma_2^2,\rho_2)$ di C++ | Analitik + bootstrap parametrik | `src/eblup_stfh_core.cpp:160` (`.eblup_stfh_core`), `eblup_stfh_pbmse.cpp:232` (`.pbmse_stfh`) | ya: `eblup_stfh_pbmse.cpp:352` (`parallel for schedule(dynamic)`) |
-| `hb_area` | `R/hb_area.R:148` | Hierarki Bayes area-level (Gaussian, beta, binomial, poisson, nbinomial, gamma; struktur iid/BYM/BYM2/BESAG/GENERIC1/SLM + temporal + interaksi space-time KH type 1–4, separable) | INLA (nested Laplace); fallback `glmm` → `.fit_glmm_laplace` | Rumus posterior: $\mathrm{sd}^2$ / logit-scale (frequentis), eksponensial-momen (overdispersi), $1/\mathrm{sd}^2$ (normal) | — (hanya memanggil INLA) | — |
-| `hb_unit` | `R/hb_unit.R:169` | Hierarki Bayes unit-level (linear normal; $u_i$ via `f(iid)` atau `f()` on-the-fly CAR) | INLA (`strategy` MCMC default), prior `loggamma(0.01,0.01)` | $\mathrm{sd}^2$ analitik dari `summary.fitted.values` | — | — |
-| `hb_twofold` | `R/hb_twofold.R:138` | Hierarki Bayes two-fold subarea | INLA; interaksi spacetime KH type 1–4; `f(zz, model=slm)` | $\mathrm{sd}^2$ analitik | — | — |
+| `eblup_fh` | `R/eblup_fh.R:98` | Fay–Herriot area-level; `transform = "log"` (Log-FH) | Fisher scoring ML/REML (C++, `.eblup_core`) | Analitik $g_1+g_2+2g_3$ (REML) / dikurangi bias ML (C++); Log-FH: $\hat\theta^2\,\mathrm{MSE}_{\log}$ | `src/eblup_fh.cpp:8` | tidak |
+| `eblup_bhf` | `R/eblup_bhf.R:62` | Battese–Harter–Fuller unit-level | REML/ML terprofil atas $\gamma=\sigma_u^2/\sigma_e^2$ (grid log + Brent, C++ `.bhf_fit_cpp`); prediktor `.eblup_bhf_cpp` | Bootstrap parametrik (C++ `.pbmse_bhf_cpp`) | `src/eblup_bhf_core.cpp:221,246`, `src/eblup_unit.cpp:8` | ya: `eblup_bhf_core.cpp:283` |
+| `eblup_twofold` | `R/eblup_twofold.R:76` | Two-fold subarea | Fisher scoring 2 parameter $(\sigma_v^2,\sigma_u^2)$ (C++), informasi REML eksak | Analitik $g_1+g_2+2g_3$ (− bias ML) + bootstrap parametrik | `src/eblup_twofold.cpp:303` | ya: `eblup_twofold.cpp:558` |
+| `eblup_sfh` | `R/eblup_sfh.R:131` | Spatial FH (SAR pada semua $D$ domain) | Fisher scoring $(\sigma^2,\rho)$ + fallback terkendala; faktorisasi sparse `SarEngine` | Analitik $g_1+g_2+2g_3-g_4$ (+ kriging orde kedua); `pbmse`; `npbmse` | `src/eblup_sfh_core.cpp:393`, `eblup_sfh_pbmse.cpp:15`, `eblup_sfh_npbmse.cpp:15`, `sar_engine.h` | ya: `eblup_sfh_pbmse.cpp:116`, `eblup_sfh_npbmse.cpp:188` |
+| `eblup_stfh` | `R/eblup_stfh.R:126` | Spatio-temporal FH (efek spasial konstan-waktu + AR(1)) | REML 3/4 parameter terstruktur (Woodbury, tanpa matriks $M\times M$) + fallback terkendala | Analitik $g_1+g_2+2g_3-g_4$ + bootstrap parametrik | `src/eblup_stfh_core.cpp:715`, `eblup_stfh_pbmse.cpp:62` | ya: `eblup_stfh_pbmse.cpp:182` |
+| `hb_area` | `R/hb_area.R:231` | HB area-level (6 family; iid/BYM/BYM2/Besag/generic1(Leroux)/SLM + temporal + KH 1–4, separable) | `inla_engine()` (INLA) atau `jax_engine()` (NumPyro NUTS, `R/hb_area_jax.R`) | $\mathrm{sd}^2$ posterior; self-benchmarking posterior via `inla.posterior.sample` | — | — |
+| `hb_unit` | `R/hb_unit.R:123` | HB unit-level (gaussian/binomial/poisson; iid/BYM2/Besag) | INLA, prior `loggamma(0.01,0.01)`; Gaussian non-spasial: start mode REML | $\mathrm{sd}^2$ posterior; koreksi populasi hingga | — | — |
+| `hb_twofold` | `R/hb_twofold.R:136` | HB two-fold subarea | INLA | $\mathrm{sd}^2$; tingkat area via sampling posterior | — | — |
+| `inla_engine`, `jax_engine` | `R/engine.R:83,151` | Objek engine untuk `hb_*` | — | — | — | — |
+| `setup_numpyro_env`, `check_numpyro_available` | `R/python_env.R:81,16` | Lingkungan Python untuk `jax_engine` | — | — | — | — |
 
 ### 1.2 Utilitas
 
 | Fungsi ekspor | File | Fungsi | Metode |
 |---|---|---|---|
-| `benchmark_sae` / `benchmark` | `R/benchmark.R:120,264` | Kalibrasi agregat | Ratio, difference, optimal (pemberat MSE), logit (`uniroot`); target nasional + hierarki bertingkat `outer_target` |
-| `diagnose` | `R/diagnose.R:...` | Diagnostik model & indikator keandalan | Uji Brown (F, df (2,n−2)), uji kecocokan $W=\sum(y-\hat y)^2/(v_d+\mathrm{mse})\sim\chi^2$, Moran's I + varian Cliff–Ord, flag RSE |
-| `compare_sae` | `R/compare_sae.R` | Perbandingan dua model | Pearson/Spearman, MAE, RMSD, rasio MSE, gain RSE |
-| `export_sae` | `R/export_sae.R` | Ekspor tabel hasil ke spreadsheet | Tulis CSV/XLSX |
-| `map_sae` | `R/map_sae.R` | Peta choropleth (S3: `fastsae`, `fastsae_benchmark`, `list`, `default`) | ggplot2/sf |
-| `autoplot`, `plot`, `print`, `summary`, `coef`, `fitted`, `residuals` | `R/methods.R`, `R/autoplot.R` | Metode S3 untuk kelas `fastsae`, `fastsae_diagnose`, `fastsae_benchmark`, `fastsae_comparison` | — |
-| `sim_spatial_weights` | `R/sim_spatial_weights.R` | Matriks tetangga rook/queen + link skala untuk grid | Deterministik (indeks `expand.grid`) |
-| `sim_area_data` | `R/sim_area_data.R` | Data simulasi area-level | DGP Fay–Herriot (deterministik dgn `seed`) |
-| `sim_series_data` | `R/sim_series_data.R` | Data simulasi deret spasio-temporal | DGP STFH |
-| `add_reliability_flags` | `R/diagnose.R` (bagian) | Flag keandalan berbasis RSE | Threshold default 25% |
+| `benchmark_sae` / `benchmark` | `R/benchmark.R:120,273` | Kalibrasi agregat | Ratio, difference, optimal (KKT, $\delta_i\propto w_i\mathrm{mse}_i$), logit (`uniroot`); target nasional dua tahap; `mse_benchmarked` dengan matriks MSE penuh (`.mse_operator`) |
+| `diagnose` | `R/diagnose.R:53` | Diagnostik model & indikator keandalan | Uji Brown, uji kecocokan $\chi^2$, Moran's I + varian Cliff–Ord, flag RSE |
+| `compare_sae` | `R/compare_sae.R:62` | Perbandingan dua model | Pearson/Spearman, MAE, RMSD, rasio MSE, gain RSE |
+| `export_sae`, `add_reliability_flags` | `R/export_sae.R:119,33` | Ekspor tabel; flag RSE | CSV/XLSX; ambang `c(20, 30)` |
+| `map_sae` | `R/map_sae.R:93` | Peta choropleth | ggplot2/sf |
+| `create_weights` | `R/create_weights.R:69` | Matriks bobot spasial | queen/rook/knn/distance/idw; gaya W/B/C/U/minmax; fallback pulau |
+| `spatial_test` | `R/spatial_test.R:49` | Uji pra-pemodelan spasial | Moran's I, LM-error/LM-lag (Anselin), perbandingan FH vs SFH |
+| `gvf_smooth` | `R/gvf.R:67` | Penghalusan `vardir` | GVF log-linear, Gamma GLM, CV power |
+| `autoplot`, `plot`, `print`, `summary`, `coef`, `fitted`, `residuals` | `R/methods.R`, `R/autoplot.R` | Metode S3 | — |
+| `sim_spatial_weights`, `sim_area_data`, `sim_series_data` | `R/sim_*.R:47,47,66` | Data simulasi | DGP area-level dan STFH |
 
 Data: `mys`, `mys_panel`, `mys_proxmat`, `cornsoybean`, `cornsoybeanmeans` (`R/data.R`, `LazyData: true`).
 
@@ -45,21 +48,22 @@ Data: `mys`, `mys_panel`, `mys_proxmat`, `cornsoybean`, `cornsoybeanmeans` (`R/d
 | Berkas | Fungsi Rcpp | Peran | OpenMP |
 |---|---|---|---|
 | `eblup_fh.cpp` | `.eblup_core` | Fisher scoring + EBLUP + MSE FH | – |
-| `eblup_unit.cpp` | `.eblup_bhf_cpp` | Prediktor area BHF (rata-rata sampel & populasi, $f_d$) | – |
-| `eblup_twofold.cpp` | `.eblup_twofold_core` | Fit two-fold + MSE analitik + bootstrap | line 481 |
-| `eblup_sfh_core.cpp` | `.seblup_core` | Fisher scoring spatial FH + MSE analitik | – |
-| `eblup_sfh_pbmse.cpp` | `.seblup_pbmse` | Bootstrap parametrik spatial FH | line 108 |
-| `eblup_sfh_npbmse.cpp` | `.seblup_npbmse` | Bootstrap nonparametrik spatial FH | line 159 |
-| `eblup_stfh_core.cpp` | `.eblup_stfh_core` | Fit STFH + MSE analitik | – |
-| `eblup_stfh_pbmse.cpp` | `.pbmse_stfh` | Bootstrap parametrik STFH | line 352 |
+| `eblup_unit.cpp` | `.eblup_bhf_cpp` | Prediktor area BHF ($f_d$) | – |
+| `eblup_bhf_core.cpp` | `.bhf_fit_cpp`, `.pbmse_bhf_cpp` | REML/ML BHF terprofil + bootstrap | line 283 |
+| `eblup_twofold.cpp` | `.eblup_twofold_core` | Fit two-fold + MSE analitik + bootstrap | line 558 |
+| `eblup_sfh_core.cpp` + `sar_engine.h` | `.seblup_core` | Fisher scoring spatial FH (sparse) + MSE analitik + kriging | – |
+| `eblup_sfh_pbmse.cpp` | `.seblup_pbmse` | Bootstrap parametrik spatial FH | line 116 |
+| `eblup_sfh_npbmse.cpp` | `.seblup_npbmse` | Bootstrap nonparametrik spatial FH | line 188 |
+| `eblup_stfh_core.cpp` | `.eblup_stfh_core` | Fit STFH terstruktur + MSE analitik | – |
+| `eblup_stfh_pbmse.cpp` | `.pbmse_stfh` | Bootstrap parametrik STFH (estimasi ulang $\theta$) | line 182 |
 | `RcppExports.cpp` / `R/RcppExports.R` | stub registrasi | useDynLib(registration=TRUE) | – |
 
-`src/Makevars`: `CXX_STD = CXX17`, `PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)`,
-`PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)` —
-Armado/LAPACK-BC + OpenMP; wajib lewat `R CMD SHLIB`/`Rcpp::compileAttributes()`.
+`src/Makevars`: `CXX_STD = CXX17`, OpenMP lewat `SHLIB_OPENMP_CXXFLAGS`,
+LAPACK/BLAS; `LinkingTo`: `Rcpp`, `RcppArmadillo`, `RcppEigen`.
 
-Ketergantungan: `Rcpp`, `RcppArmadillo` (LinkingTo), `lme4` (BHF), `INLA` (Bayes),
-`cli`, `ggplot2`, `scales`, `utils` (Suggests: `sf`, `testthat`, `bench`).
+Ketergantungan (`Imports`): `cli`, `ggplot2`, `Matrix`, `methods`, `Rcpp`,
+`rlang`, `stats`, `utils`. `INLA`, `reticulate`, `sf`, `spdep`, `sn`, `lme4`
+(hanya pembanding di tes), `sae`, `emdi`, `tipsae`, dll. di `Suggests`.
 
 ---
 

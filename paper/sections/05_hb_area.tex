@@ -26,30 +26,30 @@ Kerangka umum yang dirangkai fungsi ini adalah model latent Gaussian:
 dengan $g$ link default family (identitas, logit, log) dan $Q$ struktur
 presisi yang dipilih lewat argumen \code{spatial}, \code{temporal}, dan
 \code{st\_interaction}. Struktur spasial yang tersedia persis seperti yang
-didefinisikan \pkg{INLA} (baris 411-488 \code{R/hb\_area.R}):
+didefinisikan \pkg{INLA} (baris 570-649 \code{R/hb\_area.R}):
 \begin{itemize}
   \item \code{"none"}: $\varphi_d$ i.i.d.\ --- hanya dibuat bila tidak ada
-        interaksi lain (baris 411-413);
+        interaksi lain (baris 571-574);
   \item \code{"bym2"}: BYM2 dengan presisi $Q=\tau\bigl(s\,\varphi_b Q_{\text{bym2}}+
         (1-s)\Imat\bigr)$ pada skala parsimonius (bagian~\ref{sec:bym2});
   \item \code{"bym"}: BYM klasik, dua parameter presisi
         (\code{prec.unstruct}, \code{prec.spatial});
   \item \code{"besag"}: ICAR murni $Q_{\text{ICAR}}$;
-  \item \code{"generic1"}: $Q=\tau\bigl(\Imat-(\beta/\lambda_{\max})C\bigr)$
-        dengan $C$ matriks ketetanggaan;
+  \item \code{"generic1"} (alias \code{"leroux"}): $Q=\tau\bigl(\Imat-(\beta/\lambda_{\max})C\bigr)$
+        dengan $C=\Imat-R$ dan $R$ matriks struktur ICAR (bentuk Leroux);
   \item \code{"slm"}: model lag spasial $x=(\Imat-\rho\Wmat)^{-1}
         (\Xmat\beta+\varepsilon)$ dengan $\rho$ dipetakan ke $[0,1]$ lewat
         rentang akar eigen $\Wmat$.
 \end{itemize}
 Struktur temporal: \code{"none"}, \code{"rw1"}, \code{"rw2"}, \code{"ar1},
-\code{"iid"} pada indeks waktu \code{..time\_id..} (baris 494-498), dengan
+\code{"iid"} pada indeks waktu \code{..time\_id..} (baris 651-728), dengan
 interaksi opsional yang dipetakan ke empat tipe Knorr--Held
 (Tabel~\ref{tab:kh}).
 
 \begin{table}[htbp]
 \centering
 \caption{Pemetaan \texttt{st\_interaction} ke bentuk interaksi Knorr--Held.
-Sumber: penyusunan string \texttt{f(...)} di \texttt{R/hb\_area.R:491-566}.}
+Sumber: penyusunan string \texttt{f(...)} di \texttt{R/hb\_area.R:651-728}.}
 \label{tab:kh}
 \small
 \begin{tabular}{@{}l l l@{}}
@@ -79,7 +79,7 @@ term spasial (HB-5).}
 
 \subsection{Prediktor titik}\label{sec:hbarea-prediktor}
 
-Prediksi diambil dari ringkasan nilai terpasang posterior (\code{inla\_utils.R:274-284}):
+Prediksi diambil dari ringkasan nilai terpasang posterior (\code{inla\_utils.R:296-305}):
 \begin{equation}
 \begin{aligned}
   \hat\theta_d&=\mathbb E[\mu_d\mid y]\ \text{(skala respons, lewat link invers)},
@@ -105,7 +105,7 @@ menambahkan satu baris \code{NA} per domain.}
 \subsection{Estimasi komponen varians}\label{sec:hbarea-varians}
 
 Tidak ada Fisher scoring: seluruh inferensi diserahkan ke
-\code{INLA::inla()} dengan pengaturan berikut (\code{R/hb\_area.R:578-609}):
+\code{INLA::inla()} dengan pengaturan berikut (\code{R/hb\_area.R:738-783}):
 \begin{itemize}
   \item \code{control.compute} $=$ \code{dic, waic, cpo, mlik, config}
         semuanya \code{TRUE};
@@ -117,80 +117,98 @@ Tidak ada Fisher scoring: seluruh inferensi diserahkan ke
   \item prior komponen acak spasial/temporal: \code{prior\_prec} default
         \code{pc.prec(1, 0.01)}; prior korelasi spasial \code{prior\_phi}
         default \code{pc(0.5, 0.5)}; \code{prior\_prec\_time} default juga
-        \code{pc.prec(1, 0.01)} (baris 399-405);
-  \item \code{control.fixed} \emph{tidak pernah diset paket}, sehingga
-        berlaku default \pkg{INLA}: rata-rata tetap $0$, presisi tetap
-        $0.001$ (intersep: presisi $0$, terbatas), strategi faktor
-        \code{model.matrix} (HB-21).
+        \code{pc.prec(1, 0.01)} (baris 559-566);
+  \item \code{control.fixed} hanya diset untuk \emph{self-benchmarking} WFQ
+        (prior difus agar kovariat augmentasi tidak menyusut, baris
+        765-775); selain itu berlaku default \pkg{INLA}: rata-rata tetap
+        $0$, presisi tetap $0.001$ (intersep: presisi $0$) (HB-21);
+  \item argumen \code{INLA::inla()} tambahan dari
+        \code{inla\_engine(...)} digabung dengan \code{modifyList}, sehingga
+        daftar \code{control.*} dapat ditimpa per elemen (baris 762-763;
+        HB-13 tidak berlaku lagi).
 \end{itemize}
+Varians efek acak yang dilaporkan (\code{random\_effect\_var}) adalah rerata
+posterior varians $\mathbb E[1/\tau\mid y]$ dari marginal presisinya
+(\code{.post\_mean\_variance}, \code{inla\_utils.R:20-36}), bukan
+$1/\mathbb E[\tau\mid y]$ yang lebih kecil karena ketaksamaan Jensen.
 Likelihood Gaussian dengan \code{vardir} memakai \code{scale} $=1/\psi_d$
 dan presisi tetap $1$ sehingga $\Var(y_d)=\psi_d$ persis; family lain
 memakai \code{scale}/(\code{Ntrials}, \code{E}) sesuai parameterisasi
-\pkg{INLA} (baris 612-667). Pengaturan engine diberikan lewat
-\code{engine = inla_engine(strategy, prior\_*, ...)} atau
-\code{engine = jax_engine(...)} (MCMC NumPyro). Argumen lama
+\pkg{INLA} (baris 785-841). Pengaturan engine diberikan lewat
+\code{engine = inla\_engine(strategy, prior\_*, ...)} atau
+\code{engine = jax\_engine(...)} (MCMC NumPyro). Argumen lama
 \code{method = "laplace"} kini usang dan dipetakan ke
 \code{inla\_engine(strategy = "laplace")}; jalur \code{lme4}
 (HB-14, HB-15) telah dihapus.
 
 \subsection{Estimasi MSE}\label{sec:hbarea-mse}
 
-MSE dihitung analitik dari momen posterior (\code{hb\_area.R:280}):
+MSE dihitung dari momen posterior (\code{inla\_utils.R:299-304}):
 \begin{equation}
   \widehat{\mathrm{MSE}}(\hat\theta_d)=\mathrm{sd}_d^2,\qquad
   \mathrm{RSE}_d=100\,\mathrm{sd}_d/\abs{\hat\theta_d},\qquad
   \mathrm{CI}=\hat\theta_d\pm z_{0.975}\,\mathrm{sd}_d\ \text{(jalur fallback)}.
   \label{eq:hbarea-mse}
 \end{equation}
-Tidak ada \code{inla.posterior.sample} di \fct{hb\_area}; ketidakpastian
-murni analitik. Berbeda dengan \fct{hb\_twofold} yang menambahkan agregasi
-area dengan sampling posterior (bagian~\ref{sec:hbtwofold-mse}).
+Tanpa benchmarking, ketidakpastian murni dari ringkasan marginal INLA.
+Dengan \code{self\_benchmark = TRUE} dan \code{benchmark\_method =
+"posterior"} (default), \code{inla.posterior.sample} menarik
+\code{draws} sampel prediktor linier (\code{inla\_engine(draws, seed)}),
+setiap sampel di-\emph{benchmark} (rasio untuk family positif, selisih untuk
+Gaussian), dan $\hat\theta$, sd, MSE, serta CI dihitung dari sampel
+terbenchmark (\code{.posterior\_benchmark}, \code{inla\_utils.R:399-427});
+estimasi sebelum benchmarking disimpan di \code{hb\_unbenchmarked}. Fungsi
+ini membutuhkan paket \pkg{sn}; tanpa itu dipakai metode WFQ (baris
+358-368).
 
 \subsection{Pseudo-code}\label{sec:hbarea-algo}
 
 \begin{algorithm}[htbp]
-\caption{\texttt{hb\_area} --- alur sebenarnya (\texttt{R/hb\_area.R:148-314}, \texttt{.fit\_inla\_area:318-704})}
+\caption{\texttt{hb\_area} --- alur sebenarnya (\texttt{R/hb\_area.R:231-469}, \texttt{.fit\_inla\_area:473-908})}
 \label{alg:hbarea}
 \KwIn{formula, \code{data}, \code{domain}, \code{time}, \code{family},
   \code{spatial}, \code{temporal}, \code{st\_interaction}, $W$, \code{vardir},
   \code{trials}, \code{exposure}, \code{engine}}
 \KwOut{objek \code{fastsae\_hb\_area} berisi \code{df\_hb}, \code{fit}, \code{hyperpar}}
-\code{match.arg} untuk 6 argumen pilihan (174-179)\;
+\code{match.arg} untuk argumen pilihan; \code{"leroux"} $\to$ \code{"generic1"} (255-260)\;
+\code{engine} $\leftarrow$ \texttt{.resolve\_inla\_engine} (argumen lama $\to$ \code{inla\_engine}, dengan peringatan) (261-278)\;
 \code{domain\_vec} $\leftarrow$ \code{.get\_variable}; \code{time} wajib bila
-  \code{temporal} $\ne$ \code{"none"} (188-211)\;
+  \code{temporal} $\ne$ \code{"none"} (286-310)\;
 \code{mf} $\leftarrow$ \texttt{model.frame(na.pass)};\quad
-  $y\leftarrow$ respons (214-215)\;
+  $y\leftarrow$ respons (313-314)\;
 \uIf{family $=$ binomial}{\code{trials} wajib;\quad
-  $y\leftarrow\texttt{round}(y\cdot\text{trials})$ bila pecahan (224-240)}
-\uIf{family $=$ gamma}{$y>0$ wajib (242-247)}\;
-$W_{\text{obj}}\leftarrow$ \texttt{.convert\_spatial\_weights} bila
-  \code{spatial} $\ne$ \code{"none"} (250-253)\;
-\If{\code{engine} $=$ \code{jax\_engine()}}{\KwRet \texttt{.fit\_jax\_area} (MCMC NumPyro)}\;
+  $y\leftarrow\texttt{round}(y\cdot\text{trials})$ bila pecahan (323-339)}
+\uIf{family $=$ gamma}{$y>0$ wajib (341-346)}\;
+$W_{\text{obj}}\leftarrow$ \texttt{.convert\_spatial\_weights} (atau dari \code{sf}) bila
+  \code{spatial} $\ne$ \code{"none"} (348-356)\;
+\If{\code{self\_benchmark}}{siapkan target; WFQ: augmentasi model (358-395)}
+\If{\code{engine} $=$ \code{jax\_engine()}}{\KwRet \texttt{.fit\_jax\_area} (MCMC NumPyro) (400-421)}\;
 \caption*{}
-\tcp*{\emph{.fit\_inla\_area} (318-704)}
-indeks \code{..domain\_id..}, \code{..obs\_id..}, \code{..time\_id..} (363-377)\;
+\tcp*{\emph{.fit\_inla\_area} (473-908)}
+indeks \code{..domain\_id..}, \code{..obs\_id..}, \code{..time\_id..} (520-538)\;
 $\texttt{hyper\_time}\leftarrow\{\texttt{prec}: \texttt{pc.prec}(1,0.01)\}$; tambah
-  \texttt{rho} bila \code{ar1} (399-405)\;
-baris spasial $\leftarrow$ Tabel~\ref{tab:kh}/teks bagian~\ref{sec:hbarea-model} (411-488)\;
-baris temporal + interaksi $\leftarrow$ Tabel~\ref{tab:kh} (491-566)\;
-susun formula \code{y \textasciitilde{} ...} (\code{"slm"}: tanpa intercept) (569-575)\;
+  \texttt{rho} bila \code{ar1} (559-566)\;
+baris spasial $\leftarrow$ Tabel~\ref{tab:kh}/teks bagian~\ref{sec:hbarea-model} (570-649)\;
+baris temporal + interaksi $\leftarrow$ Tabel~\ref{tab:kh} (651-728)\;
+susun formula \code{y \textasciitilde{} ...} (\code{"slm"}: tanpa intercept) (730-736)\;
 \code{control.compute} (dic, waic, cpo, mlik, config), \code{control.predictor}
-  (\code{link = 1}), \code{control.inla} (578-601)\;
+  (\code{link = 1}), \code{control.inla}; gabung argumen \code{inla\_engine} (738-783)\;
 \For{family}{sesuaikan \code{scale}, \code{Ntrials}, \code{E},
-  \code{control.family} --- \eqref{eq:hbarea-model} (612-667)}\;
-\code{fit} $\leftarrow$ \texttt{tryCatch(do.call(INLA::inla, ...))} (670-678)\;
+  \code{control.family} --- \eqref{eq:hbarea-model} (785-841)}\;
+\code{fit} $\leftarrow$ \texttt{tryCatch(do.call(INLA::inla, ...))} (843-852)\;
 $\hat\theta,\mathrm{sd},\mathrm{CI},\texttt{mse},\texttt{rse}\leftarrow$
-  \eqref{eq:hbarea-pred}--\eqref{eq:hbarea-mse} (681-701, 274-284)\;
+  \eqref{eq:hbarea-pred}--\eqref{eq:hbarea-mse} (\code{.extract\_inla\_results}, 854-875)\;
+\If{\code{self\_benchmark} posterior}{\texttt{.posterior\_benchmark} (877-899)}
 perakitan \code{df\_hb}, \code{hyperpar}, \code{goodness}
-  (DIC, WAIC, marginal likelihood), kelas \code{c("fastsae\_hb\_area","fastsae")} (394, 811)\;
+  (DIC, WAIC, marginal likelihood), kelas \code{c("fastsae\_hb\_area","fastsae")} (\code{inla\_utils.R:377})\;
 \end{algorithm}
 
 \subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:hbarea-api}
 
-\begin{lstlisting}[language=R,caption={Signature \texttt{hb\_area} (\texttt{R/hb\_area.R:148-148}).}]
+\begin{lstlisting}[language=R,caption={Signature \texttt{hb\_area} (\texttt{R/hb\_area.R:231-253}) dan \texttt{inla\_engine} (\texttt{R/engine.R:83}).}]
 hb_area(formula, data, domain = NULL, time = NULL,
         family = c("gaussian","binomial","poisson","nbinomial","beta","gamma"),
-        spatial  = c("none","bym2","bym","besag","generic1","slm"),
+        spatial  = c("none","bym2","bym","besag","generic1","leroux","slm"),
         temporal = c("none","rw1","rw2","ar1","iid"),
         st_interaction = c("none","domain-specific","separable",
                            "type1","type2","type3","type4"),
@@ -203,10 +221,16 @@ hb_area(formula, data, domain = NULL, time = NULL,
 
 inla_engine(strategy = c("laplace","simplified.laplace","gaussian"),
             link = NULL, scale_model = TRUE,
-            prior_prec  = list(prior = "pc.prec", param = c(1, 0.01)),
-            prior_phi   = list(prior = "pc",      param = c(0.5, 0.5)),
-            prior_rho = NULL, prior_prec_time = NULL, prior_rho_time = NULL,
-            draws = 1000, seed = 0L, ...)
+            prior_prec = NULL, prior_phi = NULL, prior_rho = NULL,
+            prior_prec_time = NULL, prior_rho_time = NULL,
+            prior_prec_subarea = NULL, draws = NULL, seed = 0L, ...)
+# NULL = default fungsi: hb_area memakai pc.prec(1, 0.01),
+# pc(0.5, 0.5) untuk phi, dan draws = 1000
+
+jax_engine(warmup = 500, samples = 1000, chains = 2,
+           device = c("auto","cpu","cuda","metal"), seed = 42,
+           prior_beta = c("normal","horseshoe"), robust = FALSE,
+           keep_draws = TRUE, progress = interactive())
 \end{lstlisting}
 
 \begin{itemize}
@@ -218,17 +242,23 @@ inla_engine(strategy = c("laplace","simplified.laplace","gaussian"),
   \item \code{W} --- matriks ketetanggaan (dapat berupa \code{listw},
         \code{nb}, \code{matrix}, atau \code{inla.graph}); bobot dibakar ke
         graf biner simetris (bagian~\ref{sec:bayes-w}).
-  \item \code{...} --- diteruskan ke \code{INLA::inla}, tetapi
-        \code{control.compute} tidak dapat ditimpa karena sudah dibuat
-        lebih dulu (HB-13).
+  \item \code{engine} --- \code{"inla"}/\code{inla\_engine(...)} (default)
+        atau \code{jax\_engine(...)}; argumen INLA yang dulu diberikan
+        langsung ke \fct{hb\_area} (\code{method}, \code{strategy},
+        \code{prior\_*}, \code{...}) masih diterima dengan peringatan dan
+        diteruskan ke \fct{inla\_engine}.
+  \item \code{W} kosong dengan \code{data} berkelas \code{sf}: matriks
+        ketetanggaan queen biner dibangun otomatis lewat
+        \fct{create\_weights}.
 \end{itemize}
 
 Objek keluaran: \code{c("fastsae\_hb\_area", "fastsae")} berisi
 \code{df\_hb} (kolom \code{domain, y, hb, sd, mse, rse, ci\_lower,
-ci\_upper, linear\_pred} + kolom family), \code{fit} (objek \code{inla}).
+ci\_upper, linear\_pred} + kolom family), \code{fit} (objek \code{inla}),
 \code{hyperpar}, \code{goodness}, \code{random\_effect\_var},
-\code{W}, \code{n\_iter}, \code{convergence}, \code{formula},
-\code{method}, \code{call}, \code{data}.
+\code{engine}, \code{engine\_spec}, \code{W}, \code{n\_iter},
+\code{convergence}, \code{formula}, \code{method}, \code{call},
+\code{data}.
 
 \begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/hb\_area.Rd}).}]
 library(fastsae)
@@ -251,5 +281,5 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 untuk implementasi \pkg{R-INLA}, \citet{riebler2016intuitive} untuk BYM2
 (blok roxygen fungsi ini memuat lima rujukan: \citet{rao2015small},
 \citet{riebler2016intuitive}, \citet{marhuenda2013small},
-\citet{denicolo2024tipsae}, \citet{rue2009approximate}; lihat
-\code{R/hb\_area.R:110-121}).
+\citet{denicolo2024tipsae}, \citet{rue2009approximate}; lihat blok
+\code{@references} di \code{R/hb\_area.R}).

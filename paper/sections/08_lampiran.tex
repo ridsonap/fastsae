@@ -34,8 +34,7 @@ Sherman--Morrison,
 \end{equation}
 
 \paragraph{Penerapan pada \texttt{fastsae}.} Tabel~\ref{tab:woodbury} mencatat
-persis di mana identitas ini dipakai, dan di mana ia \emph{tidak} dipakai
-(padahal strukturnya memungkinkan).
+persis di mana identitas ini dipakai.
 
 \begin{table}[htbp]
 \centering
@@ -51,16 +50,20 @@ Fungsi & Bentuk pemakaian & Lokasi \\
 \midrule
 \code{eblup\_stfh} &
   $\Vm_A=\diag$ blok $T\times T$ per domain, $\mathbf G=\sigma_1^2\Omega_1$,
-  $\Zmat=Z_1$; $\mathbf C$ berdimensi $D\times D$ &
-  \code{eblup\_stfh\_core.cpp:90-153} \\
+  $\Zmat=Z_1$; $\mathbf C$ berdimensi $D\times D$; $P$ dalam bentuk
+  peringkat-rendah $A^{-1}-UW_mU'$ &
+  \code{eblup\_stfh\_core.cpp:71-410} \\
+\code{eblup\_sfh} &
+  $\Vm=\Psi+\sigma^2E\Sigma E'$, $\Sigma=A^{-1}$:
+  $\Vm^{-1}=\Psi^{-1}-\sigma^2\Psi^{-1}EM^{-1}E'\Psi^{-1}$,
+  $M=A+\sigma^2E'\Psi^{-1}E$, dengan $A$ dan $M$ difaktorkan sparse &
+  \code{sar\_engine.h}, \code{eblup\_sfh\_core.cpp:74-160} \\
 \code{eblup\_twofold} &
   per blok area: $V_d=\sigma_v^2\ones\ones'+\diag(\sigma_u^2+\psi_d)$,
   kasus \eqref{eq:sm} dengan $z=\ones$ &
-  \code{eblup\_twofold.cpp:98-108, 345-350} \\
-\code{eblup\_hb\_---} & --- (diatasi \pkg{INLA} lewat Cholesky sparse) & --- \\
-\code{eblup\_fh}, \code{eblup\_sfh} & \textbf{tidak dipakai}: $V$ diinversi
-  penuh $m\times m$ dengan \code{inv\_sympd}/\code{pinv} &
-  \code{eblup\_fh.cpp}, \code{eblup\_sfh\_core.cpp:318-320} \\
+  \code{eblup\_twofold.cpp:102, 375-377} \\
+\code{hb\_*} & --- (diatasi \pkg{INLA} lewat Cholesky sparse) & --- \\
+\code{eblup\_fh} & tidak perlu: $\Vm$ diagonal & \code{eblup\_fh.cpp} \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -82,9 +85,15 @@ Fungsi & Bentuk pemakaian & Lokasi \\
         $c=\sigma_v^2/(1+\sigma_v^2 s)$ (kode \code{dd}, \code{s},
         \code{c}), sehingga $V_d^{-1}a=d\odot a-c\,d(d'a)$ --- biaya
         $O(n_d)$ per blok.
-  \item \textbf{Memori.} Bahkan dengan Woodbury, $\Vm^{-1}$, $P$, dan
-        matriks turunan disimpan penuh, sehingga jejak memori tetap
-        $O(M^2)$; yang dihemat hanyalah flops inversi dan log-determinan.
+  \item \textbf{SFH.} \eqref{eq:woodbury-gen} dengan $\mathbf G=\sigma^2
+        \Sigma$ dan $\Zmat=E$ memberi $\Vm^{-1}$ lewat \emph{solve} dengan
+        $M$; log-determinan dari lemma determinan
+        $\log\abs{\Vm}=\log\abs{\Psi}+\log\abs{M}-\log\abs{A}$.
+  \item \textbf{Memori.} STFH tidak menyimpan $\Vm^{-1}$ maupun $P$ secara
+        penuh (hanya blok $T\times T$, $D\times D$, dan faktor
+        $M\times(D+p)$), dan SFH hanya faktor sparse serta blok
+        $D\times m$; versi sebelum Okt 2026 menyimpan matriks $M\times M$
+        penuh sehingga jejak memorinya $O(M^2)$.
 \end{itemize}
 
 \section{Derivasi skor dan informasi Fisher (ML dan REML)}\label{app:score}\label{sec:derivasi}
@@ -116,9 +125,10 @@ komponen desain), sehingga
 dan $\mathcal I_{ab}^{\text{ML}}=\tfrac12\tr(\Vm^{-1}D_a\Vm^{-1}D_b)$.
 Yang dikodekan: untuk \code{eblup\_sfh} dan \code{eblup\_stfh},
 \eqref{eq:score-reml} dipakai apa adanya bila \code{method = "REML"};
-untuk \code{method = "ML"} pada SFH, baris tracenya memakai $\Vm^{-1}$
-tetapi kuadratiknya masih $y'PDPy$ --- persis implementasi yang menjadi
-temuan SFH-1. Untuk \code{eblup\_twofold} kedua bentuk ditulis
+untuk \code{method = "ML"} pada SFH, baris trace dan informasinya memakai
+$\Vm^{-1}$, sedangkan kuadratiknya $y'PDPy$; karena $Py=\Vm^{-1}(y-\Xmat\betah)$,
+kuadratik itu sama dengan $(y-\Xmat\betah)'\Vm^{-1}D_a\Vm^{-1}(y-\Xmat\betah)$, yaitu skor
+ML terprofil (SFH-1). Untuk \code{eblup\_twofold} kedua bentuk ditulis
 terpisah dalam \eqref{eq:tf-score-reml} dan \eqref{eq:tf-info-reml}.
 
 \paragraph{Langkah iterasi.} Karena $\ell$ tidak konkav linear pada
@@ -208,21 +218,23 @@ membangun $D=\bigl(\Psi\Vm^{-1}D_{12}\bigr)(\mathcal I^{-1}_{01}
 +\mathcal I^{-1}_{10})+\bigl(\Psi\Vm^{-1}D_{22}\bigr)\mathcal I^{-1}_{11}$
 dengan $D_{12}=-\partial^2A/\partial\rho^2\cdot$-faktor dan
 $D_{22}$ orde kedua pada $\rho$, lalu $g_4(i)=\tfrac12 D_{ii}$. Totalnya
-\eqref{eq:sfh-mse}: $g_1+g_2+2g_3-g_4$; untuk dua-fold faktor dua sudah
-termasuk di dalam $g_3$ sehingga totalnya $g_1+g_2+g_3$
-(\eqref{eq:tf-mse}), sesuai komentar kode.
+\eqref{eq:sfh-mse}: $g_1+g_2+2g_3-g_4$; STFH memakai bentuk yang sama
+(\eqref{eq:stfh-g34}); untuk dua-fold (kovarians linear dalam
+$\sigma_v^2,\sigma_u^2$, sehingga $g_4=0$) estimatornya $g_1+g_2+2g_3$
+(\eqref{eq:tf-mse}).
 
-\paragraph{Domain tanpa sampel.} Karena tidak ada informasi langsung,
-$g_2$ menjadi $x_{ns}'Qx_{ns}$ (baris estimasi langsung dari $Q$) dan
-$g_3$ tidak dapat dihitung (tidak ada pasangan $y,\hat\theta$), sehingga
+\paragraph{Domain tanpa sampel.} Pada FH prediktor sintetis $x_{ns}'\betah$
+tidak bergantung pada $\theta$ selain lewat $\betah$, sehingga
 \begin{equation}
-  \widehat{\mathrm{MSE}}(\hat\theta_{ns})=g_{1,ns}+g_{2,ns}
-  \quad\text{(FH/SFH)},
+  \widehat{\mathrm{MSE}}(\hat\theta_{ns})=g_{1,ns}+g_{2,ns}=\sighat+x_{ns}'Qx_{ns}
+  \quad\text{(FH)}.
   \label{eq:g-unsampled}
 \end{equation}
-sementara bentuk yang dikodekan dua-fold untuk sub-area tak-sampel adalah
-$g_1^\ast+g_2^\ast+g_3^\ast$ (baris 445-464) karena $g_3^\ast$ hanya
-bergantung pada parameter ragam yang tetap diketahui.
+Pada SFH prediktor kriging bergantung pada $\theta$, sehingga dipakai MSE orde
+kedua penuh (turunan eksak prediktor kriging dan koreksi bias $g_1$ plug-in;
+bagian~\ref{sec:sfh-mse}). Dua-fold untuk sub-area tak-sampel pada area
+tersampel memakai $g_1^\ast+g_2^\ast+2g_3^\ast$ (dikurangi suku bias ML bila
+ML; \code{eblup\_twofold.cpp:500-545}).
 
 \paragraph{Catatan dua-fold.} Komentar kode \code{eblup\_twofold.cpp:19-24}
 menyatakan bahwa pendekatan $g_3$ matriks menggantikan rumus tertutup
@@ -247,7 +259,7 @@ Istilah & Simbol & Nama di kode \\
 \midrule
 Estimasi BLUP empirik & $\hat\theta_d$ & \code{eblup}, \code{hb}, \code{ebp} \\
 Varians direktor & $\psi_d$ & \code{vardir} \\
-Fungsi presisi spasial & $A$ & \code{A} (\code{eblup\_sfh\_core.cpp:311}) \\
+Fungsi presisi spasial & $A$ & \code{A} (\code{sar\_engine.h}, \code{SarEngine::factor}) \\
 Matriks proyeksi & $P$ & \code{P} = \code{Vi - XtVi.t()*Q*XtVi} \\
 Matriks info Fisher & $\mathcal I$ & \code{Idev} (SFH), \code{F} (STFH), \code{I} (FH) \\
 Korelasi spasial (SAR) & $\rho$ & \code{rho}, \code{rho\_fix} \\
@@ -256,7 +268,7 @@ Fraksi sampel & $f_d=n_d/N_d$ & \code{f}, \code{ratio} (BHF) \\
 Suku $g$ MSE & $g_1,\ldots,g_4$ & \code{g1d}, \code{g2d}, \code{g3d}, \code{g4d} \\
 Galat mutlak relatif & RSE & \code{rse} ($100\sqrt{\mathrm{mse}}/\abs{\hat\theta}$) \\
 Domain tanpa sampel & $I_{ns}$ & \code{find\_nonfinite(y)}, \code{unsampled\_domains} \\
-Inversi Woodbury & \eqref{eq:woodbury-gen} & variabel \code{C} (STFH), \code{dd/s/c} (two-fold) \\
+Inversi Woodbury & \eqref{eq:woodbury-gen} & variabel \code{C} (STFH), \code{M} (SFH), \code{dd/s/c} (two-fold) \\
 Aproksimasi Laplace & --- & \code{strategy} pada \code{INLA::inla} \\
 Prior PC & \eqref{eq:pc-prec} & \code{prior\_prec = list(prior="pc.prec", ...)} \\
 Graf ketetanggaan & $W$, $Q$ & \code{W}, \code{graph} (\code{inla.graph}) \\
@@ -291,31 +303,38 @@ skrip, bukan ke pengetikan.
 untuk pembuatan laporan ini tersimpan di
 \code{scripts/sessionInfo.txt}; ringkasannya:
 \begin{itemize}
-  \item R 4.6.1 (2026-06-24), \code{aarch64-apple-darwin23},
+  \item Apple M4 (10 core), R 4.6.1 (2026-06-24), \code{aarch64-apple-darwin23},
         macOS Tahoe 26.6.2, zona waktu \code{Asia/Makassar};
   \item paket: \code{fastsae} 1.0.0, \code{sae} 1.3, \code{emdi} 2.2.3,
-        \code{tipsae} 1.0.3, \code{INLA} 26.8.7, \code{lme4} 2.0.1,
+        \code{tipsae} 1.0.3, \code{hbsae} 1.2, \code{INLA} 26.8.7,
         \code{Matrix} 1.7.5, \code{Rcpp} 1.1.2,
-        \code{RcppArmadillo} 15.4.2.1, \code{bench} 1.1.4,
-        \code{ggplot2} 4.0.3, \code{sf} 1.1.1, \code{cli} 3.6.6,
-        \code{testthat} 3.3.2, \code{covr} 3.6.5.
+        \code{RcppArmadillo} 15.4.2.1, \code{RcppEigen} 0.3.4.0.2,
+        \code{bench} 1.1.4, \code{ggplot2} 4.0.3, \code{sf} 1.1.1,
+        \code{spdep} 1.4.2, \code{cli} 3.6.6, \code{testthat} 3.3.2,
+        \code{covr} 3.6.5, \code{lme4} 2.0.1 (hanya pembanding di tes).
 \end{itemize}
 
 \paragraph{Yang tidak dapat direproduksi dari repo.}
 Berdasarkan pemeriksaan terhadap \code{inst/extdata} dan
 \code{benchmarks/} (bagian~\ref{sec:benchmark}, temuan DOC-11):
 \begin{itemize}
-  \item empat berkas --- \code{eblup\_benchmark.rds},
-        \code{seblup\_benchmark.rds}, \code{steblup\_benchmark.rds},
-        \code{beta\_estimates\_n1000.rds} --- tidak memiliki skrip
-        pembuat di repo, sehingga isinya tidak dapat dibangkitkan ulang;
+  \item baris \pkg{sae}/\pkg{emdi} pada \code{eblup\_benchmark.rds},
+        \code{seblup\_benchmark.rds}, \code{steblup\_benchmark.rds}, serta
+        \code{beta\_estimates\_n1000.rds} tidak memiliki skrip pembuat di
+        repo, sehingga tidak dapat dibangkitkan ulang; baris \pkg{fastsae}
+        di semua berkas benchmark dapat dibangkitkan ulang dengan
+        \code{benchmarks/bench\_frequentist\_fastsae.R} dan
+        \code{benchmarks/bench\_bayes\_fastsae.R};
   \item jumlah iterasi nyata sebagian besar run tidak tercatat di dalam
         berkas (hanya \code{n\_iter} hasil \code{bench::mark});
-  \item jenis CPU, jumlah thread, dan \code{OMP\_NUM\_THREADS} tidak pernah
-        direkam oleh skrip mana pun, sehingga angka waktu hanya dapat
-        dibandingkan \emph{di dalam} satu berkas yang sama;
+  \item jenis CPU, jumlah thread, dan \code{OMP\_NUM\_THREADS} tidak direkam
+        di dalam berkas (pengukuran ulang \pkg{fastsae}: lihat
+        \code{scripts/sessionInfo.txt}), sehingga angka waktu baris
+        pembanding hanya dapat dibandingkan \emph{di dalam} satu berkas yang
+        sama;
   \item memori yang dilaporkan adalah total alokasi \code{bench::mark()\$mem\_alloc},
-        bukan puncak RSS (label ``Peak'' pada dokumen lain salah).
+        bukan puncak RSS (README, beranda situs, dan vignette kini
+        melabelinya demikian).
 \end{itemize}
 Untuk pengujian unit dan cakupan kode, perintah yang dipakai pada
 pengembangan paket adalah:

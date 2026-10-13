@@ -8,6 +8,43 @@ Kode pendukung lengkap: `paper/_notes/*.md`.
 Pembacaan: **kode adalah sumber kebenaran**; laporan selalu menggambarkan apa yang
 dilakukan kode, lalu memberi *implementation note* yang menunjuk ke butir di sini.
 
+## Status per 14 Okt 2026
+
+Daftar di bawah dibuat pada 3–4 Okt 2026 (commit `0252055`); nomor baris pada
+tabel mengacu ke commit itu. Sejak itu kode berubah (audit matematis `90a422f`,
+inti BHF/SFH/STFH baru `84d229c`/`fad6f77`/`bebf545`, engine HB `d93cfa4`), dan
+laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
+
+- **Sudah diperbaiki di kode**
+  - BHF-1 (bootstrap kini C++ + OpenMP `n_threads`), BHF-4 (pembagi = replikat
+    yang berhasil), BHF-5 (`popnmean_xpop` ikut ke bootstrap), BHF-7
+    (`convergence` dari fit C++), BHF-8 (galat baku dari $\hat\sigma_e^2(X'V^{-1}X)^{-1}$;
+    `lme4` tidak lagi dipakai).
+  - TFH-2: estimator MSE kini $g_1+g_2+2g_3$ (REML) dan dikurangi
+    $b_{ML}'\nabla g_1$ (ML); informasi REML kini eksak (suku lintas-area).
+  - SFH-2 (galat baku dari informasi sesuai `method`), SFH-4 ($-0.999\to-1$
+    hanya bila sah; batas atas tidak dipetakan), SFH-5 (fallback terkendala bila
+    $\sigma^2<0$), SFH-7 (MSE orde kedua penuh untuk area tak-sampel), SFH-8
+    (fit, bootstrap, dan kriging memakai SAR pada semua domain).
+  - STFH-2 (kini ada MSE analitik, `mse_type = "analytical"`; tetap hanya bila
+    `compute_mse = TRUE`), STFH-3 (bootstrap mengestimasi ulang $\theta$),
+    STFH-5 (replikat gagal diganti sampai $B$ valid, maks. $5B$ percobaan).
+  - HB-13 (argumen `inla_engine()` digabung dengan `modifyList`), HB-14/HB-15
+    (jalur `lme4` dihapus), HB-7 (`prior_rho` didahulukan atas `prior_phi`).
+  - UT-6 (metode `optimal` kini solusi KKT $\delta_i\propto w_i\mathrm{mse}_i$),
+    UT-7 (logit hierarkis mensyaratkan `type = "mean"`).
+  - DOC-1 s.d. DOC-8 dan DOC-10 (README, beranda situs, dan vignette dihasilkan
+    dari `inst/extdata` oleh `benchmarks/update_benchmark_docs.R`).
+- **Bukan kesalahan:** SFH-1 — karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik
+  $y'PDPy$ sama dengan kuadratik skor ML terprofil.
+- **Sebagian:** HB-21 (`control.fixed` kini diset untuk self-benchmarking WFQ),
+  DOC-11 (baris `fastsae` kini dapat direproduksi; baris `sae`/`emdi` dan
+  `beta_estimates_n1000.rds` belum).
+- **Masih berlaku:** FH-1–FH-7, BHF-2, BHF-3, BHF-6, BHF-9, BHF-10, TFH-1,
+  TFH-3–TFH-9, SFH-3, SFH-6, SFH-9, SFH-10, STFH-1, STFH-4, STFH-6–STFH-8,
+  HB-1–HB-6, HB-8–HB-12, HB-16–HB-20, UT-1–UT-5, UT-8–UT-16, DOC-9 (artikel
+  JSS lama).
+
 ---
 
 ## A. Fay–Herriot area-level (`eblup_fh`)

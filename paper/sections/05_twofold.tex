@@ -45,7 +45,7 @@ dan inversinya memakai identitas Sherman--Morrison per blok
   \label{eq:tf-pred}
 \end{equation}
 dengan $r=y-\Xmat\betah$ dan $V^{-1}$ per blok lewat \eqref{eq:woodbury-tfh}
-(baris 351-353). Tiga kasus domain (baris 333-363):
+(baris 356-395). Tiga kasus domain:
 \begin{itemize}
   \item sub-area tersampel pada area tersampel: \eqref{eq:tf-pred};
   \item sub-area \emph{tak}-sampel pada area tersampel:
@@ -55,32 +55,43 @@ dengan $r=y-\Xmat\betah$ dan $V^{-1}$ per blok lewat \eqref{eq:woodbury-tfh}
         (prediktor sintetis).
 \end{itemize}
 Domain tanpa sampel didefinisikan lewat respons \code{y = NA}
-(baris 290-292), sama seperti FH. Validasi mensyaratkan minimal dua area
-tersampel dan $N_s>p$ (baris 301, 311).
+(baris 319-321), sama seperti FH. Validasi mensyaratkan minimal dua area
+tersampel, $N_s>p$, dan $\psi>0$ pada sub-area tersampel (baris 330-341).
 
 \subsection{Estimasi komponen varians}\label{sec:twofold-varians}
 
 Fisher scoring dua parameter $(\sigma_v^2,\sigma_u^2)$, nilai awal
-$0.5\,\mathrm{median}(\psi)$ keduanya (baris 181-182), toleransi $10^{-4}$,
-maksimum 100 iterasi (baris 186). Per iterasi (fungsi \code{twofold\_pass},
-baris 80-169) dihitung $Q=(\Xmat'V^{-1}\Xmat)^{-1}$, $r=V^{-1}(y-\Xmat\betah)$,
+$0.5\,\mathrm{median}(\psi)$ keduanya (baris 197-198), toleransi $10^{-4}$,
+maksimum 100 iterasi (baris 202). Per iterasi (fungsi \code{twofold\_pass},
+baris 84-185) dihitung $Q=(\Xmat'V^{-1}\Xmat)^{-1}$, $r=V^{-1}(y-\Xmat\betah)$,
 lalu skor dan informasi:
 \begin{align}
   s_v&=-\tfrac12 q_d+\tfrac12(\ones'r)^2,
     & s_u&=-\tfrac12\tr P+\tfrac12 r'r,
     & q_d&=\ones'V^{-1}\ones-(\Xmat'V^{-1}\ones)'Q(\Xmat'V^{-1}\ones),
-    \label{eq:tf-score-reml}\\
-  \mathcal I_{vv}&=\tfrac12 q_d^2,
-    & \mathcal I_{uu}&=\tfrac12\tr(P^2),
-    & \mathcal I_{vu}&=\tfrac12\bigl[\ones'V^{-1}\ones
-      -2\,\mathbf z'Q\bar x+\bar x'QMQ\bar x\bigr],
-  \label{eq:tf-info-reml}
+    \label{eq:tf-score-reml}
 \end{align}
-untuk REML (baris 131-151); untuk ML (baris 152-158) suku $\tr P$ dan $q_d$
-diganti oleh $\ones'V^{-1}\ones$ dan $\tr V$. Langkah
-$\Delta=\mathcal I^{-1}s$ dengan fallback diagonal $s_k/\mathcal I_{kk}$
-bila inversi gagal (baris 193-204), nilai negatif dipaksa $0$ (baris 210-211),
-dan konvergensi relatif (baris 213-215).
+(dijumlahkan atas area). Informasi Fisher REML dihitung \emph{eksak}: $P$
+tidak blok-diagonal, sehingga dibutuhkan suku lintas-area. Dengan
+$s_{1d}=\ones'V_d^{-1}\ones$, $a_d=\Xmat_d'V_d^{-1}\ones$,
+$S_a=\sum_d a_da_d'$, $M=\Xmat'V^{-2}\Xmat$, $A_d=V_d^{-1}\Xmat_d$, dan
+$z_d=V_d^{-1}\ones$,
+\begin{align}
+  \mathcal I_{vv}&=\tfrac12\Bigl[\sum_d s_{1d}^2-2\sum_d s_{1d}\,a_d'Qa_d
+    +\tr(QS_aQS_a)\Bigr],\notag\\
+  \mathcal I_{uu}&=\tfrac12\Bigl[\tr(V^{-2})-2\tr(Q\Xmat'V^{-3}\Xmat)
+    +\tr(QMQM)\Bigr],
+  \label{eq:tf-info-reml}\\
+  \mathcal I_{vu}&=\tfrac12\Bigl[\sum_d\bigl(z_d'z_d-2z_d'A_dQa_d\bigr)
+    +\tr(QMQS_a)\Bigr],\notag
+\end{align}
+untuk REML (baris 135-180); untuk ML suku yang memuat $Q$ hilang dan
+$\tr P$, $q_d$ diganti oleh $\tr V^{-1}$ dan $\ones'V^{-1}\ones$. Langkah
+$\Delta=\mathcal I^{-1}s$; bila informasi berkondisi buruk (secara relatif:
+dengan satu sub-area per area hanya $\sigma_v^2+\sigma_u^2$ yang
+teridentifikasi) dipakai pseudo-invers, lalu fallback diagonal
+$s_k/\mathcal I_{kk}$ (baris 205-228); nilai negatif dipaksa $0$ (baris
+230-235), dan konvergensi relatif (baris 237-239).
 
 \implnote{Dua hal yang tidak ada pada FH: (i) varian estimasi komponen
 diambil dari \emph{invers matriks informasi Fisher} final, bukan bentuk
@@ -92,7 +103,7 @@ sub-area tersampel, bukan jumlah baris).}
 
 \subsection{Estimasi MSE}\label{sec:twofold-mse}
 
-\paragraph{Analitik (default).} Untuk sub-area tersampel (baris 369-411):
+\paragraph{Analitik (default).} Untuk sub-area tersampel (baris 396-480):
 \begin{align}
   g_1&=\diag\bigl(S-SV^{-1}S\bigr),
     \label{eq:tf-g1}\\
@@ -103,16 +114,22 @@ sub-area tersampel, bukan jumlah baris).}
     \label{eq:tf-g3}
 \end{align}
 di mana $\mathrm{var}_v,\mathrm{var}_u,\mathrm{cov}_{vu}$ adalah elemen
-$(\mathcal I^{-1})$ final (baris 324, 407) dan
+$(\mathcal I^{-1})$ final sesuai \code{method} (ML atau REML; pseudo-invers
+bila hanya $\sigma_v^2+\sigma_u^2$ teridentifikasi) dan
 $\mathbb E_{uu}=\diag(M_uVM_u')$ dengan $M_u=V^{-1}-SV^{-2}$, sedangkan
-$M_v=\ones(\ones'V^{-1})'-SV^{-1}\ones(\ones'V^{-1})'$ (baris 395-406).
-Totalnya
+$M_v=\ones(\ones'V^{-1})'-SV^{-1}\ones(\ones'V^{-1})'$. Estimator MSE-nya
 \begin{equation}
-  \widehat{\mathrm{MSE}}=g_1+g_2+g_3,
+  \widehat{\mathrm{MSE}}=g_1+g_2+2g_3\quad(\text{REML}),\qquad
+  \widehat{\mathrm{MSE}}=g_1+g_2+2g_3-\mathbf b_{\text{ML}}'\nabla g_1
+  \quad(\text{ML}),
   \label{eq:tf-mse}
 \end{equation}
-bukan $g_1+g_2+2g_3$: faktor dua pada suku silang sudah termasuk di dalam
-$g_3$ persis seperti tertulis di komentar kode.
+dengan $\mathbf b_{\text{ML}}=\tfrac12\mathcal I^{-1}h$,
+$h_j=-\tr(Q\Xmat'V^{-1}V_jV^{-1}\Xmat)$. Faktor dua pada $g_3$ diperlukan
+karena $g_1(\hat\theta)$ plug-in sendiri bias ke bawah sebesar $\approx g_3$:
+$g_1+g_2+g_3$ mendekati MSE sebenarnya, tetapi \emph{estimator}-nya
+$g_1+g_2+2g_3$ \citep{prasad1990estimation, datta2000unified}. Versi
+sebelum audit 12 Okt memakai $g_1+g_2+g_3$.
 
 \implnote{Di sinilah perbedaan paling menonjol dengan publikasi.
 Komentar kode (\code{eblup\_twofold.cpp:19-24}) menyatakan bahwa persamaan
@@ -123,24 +140,25 @@ pemisah (korelasi 0,97/0,96/0,74 terhadap uji numerik). Laporan ini
 melaporkannya sebagai TFH-1: apa yang dikodekan adalah pendekatan matriks,
 bukan rumus tertutup Torabi--Rao.}
 
-Untuk sub-area tak-sampel (baris 415-468): area tanpa sub-area tersampel
-memperoleh $x'Qx+\sigma_v^2+\sigma_u^2$ (baris 421-427); sub-area tak-sampel
-pada area tersampel memperoleh $g_1^\ast+g_2^\ast+g_3^\ast$ dengan
+Untuk sub-area tak-sampel (baris 482-546): area tanpa sub-area tersampel
+memperoleh $x'Qx+\sigma_v^2+\sigma_u^2$ (baris 489-493); sub-area tak-sampel
+pada area tersampel memperoleh $g_1^\ast+g_2^\ast+2g_3^\ast$ (dikurangi suku
+bias ML bila \code{method = "ML"}) dengan
 $g_1^\ast=\sigma_v^2-\sigma_v^4(\ones'V^{-1}\ones)+\sigma_u^2$ dan
 $g_2^\ast=(x-\sigma_v^2\Xmat'V^{-1}\ones)'Q(x-\sigma_v^2\Xmat'V^{-1}\ones)$
-(baris 445-464). Nilai negatif dalam rentang $(-10^{-8},0)$ dipangkas ke $0$;
+(baris 500-545). Nilai negatif dalam rentang $(-10^{-8},0)$ dipangkas ke $0$;
 lebih negatif dibiarkan sehingga RSE menjadi \code{NaN} (TFH-8).
 
 \paragraph{Bootstrap parametrik.} Dengan \code{mse = "bootstrap"} (default
 $B=200$): semua gambaran dibuat lebih dulu secara sekuensial
 ($v^\ast\in\mathbb R^{m\times B}$, $u^\ast\in\mathbb R^{N\times B}$,
-$e^\ast\in\mathbb R^{N_s\times B}$; baris 475-478), lalu region
-\texttt{\#pragma omp parallel for schedule(static)} (baris 481) berjalan per
+$e^\ast\in\mathbb R^{N_s\times B}$; baris 552-555), lalu region
+\texttt{\#pragma omp parallel for schedule(static)} (baris 558) berjalan per
 replikat: $\theta^\ast=\Xmat\betah+v^\ast_i+u^\ast_j$,
 $y^\ast=\theta^\ast_{\text{sampel}}+e^\ast$, refit Fisher scoring penuh,
 prediktor bootstrap dengan prediktor yang \emph{sama} seperti estimasi titik
 (termasuk cabang tak-sampel), dan $\widehat{\mathrm{MSE}}=\mathrm{rata}
-\bigl((\hat\theta^\ast-\theta^\ast)^2\bigr)$ (baris 486-517). Karena semua
+\bigl((\hat\theta^\ast-\theta^\ast)^2\bigr)$ (baris 559-594). Karena semua
 RNG dipanggil sebelum pragma, hasil tidak bergantung jumlah thread
 (TFH-6: pemakaian prediktor yang sama persis juga dinyatakan kode sebagai
 perbaikan bug).
@@ -148,54 +166,55 @@ perbaikan bug).
 \subsection{Pseudo-code}\label{sec:twofold-algo}
 
 \begin{algorithm}[htbp]
-\caption{\texttt{eblup\_twofold} --- alur sebenarnya (\texttt{R/eblup\_twofold.R:64-140}, \texttt{src/eblup\_twofold.cpp:173-553})}
+\caption{\texttt{eblup\_twofold} --- alur sebenarnya (\texttt{R/eblup\_twofold.R:76-197}, \texttt{src/eblup\_twofold.cpp:189-631})}
 \label{alg:tfh}
 \KwIn{formula, \code{vardir}, \code{domain} (wajib), \code{subarea},
   \code{method}, \code{mse}, \code{B}, \code{seed}, \code{maxiter}, \code{precision}}
 \KwOut{\code{df\_eblup} (area $\times$ sub-area), \code{random\_effect\_var} = $(\sigma_v^2,\sigma_u^2)$, \code{goodness}}
-\code{domain} $\leftarrow$ wajib (80-82);\quad
-  \code{subarea} $\leftarrow$ \code{seq\_len(nrow(data))} bila \code{NULL} (84-88)\;
-\code{area\_idx} $\leftarrow$ \texttt{as.integer(factor(domain)) - 1L} \tcp*{0-based (106)}
-\If{\code{seed} tidak \code{NULL}}{\texttt{set.seed(seed)} (108)}\;
-$\ldots\leftarrow$ \texttt{.eblup\_twofold\_core($\Xmat,y,\psi$, area, method, mse\_type, B, maxiter, precision)} (110-120)\;
+\code{domain} $\leftarrow$ wajib (96-99);\quad
+  \code{subarea} $\leftarrow$ \code{seq\_len(nrow(data))} bila \code{NULL} (100-104)\;
+\If{\code{self\_benchmark}}{augmentasi model (116-131)}
+\code{area\_idx} $\leftarrow$ \texttt{as.integer(factor(domain)) - 1L} \tcp*{0-based (140)}
+\If{\code{seed} tidak \code{NULL}}{\texttt{set.seed(seed)} (142)}\;
+$\ldots\leftarrow$ \texttt{.eblup\_twofold\_core($\Xmat,y,\psi$, area, method, mse\_type, B, maxiter, precision)} (144-154)\;
 \caption*{}
 \KwData{}
 \tcp*{\emph{Lapis C++}}
 \textbf{gagal} bila \code{method}/\code{mse\_type} tak sah, $N_s\le p$,
-  $\psi\le0$, atau area tersampel $<2$ (281-311)\;
-$\sigma_v^2\leftarrow\sigma_u^2\leftarrow0.5\,\mathrm{median}(\psi)$ (181-182)\;
+  $\psi\le0$, atau area tersampel $<2$ (311-341)\;
+$\sigma_v^2\leftarrow\sigma_u^2\leftarrow0.5\,\mathrm{median}(\psi)$ (197-198)\;
 \While{\texttt{diff} $>$ \code{precision} \textbf{dan} $k<$ \code{maxiter}}{
-  per blok $d$: $V_d^{-1}a\leftarrow$ \eqref{eq:woodbury-tfh} (98-108, 345-350)\;
-  $\betah,r,q_d,\tr P,\tr V,\tr P^2\leftarrow$ akumulasi (110-145)\;
-  \uIf{ML}{$s,\mathcal I\leftarrow$ bentuk ML (152-158)}
-  \uElse{$s,\mathcal I\leftarrow$ \eqref{eq:tf-score-reml}--\eqref{eq:tf-info-reml} (131-151)}\;
-  $\Delta\leftarrow\mathcal I^{-1}s$; bila inversi gagal $\to\Delta_k=s_k/\mathcal I_{kk}$ (193-204)\;
-  $\sigma_k^2\leftarrow\max(\sigma_k^2+\Delta_k,0)$; non-finite $\to$ nilai lama (206-211)\;
-  $\texttt{diff}\leftarrow\max_k\abs{(\sigma_k^{2(new)}-\sigma_k^2)/\max(\sigma_k^2,10^{-12})}$ (213-215)\;
+  per blok $d$: $V_d^{-1}a\leftarrow$ \eqref{eq:woodbury-tfh} (\code{twofold\_pass}, 84-185)\;
+  \uIf{ML}{$s,\mathcal I\leftarrow$ bentuk ML}
+  \uElse{$s,\mathcal I\leftarrow$ \eqref{eq:tf-score-reml}--\eqref{eq:tf-info-reml}, termasuk suku lintas-area}\;
+  $\Delta\leftarrow\mathcal I^{-1}s$; kondisi buruk $\to$ \texttt{pinv}, lalu $\Delta_k=s_k/\mathcal I_{kk}$ (205-228)\;
+  $\sigma_k^2\leftarrow\max(\sigma_k^2+\Delta_k,0)$; non-finite $\to$ nilai lama (230-235)\;
+  $\texttt{diff}\leftarrow\max_k\abs{(\sigma_k^{2(new)}-\sigma_k^2)/\max(\sigma_k^2,10^{-12})}$ (237-239)\;
 }
-pass final pada varian final: $\betah,Q,\mathcal I^{-1}$ (223-237)\;
-$\hat\theta\leftarrow$ \eqref{eq:tf-pred}, termasuk cabang tak-sampel (333-363)\;
+pass final pada varian final: $\betah,Q,\mathcal I^{-1}$, loglik ML/REML (245-298)\;
+$\hat\theta\leftarrow$ \eqref{eq:tf-pred}, termasuk cabang tak-sampel (356-395)\;
 \uIf{\code{mse} $=$ analytical}{$g_1,g_2,g_3\leftarrow$ \eqref{eq:tf-g1}--\eqref{eq:tf-g3};
-  $\mathrm{MSE}\leftarrow$ \eqref{eq:tf-mse} per baris tersampel (369-411);
-  cabang tak-sampel (415-468)}
-\uElse{$v^\ast,u^\ast,e^\ast\leftarrow$ bangkit sekuensial (475-478)\;
-  \texttt{\#pragma omp parallel for schedule(static)} (481)\;
-  \For{$b=0,\dots,B-1$ paralel}{$\theta^\ast,y^\ast\leftarrow$ (486-488);
-    refit \code{twofold\_fit} (490-491); $\mathrm{SqDiff}[:,b]\leftarrow
-    (\hat\theta^\ast-\theta^\ast)^2$ (495-517)}}\;
-$\ell,\mathrm{AIC},\mathrm{BIC}\leftarrow$ loglik ML/REML, dasar $m_{\text{fit}}$ (239-267, 545-548)\;
-susun \code{df\_eblup} (\code{domain, subarea, y, eblup, vardir, random\_effect\_area,
-random\_effect\_subarea, mse, rse}) (550-553)\;
+  $\mathrm{MSE}\leftarrow$ \eqref{eq:tf-mse} per baris tersampel (396-480);
+  cabang tak-sampel (482-546)}
+\uElse{$v^\ast,u^\ast,e^\ast\leftarrow$ bangkit sekuensial (552-555)\;
+  \texttt{\#pragma omp parallel for schedule(static)} (558)\;
+  \For{$b=0,\dots,B-1$ paralel}{$\theta^\ast,y^\ast\leftarrow$;
+    refit \code{twofold\_fit}; $\mathrm{SqDiff}[:,b]\leftarrow
+    (\hat\theta^\ast-\theta^\ast)^2$ (559-594)}}\;
+$\mathrm{AIC},\mathrm{BIC}$ dengan dasar $m_{\text{fit}}$; susun \code{df\_eblup} (\code{domain, subarea, y, eblup, vardir, random\_effect\_area,
+random\_effect\_subarea, mse, rse}) (597-631)\;
 \end{algorithm}
 
 \subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:twofold-api}
 
-\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_twofold} (\texttt{R/eblup\_twofold.R:64-77}).}]
+\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_twofold} (\texttt{R/eblup\_twofold.R:76-93}).}]
 eblup_twofold(formula, vardir, domain = NULL, subarea = NULL, data,
               method = c("REML", "ML"),
               mse = c("analytical", "bootstrap"),
               B = 200, seed = NULL, maxiter = 100,
-              precision = 1e-4, print_result = TRUE)
+              precision = 1e-4, self_benchmark = FALSE,
+              benchmark_weight = NULL, benchmark_target = NULL,
+              benchmark_group = NULL, print_result = TRUE)
 \end{lstlisting}
 
 \begin{itemize}

@@ -77,12 +77,16 @@ Fungsi & Jenis & Peran \\
 \code{hb\_area}        & Bayes      & hierarki Bayes area-level, 6 family likelihood \\
 \code{hb\_unit}        & Bayes      & hierarki Bayes unit-level \\
 \code{hb\_twofold} & Bayes & hierarki Bayes sub-area \\
+\code{inla\_engine}, \code{jax\_engine} & Bayes & objek \emph{engine} untuk \code{hb\_*}: INLA (default) atau MCMC JAX/NumPyro (hanya \code{hb\_area}) \\
+\code{setup\_numpyro\_env}, \code{check\_numpyro\_available} & Bayes & menyiapkan/memeriksa lingkungan Python untuk \code{jax\_engine} \\
 \code{benchmark}, \code{benchmark\_sae} & utilitas & kalibrasi ke agregat target \\
 \code{diagnose}       & utilitas & uji kecocokan, uji bias, Moran's I, flag keandalan \\
 \code{compare\_sae}   & utilitas & perbandingan dua model \\
 \code{export\_sae}, \code{map\_sae} & utilitas & ekspor tabel dan peta choropleth \\
 \code{sim\_spatial\_weights}, \code{sim\_area\_data}, \code{sim\_series\_data} & utilitas & pembangkit data dan matriks tetangga \\
 \code{add\_reliability\_flags} & utilitas & flag RSE \\
+\code{create\_weights}, \code{spatial\_test} & pra-pemodelan & matriks bobot spasial dari \code{sf}/koordinat; uji Moran/Geary/LM sebelum memilih model spasial \\
+\code{gvf\_smooth} & pra-pemodelan & penghalusan \code{vardir} dengan \emph{generalized variance function} \\
 \code{autoplot} (S3)  & utilitas & grafik model, benchmark, diagnosis \\
 \bottomrule
 \end{tabularx}
@@ -94,10 +98,12 @@ Empat pilar yang membedakan paket ini, semuanya terverifikasi dari kode:
   \item \textbf{Inti numerik di C++/Armadillo.} Fisher scoring untuk model
         area-level, sub-area, spasial, dan spasio-temporal ditulis dalam
         \code{src/*.cpp} (bagian~\ref{sec:desain}).
-  \item \textbf{Bootstrap paralel OpenMP.} Empat berkas sumber memakai
+  \item \textbf{Bootstrap paralel OpenMP.} Lima berkas sumber memakai
         \code{\#pragma omp parallel for}
-        (\code{eblup\_twofold.cpp:481}, \code{eblup\_sfh\_pbmse.cpp:108},
-        \code{eblup\_sfh\_npbmse.cpp:159}, \code{eblup\_stfh\_pbmse.cpp:352}).
+        (\code{eblup\_twofold.cpp:558}, \code{eblup\_sfh\_pbmse.cpp:116},
+        \code{eblup\_sfh\_npbmse.cpp:188}, \code{eblup\_stfh\_pbmse.cpp:182},
+        \code{eblup\_bhf\_core.cpp:283}); bilangan acak diambil berurutan dari
+        RNG R sehingga hasil hanya bergantung pada \code{seed}.
   \item \textbf{Lapisan INLA untuk model Bayes.} Enam family likelihood
         (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), enam
         struktur spasial, lima struktur temporal, dan interaksi
@@ -117,15 +123,19 @@ Secara arsitektur \pkg{fastsae} terdiri atas lima lapis:
         pembangunan \code{model.frame}/\code{model.matrix}, pelabelan domain,
         dan perakitan objek keluaran berkelas S3. Semua file berada di
         \code{R/} mengikuti urutan \code{Collate} pada \code{DESCRIPTION}.
-  \item \textbf{Lapis C++} — delapan berkas \code{src/*.cpp} yang mengekspor
-        delapan fungsi Rcpp (Tabel~\ref{tab:cpp}); semua dikompilasi dengan
+  \item \textbf{Lapis C++} — sembilan berkas \code{src/*.cpp} yang mengekspor
+        sepuluh fungsi Rcpp (Tabel~\ref{tab:cpp}), ditambah \code{sar\_engine.h}
+        (faktorisasi Cholesky sparse untuk model SAR); semua dikompilasi dengan
         \code{CXX17} dan tautan LAPACK/BLAS serta OpenMP melalui
         \code{src/Makevars}.
   \item \textbf{Lapis INLA} — \code{R/inla\_utils.R} merangkai formula
         \code{f(...)} dan mengekstrak hasil; tidak diekspor (semua
         \code{@noRd}).
-  \item \textbf{Lapis \pkg{lme4}} — hanya untuk BHF dan jalur \code{glmm}
-        \fct{hb\_area}.
+  \item \textbf{Lapis \emph{engine} Bayes} — \fct{inla\_engine} dan
+        \fct{jax\_engine} (\code{R/engine.R}) memisahkan spesifikasi model dari
+        cara estimasinya; \code{jax\_engine} menjalankan MCMC NUTS di Python
+        (JAX/NumPyro) lewat \pkg{reticulate} (\code{R/hb\_area\_jax.R},
+        \code{inst/python/}). \pkg{lme4} tidak lagi dipakai oleh kode paket.
   \item \textbf{Metode S3} — kelas \code{fastsae} beserta turunannya
         (\code{fastsae\_unit}, \code{fastsae\_hb*}, \code{fastsae\_diagnose},
         \code{fastsae\_benchmark}, \code{fastsae\_comparison}) memiliki method
@@ -145,12 +155,13 @@ Berkas sumber & Fungsi Rcpp & OpenMP \\
 \midrule
 \code{eblup\_fh.cpp}        & \code{.eblup\_core}        & --- \\
 \code{eblup\_unit.cpp}      & \code{.eblup\_bhf\_cpp}     & --- \\
-\code{eblup\_twofold.cpp}       & \code{.eblup\_twofold\_core}    & baris 481 \\
+\code{eblup\_bhf\_core.cpp} & \code{.bhf\_fit\_cpp}, \code{.pbmse\_bhf\_cpp} & baris 283 \\
+\code{eblup\_twofold.cpp}       & \code{.eblup\_twofold\_core}    & baris 558 \\
 \code{eblup\_sfh\_core.cpp} & \code{.seblup\_core}        & --- \\
-\code{eblup\_sfh\_pbmse.cpp}& \code{.seblup\_pbmse}       & baris 108 \\
-\code{eblup\_sfh\_npbmse.cpp} & \code{.seblup\_npbmse}   & baris 159 \\
+\code{eblup\_sfh\_pbmse.cpp}& \code{.seblup\_pbmse}       & baris 116 \\
+\code{eblup\_sfh\_npbmse.cpp} & \code{.seblup\_npbmse}   & baris 188 \\
 \code{eblup\_stfh\_core.cpp}& \code{.eblup\_stfh\_core}   & --- \\
-\code{eblup\_stfh\_pbmse.cpp}& \code{.pbmse\_stfh}        & baris 352 \\
+\code{eblup\_stfh\_pbmse.cpp}& \code{.pbmse\_stfh}        & baris 182 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -158,7 +169,7 @@ Berkas sumber & Fungsi Rcpp & OpenMP \\
 \subsection{Instalasi, termasuk \pkg{INLA}}
 
 Paket berada di CRAN dan dapat dipasang bersama versi pengembangannya
-(petunjuk di \code{README.Rmd:131-154}):
+(petunjuk di \code{README.Rmd:85-108}):
 \begin{lstlisting}[language={},caption={Perintah instalasi sebagaimana terdokumentasi di \texttt{README.Rmd}.}]
 install.packages("fastsae")                      # rilis stabil
 # install.packages("remotes")
@@ -173,19 +184,20 @@ install.packages("INLA",
 Repo INLA pada baris terakhir identik dengan \code{Additional\_repositories}
 di \code{DESCRIPTION}. \pkg{INLA} berada pada \code{Suggests}, sehingga fungsi
 frekuentis tetap dapat dipakai tanpanya; \fct{hb\_area} memeriksanya lebih dulu
-melalui \code{.check\_inla\_installed()} (\code{R/inla\_utils.R:8-15}) dan
+melalui \code{.check\_inla\_installed()} (\code{R/inla\_utils.R:11-17}) dan
 melempar \code{cli\_abort} dengan instruksi repo bila tidak ada.
 
 \subsection{Struktur repositori dan cara membaca laporan ini}
 
 \begin{lstlisting}[language={},caption={Struktur repositori (pilihan relevan).}]
-R/          22 berkas R     : lapis pemanggilan, utilitas, data
-src/         9 berkas C++   : inti numerik + RcppExports
-man/        38 berkas Rd    : dokumentasi (sumber sitasi roxygen)
+R/          28 berkas R     : lapis pemanggilan, engine, utilitas, data
+src/        10 berkas C++   : inti numerik + RcppExports (+3 header)
+inst/python/                 : model NumPyro untuk jax_engine()
+man/        40 berkas Rd    : dokumentasi (sumber sitasi roxygen)
 vignettes/   7 Rmd           : pengantar, benchmark, diagnosis, model Bayes
-tests/       testthat        : 1.063 tes lulus (lihat bagian 8.3)
+tests/       testthat        : >1.500 ekspektasi lulus (lihat bagian 8.3)
 inst/extdata/ 9 file .rds    : hasil benchmark (satu-satunya sumber angka)
-benchmarks/ 11 skrip         : pembangkit hasil benchmark
+benchmarks/ 14 skrip         : pembangkit hasil benchmark
 \end{lstlisting}
 
 Laporan ini disusun agar setiap klaim dapat ditelusuri: nomor baris dalam teks

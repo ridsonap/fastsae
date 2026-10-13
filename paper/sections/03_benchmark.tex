@@ -23,8 +23,12 @@ selama run}, bukan puncak RSS (lihat \code{benchmarks/bench\_beta\_tipsae.R:92-9
 \code{n\_iter} mencatat jumlah iterasi aktual yang benar-benar dijalankan.
 
 \paragraph{Skrip, pembanding, ukuran, iterasi, seed.}
-Tabel~\ref{tab:skrip-bench} disusun dari pembacaan langsung 11 skrip di
-\code{benchmarks/}.
+Tabel~\ref{tab:skrip-bench} disusun dari pembacaan langsung skrip di
+\code{benchmarks/}. Baris \pkg{fastsae} pada semua file benchmark diukur ulang
+dengan \pkg{fastsae} 1.0.0 oleh dua skrip pengukur ulang
+(\code{bench\_frequentist\_fastsae.R}, 13 Okt 2026, dan
+\code{bench\_bayes\_fastsae.R}, 14 Okt 2026); baris pembanding berasal dari
+run sebelumnya dan dipertahankan.
 
 \begin{table}[htbp]
 \centering
@@ -40,6 +44,13 @@ pembacaan \code{benchmarks/*.R} (lihat \code{\_notes/bench\_methodology.md}).}
 \toprule
 Skrip & Pembanding (dari kode) & $n$ & Iterasi / seed \\
 \midrule
+\code{bench\_frequentist\_fastsae.R} &
+  hanya baris \pkg{fastsae} (FH, SFH, STFH, MSE analitik); baris \pkg{sae}/\pkg{emdi} dipertahankan &
+  30\,--\,1000 & 20; data seed tetap, 5 kovariat, $T=5$ \\
+\code{bench\_bayes\_fastsae.R} &
+  hanya baris \pkg{fastsae} (\code{hb\_area}, API \code{engine}); baris \pkg{tipsae}/\pkg{hbsae} dipertahankan &
+  sama dengan file &
+  10 + 1 pemanasan; data dan seed sama dengan skrip asal \\
 \code{bench\_beta\_tipsae.R} &
   \code{fastsae::hb\_area} vs \code{tipsae::fit\_sae} &
   250, 500 & 20; data \code{seed = 42+n}; tipsae \code{seed = 42} \\
@@ -77,14 +88,15 @@ Skrip & Pembanding (dari kode) & $n$ & Iterasi / seed \\
 \paragraph{Apa yang tidak tercatat.}
 Model CPU, jumlah inti, RAM, sistem operasi, tanggal run, versi \pkg{R} pada
 saat run, dan versi paket pembanding \emph{tidak ada} di dalam file
-\code{.rds}. Satu-satunya pernyataan hardware di repo adalah
-\code{paper/article.tex:277} (``Apple Silicon processor under R 4.4.2'').
-Tidak ada skrip yang mengatur \code{OMP\_NUM\_THREADS}; \code{README.Rmd:126}
-hanya menulis bahwa ``timings depend on hardware and the number of threads''.
-Empat file (\code{eblup\_benchmark.rds}, \code{seblup\_benchmark.rds},
-\code{steblup\_benchmark.rds}, \code{beta\_estimates\_n1000.rds}) \emph{tidak
-punya skrip pembuat} di repo mana pun (terverifikasi dengan
-\code{git log -S}); karenanya hasilnya tidak dapat direproduksi dari repo.
+\code{.rds}. Pengukuran ulang baris \pkg{fastsae} dilakukan pada Apple M4
+(10 core), macOS 26.6, R 4.6.1 (\code{scripts/sessionInfo.txt}); untuk baris
+pembanding hal itu tidak tercatat. Tidak ada skrip yang mengatur
+\code{OMP\_NUM\_THREADS}. Baris \pkg{sae}/\pkg{emdi} pada tiga file FH dan file
+\code{beta\_estimates\_n1000.rds} \emph{tidak punya skrip pembuat} di repo
+(terverifikasi dengan \code{git log -S}); baris \pkg{fastsae} pada ketiga file
+FH kini dapat direproduksi dengan \code{bench\_frequentist\_fastsae.R}, tetapi
+pada desain yang sama dengan bilangan acak yang \emph{berbeda} dari baris
+pembanding.
 
 \paragraph{Keadilan perbandingan.}
 Pada skrip yang ada, kedua metode menerima \emph{data simulasi yang sama}
@@ -101,10 +113,15 @@ ada dan harus dibaca sebagai \emph{caveat}:
   \item \code{hbsae::fSAE.Area} adalah pemanggilan langsung tanpa
         penyetelan iterasi; \code{fastsae::hb\_area} memakai default
         \code{strategy = "laplace"}.
-  \item Untuk tiga file pertama (\code{eblup}, \code{seblup},
-        \code{steblup}) skrip pembuatnya tidak ada, sehingga kesetaraan
+  \item Untuk tiga file FH (\code{eblup}, \code{seblup}, \code{steblup})
+        skrip pembuat baris pembanding tidak ada, sehingga kesetaraan
         pengaturan awal, kriteria konvergensi, dan jumlah thread tidak dapat
-        diverifikasi dari repo.
+        diverifikasi dari repo; baris \pkg{fastsae} diukur pada data dengan
+        desain sama tetapi draw berbeda.
+  \item Pengukuran ulang Bayes memakai satu pemanggilan pemanasan sebelum
+        \code{bench::mark()} (memuat \pkg{INLA} di luar pengukuran); baris
+        pembanding diukur tanpa pemanasan. Pada median 10 iterasi efeknya
+        kecil.
   \item Beberapa \code{n\_iter} aktual berbeda dari nilai yang diminta
         (lihat kolom \code{n\_iter} di file), tanda run besar memakai argumen
         \code{--iter} yang tidak tercatat di file mana pun.
@@ -266,9 +283,10 @@ tersedia pada skrip \code{benchmarks/compare\_ebp\_tipsae\_truth.R} dan
         pengaturan pembanding tidak tercatat di file.
   \item \textbf{Memori bukan puncak.} Kolom memori adalah akumulasi alokasi,
         sehingga tidak setara dengan \emph{peak RSS} yang lazim dilaporkan.
-  \item \textbf{Empat file tanpa skrip.} Hasil FH (tiga file) dan
-        \code{beta\_estimates\_n1000} tidak dapat direproduksi dari repo;
-        laporan memakainya apa adanya dan menandainya.
+  \item \textbf{Baris pembanding tanpa skrip.} Baris \pkg{sae}/\pkg{emdi}
+        pada tiga file FH dan \code{beta\_estimates\_n1000} tidak dapat
+        direproduksi dari repo; laporan memakainya apa adanya dan
+        menandainya.
   \item \textbf{Run inkremental.} Skrip 1--5 menulis file secara inkremental
         (baris lama per $n$ diganti), sehingga file bisa berisi campuran run
         dari waktu yang berbeda.
@@ -279,7 +297,17 @@ tersedia pada skrip \code{benchmarks/compare\_ebp\_tipsae\_truth.R} dan
 Aturan laporan: data menang. Temuan berikut berasal dari perbandingan langsung
 klaim \code{README.Rmd}/\code{vignettes/benchmarks.Rmd}/\code{paper/article.tex}
 dengan isi \code{inst/extdata} (perhitungan lengkap:
-\code{\_notes/bench\_methodology.md} bagian 6 dan 8).
+\code{\_notes/bench\_methodology.md} bagian 6 dan 8), sebagaimana ditemukan
+pada 3 Okt 2026.
+
+\paragraph{Status (14 Okt 2026).} DOC-1 sampai DOC-8 dan DOC-10 sudah
+diperbaiki: tabel dan angka benchmark di \code{README.Rmd}, beranda situs
+(\code{pkgdown/index.md}), \code{vignettes/benchmarks.Rmd}, dan
+\code{vignettes/hb-area-inla.Rmd} kini dihasilkan dari \code{inst/extdata}
+oleh \code{benchmarks/update\_benchmark\_docs.R}, memori dilabeli sebagai
+alokasi total (\code{mem\_alloc}), dan grafik ST hanya menampilkan $n$ yang
+ada di data. DOC-9 berlaku untuk artikel JSS lama (\code{paper/article.tex}),
+yang tidak lagi diperbarui. DOC-11 tinggal berlaku untuk baris pembanding.
 
 \begin{table}[htbp]
 \centering

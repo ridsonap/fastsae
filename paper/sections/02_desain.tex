@@ -17,7 +17,7 @@ Prinsipnya: R menangani \emph{parsing} dan \emph{perakitan}, C++ menangani
 \centering
 \caption{Pembagian kerja lapis R dan lapis C++ per fungsi model. Sumber: pemanggilan
 \code{.eblup\_\allowbreak{}core}/\code{.seblup\_\allowbreak{}core}/\code{.eblup\_\allowbreak{}stfh\_\allowbreak{}core}/\code{.eblup\_\allowbreak{}twofold\_\allowbreak{}core}/
-\code{.eblup\_bhf\_cpp} beserta berkas pemanggilnya.}
+\code{.bhf\_\allowbreak{}fit\_\allowbreak{}cpp}/\code{.eblup\_bhf\_cpp} beserta berkas pemanggilnya.}
 \label{tab:pembagian}
 \small
 \begin{tabularx}{\textwidth}{@{}l X X@{}}
@@ -28,53 +28,62 @@ Fungsi & Di R & Di C++ \\
   \code{model.frame(na.pass)}, validasi \code{vardir}, pelabelan \code{domain}, kelas &
   pemisahan sampel/tak-sampel, Fisher scoring, EBLUP, MSE $g_1g_2g_3$, loglik \\
 \code{eblup\_sfh} &
-  identik + subset area tersampel untuk bootstrap &
-  Fisher scoring 2-parameter, MSE $g_1\ldots g_4$, kriging, bootstrap \\
+  validasi $W$ ($D\times D$, atau dibangun dari \code{sf}), pemilihan jalur MSE &
+  faktorisasi SAR sparse, Fisher scoring 2-parameter + fallback terkendala, MSE $g_1\ldots g_4$, kriging, bootstrap \\
 \code{eblup\_stfh} &
-  validasi panel lengkap ($n=D\times T$), $W$, nilai awal &
-  Fisher scoring 4-parameter, inversi Woodbury, EBLUP, bootstrap \\
+  pengurutan domain-major, validasi panel seimbang, $W$, nilai awal &
+  Fisher scoring REML 3/4-parameter terstruktur (Woodbury), fallback terkendala, MSE analitik $g_1\ldots g_4$, bootstrap \\
 \code{eblup\_twofold} &
   pembuatan \code{area} 0-based, \code{set.seed} &
   Fisher scoring 2-parameter per blok, MSE analitik, bootstrap \\
 \code{eblup\_bhf} &
-  \code{lme4::lmer} ($\betah,\hat\sigma_u^2,\hat\sigma_e^2,\hat u$), bootstrap &
-  penyusunan prediktor per domain ($f_d$, rata-rata sampel/populasi) \\
+  \code{model.frame}, pengurutan \code{Xpop}, rata-rata populasi, perakitan &
+  REML/ML terprofil atas $\gamma=\sigma_u^2/\sigma_e^2$, prediktor per domain, bootstrap \\
 \code{hb\_*} &
   seluruhnya: merangkai formula INLA, prior, kontrol, ekstraksi hasil &
-  --- (INLA sendiri adalah biner eksternal) \\
+  --- (INLA sendiri adalah biner eksternal; \code{jax\_engine} memanggil Python) \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 Konsekuensinya, model Bayes tidak memakai C++ buatan paket sama sekali:
-seluruh pekerjaan numerik berada di dalam \pkg{INLA}, sedangkan paket hanya
-merangkai formula dan membaca \code{summary.*} (bagian~\ref{sec:bayes}).
+seluruh pekerjaan numerik berada di dalam \pkg{INLA} atau, untuk
+\code{hb\_area(engine = jax\_engine())}, di JAX/NumPyro, sedangkan paket hanya
+merangkai model dan membaca hasilnya (bagian~\ref{sec:bayes}).
 
 \subsection{Struktur iterasi: Fisher scoring}\label{sec:fisher-engine}
 
-Semua model frekuentis non-linear dalam komponen varians memakai algoritme
-yang sama: \emph{Fisher scoring} atas vektor parameter komponen varians
-$\theta$. Pola yang sama berulang di empat inti C++ (lihat
-bagian~\ref{sec:latar} untuk turunannya):
+Model frekuentis area-level dan sub-area memakai algoritme yang sama:
+\emph{Fisher scoring} atas vektor parameter komponen varians $\theta$. Pola
+yang sama berulang di empat inti C++ (lihat bagian~\ref{sec:latar} untuk
+turunannya):
 
 \begin{enumerate}[label=\arabic*.]
-  \item hitung $\Vm(\theta)$, $\Vm^{-1}$, dan $\Qm=(\Xmat'\Vm^{-1}\Xmat)^{-1}$;
+  \item hitung $\Vm(\theta)$ (dalam bentuk terfaktor), $\Qm=(\Xmat'\Vm^{-1}\Xmat)^{-1}$,
+        dan $P=\Vm^{-1}-\Vm^{-1}\Xmat\Qm\Xmat'\Vm^{-1}$;
   \item hitung skor $s(\theta)$ dan informasi Fisher $\mathcal I(\theta)$;
   \item update Newton--Fisher $\theta^{(k+1)}=\theta^{(k)}+\mathcal
-        I^{-1}s$ --- dua parameter memakai inversi matriks $2\times2$ penuh,
-        satu parameter memakai pembagian skalar;
+        I^{-1}s$;
   \item uji batas (\emph{boundary}) dan kriteria konvergensi;
   \item pass akhir: hitung ulang $\Qm,\betah$, galat baku, prediktor, dan MSE
         pada $\hat\theta$ \emph{setelah} update terakhir.
 \end{enumerate}
+SFH dan STFH menambahkan \emph{fallback} terkendala: bila iterasi klasik (yang
+sengaja dibuat sama dengan \pkg{sae}) gagal atau berakhir pada varians negatif,
+likelihood dimaksimumkan ulang dengan Fisher scoring terproyeksi dan
+\emph{step halving}; solusi interior iterasi klasik tidak berubah. BHF tidak
+memakai Fisher scoring: $\beta$ dan $\sigma_e^2$ diprofilkan secara analitik
+dan sisa masalah satu dimensi dalam $\gamma$ diselesaikan dengan pencarian grid
+dan metode Brent (bagian~\ref{sec:bhf}).
 
 Tabel~\ref{tab:konvergensi} merangkum pengaturan iterasi tiap inti. Semua nilai
-baca dari kode, bukan dari dokumentasi.
+dibaca dari kode, bukan dari dokumentasi.
 
 \begin{table}[htbp]
 \centering
-\caption{Pengaturan iterasi pada empat inti Fisher scoring. Sumber: baris kode pada
-kolom terakhir.}
+\caption{Pengaturan iterasi pada inti Fisher scoring. Sumber: \code{src/eblup\_fh.cpp},
+\code{src/eblup\_twofold.cpp}, \code{src/eblup\_sfh\_core.cpp},
+\code{src/eblup\_stfh\_core.cpp}.}
 \label{tab:konvergensi}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}
@@ -95,38 +104,37 @@ Inti & Parameter & Nilai awal & Toleransi & Penanganan batas \\
   $(\sigma_v^2,\sigma_u^2)$ &
   $0.5\,\mathrm{median}(\psi)$ keduanya &
   maksimum selisih relatif per parameter $\le10^{-4}$, \code{maxiter} $=100$ &
-  negatif $\to 0$; informasi singular $\to$ fallback skor diagonal \\
+  negatif $\to 0$; informasi singular $\to$ \code{pinv}, lalu skor diagonal \\
 \code{.seblup\_\allowbreak{}core} &
-  $(\sigma_u^2,\rho)$ &
+  $(\sigma^2,\rho)$ &
   $\mathrm{median}(\psi)$, $0.5$ &
-  $\max\abs{\Delta\theta/(\theta+10^{-12})}\le10^{-4}$ &
-  $\rho$ di-clamp $\pm0.999$; $\sigma^2\ge0$ hanya pada hasil akhir \\
+  $\max\abs{\Delta\theta/(\theta+10^{-12})}\le10^{-4}$, \code{maxiter} $=100$ &
+  $\rho$ di-clamp $\pm0.999$; gagal atau $\sigma^2<0$ $\to$ fallback terkendala \\
 \code{.eblup\_\allowbreak{}stfh\_\allowbreak{}core} &
   $(\sigma_1^2,\rho_1,\allowbreak{}\sigma_2^2,\rho_2)$ &
   $0.5\,\mathrm{median}(\psi)$ dan $0.5$ &
-  relatif $\le10^{-4}$ &
-  $\rho_{1,2}$ di-clamp $\pm0.999$; $\sigma^2\ge0$ pada hasil akhir \\
+  relatif $\le10^{-4}$, \code{maxiter} $=100$ &
+  $\abs{\rho}\ge1\to\pm0.999$; gagal atau varians $<0$ $\to$ fallback REML terkendala \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Dua hal patut dicatat. \emph{Pertama}, pada \code{.seblup\_\allowbreak{}core} hasil akhir
-memetakan $\rho=\pm0.999$ menjadi $\pm1.0$ persis
-(\code{eblup\_sfh\_core.cpp:389-391}) tempat $\Vm$ menjadi singular, sehingga
-inversi jatuh ke \code{pinv} --- perilaku yang berbeda dengan jalur bootstrap
-yang mempertahankan $\pm0.999$ (lihat SFH-4 di \code{DISCREPANCIES.md}).
-\emph{Kedua}, \code{eblup\_stfh} selalu memakai REML: \code{method} di-hardcode
-\code{"REML"} di \code{R/eblup\_stfh.R:225}.
+Dua hal patut dicatat. \emph{Pertama}, pada SFH batas bawah $\rho=-0.999$
+dipetakan ke $-1$ seperti \code{sae::eblupSFH} hanya bila
+$(\Imat+W')(\Imat+W)$ tidak singular; pada graf bipartit (mis.\ grid rook)
+$\rho$ tetap $-0.999$, dan batas atas tidak pernah dipetakan ke $+1$.
+\emph{Kedua}, \code{eblup\_stfh} selalu memakai REML: \code{method}
+di-hardcode \code{"REML"} di \code{R/eblup\_stfh.R:325}.
 
 \subsection{Identitas matriks: di mana Woodbury dipakai}\label{sec:woodbury}
 
-Dua dari empat inti memakai identitas Woodbury/Sherman--Morrison untuk
-menurunkan biaya inversi; dua inti tidak.
+Tidak satu pun inti frekuentis membentuk invers matriks kovarians penuh. Semua
+memakai struktur $\Vm$:
 
 \paragraph{Two-fold (per blok, Sherman--Morrison).}
 Untuk tiap area $d$ dengan $n_d$ sub-area, kovarians
 $\Vm_d=\sigma_v^2\ones\ones'+\mathrm{diag}(\sigma_u^2+\psi_d)$.
-Karena suku rangsang ber-rangka-1, inversi dilakukan lewat
+Karena suku $\sigma_v^2\ones\ones'$ berpangkat satu, inversi dilakukan lewat
 \begin{equation}
   \Vm_d^{-1}a=\mathrm{dd}\odot a-c\,\mathrm{dd}\,(\mathrm{dd}'a),
   \qquad
@@ -134,51 +142,63 @@ Karena suku rangsang ber-rangka-1, inversi dilakukan lewat
   c=\frac{\sigma_v^2}{1+\sigma_v^2\sum_j \mathrm{dd}_j},
   \label{eq:woodbury-tfh}
 \end{equation}
-persis kode \code{eblup\_twofold.cpp:98-108} dan \code{:345-350}. Biaya per blok
+persis kode \code{eblup\_twofold.cpp:102} dan \code{:375-377}. Biaya per blok
 $O(n_d)$, bukan $O(n_d^3)$.
 
-\paragraph{Spasio-temporal (Woodbury penuh).}
-Pada \code{eblup\_stfh\_core.cpp:139-153} terdapat pola
+\paragraph{FH spasial (Woodbury + faktorisasi sparse).}
+Dengan $A=(\Imat-\rho W')(\Imat-\rho W)$ pada semua $D$ domain dan
+$M=A+\sigma^2E'\Psi^{-1}E$ (\code{src/sar\_engine.h}),
+\begin{equation}
+  \Vm^{-1}=\Psi^{-1}-\sigma^2\Psi^{-1}EM^{-1}E'\Psi^{-1},\qquad
+  \log\abs{\Vm}=\log\abs{\Psi}+\log\abs{M}-\log\abs{A}.
+  \label{eq:woodbury-sfh}
+\end{equation}
+$A$ dan $M$ difaktorkan dengan LDL$'$ sparse \pkg{Eigen} (urutan AMD,
+analisis simbolik sekali pada pola $\Imat+W+W'+W'W$) bila pola itu jarang
+($\le25\%$ non-nol), selain itu dengan faktorisasi padat. Semua besaran fit
+dan MSE --- termasuk $g_3$, $g_4$, dan MSE kriging --- diperoleh dari
+\emph{solve} dengan $A$ dan $M$; tidak ada invers $D\times D$ maupun perkalian
+berordo $D^3$.
+
+\paragraph{Spasio-temporal (Woodbury terstruktur).}
+Dengan $A=\mathrm{blockdiag}_d(\sigma_2^2\Omega_2+\diag(\psi_d))$ dan
+$Z=\Imat_D\otimes\mathbf 1_T$ (\code{eblup\_stfh\_core.cpp:71-88}),
 \begin{align}
-  \mathbf C &= \Omega_1^{-1}/\sigma_1^2+\mathrm{diag}(Z_1'\Vm_A^{-1}Z_1),
+  \mathbf C &= (\sigma_1^2\Omega_1)^{-1}+Z'A^{-1}Z,
     \label{eq:woodbury-c}\\
-  \Vm^{-1} &= \Vm_A^{-1}-\Vm_A^{-1}Z_1\,\mathbf C^{-1}Z_1'\Vm_A^{-1},
+  \Vm^{-1} &= A^{-1}-A^{-1}Z\,\mathbf C^{-1}Z'A^{-1},\qquad
+  P=A^{-1}-U\,\mathrm{blockdiag}(\mathbf C^{-1},\Qm)\,U',
     \label{eq:woodbury-v}
 \end{align}
-dengan $\Vm_A$ blok-diagonal per domain. Inversi $\Vm_A$ hanya $T\times T$
-per domain ($O(D\,T^3)$) dan inversi $\mathbf C$ hanya $D\times D$
-($O(D^3)$), alih-alih $O((DT)^3)$. Log-determinan juga memakai rantai yang
-setara (\code{eblup\_stfh\_core.cpp:456-471}):
-$\log|\Vm|=\log|\Vm_A|+\log|\sigma_1^2\Omega_1|+\log|\mathbf C|$.
-Catatan: memori tetap $O(M^2)$ karena $\Vm_A^{-1}$, $\Vm^{-1}$, dan matriks
-turunan disimpan penuh --- yang diturunkan adalah \emph{biaya inversi}, bukan
-ordo memori.
+$U=[A^{-1}Z,\;\Vm^{-1}\Xmat]$. Inversi $A$ hanya $T\times T$ per domain dan
+$\mathbf C$ hanya $D\times D$; karena turunan $\Vm_a$ berbentuk $ZB_aZ'$ atau
+$\Imat_D\otimes E_a$, semua jejak skor, informasi, dan MSE direduksi ke blok
+kecil. Biaya $O(D^3+MT(D+p))$ per iterasi dan memori $O(M(D+p))$, alih-alih
+$O(M^3)$ dan $O(M^2)$.
 
-\paragraph{Yang tidak memakai Woodbury.}
-\code{.seblup\_\allowbreak{}core} melakukan \code{inv\_sympd(Vi, V)} dan
-\code{inv\_sympd(derSigma, A)} per iterasi: $O(m^3)$ per iterasi dengan
-sekitar sembilan matriks $m\times m$ yang dialokasikan di luar loop
-(\code{eblup\_sfh\_core.cpp:294-298}). \code{.eblup\_\allowbreak{}core} (FH) bekerja pada
-skalar per-observasi: $w_d=1/(\psi_d+\sigma^2)$ dan matriks
-$\Qm$ hanya $p\times p$, sehingga tidak membutuhkan identitas apa pun.
-Implikasi terhadap skala dibahas pada bagian~\ref{sec:benchmark}.
+\paragraph{FH dan BHF.}
+\code{.eblup\_\allowbreak{}core} (FH) bekerja pada skalar per-observasi:
+$w_d=1/(\psi_d+\sigma^2)$ dan matriks $\Qm$ hanya $p\times p$. BHF memakai
+statistik cukup per domain (\emph{cross-product} dalam-domain dan rata-rata
+domain), sehingga setiap evaluasi likelihood berbiaya $O(Dp^2+p^3)$, tidak
+bergantung pada jumlah unit. Implikasi terhadap skala dibahas pada
+bagian~\ref{sec:benchmark}.
 
 \subsection{Strategi memori}\label{sec:memori}
 
 Tiga kebiasaan kode menjelaskan mengapa jejak memori \pkg{fastsae} kecil:
 
 \begin{enumerate}[label=\arabic*.]
-  \item \textbf{Alokasi di luar loop.} \code{eblup\_sfh\_core.cpp:279-284}
-        menghitung $W'$, $\Imat$, $W'W$, $W+W'$ sekali sebelum iterasi;
-        \code{eblup\_stfh\_core.cpp:90-123} membangun $\Vm_A^{-1}$ per blok
-        sekali per iterasi, bukan per parameter.
-  \item \textbf{Hanya matriks yang dibutuhkan.} FH tidak pernah membuat
-        matriks $m\times m$ sama sekali (hanya $w$, $Py$, dan $\Qm$
-        $p\times p$).
+  \item \textbf{Tidak ada matriks kovarians penuh.} FH, two-fold, dan BHF
+        tidak pernah membuat matriks $m\times m$; SFH menyimpan faktor sparse
+        $A$ dan $M$ serta blok $D\times m$ hasil \emph{solve}; STFH hanya blok
+        $T\times T$, $D\times D$, dan faktor $U$ berukuran $M\times(D+p)$.
+  \item \textbf{Pola tetap dihitung sekali.} Pola sparse dan analisis simbolik
+        SFH dibangun sekali sebelum iterasi; setiap iterasi hanya mengisi
+        ulang nilai numerik dan memfaktorkan ulang.
   \item \textbf{Bootstrap menulis per-kolom.} Replikat disimpan pada matriks
-        $N\times B$ (dua-fold) atau lewat akumulator kuadrat (SFH/STFH),
-        bukan menyimpan seluruh hasil per replikat
-        (\code{eblup\_twofold.cpp:479}, \code{eblup\_sfh\_pbmse.cpp}).
+        $N\times B$ (two-fold) atau lewat akumulator kuadrat (SFH/STFH/BHF),
+        bukan menyimpan seluruh hasil per replikat.
 \end{enumerate}
 
 Bandingkan \code{sae}, yang pada benchmark membangun matriks penuh per
@@ -187,58 +207,57 @@ Tabel~\ref{tab:mem-summary}).
 
 \subsection{Bootstrap paralel}\label{sec:bootstrap-paralel}
 
-Empat berkas memuat \code{Rcpp::plugins(openmp)} dan memanggil
-\code{omp\_set\_num\_threads} bila argumen \code{n\_threads} diberikan
-(\code{eblup\_sfh\_pbmse.cpp:73-75}, \code{eblup\_sfh\_npbmse.cpp:125-127},
-\code{eblup\_stfh\_pbmse.cpp:345-347}); \code{n\_threads <= 0} berarti memakai
-semua core. Skema umumnya sama di keempatnya:
+Lima titik memakai \code{\#pragma omp parallel for}: bootstrap SFH parametrik
+dan nonparametrik, STFH, two-fold, dan BHF. SFH dan STFH memanggil
+\code{omp\_set\_num\_threads} bila \code{n\_threads} $>0$
+(\code{eblup\_sfh\_pbmse.cpp:82}, \code{eblup\_sfh\_npbmse.cpp:155},
+\code{eblup\_stfh\_pbmse.cpp:141}); \code{n\_threads <= 0} berarti memakai
+semua core. BHF meneruskan \code{n\_threads} ke klausa \code{num\_threads}.
+Skema umumnya sama:
 
 \begin{algorithm}[htbp]
 \caption{Kerangka bootstrap parametrik paralel (sesuai \texttt{eblup\_sfh\_pbmse.cpp}).}
 \label{alg:bootstrap}
 \KwIn{data $(\Xmat,y,\psi,W)$, $B$, \code{n\_threads}, \code{seed}}
 \KwOut{vektor MSE per area}
-\KwData{distribusi RNG dibangkitkan \emph{sekuensial} sebelum region paralel}
+\KwData{bilangan acak dibangkitkan \emph{sekuensial} sebelum region paralel}
 \If{\code{seed} $\ge 0$}{\texttt{set.seed(seed)} \tcp*{baris 29}}
-$\hat\theta\leftarrow$ \texttt{seblup\_core(only\_core = TRUE)}\;
-\For{$b=1,\dots,B$ sekuensial}{
-  bangkitkan $u_b^\ast\sim N(0,\hat\sigma^2)$ dan $e_b^\ast\sim N(0,\psi)$\;
-  $v_b^\ast\leftarrow(\Imat-\hat\rho W)^{-1}u_b^\ast$\;
-}
-\#pragma\ omp\ parallel\ for\ schedule(dynamic)\;
-\For{$b=1,\dots,B$ paralel}{
-  $\theta_b^\ast=\Xmat\hat\beta+v_b^\ast$;\quad
-  $y_b^\ast=\theta_b^\ast+e_b^\ast$\;
-  \texttt{refit} Fisher scoring penuh pada $y_b^\ast$\;
-  \If{tidak konvergen atau $\hat\sigma^{2\ast}<0$ atau tidak finite}{
-    lewati replikat (masuk hitungan anggaran percobaan)
+$\hat\theta\leftarrow$ fit awal\;
+\While{replikat valid $<B$}{
+  \For{replikat yang masih dibutuhkan, sekuensial}{
+    bangkitkan $u_b^\ast\sim N(0,\hat\sigma^2)$ dan $e_b^\ast\sim N(0,\psi)$\;
   }
-  \KwRet $(\hat\theta_b^\ast-\theta_b^\ast)^2$
+  \#pragma\ omp\ parallel\ for\ schedule(dynamic)\;
+  \For{replikat paralel}{
+    $v_b^\ast\leftarrow(\Imat-\hat\rho W)^{-1}u_b^\ast$;\quad
+    $\theta_b^\ast=\Xmat\hat\beta+v_b^\ast$;\quad
+    $y_b^\ast=\theta_b^\ast+e_b^\ast$\;
+    \texttt{refit} Fisher scoring penuh pada $y_b^\ast$\;
+    \If{tidak konvergen atau tidak valid}{
+      tandai tidak valid (diganti draw baru pada putaran berikutnya)
+    }
+    \KwRet $(\hat\theta_b^\ast-\theta_b^\ast)^2$
+  }
 }
-\caption*{Akumulasi: $\widehat{\mathrm{MSE}}=B^{-1}\sum_b(\hat\theta_b^\ast-\theta_b^\ast)^2$
+\caption*{Akumulasi: $\widehat{\mathrm{MSE}}=B^{-1}\sum_b(\hat\theta_b^\ast-\theta_b^\ast)^2$;
 versi bias-koreksi pada teks SFH.}
 \end{algorithm}
 
 Dua detail penting:
 
 \begin{itemize}
-  \item \textbf{RNG dibangkitkan sebelum pragma} (\code{eblup\_sfh\_pbmse.cpp:90-98},
-        \code{eblup\_twofold.cpp:475-478}) karena generator \pkg{R} tidak aman
-        thread. Konsekuensinya hasil bootstrap \emph{reproducible terlepas
-        dari jumlah thread}, selama \code{seed} diberikan.
+  \item \textbf{RNG dibangkitkan sebelum pragma} karena generator \pkg{R} tidak
+        aman thread. Konsekuensinya hasil bootstrap \emph{reproducible
+        terlepas dari jumlah thread}, selama \code{seed} diberikan.
   \item \textbf{Jumlah thread} diatur lewat argumen \code{n\_threads}
-        (SFH/STFH) atau \code{OMP\_NUM\_THREADS} (dua-fold, yang tidak punya
-        argumen itu). Tidak ada \code{omp\_set\_num\_threads} pada
-        \code{eblup\_twofold.cpp}.
+        (SFH/STFH/BHF) atau \code{OMP\_NUM\_THREADS} (two-fold, yang tidak
+        punya argumen itu).
 \end{itemize}
 
-Perbedaan skema antar model nyata dan berpengaruh terhadap interpretasi:
-SFH memaksa tepat $B$ replikat \emph{valid} lewat skema batch
-(\code{eblup\_sfh\_pbmse.cpp:77-88}), STFH membagi dengan jumlah replikat
-valid sehingga efektifnya bisa $<B$ (\code{eblup\_stfh\_pbmse.cpp:410-412}),
-sedangkan BHF menghitung bootstrap di R secara serial dengan
-\code{n\_threads} yang didokumentasikan tetapi tidak pernah dipakai
-(BHF-1 di \code{DISCREPANCIES.md}).
+Penanganan replikat gagal kini seragam untuk model yang mengestimasi ulang
+$\theta$ per replikat: SFH dan STFH mengganti replikat gagal dengan draw baru
+sampai tepat $B$ replikat valid (STFH maksimum $5B$ percobaan), sedangkan BHF
+membagi dengan jumlah replikat yang berhasil.
 
 \subsection{Objek keluaran dan kelas S3}\label{sec:kelas}
 
@@ -260,10 +279,10 @@ Fungsi & \code{class()} & Elemen khusus \\
 \midrule
 \code{eblup\_fh} & \code{fastsae} & \code{goodness} (loglik ML, AIC, BIC) \\
 \code{eblup\_sfh} & \code{fastsae} & \code{rho}, \code{estvarcomp}, \code{W} \\
-\code{eblup\_stfh} & \code{fastsae} & \code{estvarcomp} 4 baris; \code{mse/rse = NA} bila \code{compute\_mse = FALSE} \\
-\code{eblup\_bhf} & \code{fastsae}, \code{fastsae\_unit} & \code{fit} (objek \code{lmer}), \code{samp\_size}; tanpa \code{goodness} \\
+\code{eblup\_stfh} & \code{fastsae} & \code{estvarcomp} 4 baris; \code{g1}--\code{g4}; \code{mse/rse = NA} bila \code{compute\_mse = FALSE} \\
+\code{eblup\_bhf} & \code{fastsae}, \code{fastsae\_unit} & \code{fit} (estimasi dan residual), \code{samp\_size}; tanpa \code{goodness} \\
 \code{eblup\_twofold} & \code{fastsae} & \code{level = "subarea"}, \code{sigma2\_v}/\code{sigma2\_u} \\
-\code{hb\_area} & \code{fastsae\_hb\_area}, \code{fastsae} & \code{fit} (objek \code{inla}), \code{hyperpar}, \code{phi}/\code{rho} \\
+\code{hb\_area} & \code{fastsae\_hb\_area}, \code{fastsae} & \code{fit} (objek \code{inla}, atau hasil NumPyro untuk \code{jax\_engine}), \code{engine}, \code{hyperpar} \\
 \code{hb\_unit}, \code{hb\_twofold} & \code{fastsae\_hb*}, \code{fastsae\_hb}, \code{fastsae} & \code{goodness} berupa \code{list} (DIC, WAIC, marginal likelihood) \\
 \bottomrule
 \end{tabularx}
@@ -276,13 +295,13 @@ ini; karena itu perbedaan kecil di atas (misalnya \code{hb\_area} tanpa kelas
 \subsection{Ringkasan desain}
 
 \begin{itemize}
-  \item Inti numerik ada di delapan fungsi C++; model Bayes diserahkan ke
-        \pkg{INLA} tanpa kode C++ tambahan.
-  \item Woodbury dipakai dua kali (dua-fold per blok, spasio-temporal penuh);
-        spatial FH justru memilih inversi simetris-positif-definitleh penuh
-        per iterasi --- konsekuensi pemilihan model SAR (butir 3).
-  \item Bootstrap diparalelkan dengan OpenMP pada empat titik; RNG dibangkitkan
+  \item Inti numerik ada di sepuluh fungsi C++; model Bayes diserahkan ke
+        \pkg{INLA} (atau JAX/NumPyro) tanpa kode C++ tambahan.
+  \item Tidak ada inti yang membentuk invers kovarians penuh: two-fold
+        memakai Sherman--Morrison per blok, SFH Woodbury dengan faktorisasi
+        sparse, STFH Woodbury terstruktur, FH dan BHF statistik per domain.
+  \item Bootstrap diparalelkan dengan OpenMP pada lima titik; RNG dibangkitkan
         sekuensial agar hasil tidak bergantung thread.
-  \item Kriteria konvergensi seragam ($10^{-4}$, 100 iterasi) tetapi penanganan
-        batas berbeda antar model dan dicatat sebagai temuan.
+  \item Kriteria konvergensi seragam ($10^{-4}$, 100 iterasi); SFH dan STFH
+        memiliki fallback terkendala untuk kasus di batas ruang parameter.
 \end{itemize}

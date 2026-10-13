@@ -1,7 +1,7 @@
 % ===========================================================================
 %  Bagian 7 -- Utilitas (benchmark, diagnose, compare, export, map, simulasi)
 % ===========================================================================
-\section{Lapisan utilitas: benchmarking, diagnostik, perbandingan, ekspor, peta}\label{sec:utilitas}
+\section{Lapisan utilitas: benchmarking, diagnostik, perbandingan, ekspor, peta, pra-pemodelan}\label{sec:utilitas}
 
 Kelima kelompok fungsi di bawah ini bekerja pada objek apa pun berkelas
 \code{fastsae} (atau turunannya) dan membentuk ``alur kerja'' setelah sebuah
@@ -26,7 +26,7 @@ disterilkan oleh \code{type}:
   \label{eq:bm-agg}
 \end{equation}
 dan target $T_g$ dipaksa tercapai lewat empat metode
-(\code{R/benchmark.R:451-512}):
+(\code{R/benchmark.R:466-545}):
 \begin{align}
   \text{\textbf{ratio:}}\quad
     &\lambda_g=\frac{T_g}{A_g},\qquad \tilde y_i=y_i\,\lambda_g;
@@ -36,8 +36,8 @@ dan target $T_g$ dipaksa tercapai lewat empat metode
       \tilde y_i=y_i+\frac{\delta_g}{\sum_i w^{\text{calc}}_{ig}};
     \label{eq:bm-diff}\\
   \text{\textbf{optimal:}}\quad
-    &\lambda_g=\frac{\delta_g}{\sum_i \tilde m_i},\qquad
-      \tilde y_i=y_i+\frac{\tilde m_i}{w^{\text{calc}}_{ig}}\,\lambda_g;
+    &\tilde y_i=y_i+\frac{w^{\text{calc}}_{ig}\,\tilde m_i}
+      {\sum_{j\in g}(w^{\text{calc}}_{jg})^2\,\tilde m_j}\,\delta_g;
     \label{eq:bm-opt}\\
   \text{\textbf{logit:}}\quad
     &\text{cari }\alpha\text{ dari }\textstyle
@@ -55,33 +55,56 @@ $[-20,20]$, diperluas ke $[-50,50]$ bila tandanya sama, dengan
 $\sum_i w^{\text{calc}}_{ig}\tilde y_i=T_g$ terverifikasi aljabar untuk
 keempat metode.
 
-\implnote{Metode \code{optimal} memakai alokasi
-$\delta_i=(\mathrm{mse}_i/w_i)\lambda$ sementara solusi KKT standar dari
-$\min\sum\delta_i^2/\mathrm{mse}_i$ s.t. $\sum w_i\delta_i=\Delta$ adalah
-$\delta_i\propto w_i\mathrm{mse}_i$. Constraint tetap tercapai, tetapi
-alokasinya berbeda ketika bobot tidak seragam (UT-6); variabelnya juga
-dinamai \code{inv\_prec} padahal isinya \code{mse}.}
+\implnote{Metode \code{optimal} kini persis solusi KKT dari
+$\min\sum_i(\tilde y_i-y_i)^2/\mathrm{mse}_i$ s.t. $\sum_i w_i\tilde y_i=T_g$
+(bobot kerugian $\phi_i=1/\mathrm{mse}_i$, \citealp{datta2011bayesian}), yaitu
+$\tilde y_i-y_i\propto w_i\mathrm{mse}_i$. Versi sebelum audit 12 Okt 2026
+memakai $(\mathrm{mse}_i/w_i)\lambda$ --- constraint tercapai, tetapi alokasinya
+salah ketika bobot tidak seragam (UT-6, kini diperbaiki). Tahap~1 hierarkis
+memakai bentuk yang sama pada tingkat grup.}
+
+\paragraph{MSE estimasi terbenchmark.} Setiap aturan menggeser estimasi sebesar
+$\mathrm{adj}_i=k_i(T-\sum_jw_j\hat\theta_j)$ dengan $\sum_iw_ik_i=1$
+(\emph{difference}: $k_i=1/\sum w$; \emph{ratio}: $k_i=\hat\theta_i/\sum
+w\hat\theta$; \emph{optimal}: $k_i=w_i\mathrm{mse}_i/\sum w^2\mathrm{mse}$;
+\emph{logit}: $k_i=\hat\theta_i(1-\hat\theta_i)/\sum w\hat\theta(1-\hat\theta)$).
+Dengan galat $e$, $\mathbb E[ee']=M$, MSE orde pertama estimasi terbenchmark
+adalah
+\begin{equation}
+  \mathrm{MSE}_{bm,i}\approx\mathrm{mse}_i-2k_i(Mw)_i+\mathrm{adj}_i^2
+  \label{eq:bm-mse}
+\end{equation}
+(\code{R/benchmark.R:546-600}, kolom \code{mse\_benchmarked}). $M$ adalah
+matriks MSE \emph{penuh} antar area --- galat prediksi berkorelasi karena
+$\hat\beta$ bersama dan efek acak spasial/temporal --- yang tidak pernah
+dibentuk: \code{.mse\_operator} (baris 804-909) mengembalikan $v\mapsto Mv$
+dengan $M=SCS$, $C$ matriks korelasi $g_1+g_2$ dan $S=\diag(\sqrt{\mathrm{mse}})$,
+untuk FH (skala identitas), SFH, STFH, dan HB area-level (dari sampel
+posterior INLA atau draw MCMC). Model lain memakai fallback diagonal
+$(Mw)_i=w_i\mathrm{mse}_i$. MSE agregat grup pada tahap~1 juga memakai
+$w'Mw$, bukan $\sum w^2\mathrm{mse}$.
 
 \paragraph{Dua tahap hierarkis.} Aktif bila \code{national\_target} diberikan
-dan ada $>1$ grup (\code{R/benchmark.R:318}): STAGE~1 menyetel target grup
+dan ada $>1$ grup (\code{R/benchmark.R:332}): STAGE~1 menyetel target grup
 $T_g$ agar agregatnya menyamai target nasional (empat metode yang sama,
 \code{W\_share}=porsi bobot grup), STAGE~2 menyetel estimasi level kecil ke
 $T_g$; keduanya dicatat \code{stage\_1\_summary} dan diverifikasi ulang.
 \begin{algorithm}[htbp]
-\caption{\texttt{benchmark\_sae} --- alur sebenarnya (\texttt{R/benchmark.R:120-573})}\label{alg:bm}
+\caption{\texttt{benchmark\_sae} --- alur sebenarnya (\texttt{R/benchmark.R:120-660})}\label{alg:bm}
 \KwIn{objek model (atau vektor numerik), \code{target}, \code{weight},
   \code{method} $\in$\{ratio, difference, optimal, logit\}, \code{group},
   \code{type}, \code{national\_target}, \code{outer\_target}, \code{mse}}
 \KwOut{data frame kelas \code{fastsae\_benchmark} + atribut verifikasi}
 estimasi $\leftarrow$ \texttt{df\_hb \%||\% df\_ebp \%||\% df\_eblup};
-  $y\leftarrow$ \code{hb/ebp/eblup/est}; $\mathrm{mse}\leftarrow$ \code{mse} atau $\mathrm{sd}^2$ (142-153)\;
-bobot $\leftarrow$ nama kolom / vektor / seragam $1$ (157-173)\;
-grup $\leftarrow$ nama kolom / vektor / \code{"All"} (178-191)\;
-$A_g,T_g\leftarrow$ \eqref{eq:bm-agg} + parsing target (328-393)\;
-\If{\code{national\_target} $\ne$ NULL \textbf{dan} $>1$ grup}{STAGE 1: setel $T_g$ agar $\sum_g W_{\text{share},g}T_g=T_{\text{nas}}$ (395-438)\;}
-STAGE 2: $\tilde y\leftarrow$ \eqref{eq:bm-ratio}--\eqref{eq:bm-logit} per grup (440-512)\;
-verifikasi $|\sum w^{\text{calc}}\tilde y-T_g|$; status \code{CONSISTENT} bila $<10^{-5}$ (534-560)\;
-susun \code{domain, weight, original, benchmarked, adjustment, rel\_adjustment\_pct, target} (515-531)\;
+  $y\leftarrow$ \code{hb/ebp/eblup/est}; $\mathrm{mse}\leftarrow$ \code{mse} atau $\mathrm{sd}^2$ (146-153)\;
+$M\leftarrow$ \texttt{.mse\_operator(object)} (atau \texttt{NULL}: fallback diagonal)\;
+bobot $\leftarrow$ nama kolom / vektor / seragam $1$; grup $\leftarrow$ nama kolom / vektor / \code{"All"} (157-200)\;
+$A_g,T_g\leftarrow$ \eqref{eq:bm-agg} + parsing target (332-412)\;
+\If{\code{national\_target} $\ne$ NULL \textbf{dan} $>1$ grup}{STAGE 1: setel $T_g$ agar $\sum_g W_{\text{share},g}T_g=T_{\text{nas}}$ (416-464)\;}
+STAGE 2: $\tilde y\leftarrow$ \eqref{eq:bm-ratio}--\eqref{eq:bm-logit} per grup (466-545)\;
+$\mathrm{MSE}_{bm}\leftarrow$ \eqref{eq:bm-mse} (546-600)\;
+susun \code{domain, weight, original, benchmarked, adjustment, rel\_adjustment\_pct, target} (+ \code{mse}, \code{mse\_benchmarked}) (584-600)\;
+verifikasi $|\sum w^{\text{calc}}\tilde y-T_g|$; status \code{CONSISTENT} bila $<10^{-5}$ (602-645)\;
 \end{algorithm}
 
 \paragraph{Keluaran.} \code{data.frame} kelas \code{c("fastsae\_benchmark","data.frame")}
@@ -259,6 +282,70 @@ dipakai: pemotongan reliabilitas hard-coded di extractor (UT-12). Pemetaan
 dua model menyusun \code{data.frame(matched\_sf[, c("domain","geometry")],\dots)},
 yang akan gagal bila kolom geometri \code{sf} bukan \code{"geometry"}
 (UT-16).}
+
+\subsection{Pra-pemodelan: \texttt{create\_weights}, \texttt{spatial\_test}, \texttt{gvf\_smooth}}\label{sec:pra-model}
+
+Tiga fungsi ini dipakai \emph{sebelum} model dipasang.
+
+\paragraph{\texttt{create\_weights}} (\code{R/create\_weights.R}) membangun
+matriks bobot spasial $W$ ($m\times m$, kelas \code{fastsae\_weights}) dari
+poligon/titik \code{sf}, matriks koordinat, atau objek \code{nb}/\code{listw}.
+Metode: kontiguitas \code{queen}/\code{rook}, \code{knn} ($k$ tetangga
+terdekat antar-sentroid), \code{distance} (pita jarak; \code{d\_max} otomatis
+sebesar jarak terkecil yang membuat graf terhubung), dan \code{idw}
+($w_{ij}=d_{ij}^{-\alpha}$). Gaya normalisasi: \code{W} (row-standar, untuk
+SAR/SFH), \code{B} (biner, untuk BYM2/Besag di \pkg{INLA}), \code{C} (standar
+global), \code{U} ($1/m$), dan \code{minmax} (dibagi nilai eigen terbesar).
+Domain tanpa tetangga (pulau, mis.\ kabupaten kepulauan) dihubungkan ke
+\code{k\_fallback} tetangga terdekatnya bila \code{island\_fallback = TRUE}
+(default), sehingga graf terhubung dan tidak menimbulkan singularitas.
+Fungsi ini juga dipanggil otomatis oleh \fct{eblup\_sfh} (queen, \code{"W"}),
+\fct{hb\_area} (queen, \code{"B"}), dan \fct{spatial\_test} bila \code{data}
+berkelas \code{sf} dan \code{W} tidak diberikan. Dalam implementasinya jarak
+dihitung per blok dan matriks diisi dalam satu lintasan, sehingga tidak ada
+matriks jarak $m\times m$ penuh untuk metode berbasis jarak.
+
+\paragraph{\texttt{spatial\_test}} (\code{R/spatial\_test.R}) menilai apakah
+model spasial diperlukan, pada domain tersampel saja:
+\begin{enumerate}[label=\arabic*.]
+  \item Moran's $I$ global pada respons $y$ dan pada residual OLS
+        $y\sim\Xmat$, dengan $\mathbb E[I]=-1/(n-1)$ dan varians di bawah
+        asumsi randomisasi (memakai kurtosis sampel);
+  \item uji Lagrange Multiplier \citet{anselin1988spatial} pada residual OLS
+        $e$:
+        $\mathrm{LM}_{\text{err}}=\bigl(e'We/\hat s^2\bigr)^2/T$ dan
+        $\mathrm{LM}_{\text{lag}}=\bigl(e'Wy/\hat s^2\bigr)^2/D_{\text{lag}}$,
+        $T=\tr(W'W+W^2)$, $D_{\text{lag}}=T+\lVert M W\Xmat\hat\beta\rVert^2/\hat s^2$
+        ($M$ proyektor residual OLS lewat QR), masing-masing $\chi^2_1$;
+  \item bila \code{vardir} diberikan (termasuk objek \fct{gvf\_smooth}):
+        \fct{eblup\_fh} dan \fct{eblup\_sfh} (REML) dipasang dan dibandingkan
+        lewat log-likelihood, AIC, BIC, dan statistik
+        $2(\ell_{\text{SFH}}-\ell_{\text{FH}})$ terhadap $\chi^2_1$.
+\end{enumerate}
+Model spasial direkomendasikan (\code{spatial\_recommended = TRUE}) bila
+Moran's $I$ residual, $\mathrm{LM}_{\text{err}}$, atau uji rasio itu signifikan
+pada \code{alpha}.
+\implnote{Log-likelihood pada \code{goodness} kedua model berbentuk ML yang
+dievaluasi di estimasi REML, sehingga statistik pembandingnya adalah
+pendekatan uji rasio likelihood, bukan LRT REML yang eksak; ia juga dibatasi
+$\ge0$.}
+
+\paragraph{\texttt{gvf\_smooth}} (\code{R/gvf.R}) menghaluskan varians
+sampling langsung $D_i$ yang tidak stabil dengan \emph{generalized variance
+function} \citep{wolter2007introduction}:
+\begin{itemize}
+  \item \code{"log\_linear"} (default):
+        $\log D_i=\alpha_0+\alpha_1\log y_i+\alpha_2\log n_i+\varepsilon_i$
+        lewat \code{lm}, lalu $\tilde D_i=\exp(\hat\mu_i+\hat s^2/2)$ (koreksi
+        bias log-normal, dapat dimatikan);
+  \item \code{"gamma\_glm"}: GLM Gamma dengan link log pada $D_i$, tanpa bias
+        transformasi balik;
+  \item \code{"cv\_power"}: model pangkat pada $\log\mathrm{CV}_i^2$
+        (membutuhkan $y$), lalu $\tilde D_i=\widetilde{\mathrm{CV}}_i^2y_i^2$.
+\end{itemize}
+Hasilnya (kelas \code{gvf\_smooth}) dapat diberikan langsung sebagai
+\code{vardir} ke \fct{eblup\_fh} dan \fct{spatial\_test}, yang memakai
+\code{smooth\_vardir}-nya.
 
 \subsection{Metode S3 dan grafik}\label{sec:s3}
 
