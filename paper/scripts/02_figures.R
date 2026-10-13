@@ -4,12 +4,44 @@
 #
 # Jalankan dari folder paper/:   Rscript scripts/02_figures.R
 # Output: figures/*.pdf
+# Versi bahasa Inggris untuk artikel R Journal:
+#   Rscript scripts/02_figures.R --lang=en --out=rjournal/figures
 #
 # ATURAN: tidak ada angka yang diketik manual; sumbu dan kurva dibangun
 # langsung dari .rds. Skala log pada kedua sumbu bila diminta.
 
 root <- if (dir.exists("../inst/extdata")) "../inst/extdata" else "inst/extdata"
-dir.create("figures", showWarnings = FALSE)
+
+args <- commandArgs(trailingOnly = TRUE)
+arg_val <- function(name, default) {
+  a <- grep(paste0("^--", name, "="), args, value = TRUE)
+  if (length(a)) sub(paste0("^--", name, "="), "", a[1]) else default
+}
+lang <- arg_val("lang", "id")
+out_dir <- arg_val("out", "figures")
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+fig <- function(f) file.path(out_dir, f)
+
+# label sumbu dan judul panel (id = laporan teknis, en = artikel R Journal)
+labs <- list(
+  id = c(n = "jumlah area n", time = "waktu median (detik, log)", mem = "memori (MB, log)",
+         ratio = "rasio waktu (pembanding / fastsae)", fh = "(a) Fay-Herriot area-level",
+         sfh = "(b) Fay-Herriot spasial", stfh = "(c) Fay-Herriot spasio-temporal",
+         hb = "(d) Hierarki Bayes Gaussian", beta_a = "(a) Beta area-level",
+         beta_b = "(b) Beta spasial", beta_c = "(c) Beta spasio-temporal",
+         beta_d = "(d) Beta area-level", est_t = "estimasi tipsae", est_f = "estimasi fastsae",
+         mse_t = "MSE tipsae (log)", mse_f = "MSE fastsae (log)", pred = "(a) Prediktor area",
+         mse = "(b) MSE", done = "Selesai. Berkas figur di"),
+  en = c(n = "number of areas n", time = "median time (seconds, log)", mem = "memory allocated (MB, log)",
+         ratio = "time ratio (comparator / fastsae)", fh = "(a) Fay-Herriot",
+         sfh = "(b) Spatial Fay-Herriot", stfh = "(c) Spatio-temporal Fay-Herriot",
+         hb = "(d) Hierarchical Bayes Gaussian", beta_a = "(a) Beta",
+         beta_b = "(b) Spatial Beta", beta_c = "(c) Spatio-temporal Beta",
+         beta_d = "(d) Beta", est_t = "tipsae estimate", est_f = "fastsae estimate",
+         mse_t = "tipsae MSE (log)", mse_f = "fastsae MSE (log)", pred = "(a) Area predictions",
+         mse = "(b) MSE", done = "Done. Figures in")
+)[[lang]]
+L <- function(id) unname(labs[[id]])
 
 read_b <- function(f) as.data.frame(readRDS(file.path(root, f)))
 
@@ -30,7 +62,7 @@ plot_series <- function(d, logxy = TRUE, ylab, main, leg = FALSE, ylim = NULL) {
   if (is.null(ylim)) ylim <- range(unlist(ys), finite = TRUE)
   plot(NA, xlim = range(xs), ylim = ylim,
        xaxt = if (logxy) "n" else "s",
-       xlab = if (logxy) expression("jumlah area "*n) else "n",
+       xlab = if (logxy) L("n") else "n",
        ylab = ylab, main = main, log = if (logxy) "y" else "")
   if (logxy) axis(1, at = log10(ns), labels = ns)
   grid(col = "grey85", lty = 1)
@@ -45,36 +77,36 @@ plot_series <- function(d, logxy = TRUE, ylab, main, leg = FALSE, ylim = NULL) {
 # ---------------------------------------------------------------------------
 # Figur 1: skala waktu FH (area, spasial, spasio-temporal) -- log-log
 # ---------------------------------------------------------------------------
-pdf("figures/fig-time-fh.pdf", width = 9, height = 6.5, useDingbats = FALSE)
+pdf(fig("fig-time-fh.pdf"), width = 9, height = 6.5, useDingbats = FALSE)
 op <- par(mfrow = c(2, 2), mar = c(4.2, 4.4, 2.6, 1.1), cex.lab = 1.05)
-plot_series(read_b("eblup_benchmark.rds"), ylab = "waktu median (detik, log)",
-            main = "(a) Fay-Herriot area-level", leg = TRUE)
-plot_series(read_b("seblup_benchmark.rds"), ylab = "waktu median (detik, log)",
-            main = "(b) Fay-Herriot spasial", leg = TRUE)
-plot_series(read_b("steblup_benchmark.rds"), ylab = "waktu median (detik, log)",
-            main = "(c) Fay-Herriot spasio-temporal", leg = TRUE)
-plot_series(read_b("hb_benchmark.rds"), ylab = "waktu median (detik, log)",
-            main = "(d) Hierarki Bayes Gaussian", leg = TRUE)
+plot_series(read_b("eblup_benchmark.rds"), ylab = L("time"),
+            main = L("fh"), leg = TRUE)
+plot_series(read_b("seblup_benchmark.rds"), ylab = L("time"),
+            main = L("sfh"), leg = TRUE)
+plot_series(read_b("steblup_benchmark.rds"), ylab = L("time"),
+            main = L("stfh"), leg = TRUE)
+plot_series(read_b("hb_benchmark.rds"), ylab = L("time"),
+            main = L("hb"), leg = TRUE)
 par(op); dev.off()
 
 # ---------------------------------------------------------------------------
 # Figur 2: skala waktu model beta -- log-log
 # ---------------------------------------------------------------------------
-pdf("figures/fig-time-beta.pdf", width = 9, height = 4.4, useDingbats = FALSE)
+pdf(fig("fig-time-beta.pdf"), width = 9, height = 4.4, useDingbats = FALSE)
 op <- par(mfrow = c(1, 3), mar = c(4.2, 4.4, 2.6, 1.1), cex.lab = 1.05)
-plot_series(read_b("beta_benchmark.rds"), ylab = "waktu median (detik, log)",
-            main = "(a) Beta area-level", leg = TRUE)
-plot_series(read_b("spatial_beta_benchmark.rds"), ylab = "waktu median (detik, log)",
-            main = "(b) Beta spasial", leg = TRUE)
+plot_series(read_b("beta_benchmark.rds"), ylab = L("time"),
+            main = L("beta_a"), leg = TRUE)
+plot_series(read_b("spatial_beta_benchmark.rds"), ylab = L("time"),
+            main = L("beta_b"), leg = TRUE)
 plot_series(read_b("spatio_temporal_beta_benchmark.rds"),
-            ylab = "waktu median (detik, log)",
-            main = "(c) Beta spasio-temporal", leg = TRUE)
+            ylab = L("time"),
+            main = L("beta_c"), leg = TRUE)
 par(op); dev.off()
 
 # ---------------------------------------------------------------------------
 # Figur 3: memori vs n -- log-log
 # ---------------------------------------------------------------------------
-pdf("figures/fig-mem.pdf", width = 9, height = 6.5, useDingbats = FALSE)
+pdf(fig("fig-mem.pdf"), width = 9, height = 6.5, useDingbats = FALSE)
 op <- par(mfrow = c(2, 2), mar = c(4.2, 4.4, 2.6, 1.1), cex.lab = 1.05)
 mem_series <- function(file, main) {
   d <- read_b(file)
@@ -82,8 +114,8 @@ mem_series <- function(file, main) {
   xs <- log10(ns)
   ys <- lapply(meths, function(m) d$`Memory (MB)`[d$Method == m][match(ns, d$n[d$Method == m])])
   plot(NA, xlim = range(xs), ylim = range(unlist(ys), finite = TRUE),
-       xaxt = "n", xlab = expression("jumlah area "*n),
-       ylab = expression("memori (MB, log)"), main = main, log = "y")
+       xaxt = "n", xlab = L("n"),
+       ylab = L("mem"), main = main, log = "y")
   axis(1, at = log10(ns), labels = ns)
   grid(col = "grey85", lty = 1)
   for (i in seq_along(meths)) {
@@ -93,16 +125,16 @@ mem_series <- function(file, main) {
   legend("topleft", legend = meths, col = meth_col(meths), lwd = 2, pch = 16,
          bty = "n", cex = 0.85)
 }
-mem_series("eblup_benchmark.rds", "(a) Fay-Herriot area-level")
-mem_series("seblup_benchmark.rds", "(b) Fay-Herriot spasial")
-mem_series("steblup_benchmark.rds", "(c) Fay-Herriot spasio-temporal")
-mem_series("beta_benchmark.rds", "(d) Beta area-level")
+mem_series("eblup_benchmark.rds", L("fh"))
+mem_series("seblup_benchmark.rds", L("sfh"))
+mem_series("steblup_benchmark.rds", L("stfh"))
+mem_series("beta_benchmark.rds", L("beta_d"))
 par(op); dev.off()
 
 # ---------------------------------------------------------------------------
 # Figur 4: rasio kecepatan vs n (pembanding / fastsae)
 # ---------------------------------------------------------------------------
-pdf("figures/fig-ratio.pdf", width = 9, height = 4.4, useDingbats = FALSE)
+pdf(fig("fig-ratio.pdf"), width = 9, height = 4.4, useDingbats = FALSE)
 op <- par(mfrow = c(1, 3), mar = c(4.4, 4.6, 2.6, 1.1), cex.lab = 1.05)
 ratio_panel <- function(file, main, cols = NULL) {
   d <- read_b(file)
@@ -112,8 +144,8 @@ ratio_panel <- function(file, main, cols = NULL) {
   rs <- lapply(meths, function(m)
     d$`Median (s)`[d$Method == m][match(ns, d$n[d$Method == m])] / ft)
   plot(NA, xlim = range(log10(ns)), ylim = range(unlist(rs), finite = TRUE),
-       xaxt = "n", xlab = expression("jumlah area "*n),
-       ylab = expression("rasio waktu (pembanding / fastsae)"),
+       xaxt = "n", xlab = L("n"),
+       ylab = L("ratio"),
        main = main, log = "y")
   axis(1, at = log10(ns), labels = ns)
   abline(h = 1, lty = 2, col = "grey40")
@@ -125,9 +157,9 @@ ratio_panel <- function(file, main, cols = NULL) {
   legend("topleft", legend = meths, col = meth_col(meths), lwd = 2, pch = 16,
          bty = "n", cex = 0.85)
 }
-ratio_panel("eblup_benchmark.rds", "(a) Fay-Herriot area-level")
-ratio_panel("seblup_benchmark.rds", "(b) Fay-Herriot spasial")
-ratio_panel("beta_benchmark.rds", "(c) Beta area-level")
+ratio_panel("eblup_benchmark.rds", L("fh"))
+ratio_panel("seblup_benchmark.rds", L("sfh"))
+ratio_panel("beta_benchmark.rds", sub("^\\(a\\)", "(c)", L("beta_a")))
 par(op); dev.off()
 
 # ---------------------------------------------------------------------------
@@ -136,17 +168,17 @@ par(op); dev.off()
 d <- read_b("beta_estimates_n1000.rds")
 ef <- d[["estimasi fastsae"]]; et <- d[["estimasi tipsae"]]
 mf <- d[["mse fastsae"]];      mt <- d[["mse tipsae"]]
-pdf("figures/fig-equiv.pdf", width = 9, height = 4.4, useDingbats = FALSE)
+pdf(fig("fig-equiv.pdf"), width = 9, height = 4.4, useDingbats = FALSE)
 op <- par(mfrow = c(1, 2), mar = c(4.4, 4.6, 2.6, 1.1), cex.lab = 1.05)
 plot(et, ef, pch = 16, col = "#1b6ca8aa", cex = 0.7,
-     xlab = "estimasi tipsae", ylab = "estimasi fastsae",
-     main = "(a) Prediktor area")
+     xlab = L("est_t"), ylab = L("est_f"),
+     main = L("pred"))
 abline(0, 1, col = "red", lwd = 1.5, lty = 2)
 plot(mt, mf, pch = 16, col = "#1b6ca8aa", cex = 0.7, log = "xy",
-     xlab = "MSE tipsae (log)", ylab = "MSE fastsae (log)",
-     main = "(b) MSE")
+     xlab = L("mse_t"), ylab = L("mse_f"),
+     main = L("mse"))
 abline(0, 1, col = "red", lwd = 1.5, lty = 2)
 par(op); dev.off()
 
-cat("Selesai. Berkas figur di", normalizePath("figures"), ":\n")
-print(list.files("figures", pattern = "\\.pdf$"))
+cat(L("done"), normalizePath(out_dir), ":\n")
+print(list.files(out_dir, pattern = "\\.pdf$"))

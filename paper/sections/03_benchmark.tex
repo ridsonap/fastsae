@@ -96,7 +96,11 @@ pembanding hal itu tidak tercatat. Tidak ada skrip yang mengatur
 (terverifikasi dengan \code{git log -S}); baris \pkg{fastsae} pada ketiga file
 FH kini dapat direproduksi dengan \code{bench\_frequentist\_fastsae.R}, tetapi
 pada desain yang sama dengan bilangan acak yang \emph{berbeda} dari baris
-pembanding.
+pembanding. Kolom \pkg{fastsae} pada \code{beta\_estimates\_n1000.rds}
+terbukti dapat direproduksi persis (selisih maksimum $1.4\times10^{-10}$, 14 Okt
+2026) dengan \code{sim\_area\_data(D = 1000, spatial\_type = "knn", seed = 1042)}
+dan \code{hb\_area(y\_beta \textasciitilde{} x1 + x2, family = "beta")}, sehingga
+konkordansi pada Tabel~\ref{tab:equiv} juga berlaku untuk versi 1.0.0.
 
 \paragraph{Keadilan perbandingan.}
 Pada skrip yang ada, kedua metode menerima \emph{data simulasi yang sama}

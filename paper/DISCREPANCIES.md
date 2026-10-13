@@ -38,8 +38,9 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
 - **Bukan kesalahan:** SFH-1 — karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik
   $y'PDPy$ sama dengan kuadratik skor ML terprofil.
 - **Sebagian:** HB-21 (`control.fixed` kini diset untuk self-benchmarking WFQ),
-  DOC-11 (baris `fastsae` kini dapat direproduksi; baris `sae`/`emdi` dan
-  `beta_estimates_n1000.rds` belum).
+  DOC-11 (baris `fastsae` kini dapat direproduksi, termasuk kolom `fastsae`
+  `beta_estimates_n1000.rds` dengan `sim_area_data(D = 1000, spatial_type = "knn",
+  seed = 1042)`; baris `sae`/`emdi` dan kolom `tipsae` belum).
 - **Masih berlaku:** FH-1–FH-7, BHF-2, BHF-3, BHF-6, BHF-9, BHF-10, TFH-1,
   TFH-3–TFH-9, SFH-3, SFH-6, SFH-9, SFH-10, STFH-1, STFH-4, STFH-6–STFH-8,
   HB-1–HB-6, HB-8–HB-12, HB-16–HB-20, UT-1–UT-5, UT-8–UT-16, DOC-9 (artikel

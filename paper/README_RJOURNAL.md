@@ -13,7 +13,7 @@ This directory contains the complete submission bundle for **The R Journal**, pr
   1. **Ridson Al Farizal P.** (Department of Computational Statistics, Politeknik Statistika STIS, Jakarta, Indonesia; ORCID: [0000-0003-0617-0214](https://orcid.org/0000-0003-0617-0214); Email: `alfrzlp@gmail.com`)
   2. **Azka Ubaidillah** (Department of Statistics, Politeknik Statistika STIS, Jakarta, Indonesia; ORCID: [0000-0002-3597-0459](https://orcid.org/0000-0002-3597-0459); Email: `azka@stis.ac.id`)
 - **Keywords**: small area estimation, Fay-Herriot, empirical best prediction, INLA, OpenMP, Rcpp, hierarchical benchmarking, spatial statistics, R
-- **Page Count**: 15 pages (standard R Journal layout)
+- **Page Count**: 14 pages (standard R Journal layout)
 
 ---
 
@@ -30,12 +30,22 @@ This directory contains the complete submission bundle for **The R Journal**, pr
 | `figures/` | High-resolution vector figures in PDF format: |
 |   * `fig-time-fh.pdf` | Runtime scaling across domain sample sizes (D) for frequentist FH models. |
 |   * `fig-time-beta.pdf` | Runtime scaling across domain sample sizes (D) for Bayesian Beta models. |
-|   * `fig-mem.pdf` | Peak RAM memory footprint across domain sizes (D) on log-log scale. |
-|   * `fig-ratio.pdf` | Speedup ratios (364x FH, 80x SFH, 544x Spatio-temporal Beta). |
+|   * `fig-mem.pdf` | Memory allocated per call (`bench::mark()$mem_alloc`) across domain sizes (D) on log-log scale. |
+|   * `fig-ratio.pdf` | Speedup ratios by D (at D = 1,000: 1,263x FH and 67x SFH vs sae; 117x Beta vs tipsae). |
 |   * `fig-equiv.pdf` | Numerical equivalence between `fastsae` (INLA) and `tipsae` (Stan HMC) (r = 0.9993). |
 |   * `fig-diagnostics.pdf` | Calibration and precision diagnostic panel generated from `autoplot()`. |
 
 ---
+
+The benchmark figures are generated from `inst/extdata/*.rds` (English labels):
+
+```bash
+cd paper
+Rscript scripts/02_figures.R --lang=en --out=rjournal/figures
+```
+
+The numbers in the text and tables were last updated on 2026-10-14 from the same files
+(`fastsae` rows re-measured with fastsae 1.0.0; comparator rows from the earlier runs).
 
 ## 3. How to Build and Verify
 
@@ -71,5 +81,5 @@ pdflatex RJwrapper.tex
 - [x] **Complete Benchmark & Simulation**: Rigorous runtime/memory benchmarks (D from 30 to 1000) and design-based Monte Carlo simulations under known ground truth (D=500, R=25, N=250,000) demonstrating 1.92x efficiency gain over direct survey estimator.
 - [x] **Institutional Dissemination Impact**: Table 5 provides a synthesis of empirical evidence and concrete policy implications ("So What").
 - [x] **Clean Bibliography**: All 45+ citations include valid DOIs or URLs.
-- [x] **Compilation Verified**: Compiled to `RJwrapper.pdf` (15 pages) with zero LaTeX errors and zero missing citations.
+- [x] **Compilation Verified**: Compiled to `RJwrapper.pdf` (14 pages) with zero LaTeX errors and zero missing citations.
 

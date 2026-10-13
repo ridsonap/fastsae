@@ -320,8 +320,10 @@ Berdasarkan pemeriksaan terhadap \code{inst/extdata} dan
 \begin{itemize}
   \item baris \pkg{sae}/\pkg{emdi} pada \code{eblup\_benchmark.rds},
         \code{seblup\_benchmark.rds}, \code{steblup\_benchmark.rds}, serta
-        \code{beta\_estimates\_n1000.rds} tidak memiliki skrip pembuat di
-        repo, sehingga tidak dapat dibangkitkan ulang; baris \pkg{fastsae}
+        kolom \pkg{tipsae} pada \code{beta\_estimates\_n1000.rds} tidak
+        memiliki skrip pembuat di repo, sehingga tidak dapat dibangkitkan
+        ulang (kolom \pkg{fastsae}-nya dapat, lihat
+        bagian~\ref{sec:metodologi-bench}); baris \pkg{fastsae}
         di semua berkas benchmark dapat dibangkitkan ulang dengan
         \code{benchmarks/bench\_frequentist\_fastsae.R} dan
         \code{benchmarks/bench\_bayes\_fastsae.R};
