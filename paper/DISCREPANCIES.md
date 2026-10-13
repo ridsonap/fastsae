@@ -38,6 +38,12 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     `emdi::compare.fh` (interval dua sisi lama menolak 100%); UT-4 (RRMSE
     lintas domain). `spatial_test`: perbandingan FH vs SFH dengan ML dan
     rekomendasi dari satu uji (sebelumnya 9% positif palsu pada α = 5%).
+  - UT-8 (agregat grup `type = "total"` kini total tertimbang), UT-9/UT-10
+    (dokumentasi), UT-12 (`map_sae` memakai `thresholds`), UT-15 (list tanpa
+    nama), UT-16 (nama kolom geometri bebas). Ambang reliabilitas default
+    kini kriteria BPS 25/50% (sebelumnya 20/30% dengan klaim BPS); residual
+    terstandar `diagnose` memakai $\sqrt{\psi-\mathrm{MSE}}$; alias
+    `benchmark()` dan sisa kode `df_ebp` dihapus.
   - DOC-1 s.d. DOC-8 dan DOC-10 (README, beranda situs, dan vignette dihasilkan
     dari `inst/extdata` oleh `benchmarks/update_benchmark_docs.R`).
 - **Bukan kesalahan:** SFH-1 — karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik
@@ -48,7 +54,7 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
   seed = 1042)`; baris `sae`/`emdi` dan kolom `tipsae` belum).
 - **Masih berlaku:** FH-1–FH-7, BHF-2, BHF-3, BHF-6, BHF-9, BHF-10, TFH-1,
   TFH-3–TFH-9, SFH-3, SFH-6, SFH-9, SFH-10, STFH-1, STFH-4, STFH-6–STFH-8,
-  HB-1–HB-6, HB-8–HB-12, HB-16–HB-20, UT-5, UT-8–UT-16, DOC-9 (artikel
+  HB-1–HB-6, HB-8–HB-12, HB-16–HB-20, UT-5, UT-11, UT-13, UT-14, DOC-9 (artikel
   JSS lama).
 
 ---

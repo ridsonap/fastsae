@@ -28,7 +28,7 @@ deskripsi luar.
 
 | Fungsi ekspor | File | Fungsi | Metode |
 |---|---|---|---|
-| `benchmark_sae` / `benchmark` | `R/benchmark.R:120,273` | Kalibrasi agregat | Ratio, difference, optimal (KKT, $\delta_i\propto w_i\mathrm{mse}_i$), logit (`uniroot`); target nasional dua tahap; `mse_benchmarked` dengan matriks MSE penuh (`.mse_operator`) |
+| `benchmark_sae` | `R/benchmark.R:120` | Kalibrasi agregat | Ratio, difference, optimal (KKT, $\delta_i\propto w_i\mathrm{mse}_i$), logit (`uniroot`); target nasional dua tahap; `mse_benchmarked` dengan matriks MSE penuh (`.mse_operator`) |
 | `diagnose` | `R/diagnose.R:53` | Diagnostik model & indikator keandalan | Uji Brown, uji kecocokan $\chi^2$, Moran's I + varian Cliff–Ord, flag RSE |
 | `compare_sae` | `R/compare_sae.R:62` | Perbandingan dua model | Pearson/Spearman, MAE, RMSD, rasio MSE, gain RSE |
 | `export_sae`, `add_reliability_flags` | `R/export_sae.R:119,33` | Ekspor tabel; flag RSE | CSV/XLSX; ambang `c(20, 30)` |

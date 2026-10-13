@@ -35,6 +35,8 @@ An object of class \code{c("fastsae_diagnose", "list")} containing:
       fit of the direct estimates on the model estimates, no test; see Details) and
       \code{goodness_of_fit} (the \eqn{W} statistic with its upper-tail \eqn{\chi^2} p-value).}
     \item{spatial_test}{Moran's I test for spatial autocorrelation in model residuals (if \code{W} is available).}
+    \item{bayesian_metrics}{For Bayesian fits: DIC, WAIC, marginal log-likelihood and, when they are
+      available per domain, CPO summaries and a Kolmogorov-Smirnov test of the PIT values.}
     \item{simulation_metrics}{Mean relative bias, mean absolute relative error, relative RMSE across
       domains, and coverage rate (if \code{truth} is supplied).}
     \item{df_diag}{Data frame combining direct estimates, SAE predictions, MSE, RSE, and residuals for diagnostics.}
@@ -43,7 +45,7 @@ An object of class \code{c("fastsae_diagnose", "list")} containing:
 }
 \description{
 Conducts a comprehensive diagnostic evaluation of small area estimation
-  models (HB, EBP, or EBLUP). Evaluates estimation precision, efficiency gains over direct
+  models (HB or EBLUP). Evaluates estimation precision, efficiency gains over direct
   estimators, external calibration and bias diagnostics (Brown et al., 2001), goodness-of-fit
   tests, and residual spatial autocorrelation (Moran's I).
 }

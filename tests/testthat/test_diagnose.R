@@ -222,12 +222,12 @@ test_that("autoplot.fastsae_diagnose pit and cpo plots work and error when missi
   expect_s3_class(p_cpo, "ggplot")
 })
 
-test_that("diagnose handles df_ebp and fully passing metrics print", {
-  # 1. Object with df_ebp
+test_that("diagnose handles a minimal object and fully passing metrics print", {
+  # 1. Minimal object
   obj_ebp <- structure(
     list(
       model = "EBP Model",
-      df_ebp = data.frame(domain = 1:5, y = c(1, 2, 3, 4, 5), ebp = c(1.1, 1.9, 3.1, 3.9, 5.0), vardir = rep(0.1, 5), mse = rep(0.01, 5))
+      df_eblup = data.frame(domain = 1:5, y = c(1, 2, 3, 4, 5), eblup = c(1.1, 1.9, 3.1, 3.9, 5.0), vardir = rep(0.1, 5), mse = rep(0.01, 5))
     ),
     class = "fastsae"
   )
@@ -294,4 +294,17 @@ test_that("diagnose reads Bayesian criteria of hb_unit-style goodness lists", {
   expect_equal(d$bayesian_metrics$log_mlik, -60.1)
   expect_null(d$bayesian_metrics$cpo_summary)   # CPO rows do not match the domains
   expect_null(d$df_diag$cpo)
+})
+
+test_that("diagnose standardises residuals by sqrt(vardir - MSE)", {
+  set.seed(21)
+  D <- 300
+  x1 <- rnorm(D); psi <- runif(D, 0.3, 1.5)
+  dat <- data.frame(y = 1 + x1 + rnorm(D, sd = sqrt(0.6)) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
+  fit <- eblup_fh(y ~ x1, vardir = "psi", data = dat, print_result = FALSE)
+  d <- diagnose(fit)$df_diag
+  expect_equal(d$std_residuals, d$residuals / sqrt(d$vardir - d$mse))
+  # approximately N(0, 1) under the correct model (was ~0.76 with sqrt(vardir))
+  expect_gt(sd(d$std_residuals), 0.85)
+  expect_lt(sd(d$std_residuals), 1.15)
 })

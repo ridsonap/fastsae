@@ -18,7 +18,7 @@ map_sae(object, ...)
   type = c("estimate", "rse", "reliability", "comparison", "difference"),
   indicator = NULL,
   palette = NULL,
-  thresholds = c(20, 30),
+  thresholds = c(25, 50),
   facet_scales = "fixed",
   title = NULL,
   subtitle = NULL,
@@ -56,6 +56,7 @@ map_sae(object, ...)
   type = c("estimate", "rse", "reliability"),
   indicator = NULL,
   palette = NULL,
+  thresholds = c(25, 50),
   title = NULL,
   subtitle = NULL,
   ...
@@ -85,10 +86,10 @@ model domain identifiers with the spatial geometry in \code{sf_geom}.
 
 \item{type}{Character string specifying the visualization type:
 \itemize{
-  \item \code{"estimate"}: Choropleth map of small area point estimates (EBP or EBLUP).
+  \item \code{"estimate"}: Choropleth map of small area point estimates (HB or EBLUP).
   \item \code{"rse"}: Choropleth map of Relative Standard Errors / CV (\%).
-  \item \code{"reliability"}: Official statistics 3-color traffic light map (< 20\% Reliable,
-    20-30\% Use with Caution, \eqn{\ge 30\%} Unreliable).
+  \item \code{"reliability"}: 3-color traffic light map of the reliability tiers
+    (by default RSE \eqn{\le 25\%} reliable, 25--50\% use with caution, \eqn{> 50\%} unreliable).
   \item \code{"comparison"}: Side-by-side facet choropleth map (Direct vs Model, or Model 1 vs Model 2).
   \item \code{"difference"}: Spatial difference map (\eqn{\hat{\theta}^{(2)} - \hat{\theta}^{(1)}}
     or \eqn{\hat{\theta}^{\text{Model}} - \hat{\theta}^{\text{Direct}}}) with divergent color palette.
@@ -101,7 +102,8 @@ based on \code{type}: \code{"viridis"} for estimates, \code{"magma"} for RSE, of
 colors for reliability, and \code{"RdBu"} / \code{"PuOr"} for differences.}
 
 \item{thresholds}{Numeric vector of length 2 defining the RSE (\%) thresholds for reliability
-classification. Default is \code{c(20, 30)} according to official statistical guidelines (BPS / Eurostat).}
+classification (see \code{\link{add_reliability_flags}}). Default is \code{c(25, 50)}, the
+BPS-Statistics Indonesia criteria.}
 
 \item{facet_scales}{Character string passed to \code{ggplot2::facet_wrap(scales = ...)}. Default is \code{"fixed"}.}
 
@@ -121,7 +123,8 @@ Intelligently handles:
 \itemize{
   \item \strong{Single Model Visualizations}: Point estimates (\code{"estimate"}), Relative
     Standard Error (\code{"rse"}), and 3-color official statistics reliability classification
-    (\code{"reliability"}: green for reliable < 20\%, amber for caution 20-30\%, red for unreliable \eqn{\ge 30\%}).
+    (\code{"reliability"}: green for reliable, amber for use with caution, red for unreliable; cut-offs
+    from \code{thresholds}, see \code{\link{add_reliability_flags}}).
   \item \strong{Direct vs Model Comparisons}: Side-by-side facet maps contrasting erratic direct survey
     estimates against smoothed small area model estimates (\code{"comparison"}).
   \item \strong{Two-Model Comparisons}: Side-by-side maps or spatial difference maps (\code{"difference"})
@@ -153,7 +156,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
   # 3. Explicit key matching
   p2 <- map_sae(fit_fh, sf_geom = mys_sf, key = "area")
 
-  # 4. Reliability classification map (BPS standard <20\%, 20-30\%, >=30\%)
+  # 4. Reliability classification map (BPS criteria: RSE <= 25\%, 25-50\%, > 50\%)
   p3 <- map_sae(fit_fh, sf_geom = mys_sf, type = "reliability")
 
   # 5. Side-by-side comparison map: Direct Survey vs Model SAE

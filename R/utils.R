@@ -253,3 +253,51 @@ utils::globalVariables(c("density", ".data"))
     "ratio" # poisson, nbinomial, gamma
   )
 }
+
+#' Estimation table and estimate column of a fitted model
+#'
+#' HB fits store their results in `df_hb` (column `hb`), frequentist fits in
+#' `df_eblup` (column `eblup`).
+#' @noRd
+.sae_table <- function(object) {
+  object$df_hb %||% object$df_eblup
+}
+
+#' @noRd
+.sae_est_col <- function(df) {
+  intersect(c("hb", "eblup", "estimate", "est"), names(df))[1]
+}
+
+#' Reliability tier from the relative standard error (RSE, in percent)
+#'
+#' BPS-Statistics Indonesia criteria by default: RSE <= 25% reliable,
+#' 25% < RSE <= 50% use with caution, RSE > 50% unreliable.
+#' @noRd
+.reliability_tier <- function(rse, thresholds = c(25, 50)) {
+  .check_thresholds(thresholds)
+  labels <- c(
+    paste0("Reliable (RSE \u2264 ", thresholds[1], "%)"),
+    paste0("Use with caution (", thresholds[1], "% < RSE \u2264 ", thresholds[2], "%)"),
+    paste0("Unreliable (RSE > ", thresholds[2], "%)")
+  )
+  cut(rse, breaks = c(-Inf, thresholds[1], thresholds[2], Inf), labels = labels, right = TRUE)
+}
+
+#' @noRd
+.check_thresholds <- function(thresholds) {
+  if (!is.numeric(thresholds) || length(thresholds) != 2 || anyNA(thresholds) ||
+      thresholds[1] >= thresholds[2]) {
+    cli::cli_abort("{.arg thresholds} must be a numeric vector of length 2 with increasing values.")
+  }
+  invisible(thresholds)
+}
+
+#' Unique row labels for plots: the domain, with the period for panel data and
+#' made unique otherwise (avoids duplicated factor levels)
+#' @noRd
+.row_labels <- function(df) {
+  lab <- as.character(df$domain %||% seq_len(nrow(df)))
+  if (anyDuplicated(lab) && !is.null(df$subarea)) lab <- paste(lab, df$subarea, sep = "/")
+  if (anyDuplicated(lab) && !is.null(df$time)) lab <- paste(lab, df$time, sep = ":")
+  make.unique(lab, sep = "_")
+}

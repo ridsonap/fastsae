@@ -42,7 +42,7 @@ head(bm[, c("domain", "group", "original", "benchmarked", "rel_adjustment_pct")]
 
 
 ## ----reliability--------------------------------------------------------------
-flags <- add_reliability_flags(fit_beta, thresholds = c(20, 30))
+flags <- add_reliability_flags(fit_beta)
 table(flags$reliability)
 
 

@@ -157,6 +157,7 @@ eblup_twofold <- function(
   row.names(res$estcoef) <- colnames(X)
   res$formula <- formula
   res$model <- "TWOFOLD"
+  res$method <- method
 
   # Add domain/subarea identifiers as first columns in df_eblup
   res$df_eblup$domain <- domain

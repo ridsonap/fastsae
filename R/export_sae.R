@@ -5,22 +5,24 @@
 #' Add Official Statistical Reliability Flags
 #'
 #' @description
-#' Categorizes Small Area Estimates into standard statistical publication reliability tiers
-#' based on their Relative Standard Error (RSE / CV \%), following guidelines from
-#' official statistical agencies (such as BPS-Statistics Indonesia, Eurostat, and US Census Bureau).
-#'
-#' Default classification thresholds:
+#' Categorizes small area estimates into publication reliability tiers based on their
+#' relative standard error (RSE, \%). The default thresholds follow the criteria used by
+#' BPS-Statistics Indonesia:
 #' \itemize{
-#'   \item \strong{Reliable} (\eqn{\text{RSE} < 20\%}): Suitable for unconditional official publication.
-#'   \item \strong{Use with Caution} (\eqn{20\% \le \text{RSE} < 30\%}): Usable with cautionary footnotes regarding sampling variability.
-#'   \item \strong{Unreliable} (\eqn{\text{RSE} \ge 30\%}): High sampling error; suppression or aggregation to higher geographic levels recommended.
+#'   \item \strong{Reliable} (\eqn{\text{RSE} \le 25\%}): suitable for publication.
+#'   \item \strong{Use with caution} (\eqn{25\% < \text{RSE} \le 50\%}): publish with a
+#'     cautionary note on sampling variability.
+#'   \item \strong{Unreliable} (\eqn{\text{RSE} > 50\%}): suppress or aggregate to a higher level.
 #' }
+#' Other agencies use other cut-offs (for example 25\% and 50\% at the Australian Bureau of
+#' Statistics); set \code{thresholds} accordingly.
 #'
 #' @param object A \code{fastsae} model object or a data frame containing an RSE column.
 #' @param rse_col Character string specifying the name of the RSE column. Default is \code{"rse"}.
-#' @param thresholds Numeric vector of length 2 defining the RSE (\%) cutoffs. Default is \code{c(20, 30)}.
+#'   If it is missing, the RSE is computed from the \code{mse} and estimate columns.
+#' @param thresholds Numeric vector of length 2 with the RSE (\%) cut-offs. Default is \code{c(25, 50)}.
 #'
-#' @return The input object or data frame with an additional factor column \code{reliability}.
+#' @return The estimation table (a data frame) with an additional factor column \code{reliability}.
 #'
 #' @export
 #' @examples
@@ -30,49 +32,23 @@
 #' fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #' df_flagged <- add_reliability_flags(fit_fh)
 #' table(df_flagged$reliability)
-add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30)) {
-  if (length(thresholds) != 2 || thresholds[1] >= thresholds[2]) {
-    cli::cli_abort("{.arg thresholds} must be a numeric vector of length 2 with increasing values.")
-  }
-
-  is_model <- inherits(object, "fastsae")
-  df <- if (is_model) (object$df_hb %||% object$df_ebp %||% object$df_eblup) else as.data.frame(object)
-
+add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(25, 50)) {
+  .check_thresholds(thresholds)
+  df <- if (inherits(object, "fastsae")) .sae_table(object) else as.data.frame(object)
   if (is.null(df)) {
     cli::cli_abort("Could not extract estimation data from {.arg object}.")
   }
 
   if (!rse_col %in% names(df)) {
-    if ("mse" %in% names(df)) {
-      est_col <- intersect(c("hb", "ebp", "eblup", "estimate", "est"), names(df))[1]
-      if (is.null(est_col) || is.na(est_col)) cli::cli_abort("Cannot calculate RSE: missing estimate column.")
-      df[[rse_col]] <- (sqrt(df$mse) / abs(df[[est_col]])) * 100
-    } else {
-      cli::cli_abort("Column {.val {rse_col}} was not found in data.")
+    est_col <- .sae_est_col(df)
+    if (!"mse" %in% names(df) || is.na(est_col)) {
+      cli::cli_abort("Column {.val {rse_col}} was not found and cannot be computed (needs {.val mse} and an estimate column).")
     }
+    df[[rse_col]] <- (sqrt(df$mse) / abs(df[[est_col]])) * 100
   }
 
-  labels_tier <- c(
-    paste0("Reliable (< ", thresholds[1], "%)"),
-    paste0("Use with Caution (", thresholds[1], "-", thresholds[2], "%)"),
-    paste0("Unreliable (\u2265 ", thresholds[2], "%)")
-  )
-
-  df$reliability <- cut(
-    df[[rse_col]],
-    breaks = c(-Inf, thresholds[1], thresholds[2], Inf),
-    labels = labels_tier,
-    right = FALSE
-  )
-
-  if (is_model) {
-    if (!is.null(object$df_hb)) object$df_hb <- df
-    else if (!is.null(object$df_ebp)) object$df_ebp <- df
-    else object$df_eblup <- df
-    return(df)
-  }
-
-  return(df)
+  df$reliability <- .reliability_tier(df[[rse_col]], thresholds)
+  df
 }
 
 .has_pkg <- function(pkg) {
@@ -86,7 +62,7 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30
 #' Excel workbooks (\code{.xlsx}) or comma-separated files (\code{.csv}). Formatted
 #' to meet official statistics dissemination standards.
 #'
-#' The generated Excel workbook contains up to three dedicated sheets:
+#' The generated Excel workbook contains up to four sheets:
 #' \itemize{
 #'   \item \strong{Estimates}: Domain IDs, Direct survey estimates, SAE model predictions,
 #'     Standard Errors (SE), MSE, RSE (\%), 95\% confidence / credible intervals, and
@@ -96,12 +72,17 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(20, 30
 #'     spatial \eqn{\rho}, temporal \eqn{\rho_t}, \eqn{\phi}), and goodness-of-fit metrics.
 #'   \item \strong{Benchmarked} (Optional): Pre- vs post-calibration values, adjustments,
 #'     and percentage shifts when benchmarking calibration is applied.
+#'   \item \strong{Benchmarked_Groups} (Optional): the group-level (stage 1) calibration of a
+#'     hierarchical benchmark.
 #' }
+#' With a \code{.csv} file, the estimates are written to \code{file} and the model summary to
+#' \code{<file>_summary.csv}; the benchmark sheets are only written to Excel workbooks.
 #'
 #' @param object A fitted \code{fastsae} object or a \code{fastsae_benchmark} object.
 #' @param file Character string specifying the target file path (must end with \code{.xlsx} or \code{.csv}).
 #' @param benchmark Optional \code{fastsae_benchmark} object to include calibration results alongside the model.
-#' @param thresholds Numeric vector of length 2 defining the RSE (\%) thresholds for reliability flags. Default is \code{c(20, 30)}.
+#' @param thresholds Numeric vector of length 2 with the RSE (\%) cut-offs of the reliability flags
+#'   (see \code{\link{add_reliability_flags}}). Default is \code{c(25, 50)}.
 #' @param overwrite Logical indicating whether to overwrite an existing file. Default is \code{TRUE}.
 #' @param ... Additional arguments.
 #'
@@ -120,7 +101,7 @@ export_sae <- function(
   object,
   file,
   benchmark = NULL,
-  thresholds = c(20, 30),
+  thresholds = c(25, 50),
   overwrite = TRUE,
   ...
 ) {
@@ -128,6 +109,7 @@ export_sae <- function(
     cli::cli_abort("Please specify a valid file path in {.arg file} (e.g. {.path 'estimates.xlsx'}).")
   }
 
+  .check_thresholds(thresholds)
   ext <- tolower(tools::file_ext(file))
   if (!ext %in% c("xlsx", "csv")) {
     cli::cli_abort("Target file extension must be either {.val xlsx} or {.val csv}.")
@@ -189,7 +171,7 @@ export_sae <- function(
 
 #' Construct Estimates Sheet
 #' @noRd
-.build_estimates_sheet <- function(object, thresholds = c(20, 30)) {
+.build_estimates_sheet <- function(object, thresholds = c(25, 50)) {
   if (inherits(object, "fastsae_benchmark")) {
     bm_df <- as.data.frame(object)
     adj_pct <- bm_df$adjustment_pct %||% bm_df$rel_adjustment_pct
@@ -204,14 +186,14 @@ export_sae <- function(
     return(res)
   }
 
-  df <- object$df_hb %||% object$df_ebp %||% object$df_eblup
-  if (is.null(df) && is.data.frame(object)) df <- object
+  df <- if (is.data.frame(object)) object else .sae_table(object)
   if (is.null(df)) cli::cli_abort("Cannot extract estimation table from object.")
 
   dom_col <- intersect(c("domain", "area", "id"), names(df))[1]
   dom_vals <- df[[dom_col]] %||% seq_len(nrow(df))
 
-  est_col <- intersect(c("hb", "ebp", "eblup", "estimate", "est"), names(df))[1]
+  est_col <- .sae_est_col(df)
+  if (is.na(est_col)) cli::cli_abort("Cannot find an estimate column in the estimation table.")
   est_val <- df[[est_col]]
 
   y_val <- if ("y" %in% names(df)) df$y else rep(NA_real_, nrow(df))
@@ -226,17 +208,7 @@ export_sae <- function(
   ci_l <- df$ci_lower %||% (est_val - 1.96 * se_val)
   ci_u <- df$ci_upper %||% (est_val + 1.96 * se_val)
 
-  labels_tier <- c(
-    paste0("Reliable (< ", thresholds[1], "%)"),
-    paste0("Use with Caution (", thresholds[1], "-", thresholds[2], "%)"),
-    paste0("Unreliable (\u2265 ", thresholds[2], "%)")
-  )
-  rel_flag <- cut(
-    rse_val,
-    breaks = c(-Inf, thresholds[1], thresholds[2], Inf),
-    labels = labels_tier,
-    right = FALSE
-  )
+  rel_flag <- .reliability_tier(rse_val, thresholds)
 
   res <- data.frame(
     Domain = as.character(dom_vals),
@@ -272,10 +244,13 @@ export_sae <- function(
   if (!is.null(object$method)) add_row("Fitting Method", object$method)
   if (!is.null(object$call)) add_row("Call Formula", deparse(object$call))
   if (!is.null(object$convergence)) add_row("Convergence", ifelse(isTRUE(object$convergence), "Yes", "No"))
-  if (!is.null(object$n_domains)) add_row("Number of Domains", object$n_domains)
 
-  # Variance Components
-  if (!is.null(object$random_effect_var)) add_row("Random Effect Variance (sigma2_u)", sprintf("%.6f", object$random_effect_var))
+  # Variance Components (two values for two-fold models: sigma2_v, sigma2_u)
+  rev <- object$random_effect_var
+  if (!is.null(rev)) {
+    rev_names <- names(rev) %||% if (length(rev) == 1) "sigma2_u" else paste0("component_", seq_along(rev))
+    for (i in seq_along(rev)) add_row(paste0("Random Effect Variance (", rev_names[i], ")"), sprintf("%.6f", rev[[i]]))
+  }
   if (!is.null(object$rho)) add_row("Spatial Autocorrelation (rho)", sprintf("%.4f", object$rho))
   if (!is.null(object$rho_time)) add_row("Temporal Autocorrelation (rho_t)", sprintf("%.4f", object$rho_time))
   if (!is.null(object$phi)) add_row("Spatial Mixing Fraction (phi)", sprintf("%.4f", object$phi))

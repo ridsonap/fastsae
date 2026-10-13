@@ -59,19 +59,6 @@ test_that("benchmark finds group in df_eblup when not in object$data", {
   expect_s3_class(bm, "fastsae_benchmark")
 })
 
-# ── benchmark.R L270, L275 ──────────────────────────────────────────────────
-test_that("benchmark.fastsae and benchmark.default direct invocation", {
-  data(mys, package = "fastsae")
-  fit <- eblup_fh(y ~ x1, vardir = "vardir", data = mys, print_result = FALSE)
-  # Direct call to S3 methods to guarantee line coverage
-  bm1 <- fastsae:::benchmark.fastsae(fit, target = 7.0, method = "ratio")
-  expect_s3_class(bm1, "fastsae_benchmark")
-
-  y <- runif(10, 0.2, 0.8)
-  bm2 <- fastsae:::benchmark.default(y, target = 0.5, method = "ratio")
-  expect_s3_class(bm2, "fastsae_benchmark")
-})
-
 # ── benchmark.R L375 (unnamed numeric vector of length == n_groups) ─────────
 test_that("benchmark unnamed numeric vector matching n_groups length", {
   y <- runif(20, 5, 15)
@@ -208,24 +195,6 @@ test_that("compare_sae passes subarea column through", {
   fit2$df_eblup$subarea <- paste0("SA_", fit2$df_eblup$domain)
   comp <- compare_sae(fit1, fit2)
   expect_true("subarea" %in% names(comp$data))
-})
-
-# ── diagnose.R L66 (df_ebp path)
-test_that("diagnose picks df_ebp when df_hb absent", {
-  fit <- structure(
-    list(
-      model    = "EBP",
-      df_ebp   = data.frame(domain = 1:10, ebp = runif(10, 5, 10),
-                             vardir = runif(10, 0.1, 0.5), mse = runif(10, 0.1, 0.5),
-                             rse = runif(10, 5, 30), y = runif(10, 5, 10)),
-      estcoef  = data.frame(beta = c(1, 0.5), std.error = c(0.1, 0.05)),
-      W        = NULL,
-      goodness = NULL
-    ),
-    class = "fastsae"
-  )
-  diag <- diagnose(fit)
-  expect_s3_class(diag, "fastsae_diagnose")
 })
 
 # ── diagnose.R L342 (CAUTION from !is_fit), L348 (WARNING from !has_high_precision)
@@ -653,8 +622,8 @@ test_that("map_sae.fastsae errors when sf not available", {
     .package = "base",
     expect_error(map_sae(fit, sf_geom = NULL), "sf")
   )
-})# ── map_sae.R L144, L146, L148 (embedded sf in df_hb / df_ebp / df_eblup)
-test_that("map_sae uses embedded sf geometry from df_hb, df_ebp, df_eblup", {
+})# ── map_sae.R (embedded sf in df_hb / df_eblup)
+test_that("map_sae uses embedded sf geometry from df_hb, df_eblup", {
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
 
@@ -675,19 +644,7 @@ test_that("map_sae uses embedded sf geometry from df_hb, df_ebp, df_eblup", {
   p1 <- map_sae(fit_hb)
   expect_s3_class(p1, "ggplot")
 
-  # L146: df_ebp is sf (no df_hb)
-  fit_ebp <- structure(
-    list(
-      model  = "EBP",
-      df_ebp = sf::st_sf(domain = mys$area, ebp = mys$y, mse = mys$vardir,
-                          rse = 10, geometry = grid_sf)
-    ),
-    class = "fastsae"
-  )
-  p2 <- map_sae(fit_ebp)
-  expect_s3_class(p2, "ggplot")
-
-  # L148: df_eblup is sf (no df_hb, no df_ebp)
+  # L148: df_eblup is sf (no df_hb)
   fit_ebl <- structure(
     list(
       model     = "FH",
@@ -787,29 +744,6 @@ test_that(".extract_model_data_for_map family label and sd->rse path", {
     class = c("fastsae_hb_area", "fastsae")
   )
   p <- map_sae(fit_sd, sf_geom = sf_geom)
-  expect_s3_class(p, "ggplot")
-})
-
-# ── map_sae.R L498 (EBP family label)
-test_that("map_sae uses EBP-family label for EBP models", {
-  skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
-  data(mys, package = "fastsae")
-  grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
-    cellsize = c(1, 1), what = "polygons"
-  )[seq_len(nrow(mys))]
-  sf_geom <- sf::st_sf(domain = mys$area, geometry = grid_sf)
-
-  fit_ebp <- structure(
-    list(
-      model  = "EBP",
-      family = "beta",
-      df_ebp = data.frame(domain = mys$area, ebp = mys$y / 10,
-                           mse = mys$vardir / 100, rse = 5, stringsAsFactors = FALSE)
-    ),
-    class = "fastsae"
-  )
-  p <- map_sae(fit_ebp, sf_geom = sf_geom)
   expect_s3_class(p, "ggplot")
 })
 

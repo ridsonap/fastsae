@@ -190,6 +190,7 @@ eblup_fh <- function(
   row.names(res$estcoef) <- colnames(X)
   res$formula <- formula
   res$model <- if (transform == "log") "Log-FH" else "FH"
+  res$method <- method
   res$transform <- transform
 
   if (transform == "log") {

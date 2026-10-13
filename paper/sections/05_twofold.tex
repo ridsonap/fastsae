@@ -230,7 +230,7 @@ Objek keluaran: \code{"fastsae"} berisi \code{random\_effect\_var} bernama
 \code{sigma2\_v} (area) dan \code{sigma2\_u} (sub-area), \code{estcoef},
 \code{df\_eblup}, \code{goodness} (\code{loglikelihood, AIC, BIC} dengan
 $\mathrm{AIC}=-2\ell+2(p+2)$ dan $\mathrm{BIC}=-2\ell+(p+2)\log m_{\text{fit}}$),
-\code{n\_iter}, \code{convergence}, \code{method = "eblup"},
+\code{n\_iter}, \code{convergence}, \code{method} (\code{"REML"} atau \code{"ML"}),
 \code{level = "subarea"}, \code{model = "TWOFOLD"}.
 
 \begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_twofold.Rd}); membutuhkan kolom penanda area dan sub-area.}]

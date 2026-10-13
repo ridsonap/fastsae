@@ -1,6 +1,6 @@
 #' @title Diagnostic Evaluation of Small Area Estimation Models
 #' @description Conducts a comprehensive diagnostic evaluation of small area estimation
-#'   models (HB, EBP, or EBLUP). Evaluates estimation precision, efficiency gains over direct
+#'   models (HB or EBLUP). Evaluates estimation precision, efficiency gains over direct
 #'   estimators, external calibration and bias diagnostics (Brown et al., 2001), goodness-of-fit
 #'   tests, and residual spatial autocorrelation (Moran's I).
 #'
@@ -21,6 +21,8 @@
 #'       fit of the direct estimates on the model estimates, no test; see Details) and
 #'       \code{goodness_of_fit} (the \eqn{W} statistic with its upper-tail \eqn{\chi^2} p-value).}
 #'     \item{spatial_test}{Moran's I test for spatial autocorrelation in model residuals (if \code{W} is available).}
+#'     \item{bayesian_metrics}{For Bayesian fits: DIC, WAIC, marginal log-likelihood and, when they are
+#'       available per domain, CPO summaries and a Kolmogorov-Smirnov test of the PIT values.}
 #'     \item{simulation_metrics}{Mean relative bias, mean absolute relative error, relative RMSE across
 #'       domains, and coverage rate (if \code{truth} is supplied).}
 #'     \item{df_diag}{Data frame combining direct estimates, SAE predictions, MSE, RSE, and residuals for diagnostics.}
@@ -80,18 +82,13 @@ diagnose <- function(object,
   }
 
   # 1. Extract data frame of estimates
-  df <- if (!is.null(object$df_hb)) {
-    object$df_hb
-  } else if (!is.null(object$df_ebp)) {
-    object$df_ebp
-  } else if (!is.null(object$df_eblup)) {
-    object$df_eblup
-  } else {
+  df <- .sae_table(object)
+  if (is.null(df)) {
     cli::cli_abort("Could not find estimation results table ({.code df_hb} or {.code df_eblup}) in {.arg object}.")
   }
 
-  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else if ("eblup" %in% names(df)) "eblup" else NULL
-  if (is.null(est_col)) {
+  est_col <- .sae_est_col(df)
+  if (is.na(est_col)) {
     cli::cli_abort("Prediction column ({.val hb} or {.val eblup}) not found in results table.")
   }
 
@@ -116,11 +113,16 @@ diagnose <- function(object,
   valid_eff <- sampled_mask & !is.na(vardir) & !is.na(mse) & mse > 0
   eff_ratio[valid_eff] <- vardir[valid_eff] / mse[valid_eff]
 
-  # Residuals: direct_y - sae_pred
+  # Residuals y - theta^ and their standardised version. Var(y - theta^) is
+  # not vardir: y - theta^ = e - (theta^ - theta), and the prediction error is
+  # positively correlated with e, so Var(y - theta^) ~ vardir - MSE (for the
+  # EBLUP vardir (1 - gamma)). Dividing by sqrt(vardir) gave an sd of ~0.76 under
+  # a correct FH model (1.01 with vardir - MSE).
   residuals <- direct_y - sae_pred
   std_residuals <- rep(NA_real_, N_total)
-  valid_res <- sampled_mask & !is.na(vardir) & vardir > 0
-  std_residuals[valid_res] <- residuals[valid_res] / sqrt(vardir[valid_res])
+  res_var <- vardir - mse
+  valid_res <- sampled_mask & !is.na(res_var) & res_var > 0
+  std_residuals[valid_res] <- residuals[valid_res] / sqrt(res_var[valid_res])
 
   # ----------------------------------------------------------------------------
   # 2. Precision and Efficiency Gain Summary
@@ -303,7 +305,7 @@ diagnose <- function(object,
     }
     NA_real_
   }
-  is_bayesian <- inherits(object, c("fastsae_hb_area", "fastsae_hb", "fastsae_ebp_area")) ||
+  is_bayesian <- inherits(object, c("fastsae_hb_area", "fastsae_hb")) ||
     any(c("WAIC", "DIC", "waic", "dic") %in% names(gd))
   if (is_bayesian) {
     waic_val <- gd_get("WAIC", "waic")

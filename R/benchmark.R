@@ -143,13 +143,13 @@ benchmark_sae.fastsae <- function(
     cli::cli_alert_info("Note: The model object was already fitted with self-benchmarking active (Wang-Fuller-Qu augmented model).")
   }
 
-  df_est <- object$df_hb %||% object$df_ebp %||% object$df_eblup
+  df_est <- .sae_table(object)
   if (is.null(df_est)) {
     cli::cli_abort("The {.cls fastsae} object does not contain fitted area estimates ({.code df_hb} or {.code df_eblup}).")
   }
 
   domain_vec <- df_est$domain %||% df_est$area %||% seq_len(nrow(df_est))
-  y_hat <- df_est$hb %||% df_est$ebp %||% df_est$eblup %||% df_est$est
+  y_hat <- df_est[[.sae_est_col(df_est)]]
   if (is.null(y_hat)) {
     cli::cli_abort("Could not find estimation column ({.code hb}, {.code eblup}, or {.code est}) in model predictions.")
   }
@@ -268,22 +268,6 @@ benchmark_sae.default <- function(
   )
 }
 
-#' @rdname benchmark_sae
-#' @export
-benchmark <- function(object, ...) {
-  benchmark_sae(object, ...)
-}
-
-#' @export
-benchmark.fastsae <- function(object, ...) {
-  benchmark_sae.fastsae(object, ...)
-}
-
-#' @export
-benchmark.default <- function(object, ...) {
-  benchmark_sae.default(object, ...)
-}
-
 #' Internal worker to compute small area benchmarking calibrations
 #' @noRd
 .benchmark_worker <- function(
@@ -344,7 +328,9 @@ benchmark.default <- function(object, ...) {
     w_g <- df_work$weight[idx_g]
     W_g <- sum(w_g)
     group_weights[g] <- W_g
-    w_norm <- w_g / W_g
+    # aggregation weights on the scale of the targets: a weighted mean for
+    # type = "mean", a weighted total for type = "total"
+    w_norm <- if (type == "mean") w_g / W_g else w_g
     group_orig[g] <- sum(w_norm * df_work$y_hat[idx_g])
     if (!all(is.na(df_work$mse[idx_g]))) {
       # MSE of the group weighted estimate: w' M w, including the covariances

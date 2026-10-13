@@ -10,8 +10,13 @@ test_that("add_reliability_flags adds correct tiers and handles all edge cases",
   expect_s3_class(df_flagged$reliability, "factor")
   expect_equal(
     levels(df_flagged$reliability),
-    c("Reliable (< 20%)", "Use with Caution (20-30%)", "Unreliable (\u2265 30%)")
+    c("Reliable (RSE \u2264 25%)", "Use with caution (25% < RSE \u2264 50%)", "Unreliable (RSE > 50%)")
   )
+  # BPS criteria: RSE <= 25 reliable, 25 < RSE <= 50 caution, > 50 unreliable
+  tiers <- add_reliability_flags(data.frame(rse = c(10, 25, 25.01, 50, 50.01)))$reliability
+  expect_equal(as.integer(tiers), c(1L, 1L, 2L, 2L, 3L))
+  tiers2 <- add_reliability_flags(data.frame(rse = c(19, 21, 31)), thresholds = c(20, 30))$reliability
+  expect_equal(as.integer(tiers2), c(1L, 2L, 3L))
 
   # Threshold validation errors
   expect_error(add_reliability_flags(fit_fh, thresholds = c(20)), "must be a numeric vector of length 2")
@@ -28,21 +33,16 @@ test_that("add_reliability_flags adds correct tiers and handles all edge cases",
 
   # Data frame with mse but no estimate column
   df_no_est <- data.frame(mse = c(1, 4))
-  expect_error(add_reliability_flags(df_no_est), "missing estimate column")
+  expect_error(add_reliability_flags(df_no_est), "cannot be computed")
 
   # Data frame without rse and without mse
   df_no_rse <- data.frame(val = c(1, 2))
-  expect_error(add_reliability_flags(df_no_rse), "was not found in data")
+  expect_error(add_reliability_flags(df_no_rse), "was not found")
 
   # Model with df_hb
   mod_hb <- structure(list(df_hb = data.frame(hb = 10, mse = 1)), class = "fastsae")
   res_hb <- add_reliability_flags(mod_hb)
   expect_true("reliability" %in% names(res_hb))
-
-  # Model with df_ebp
-  mod_ebp <- structure(list(df_ebp = data.frame(ebp = 10, mse = 1)), class = "fastsae")
-  res_ebp <- add_reliability_flags(mod_ebp)
-  expect_true("reliability" %in% names(res_ebp))
 })
 
 test_that("export_sae exports to Excel and CSV correctly with all options", {

@@ -7,7 +7,7 @@
 #' @description
 #' Provides a comprehensive evaluation and concordance comparison between two
 #' fitted Small Area Estimation (SAE) models (e.g. comparing Classical Fay-Herriot
-#' vs Spatial Fay-Herriot, Area-level vs Unit-level BHF, or EBLUP vs EBP).
+#' vs Spatial Fay-Herriot, Area-level vs Unit-level BHF, or EBLUP vs HB).
 #'
 #' Computes empirical agreement and efficiency metrics including:
 #' \itemize{
@@ -22,8 +22,8 @@
 #' @param model2 A second fitted \code{fastsae} model object. Ignored if \code{model1} is a list.
 #' @param names Optional character vector of length 2 specifying descriptive labels
 #'   for the models. Default is inferred from model types or call arguments.
-#' @param thresholds Numeric vector of length 2 defining the RSE (\%) thresholds for reliability.
-#'   Default is \code{c(20, 30)}.
+#' @param thresholds Numeric vector of length 2 with the RSE (\%) cut-offs drawn in
+#'   \code{autoplot(type = "rse")} (see \code{\link{add_reliability_flags}}). Default \code{c(25, 50)}.
 #' @param x An object of class \code{fastsae_comparison} (for \code{print} and \code{plot} methods).
 #' @param object An object of class \code{fastsae_comparison} (for \code{summary} and \code{autoplot} methods).
 #' @param y Ignored argument for compatibility with the generic \code{plot} method.
@@ -59,13 +59,14 @@
 #' # Plot comparison
 #' autoplot(comp, type = "scatter")
 #' autoplot(comp, type = "difference")
-compare_sae <- function(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...) {
+compare_sae <- function(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...) {
+  .check_thresholds(thresholds)
   UseMethod("compare_sae")
 }
 
 #' @rdname compare_sae
 #' @export
-compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...) {
+compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...) {
   # Support passing a list of two models
   if (is.list(model1) && !is.data.frame(model1) && !inherits(model1, "fastsae") && length(model1) >= 2) {
     if (is.null(names)) {
@@ -249,6 +250,8 @@ autoplot.fastsae_comparison <- function(
 ) {
   type <- match.arg(type)
   df <- object$data
+  # one label per row (domain, or domain/sub-area or domain:time for nested/panel data)
+  df$label <- .row_labels(df)
   n1 <- object$names[1]
   n2 <- object$names[2]
 
@@ -276,7 +279,7 @@ autoplot.fastsae_comparison <- function(
     return(p)
 
   } else if (type == "difference") {
-    df$domain_fac <- factor(df$domain, levels = df$domain[order(df$diff)])
+    df$domain_fac <- factor(df$label, levels = df$label[order(df$diff)])
 
     p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$domain_fac, y = .data$diff)) +
       ggplot2::geom_segment(
@@ -307,10 +310,10 @@ autoplot.fastsae_comparison <- function(
 
   } else if (type == "mse") {
     long_mse <- rbind(
-      data.frame(domain = df$domain, mse = df$mse_1, Model = n1),
-      data.frame(domain = df$domain, mse = df$mse_2, Model = n2)
+      data.frame(domain = df$label, mse = df$mse_1, Model = n1),
+      data.frame(domain = df$label, mse = df$mse_2, Model = n2)
     )
-    long_mse$domain <- factor(long_mse$domain, levels = unique(df$domain))
+    long_mse$domain <- factor(long_mse$domain, levels = df$label)
 
     p <- ggplot2::ggplot(long_mse, ggplot2::aes(x = .data$domain, y = .data$mse, fill = .data$Model)) +
       ggplot2::geom_bar(stat = "identity", position = ggplot2::position_dodge(width = 0.8), width = 0.7, alpha = 0.85) +
@@ -332,10 +335,10 @@ autoplot.fastsae_comparison <- function(
 
   } else if (type == "rse") {
     long_rse <- rbind(
-      data.frame(domain = df$domain, rse = df$rse_1, Model = n1),
-      data.frame(domain = df$domain, rse = df$rse_2, Model = n2)
+      data.frame(domain = df$label, rse = df$rse_1, Model = n1),
+      data.frame(domain = df$label, rse = df$rse_2, Model = n2)
     )
-    long_rse$domain <- factor(long_rse$domain, levels = unique(df$domain))
+    long_rse$domain <- factor(long_rse$domain, levels = df$label)
 
     p <- ggplot2::ggplot(long_rse, ggplot2::aes(x = .data$domain, y = .data$rse, color = .data$Model, group = .data$Model)) +
       ggplot2::geom_line(alpha = 0.7) +
@@ -345,7 +348,7 @@ autoplot.fastsae_comparison <- function(
       ggplot2::scale_color_brewer(palette = "Set1") +
       ggplot2::labs(
         title = title %||% "Relative Standard Error (RSE %) Comparison",
-        subtitle = paste0("Official statistics reliability thresholds: < ", object$thresholds[1], "% (Reliable) and \u2265 ", object$thresholds[2], "% (Unreliable)"),
+        subtitle = paste0("Reliability thresholds: RSE \u2264 ", object$thresholds[1], "% (reliable) and > ", object$thresholds[2], "% (unreliable)"),
         x = "Domain",
         y = "RSE (%)"
       ) +
@@ -361,10 +364,10 @@ autoplot.fastsae_comparison <- function(
   } else {
     # Default comparison: Overlaid point estimates with lines
     long_est <- rbind(
-      data.frame(domain = df$domain, est = df$estimate_1, Model = n1),
-      data.frame(domain = df$domain, est = df$estimate_2, Model = n2)
+      data.frame(domain = df$label, est = df$estimate_1, Model = n1),
+      data.frame(domain = df$label, est = df$estimate_2, Model = n2)
     )
-    long_est$domain <- factor(long_est$domain, levels = unique(df$domain))
+    long_est$domain <- factor(long_est$domain, levels = df$label)
 
     p <- ggplot2::ggplot(long_est, ggplot2::aes(x = .data$domain, y = .data$est, color = .data$Model, group = .data$Model)) +
       ggplot2::geom_point(position = ggplot2::position_dodge(width = 0.4), size = 2) +
@@ -394,11 +397,11 @@ autoplot.fastsae_comparison <- function(
 #' @noRd
 .extract_domain_data <- function(model) {
   if (inherits(model, "fastsae")) {
-    df <- model$df_hb %||% model$df_ebp %||% model$df_eblup
+    df <- .sae_table(model)
     if (is.null(df)) cli::cli_abort("Model does not contain estimation data frame.")
     dom_col <- intersect(c("domain", "area", "id"), names(df))[1]
     dom_vals <- df[[dom_col]] %||% seq_len(nrow(df))
-    est_val <- df$hb %||% df$ebp %||% df$eblup %||% df$est
+    est_val <- df[[.sae_est_col(df)]]
     mse_val <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else NA_real_)
     rse_val <- df$rse %||% (if (!all(is.na(mse_val))) (sqrt(mse_val) / abs(est_val)) * 100 else NA_real_)
 
@@ -418,7 +421,7 @@ autoplot.fastsae_comparison <- function(
   } else if (is.data.frame(model)) {
     dom_col <- intersect(c("domain", "area", "id", "code"), names(model))
     dom_vals <- if (length(dom_col) > 0) model[[dom_col[1]]] else seq_len(nrow(model))
-    est_col <- intersect(c("estimate", "hb", "ebp", "eblup", "est", "y_hat"), names(model))
+    est_col <- intersect(c("estimate", "hb", "eblup", "est", "y_hat"), names(model))
     if (length(est_col) == 0) cli::cli_abort("Data frame must contain an estimate column.")
 
     est_val <- model[[est_col[1]]]
@@ -452,9 +455,7 @@ autoplot.fastsae_comparison <- function(
         "SFH" = "Spatial FH",
         "ST" = "Spatio-Temporal FH",
         "BHF" = "BHF",
-        "TFH" = "Two-fold FH",
         "TWOFOLD" = "Two-fold FH",
-        "EBP" = paste0("EBP-", toupper(model$family %||% "Beta")),
         model$model
       )
       return(m)

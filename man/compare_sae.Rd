@@ -9,9 +9,9 @@
 \alias{autoplot.fastsae_comparison}
 \title{Compare Two Small Area Estimation Models}
 \usage{
-compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...)
+compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
 
-\method{compare_sae}{default}(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...)
+\method{compare_sae}{default}(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
 
 \method{print}{fastsae_comparison}(x, ...)
 
@@ -34,8 +34,8 @@ compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(20, 30), ...)
 \item{names}{Optional character vector of length 2 specifying descriptive labels
 for the models. Default is inferred from model types or call arguments.}
 
-\item{thresholds}{Numeric vector of length 2 defining the RSE (\%) thresholds for reliability.
-Default is \code{c(20, 30)}.}
+\item{thresholds}{Numeric vector of length 2 with the RSE (\%) cut-offs drawn in
+\code{autoplot(type = "rse")} (see \code{\link{add_reliability_flags}}). Default \code{c(25, 50)}.}
 
 \item{...}{Additional arguments.}
 
@@ -62,7 +62,7 @@ An S3 object of class \code{fastsae_comparison} containing:
 \description{
 Provides a comprehensive evaluation and concordance comparison between two
 fitted Small Area Estimation (SAE) models (e.g. comparing Classical Fay-Herriot
-vs Spatial Fay-Herriot, Area-level vs Unit-level BHF, or EBLUP vs EBP).
+vs Spatial Fay-Herriot, Area-level vs Unit-level BHF, or EBLUP vs HB).
 
 Computes empirical agreement and efficiency metrics including:
 \itemize{

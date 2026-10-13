@@ -121,14 +121,6 @@ test_that("benchmark print, summary, and autoplot methods work", {
   expect_s3_class(p_plot, "ggplot")
 })
 
-test_that("benchmark works as alias for benchmark_sae", {
-  y_hat <- c(0.2, 0.4, 0.6)
-  bm1 <- benchmark_sae(y_hat, target = 0.5, method = "ratio")
-  bm2 <- benchmark(y_hat, target = 0.5, method = "ratio")
-  expect_equal(bm1$benchmarked, bm2$benchmarked)
-  expect_s3_class(bm2, "fastsae_benchmark")
-})
-
 test_that("benchmark covers all validation, targets, and methods branches", {
   data(mys, package = "fastsae")
   fit_fh <- eblup_fh(y ~ x1, vardir = "vardir", data = mys, print_result = FALSE)
@@ -267,4 +259,19 @@ test_that(".mse_matrix supports SFH (with unsampled domains) and STFH", {
   Mt <- fastsae:::.mse_matrix(fit_t)
   expect_equal(diag(Mt), fit_t$df_eblup$mse)
   expect_equal(Mt, t(Mt))
+})
+
+test_that("hierarchical total benchmarking without group targets works on the total scale", {
+  # type = "total": group aggregates are weighted totals, so that stage 1 sums
+  # them to the national total (they were weighted means before)
+  y <- c(10, 20, 30, 40)
+  w <- c(1, 2, 3, 4)
+  grp <- c("A", "A", "B", "B")
+  bm <- benchmark_sae(y, weight = w, group = grp, national_target = 330, type = "total",
+                      method = "ratio")
+  expect_equal(sum(w * bm$benchmarked), 330)
+  s1 <- attr(bm, "stage1_summary")
+  expect_equal(unname(s1$original_group_estimate), c(1 * 10 + 2 * 20, 3 * 30 + 4 * 40))
+  # the original national total is 300, so ratio benchmarking scales by 1.1
+  expect_equal(bm$benchmarked, y * 1.1)
 })

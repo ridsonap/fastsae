@@ -8,7 +8,7 @@ export_sae(
   object,
   file,
   benchmark = NULL,
-  thresholds = c(20, 30),
+  thresholds = c(25, 50),
   overwrite = TRUE,
   ...
 )
@@ -20,7 +20,8 @@ export_sae(
 
 \item{benchmark}{Optional \code{fastsae_benchmark} object to include calibration results alongside the model.}
 
-\item{thresholds}{Numeric vector of length 2 defining the RSE (\%) thresholds for reliability flags. Default is \code{c(20, 30)}.}
+\item{thresholds}{Numeric vector of length 2 with the RSE (\%) cut-offs of the reliability flags
+(see \code{\link{add_reliability_flags}}). Default is \code{c(25, 50)}.}
 
 \item{overwrite}{Logical indicating whether to overwrite an existing file. Default is \code{TRUE}.}
 
@@ -34,7 +35,7 @@ Exports comprehensive estimation tables and model summaries to multi-sheet
 Excel workbooks (\code{.xlsx}) or comma-separated files (\code{.csv}). Formatted
 to meet official statistics dissemination standards.
 
-The generated Excel workbook contains up to three dedicated sheets:
+The generated Excel workbook contains up to four sheets:
 \itemize{
   \item \strong{Estimates}: Domain IDs, Direct survey estimates, SAE model predictions,
     Standard Errors (SE), MSE, RSE (\%), 95\% confidence / credible intervals, and
@@ -44,7 +45,11 @@ The generated Excel workbook contains up to three dedicated sheets:
     spatial \eqn{\rho}, temporal \eqn{\rho_t}, \eqn{\phi}), and goodness-of-fit metrics.
   \item \strong{Benchmarked} (Optional): Pre- vs post-calibration values, adjustments,
     and percentage shifts when benchmarking calibration is applied.
+  \item \strong{Benchmarked_Groups} (Optional): the group-level (stage 1) calibration of a
+    hierarchical benchmark.
 }
+With a \code{.csv} file, the estimates are written to \code{file} and the model summary to
+\code{<file>_summary.csv}; the benchmark sheets are only written to Excel workbooks.
 }
 \examples{
 library(fastsae)

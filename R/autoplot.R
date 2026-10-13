@@ -70,6 +70,9 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
     return(NextMethod())
   }
   type <- match.arg(type)
+  if (length(object) > 0 && (is.null(names(object)) || any(!nzchar(names(object))))) {
+    names(object) <- paste("Model", seq_along(object))
+  }
   if (type == "map") {
     return(map_sae(object, ...))
   }
@@ -86,9 +89,9 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
 #' @noRd
 .autoplot_single_comparison <- function(x, title = NULL, ...) {
-  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
-  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
-  est_label <- if (est_col == "hb") "HB" else if (est_col == "ebp") "EBP" else "EBLUP"
+  df <- .sae_table(x)
+  est_col <- .sae_est_col(df)
+  est_label <- if (est_col == "hb") "HB" else "EBLUP"
 
   has_ci <- all(c("ci_lower", "ci_upper") %in% names(df)) && !all(is.na(df$ci_lower))
   has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
@@ -126,7 +129,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
 #' @noRd
 .autoplot_estimates <- function(x, title = NULL, ...) {
-  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
+  df <- .sae_table(x)
 
   if (!"y" %in% names(df)) {
     cli::cli_abort(c(
@@ -137,8 +140,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Filter out NA values for direct estimates
   df <- df[!is.na(df$y), ]
-  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
-  est_label <- if (est_col == "hb") "HB" else if (est_col == "ebp") "EBP" else "EBLUP"
+  est_col <- .sae_est_col(df)
+  est_label <- if (est_col == "hb") "HB" else "EBLUP"
 
   if (is.null(title)) {
     title <- paste(est_label, "Estimates vs Direct Estimates")
@@ -182,9 +185,10 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 }
 
 #' @noRd
-.autoplot_rse <- function(x, title = NULL, thresholds = c(20, 30), ...) {
-  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
-  est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
+.autoplot_rse <- function(x, title = NULL, thresholds = c(25, 50), ...) {
+  .check_thresholds(thresholds)
+  df <- .sae_table(x)
+  est_col <- .sae_est_col(df)
 
   # Calculate SAE RSE if not already present
   if (!"rse" %in% names(df)) {
@@ -201,8 +205,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
     has_direct_rse <- TRUE
   }
 
-  df$domain_char <- as.character(df$domain)
-  df$domain_char <- factor(df$domain_char, levels = df$domain_char)
+  lab <- .row_labels(df)
+  df$domain_char <- factor(lab, levels = lab)
 
   if (has_direct_rse) {
     long_rse <- rbind(
@@ -222,13 +226,13 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
   p <- p +
     geom_hline(yintercept = thresholds[1], linetype = "dashed", color = "#2A9D8F", linewidth = 0.8) +
     geom_hline(yintercept = thresholds[2], linetype = "dashed", color = "#E76F51", linewidth = 0.8) +
-    ggplot2::annotate("text", x = 1, y = thresholds[1] - 1.5, label = paste0("Reliable (< ", thresholds[1], "%)"),
+    ggplot2::annotate("text", x = 1, y = thresholds[1] - 1.5, label = paste0("Reliable (\u2264 ", thresholds[1], "%)"),
                       hjust = 0, size = 3, color = "#2A9D8F", fontface = "italic") +
-    ggplot2::annotate("text", x = 1, y = thresholds[2] + 1.5, label = paste0("Unreliable (\u2265 ", thresholds[2], "%)"),
+    ggplot2::annotate("text", x = 1, y = thresholds[2] + 1.5, label = paste0("Unreliable (> ", thresholds[2], "%)"),
                       hjust = 0, size = 3, color = "#E76F51", fontface = "italic") +
     labs(
       title = title %||% "Relative Standard Error (RSE %) across Domains",
-      subtitle = paste0("Official statistics reliability thresholds: < ", thresholds[1], "% (Reliable) and \u2265 ", thresholds[2], "% (Unreliable)"),
+      subtitle = paste0("Reliability thresholds: RSE \u2264 ", thresholds[1], "% (reliable) and > ", thresholds[2], "% (unreliable)"),
       x = "Domain",
       y = "RSE (%)",
       color = "Method"
@@ -255,8 +259,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Combine data from all models
   plot_data <- lapply(names(x), function(name) {
-    df <- x[[name]]$df_hb %||% x[[name]]$df_ebp %||% x[[name]]$df_eblup
-    est_col <- if ("hb" %in% names(df)) "hb" else if ("ebp" %in% names(df)) "ebp" else "eblup"
+    df <- .sae_table(x[[name]])
+    est_col <- .sae_est_col(df)
     has_ci <- all(c("ci_lower", "ci_upper") %in% names(df)) && !all(is.na(df$ci_lower))
     has_mse <- "mse" %in% names(df) && !all(is.na(df$mse))
     ci_l <- if (has_ci) df$ci_lower else if (has_mse) df[[est_col]] - 1.96 * sqrt(df$mse) else df[[est_col]]
@@ -311,7 +315,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Combine MSE data from all models
   plot_data <- lapply(names(x), function(name) {
-    df <- x[[name]]$df_hb %||% x[[name]]$df_ebp %||% x[[name]]$df_eblup
+    df <- .sae_table(x[[name]])
     data.frame(
       domain = as.character(df$domain),
       mse = df$mse,
@@ -327,8 +331,8 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
   # Check if all models have same domains
   same_domains <- all(sapply(x, function(m) {
-    df_m <- m$df_hb %||% m$df_ebp %||% m$df_eblup
-    df_1 <- x[[1]]$df_hb %||% x[[1]]$df_ebp %||% x[[1]]$df_eblup
+    df_m <- .sae_table(m)
+    df_1 <- .sae_table(x[[1]])
     identical(df_m$domain, df_1$domain)
   }))
 
@@ -374,13 +378,13 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
   }
 
   model_names <- names(x)
-  df1_raw <- x[[1]]$df_hb %||% x[[1]]$df_ebp %||% x[[1]]$df_eblup
-  df2_raw <- x[[2]]$df_hb %||% x[[2]]$df_ebp %||% x[[2]]$df_eblup
+  df1_raw <- .sae_table(x[[1]])
+  df2_raw <- .sae_table(x[[2]])
 
-  col1_name <- if ("hb" %in% names(df1_raw)) "hb" else if ("ebp" %in% names(df1_raw)) "ebp" else "eblup"
-  col2_name <- if ("hb" %in% names(df2_raw)) "hb" else if ("ebp" %in% names(df2_raw)) "ebp" else "eblup"
-  label1 <- if (col1_name == "hb") "HB" else if (col1_name == "ebp") "EBP" else "EBLUP"
-  label2 <- if (col2_name == "hb") "HB" else if (col2_name == "ebp") "EBP" else "EBLUP"
+  col1_name <- .sae_est_col(df1_raw)
+  col2_name <- .sae_est_col(df2_raw)
+  label1 <- if (col1_name == "hb") "HB" else "EBLUP"
+  label2 <- if (col2_name == "hb") "HB" else "EBLUP"
 
   df1 <- data.frame(domain = df1_raw$domain, est1 = df1_raw[[col1_name]])
   df2 <- data.frame(domain = df2_raw$domain, est2 = df2_raw[[col2_name]])
@@ -434,7 +438,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 
 #' @noRd
 .autoplot_mse <- function(x, title = NULL, ...) {
-  df <- x$df_hb %||% x$df_ebp %||% x$df_eblup
+  df <- .sae_table(x)
 
   if (!"mse" %in% names(df) || all(is.na(df$mse))) {
     cli::cli_abort(c(
@@ -582,7 +586,8 @@ autoplot.fastsae_diagnose <- function(object,
       cli::cli_abort("CPO (Conditional Predictive Ordinate) values not available in diagnostic object.")
     }
     df_cpo <- df[!is.na(df$cpo), , drop = FALSE]
-    df_cpo$domain_factor <- factor(df_cpo$domain, levels = df_cpo$domain)
+    lab <- .row_labels(df_cpo)
+    df_cpo$domain_factor <- factor(lab, levels = lab)
     p <- ggplot(df_cpo, aes(x = .data$domain_factor, y = .data$cpo)) +
       ggplot2::geom_segment(aes(x = .data$domain_factor, xend = .data$domain_factor, y = 0, yend = .data$cpo), color = "#A8DADC") +
       ggplot2::geom_point(color = "#2E86AB", size = 2.5) +

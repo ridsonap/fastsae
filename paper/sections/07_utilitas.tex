@@ -26,7 +26,7 @@ disterilkan oleh \code{type}:
   \label{eq:bm-agg}
 \end{equation}
 dan target $T_g$ dipaksa tercapai lewat empat metode
-(\code{R/benchmark.R:466-545}):
+(\code{R/benchmark.R:452-531}):
 \begin{align}
   \text{\textbf{ratio:}}\quad
     &\lambda_g=\frac{T_g}{A_g},\qquad \tilde y_i=y_i\,\lambda_g;
@@ -74,10 +74,10 @@ adalah
   \mathrm{MSE}_{bm,i}\approx\mathrm{mse}_i-2k_i(Mw)_i+\mathrm{adj}_i^2
   \label{eq:bm-mse}
 \end{equation}
-(\code{R/benchmark.R:546-600}, kolom \code{mse\_benchmarked}). $M$ adalah
+(\code{R/benchmark.R:532-586}, kolom \code{mse\_benchmarked}). $M$ adalah
 matriks MSE \emph{penuh} antar area --- galat prediksi berkorelasi karena
 $\hat\beta$ bersama dan efek acak spasial/temporal --- yang tidak pernah
-dibentuk: \code{.mse\_operator} (baris 804-909) mengembalikan $v\mapsto Mv$
+dibentuk: \code{.mse\_operator} (baris 790-893) mengembalikan $v\mapsto Mv$
 dengan $M=SCS$, $C$ matriks korelasi $g_1+g_2$ dan $S=\diag(\sqrt{\mathrm{mse}})$,
 untuk FH (skala identitas), SFH, STFH, dan HB area-level (dari sampel
 posterior INLA atau draw MCMC). Model lain memakai fallback diagonal
@@ -85,12 +85,12 @@ $(Mw)_i=w_i\mathrm{mse}_i$. MSE agregat grup pada tahap~1 juga memakai
 $w'Mw$, bukan $\sum w^2\mathrm{mse}$.
 
 \paragraph{Dua tahap hierarkis.} Aktif bila \code{national\_target} diberikan
-dan ada $>1$ grup (\code{R/benchmark.R:332}): STAGE~1 menyetel target grup
+dan ada $>1$ grup (\code{R/benchmark.R:316}): STAGE~1 menyetel target grup
 $T_g$ agar agregatnya menyamai target nasional (empat metode yang sama,
 \code{W\_share}=porsi bobot grup), STAGE~2 menyetel estimasi level kecil ke
 $T_g$; keduanya dicatat \code{stage\_1\_summary} dan diverifikasi ulang.
 \begin{algorithm}[htbp]
-\caption{\texttt{benchmark\_sae} --- alur sebenarnya (\texttt{R/benchmark.R:120-660})}\label{alg:bm}
+\caption{\texttt{benchmark\_sae} --- alur sebenarnya (\texttt{R/benchmark.R:120-633})}\label{alg:bm}
 \KwIn{objek model (atau vektor numerik), \code{target}, \code{weight},
   \code{method} $\in$\{ratio, difference, optimal, logit\}, \code{group},
   \code{type}, \code{national\_target}, \code{outer\_target}, \code{mse}}
@@ -99,12 +99,12 @@ estimasi $\leftarrow$ \texttt{df\_hb \%||\% df\_ebp \%||\% df\_eblup};
   $y\leftarrow$ \code{hb/ebp/eblup/est}; $\mathrm{mse}\leftarrow$ \code{mse} atau $\mathrm{sd}^2$ (146-153)\;
 $M\leftarrow$ \texttt{.mse\_operator(object)} (atau \texttt{NULL}: fallback diagonal)\;
 bobot $\leftarrow$ nama kolom / vektor / seragam $1$; grup $\leftarrow$ nama kolom / vektor / \code{"All"} (157-200)\;
-$A_g,T_g\leftarrow$ \eqref{eq:bm-agg} + parsing target (332-412)\;
-\If{\code{national\_target} $\ne$ NULL \textbf{dan} $>1$ grup}{STAGE 1: setel $T_g$ agar $\sum_g W_{\text{share},g}T_g=T_{\text{nas}}$ (416-464)\;}
-STAGE 2: $\tilde y\leftarrow$ \eqref{eq:bm-ratio}--\eqref{eq:bm-logit} per grup (466-545)\;
-$\mathrm{MSE}_{bm}\leftarrow$ \eqref{eq:bm-mse} (546-600)\;
-susun \code{domain, weight, original, benchmarked, adjustment, rel\_adjustment\_pct, target} (+ \code{mse}, \code{mse\_benchmarked}) (584-600)\;
-verifikasi $|\sum w^{\text{calc}}\tilde y-T_g|$; status \code{CONSISTENT} bila $<10^{-5}$ (602-645)\;
+$A_g,T_g\leftarrow$ \eqref{eq:bm-agg} + parsing target (316-400)\;
+\If{\code{national\_target} $\ne$ NULL \textbf{dan} $>1$ grup}{STAGE 1: setel $T_g$ agar $\sum_g W_{\text{share},g}T_g=T_{\text{nas}}$ (402-450)\;}
+STAGE 2: $\tilde y\leftarrow$ \eqref{eq:bm-ratio}--\eqref{eq:bm-logit} per grup (452-531)\;
+$\mathrm{MSE}_{bm}\leftarrow$ \eqref{eq:bm-mse} (532-586)\;
+susun \code{domain, weight, original, benchmarked, adjustment, rel\_adjustment\_pct, target} (+ \code{mse}, \code{mse\_benchmarked}) (570-586)\;
+verifikasi $|\sum w^{\text{calc}}\tilde y-T_g|$; status \code{CONSISTENT} bila $<10^{-5}$ (588-631)\;
 \end{algorithm}
 
 \paragraph{Keluaran.} \code{data.frame} kelas \code{c("fastsae\_benchmark","data.frame")}
@@ -127,12 +127,16 @@ objek \code{fastsae} (\code{R/diagnose.R:73-80}). Kuantitas dasar
   \qquad
   \mathrm{eff}_d=\frac{\psi_d}{\mathrm{mse}_d},
   \qquad
-  r_d=\frac{y_d-\hat\theta_d}{\sqrt{\psi_d}},
+  r_d=\frac{y_d-\hat\theta_d}{\sqrt{\psi_d-\mathrm{mse}_d}},
   \qquad
   \widehat{\Pr}(\mathrm{RSE}<T)=\frac{\#\{\mathrm{RSE}<T\}}{n},
   \label{eq:diag-basic}
 \end{equation}
-dengan ambang default $T=25$\,\% dan area tanpa sampel dihitung
+dengan ambang default $T=25$\,\%. Residual terstandar memakai
+$\Var(y_d-\hat\theta_d)\approx\psi_d-\mathrm{mse}_d$ (galat prediksi berkorelasi positif
+dengan $e_d$; untuk EBLUP $\psi_d(1-\gamma_d)$), sehingga $r_d\approx N(0,1)$ di bawah model
+yang benar (sd 1,01 pada simulasi; pembagi lama $\sqrt{\psi_d}$ memberi sd 0,76 dan
+menyembunyikan pencilan). Area tanpa sampel dihitung
 terpisahnya (\code{N\_sampled}/\code{N\_unsampled}).
 
 \paragraph{Diagnostik Brown et al.\ (2001).} Untuk minimal lima pasang
@@ -212,7 +216,7 @@ Tidak ada \code{summary} maupun \code{plot} untuk kelas ini (UT-13).
 
 \subsection{Perbandingan dua model: \texttt{compare\_sae}}\label{sec:compare}
 
-\code{compare\_sae(model1, model2, names, thresholds = c(20,30))} hanya
+\code{compare\_sae(model1, model2, names, thresholds = c(25,50))} hanya
 memiliki method \code{.default} (UT-14); kunci gabung adalah
 \code{domain}, atau \code{c(domain, subarea)}, atau \code{c(domain, time)}
 (inner join; error bila tumpang tindih nol). Metrik yang dihitung
@@ -230,26 +234,29 @@ $\mathrm{mse}_2<\mathrm{mse}_1$, dan $\Delta\overline{\mathrm{RSE}}$.
 \emph{Tidak ada} argumen \code{truth}, sehingga RMSD/MAE di sini adalah
 selisih antarmodel, bukan galat terhadap kebenaran.
 \code{thresholds} hanya dipakai sebagai garis horizontal pada plot
-\code{rse} (UT-14). Lima tipe \code{autoplot}: \code{scatter} (garis 1:1),
+\code{rse} (UT-14). Baris diberi label unik (domain, domain/sub-area, atau
+domain:waktu) sehingga data panel dan sub-area tidak lagi menumpuk atau gagal.
+Lima tipe \code{autoplot}: \code{scatter} (garis 1:1),
 \code{comparison} (default, dodged), \code{difference} (lollipop),
 \code{mse} (bar dodged), \code{rse} (garis + ambang).
 
 \subsection{Flag reliabilitas dan ekspor: \texttt{export\_sae}}\label{sec:export}
 
-\code{add\_reliability\_flags} memotong RSE dengan
-$\texttt{cut}(\text{breaks}=(-\infty,20,30,\infty))$ menjadi tiga tingkat
-\emph{Reliable (\textless 20\%)}, \emph{Use with Caution (20--30\%)},
-\emph{Unreliable ($\ge$30\%)}; bila kolom RSE tidak ada, ia menghitung
-$100\sqrt{\mathrm{mse}}/\abs{\hat\theta}$. \implnote{Dokumen menyebut fungsi
-menerima ``objek atau data frame'' tetapi nilai kembalian selalu berupa
-data frame saja --- penugasan balik ke \code{object\$df\_*} tidak efektif
-karena aturan copy-on-modify R (UT-9).}
+\code{add\_reliability\_flags} memotong RSE (helper \code{.reliability\_tier},
+dipakai juga oleh \fct{export\_sae} dan \fct{map\_sae}) menjadi tiga tingkat
+dengan kriteria BPS sebagai default: \emph{Reliable} ($\mathrm{RSE}\le25\%$),
+\emph{Use with caution} ($25\%<\mathrm{RSE}\le50\%$), \emph{Unreliable}
+($\mathrm{RSE}>50\%$); bila kolom RSE tidak ada, ia menghitung
+$100\sqrt{\mathrm{mse}}/\abs{\hat\theta}$ dan mengembalikan tabel estimasi
+(data frame). \implnote{Sebelum 14 Okt 2026 ambang default 20/30\,\% dengan klaim
+``standar BPS'', padahal publikasi BPS memakai 25 dan 50\,\%; kini disesuaikan
+(UT-9 juga dibereskan: dokumentasi menyatakan yang dikembalikan data frame).}
 
 \code{export\_sae(object, file, benchmark, thresholds, overwrite)} hanya
 menerima ekstensi \code{xlsx}/\code{csv}; sheet yang ditulis:
 \code{Estimates}, \code{Model\_Summary}, \code{Benchmarked} dan
-\code{Benchmarked\_Groups} (bila hierarkis) --- bisa empat, bukan ``hingga
-tiga'' seperti dokumentasi (UT-10). Penulisan xlsx memakai
+\code{Benchmarked\_Groups} (bila hierarkis) --- hingga empat, sesuai
+dokumentasi (UT-10 diperbaiki). Penulisan xlsx memakai
 \pkg{writexl}, fallback \pkg{openxlsx}, fallback terakhir CSV berisi
 \code{Estimates} saja; sheet \code{Benchmarked} tidak pernah ikut pada mode
 csv. Sheet \code{Estimates} memuat
@@ -280,11 +287,12 @@ Pencocokan kunci otomatis memakai daftar kandidat
 region} dan mengadopsi pasangan dengan tumpang tindih terbesar
 \emph{bila mencapai} $40\%$ jumlah domain; gagal $\to$ error.
 
-\implnote{Argumen \code{thresholds = c(20,30)} diteruskan tetapi tidak pernah
-dipakai: pemotongan reliabilitas hard-coded di extractor (UT-12). Pemetaan
-dua model menyusun \code{data.frame(matched\_sf[, c("domain","geometry")],\dots)},
-yang akan gagal bila kolom geometri \code{sf} bukan \code{"geometry"}
-(UT-16).}
+\code{thresholds} (default \code{c(25, 50)}) kini benar-benar menentukan
+tingkat pada \code{type = "reliability"} (UT-12), geometri diambil dengan
+\code{sf::st\_geometry} sehingga nama kolom geometri bebas (UT-16), label
+model mengikuti \code{object\$model}, dan tabel dengan domain berulang (panel
+atau sub-area) ditolak dengan pesan yang jelas karena satu poligon hanya bisa
+menampilkan satu nilai.
 
 \subsection{Pra-pemodelan: \texttt{create\_weights}, \texttt{spatial\_test}, \texttt{gvf\_smooth}}\label{sec:pra-model}
 
@@ -380,7 +388,7 @@ Generic & Objek & Perilaku ringkas \\
   \code{ribbon}, \code{mse}, \code{estimates}, \code{scatter}, \code{rse},
   \code{map} \\
 \code{autoplot} & \code{list fastsae} & \code{comparison}, \code{mse},
-  \code{scatter} (butuh \code{names(x)} --- UT-15) \\
+  \code{scatter} (list tanpa nama diberi nama ``Model $k$'' --- UT-15) \\
 \code{autoplot} & \code{fastsae\_diagnose} & \code{all},
   \code{calibration}, \code{rse}, \code{residuals}, \code{qq},
   \code{pit}, \code{cpo} \\

@@ -144,14 +144,14 @@ test_that("S3 methods cover all print, summary, coef, fitted, residuals, and plo
   s_dummy <- summary(dummy_mod)
   expect_no_error(print(s_dummy))
 
-  # 2. Model with EBP estimates and estvarcomp
+  # 2. Two-fold-like model with estvarcomp
   dummy_ebp <- structure(
     list(
       model = "TWOFOLD",
       convergence = TRUE,
       n_iter = 5,
       estvarcomp = data.frame(component = c("area", "subarea"), variance = c(0.4, 0.2)),
-      df_ebp = data.frame(domain = 1:3, y = 10:12, ebp = 10:12, mse = rep(1, 3), rse = rep(10, 3)),
+      df_eblup = data.frame(domain = 1:3, y = 10:12, eblup = 10:12, mse = rep(1, 3), rse = rep(10, 3)),
       fit = list(beta = c(1, 2))
     ),
     class = "fastsae"
@@ -170,12 +170,12 @@ test_that("S3 methods cover all print, summary, coef, fitted, residuals, and plo
 
   # 5. fitted extraction fallbacks
   expect_equal(fitted(dummy_mod), dummy_mod$df_hb$hb)
-  expect_equal(fitted(dummy_ebp), dummy_ebp$df_ebp$ebp)
+  expect_equal(fitted(dummy_ebp), dummy_ebp$df_eblup$eblup)
   expect_null(fitted(structure(list(), class = "fastsae")))
 
   # 6. residuals extraction fallbacks
   expect_equal(residuals(dummy_mod), dummy_mod$df_hb$y - dummy_mod$df_hb$hb)
-  expect_equal(residuals(dummy_ebp), dummy_ebp$df_ebp$y - dummy_ebp$df_ebp$ebp)
+  expect_equal(residuals(dummy_ebp), dummy_ebp$df_eblup$y - dummy_ebp$df_eblup$eblup)
   expect_null(residuals(structure(list(), class = "fastsae")))
 
   # 7. plot method with two models comparison and spatial map

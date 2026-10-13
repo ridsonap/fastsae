@@ -254,3 +254,28 @@ test_that("map_sae smart key matching errors and NA direct branches", {
   expect_error(map_sae(fit_na_direct, sf_geom = mys_sf, type = "difference"), "Direct estimates are required")
 })
 
+
+test_that("map_sae honours thresholds, any geometry column name, and rejects panel data", {
+  skip_if_not_installed("sf")
+  data(mys, package = "fastsae")
+  fit <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, print_result = FALSE)
+  cells <- sf::st_make_grid(
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
+    cellsize = c(1, 1), what = "polygons"
+  )[seq_len(nrow(mys))]
+  # geometry column not called "geometry" (e.g. read from a GeoPackage)
+  shp <- sf::st_sf(area = mys$area, geom = cells)
+  expect_identical(attr(shp, "sf_column"), "geom")
+
+  p <- map_sae(fit, sf_geom = shp, type = "reliability", thresholds = c(5, 10))
+  lv <- levels(p$data$reliability)
+  expect_match(lv[1], "5%")
+  expect_match(lv[3], "10%")
+  expect_equal(as.integer(p$data$reliability),
+               as.integer(.reliability_tier(p$data$rse, c(5, 10))))
+  expect_s3_class(map_sae(fit, sf_geom = shp, type = "comparison"), "ggplot")
+
+  panel <- fit
+  panel$df_eblup <- rbind(fit$df_eblup, fit$df_eblup)
+  expect_error(map_sae(panel, sf_geom = shp), "one row per domain")
+})

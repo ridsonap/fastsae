@@ -221,13 +221,13 @@ NSOs classify domain estimates into publication tiers based on the Relative Stan
 %
 \begin{equation} \label{eq:reliability}
 \mathrm{Tier}_i = \begin{cases}
-\text{Reliable (Direct Publish)}, & \mathrm{RSE}_i < c_1, \\
-\text{Use with Caution (Accompanying Warning)}, & c_1 \le \mathrm{RSE}_i < c_2, \\
-\text{Unreliable (Suppress or Aggregate)}, & \mathrm{RSE}_i \ge c_2,
+\text{Reliable (Direct Publish)}, & \mathrm{RSE}_i \le c_1, \\
+\text{Use with Caution (Accompanying Warning)}, & c_1 < \mathrm{RSE}_i \le c_2, \\
+\text{Unreliable (Suppress or Aggregate)}, & \mathrm{RSE}_i > c_2,
 \end{cases}
 \end{equation}
 %
-where default thresholds $(c_1, c_2) = (20\%, 30\%)$ or $(25\%, 50\%)$ conform to standards adopted by agencies such as BPS-Statistics Indonesia and Eurostat.
+where the default thresholds $(c_1, c_2) = (25\%, 50\%)$ follow the criteria of BPS-Statistics Indonesia (with $\mathrm{RSE} \le c_1$ reliable and $\mathrm{RSE} > c_2$ unreliable); other agencies' cut-offs can be supplied.
 
 %% -- Software Design ----------------------------------------------------------
 
@@ -434,7 +434,7 @@ The calibrated estimates satisfy $\sum (w_i / \sum w_i) \hat{\theta}_i^{\text{BM
 \subsection{Official statistics reliability classification}
 Using \code{add\_reliability\_flags()}, domains are classified into official dissemination tiers:
 ```{r reliability}
-flags <- add_reliability_flags(fit_beta, thresholds = c(20, 30))
+flags <- add_reliability_flags(fit_beta)
 table(flags$reliability)
 ```
 

@@ -4,29 +4,31 @@
 \alias{add_reliability_flags}
 \title{Add Official Statistical Reliability Flags}
 \usage{
-add_reliability_flags(object, rse_col = "rse", thresholds = c(20, 30))
+add_reliability_flags(object, rse_col = "rse", thresholds = c(25, 50))
 }
 \arguments{
 \item{object}{A \code{fastsae} model object or a data frame containing an RSE column.}
 
-\item{rse_col}{Character string specifying the name of the RSE column. Default is \code{"rse"}.}
+\item{rse_col}{Character string specifying the name of the RSE column. Default is \code{"rse"}.
+If it is missing, the RSE is computed from the \code{mse} and estimate columns.}
 
-\item{thresholds}{Numeric vector of length 2 defining the RSE (\%) cutoffs. Default is \code{c(20, 30)}.}
+\item{thresholds}{Numeric vector of length 2 with the RSE (\%) cut-offs. Default is \code{c(25, 50)}.}
 }
 \value{
-The input object or data frame with an additional factor column \code{reliability}.
+The estimation table (a data frame) with an additional factor column \code{reliability}.
 }
 \description{
-Categorizes Small Area Estimates into standard statistical publication reliability tiers
-based on their Relative Standard Error (RSE / CV \%), following guidelines from
-official statistical agencies (such as BPS-Statistics Indonesia, Eurostat, and US Census Bureau).
-
-Default classification thresholds:
+Categorizes small area estimates into publication reliability tiers based on their
+relative standard error (RSE, \%). The default thresholds follow the criteria used by
+BPS-Statistics Indonesia:
 \itemize{
-  \item \strong{Reliable} (\eqn{\text{RSE} < 20\%}): Suitable for unconditional official publication.
-  \item \strong{Use with Caution} (\eqn{20\% \le \text{RSE} < 30\%}): Usable with cautionary footnotes regarding sampling variability.
-  \item \strong{Unreliable} (\eqn{\text{RSE} \ge 30\%}): High sampling error; suppression or aggregation to higher geographic levels recommended.
+  \item \strong{Reliable} (\eqn{\text{RSE} \le 25\%}): suitable for publication.
+  \item \strong{Use with caution} (\eqn{25\% < \text{RSE} \le 50\%}): publish with a
+    cautionary note on sampling variability.
+  \item \strong{Unreliable} (\eqn{\text{RSE} > 50\%}): suppress or aggregate to a higher level.
 }
+Other agencies use other cut-offs (for example 25\% and 50\% at the Australian Bureau of
+Statistics); set \code{thresholds} accordingly.
 }
 \examples{
 library(fastsae)

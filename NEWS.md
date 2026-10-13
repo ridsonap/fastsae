@@ -139,6 +139,32 @@
   ratio test when `vardir` is given, otherwise the LM-error test); requiring any of three tests
   recommended a spatial model for 9% of non-spatial data sets at `alpha = 0.05`. The Moran's I,
   LM-error and LM-lag statistics are unchanged and agree with `spdep`.
+* `diagnose()`: standardised residuals are $(y - \hat\theta)/\sqrt{vardir - MSE}$ (the variance of
+  $y - \hat\theta$) instead of $/\sqrt{vardir}$, which shrank them (sd 0.76 under a correct FH
+  model) and hid outliers in the residual and Q-Q plots.
+* Reliability tiers (`add_reliability_flags()`, `export_sae()`, `map_sae()`, `compare_sae()`,
+  `autoplot(type = "rse")`) default to the BPS-Statistics Indonesia criteria: RSE <= 25% reliable,
+  25% < RSE <= 50% use with caution, RSE > 50% unreliable (was 20%/30%, documented as the BPS
+  standard). `map_sae(type = "reliability")` now uses its `thresholds` argument (they were ignored).
+* `benchmark_sae(type = "total")` in a hierarchical benchmark without group targets: the group
+  aggregates are weighted totals (they were weighted means, on the wrong scale for stage 1).
+
+### Breaking changes and clean-up
+* `benchmark()`, a plain alias of `benchmark_sae()`, is removed; use `benchmark_sae()`.
+* The leftover handling of `df_ebp`/`ebp` result tables (from the removed `ebp_area()`) is removed
+  from the methods and utilities; results are in `df_hb` (HB) or `df_eblup` (EBLUP).
+* `diagnose()` returns `brown_test$bias_regression` instead of `brown_test$wald_test` and
+  `simulation_metrics$rrmse` instead of `mean_rrmse` (see above).
+
+### Other fixes in the utilities
+* `map_sae()` works with any name of the `sf` geometry column (it assumed `"geometry"`), labels
+  HB fits correctly (they were labelled "EBP-<family>"), and stops with a clear message for panel or
+  sub-area tables with repeated domains instead of mis-merging them.
+* `compare_sae()` and `autoplot()` plots label panel and sub-area rows uniquely (repeated domains
+  made some plots fail or overlap); `autoplot()` of an unnamed list of models names them.
+* `print()`/`summary()` show the estimation method of `eblup_fh()` and `eblup_twofold()` (REML or
+  ML; was "eblup") and describe `eblup_stfh(model = "S")` correctly.
+* `export_sae()` lists both variance components of two-fold models in the model summary.
 
 ### Performance
 * `benchmark_sae()`: the MSE covariance between areas is applied as a matrix-free operator

@@ -13,7 +13,8 @@
 #' \itemize{
 #'   \item \strong{Single Model Visualizations}: Point estimates (\code{"estimate"}), Relative
 #'     Standard Error (\code{"rse"}), and 3-color official statistics reliability classification
-#'     (\code{"reliability"}: green for reliable < 20\%, amber for caution 20-30\%, red for unreliable \eqn{\ge 30\%}).
+#'     (\code{"reliability"}: green for reliable, amber for use with caution, red for unreliable; cut-offs
+#'     from \code{thresholds}, see \code{\link{add_reliability_flags}}).
 #'   \item \strong{Direct vs Model Comparisons}: Side-by-side facet maps contrasting erratic direct survey
 #'     estimates against smoothed small area model estimates (\code{"comparison"}).
 #'   \item \strong{Two-Model Comparisons}: Side-by-side maps or spatial difference maps (\code{"difference"})
@@ -40,10 +41,10 @@
 #'   }
 #' @param type Character string specifying the visualization type:
 #'   \itemize{
-#'     \item \code{"estimate"}: Choropleth map of small area point estimates (EBP or EBLUP).
+#'     \item \code{"estimate"}: Choropleth map of small area point estimates (HB or EBLUP).
 #'     \item \code{"rse"}: Choropleth map of Relative Standard Errors / CV (\%).
-#'     \item \code{"reliability"}: Official statistics 3-color traffic light map (< 20\% Reliable,
-#'       20-30\% Use with Caution, \eqn{\ge 30\%} Unreliable).
+#'     \item \code{"reliability"}: 3-color traffic light map of the reliability tiers
+#'       (by default RSE \eqn{\le 25\%} reliable, 25--50\% use with caution, \eqn{> 50\%} unreliable).
 #'     \item \code{"comparison"}: Side-by-side facet choropleth map (Direct vs Model, or Model 1 vs Model 2).
 #'     \item \code{"difference"}: Spatial difference map (\eqn{\hat{\theta}^{(2)} - \hat{\theta}^{(1)}}
 #'       or \eqn{\hat{\theta}^{\text{Model}} - \hat{\theta}^{\text{Direct}}}) with divergent color palette.
@@ -53,7 +54,8 @@
 #'   based on \code{type}: \code{"viridis"} for estimates, \code{"magma"} for RSE, official traffic-light
 #'   colors for reliability, and \code{"RdBu"} / \code{"PuOr"} for differences.
 #' @param thresholds Numeric vector of length 2 defining the RSE (\%) thresholds for reliability
-#'   classification. Default is \code{c(20, 30)} according to official statistical guidelines (BPS / Eurostat).
+#'   classification (see \code{\link{add_reliability_flags}}). Default is \code{c(25, 50)}, the
+#'   BPS-Statistics Indonesia criteria.
 #' @param facet_scales Character string passed to \code{ggplot2::facet_wrap(scales = ...)}. Default is \code{"fixed"}.
 #' @param title Optional title for the plot. If \code{NULL}, a descriptive title is generated automatically.
 #' @param subtitle Optional subtitle for the plot.
@@ -84,7 +86,7 @@
 #'   # 3. Explicit key matching
 #'   p2 <- map_sae(fit_fh, sf_geom = mys_sf, key = "area")
 #'
-#'   # 4. Reliability classification map (BPS standard <20%, 20-30%, >=30%)
+#'   # 4. Reliability classification map (BPS criteria: RSE <= 25%, 25-50%, > 50%)
 #'   p3 <- map_sae(fit_fh, sf_geom = mys_sf, type = "reliability")
 #'
 #'   # 5. Side-by-side comparison map: Direct Survey vs Model SAE
@@ -104,7 +106,7 @@ map_sae.fastsae <- function(
   type = c("estimate", "rse", "reliability", "comparison", "difference"),
   indicator = NULL,
   palette = NULL,
-  thresholds = c(20, 30),
+  thresholds = c(25, 50),
   facet_scales = "fixed",
   title = NULL,
   subtitle = NULL,
@@ -142,8 +144,6 @@ map_sae.fastsae <- function(
       sf_obj <- object$data
     } else if (inherits(object$df_hb, "sf")) {
       sf_obj <- object$df_hb
-    } else if (inherits(object$df_ebp, "sf")) {
-      sf_obj <- object$df_ebp
     } else if (inherits(object$df_eblup, "sf")) {
       sf_obj <- object$df_eblup
     }
@@ -215,10 +215,10 @@ map_sae.fastsae_benchmark <- function(
   if (type_chosen == "comparison") {
     # Faceted: Original vs Benchmarked
     long_data <- rbind(
-      data.frame(matched_sf[, c("domain", "geometry")], Source = "Original Model", Value = matched_sf$original),
-      data.frame(matched_sf[, c("domain", "geometry")], Source = "Benchmarked (Calibrated)", Value = matched_sf$estimate)
+      .geom_frame(matched_sf, Source = "Original Model", Value = matched_sf$original),
+      .geom_frame(matched_sf, Source = "Benchmarked (Calibrated)", Value = matched_sf$estimate)
     )
-    long_sf <- sf::st_as_sf(long_data)
+    long_sf <- long_data
 
     p <- ggplot2::ggplot(long_sf) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$Value), color = "gray30", linewidth = 0.2) +
@@ -312,6 +312,7 @@ map_sae.default <- function(
   type = c("estimate", "rse", "reliability"),
   indicator = NULL,
   palette = NULL,
+  thresholds = c(25, 50),
   title = NULL,
   subtitle = NULL,
   ...
@@ -332,7 +333,7 @@ map_sae.default <- function(
     df$domain <- df[[found_dom[1]]]
   }
 
-  est_candidates <- c("hb", "ebp", "eblup", "estimate", "est", "y_hat", "pred")
+  est_candidates <- c("hb", "eblup", "estimate", "est", "y_hat", "pred")
   found_est <- intersect(est_candidates, names(df))
   if (length(found_est) == 0) {
     cli::cli_abort("Data frame must contain an estimate column (e.g. {.code hb}, {.code eblup}, or {.code estimate}).")
@@ -362,6 +363,7 @@ map_sae.default <- function(
     type = type_chosen,
     model_name = "Estimates",
     palette = palette,
+    thresholds = thresholds,
     title = title,
     subtitle = subtitle,
     ...
@@ -430,10 +432,10 @@ map_sae.default <- function(
   } else {
     # Default comparison: Faceted side-by-side
     long_data <- rbind(
-      data.frame(matched_sf[, c("domain", "geometry")], Model = model1_name, Value = matched_sf$est1),
-      data.frame(matched_sf[, c("domain", "geometry")], Model = model2_name, Value = matched_sf$est2)
+      .geom_frame(matched_sf, Model = model1_name, Value = matched_sf$est1),
+      .geom_frame(matched_sf, Model = model2_name, Value = matched_sf$est2)
     )
-    long_sf <- sf::st_as_sf(long_data)
+    long_sf <- long_data
 
     p <- ggplot2::ggplot(long_sf) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$Value), color = "gray30", linewidth = 0.2) +
@@ -452,7 +454,7 @@ map_sae.default <- function(
 #' Internal extractor of standardized prediction data frame
 #' @noRd
 .extract_model_data_for_map <- function(object) {
-  df_est <- object$df_hb %||% object$df_ebp %||% object$df_eblup
+  df_est <- .sae_table(object)
   if (is.null(df_est)) {
     cli::cli_abort("Model object does not contain estimation data ({.code df_hb} or {.code df_eblup}).")
   }
@@ -461,7 +463,14 @@ map_sae.default <- function(
   domain_vals <- df_est[[dom_col]] %||% seq_len(nrow(df_est))
 
   y_raw <- if ("y" %in% names(df_est)) df_est$y else NA_real_
-  y_hat <- df_est$hb %||% df_est$ebp %||% df_est$eblup %||% df_est$est
+  est_col <- .sae_est_col(df_est)
+  y_hat <- df_est[[est_col]]
+  if (anyDuplicated(as.character(domain_vals))) {
+    cli::cli_abort(c(
+      "{.fn map_sae} needs one row per domain, but the estimates repeat domains (panel or sub-area data).",
+      "i" = "Map one period or level at a time, e.g. {.code map_sae(fit$df_eblup[fit$df_eblup$time == 2024, ], sf_geom = ...)}."
+    ))
+  }
   mse_val <- df_est$mse %||% (if (!is.null(df_est$sd)) df_est$sd^2 else NA_real_)
 
   rse_val <- df_est$rse
@@ -478,25 +487,17 @@ map_sae.default <- function(
     stringsAsFactors = FALSE
   )
 
-  # Reliability flag (BPS official standards: <20%, 20-30%, >=30%)
-  res$reliability <- cut(
-    res$rse,
-    breaks = c(-Inf, 20, 30, Inf),
-    labels = c("Reliable (< 20%)", "Use with Caution (20-30%)", "Unreliable (\u2265 30%)"),
-    right = FALSE
-  )
 
   model_label <- switch(object$model %||% "SAE",
     "FH"  = "Fay-Herriot EBLUP",
+    "Log-FH" = "Log Fay-Herriot EBLUP",
     "SFH" = "Spatial FH EBLUP",
     "ST"  = "Spatio-Temporal FH EBLUP",
-    "BHF" = "Battese-Harter-Fuller",
-    "EBP" = paste0("EBP (", toupper(object$family %||% "Beta"), ")"),
-    "SAE Model"
+    "S"   = "Spatio-Temporal FH EBLUP",
+    "BHF" = "Battese-Harter-Fuller EBLUP",
+    "TWOFOLD" = "Two-fold FH EBLUP",
+    object$model %||% "SAE Model"
   )
-  if (!is.null(object$family)) {
-    model_label <- paste0("EBP-", toupper(object$family))
-  }
   attr(res, "model_name") <- model_label
 
   return(res)
@@ -599,7 +600,7 @@ map_sae.default <- function(
   type,
   model_name = "SAE Model",
   palette = NULL,
-  thresholds = c(20, 30),
+  thresholds = c(25, 50),
   title = NULL,
   subtitle = NULL,
   ...
@@ -634,11 +635,8 @@ map_sae.default <- function(
 
   } else if (type == "reliability") {
     # 3-color traffic light scale (BPS / Eurostat guidelines)
-    colors_traffic <- c(
-      "Reliable (< 20%)"          = "#198754",  # Green
-      "Use with Caution (20-30%)" = "#ffc107",  # Amber/Yellow
-      "Unreliable (\u2265 30%)"   = "#dc3545"   # Red
-    )
+    matched_sf$reliability <- .reliability_tier(matched_sf$rse, thresholds)
+    colors_traffic <- stats::setNames(c("#198754", "#ffc107", "#dc3545"), levels(matched_sf$reliability))
 
     p <- ggplot2::ggplot(matched_sf) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$reliability), color = "gray30", linewidth = 0.2) +
@@ -658,10 +656,10 @@ map_sae.default <- function(
     }
 
     long_data <- rbind(
-      data.frame(matched_sf[, c("domain", "geometry")], Source = "Direct Survey", Value = matched_sf$direct),
-      data.frame(matched_sf[, c("domain", "geometry")], Source = paste("SAE (", model_name, ")", sep = ""), Value = matched_sf$estimate)
+      .geom_frame(matched_sf, Source = "Direct Survey", Value = matched_sf$direct),
+      .geom_frame(matched_sf, Source = paste("SAE (", model_name, ")", sep = ""), Value = matched_sf$estimate)
     )
-    long_sf <- sf::st_as_sf(long_data)
+    long_sf <- long_data
 
     p <- ggplot2::ggplot(long_sf) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$Value), color = "gray30", linewidth = 0.2) +
@@ -699,4 +697,11 @@ map_sae.default <- function(
   }
 
   return(p)
+}
+
+#' Long-format sf rows of the matched geometry (whatever the name of its
+#' geometry column) with extra columns
+#' @noRd
+.geom_frame <- function(matched_sf, ...) {
+  sf::st_sf(domain = matched_sf$domain, ..., geometry = sf::st_geometry(matched_sf))
 }
