@@ -490,3 +490,30 @@ test_that("hb_unit finite-population mean predicts non-sampled units at xbar_r (
   # INLA's per-node marginal corrections make this only approximately linear
   expect_lt(max(abs(d$hb - expected)), 0.05)
 })
+
+test_that("hb_unit starts INLA's mode search at the REML estimates", {
+  data("cornsoybean", package = "fastsae")
+  data("cornsoybeanmeans", package = "fastsae")
+  df_pop <- cornsoybeanmeans
+  names(df_pop)[names(df_pop) == "MeanCornPixPerSeg"] <- "CornPix"
+  names(df_pop)[names(df_pop) == "MeanSoyBeansPixPerSeg"] <- "SoyBeansPix"
+  df_sample <- cornsoybean
+  names(df_sample)[names(df_sample) == "County"] <- "CountyIndex"
+
+  fe <- eblup_bhf(
+    CornHec ~ CornPix + SoyBeansPix, unit_data = df_sample, Xpop = df_pop,
+    domain_var = "CountyIndex", popsize_var = "PopnSegments", print_result = FALSE
+  )
+  mf <- stats::model.frame(CornHec ~ CornPix + SoyBeansPix, df_sample)
+  dom_id <- match(df_sample$CountyIndex, df_pop$CountyIndex)
+  theta0 <- fastsae:::.hb_unit_reml_start(
+    mf, c("CornPix", "SoyBeansPix"), df_sample$CornHec, dom_id, nrow(df_pop)
+  )
+  # log precisions: Gaussian likelihood first, then the domain effect
+  expect_length(theta0, 2)
+  expect_equal(theta0[2], -log(fe$random_effect_var), tolerance = 1e-6)
+  expect_equal(theta0[1], -log(fe$fit$sigma2_e), tolerance = 1e-6)
+
+  # a failed REML fit leaves INLA's default start
+  expect_null(fastsae:::.hb_unit_reml_start(mf, "nonexistent", df_sample$CornHec, dom_id, nrow(df_pop)))
+})

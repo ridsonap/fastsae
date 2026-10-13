@@ -309,6 +309,13 @@ hb_unit <- function(
     control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, mlik = TRUE),
     num.threads = 1
   )
+  # The vague log-gamma prior leaves a near-flat ridge towards sigma_u^2 = 0 on
+  # which INLA's mode search can stall (sigma_u^2 ~ 1 instead of ~ 60 on
+  # cornsoybean, depending on threads); start it at the REML estimates.
+  if (family == "gaussian" && spatial == "none") {
+    theta0 <- .hb_unit_reml_start(formuladata_s, term_labels, y_s, unit_dom_id, n_domains)
+    if (!is.null(theta0)) inla_args$control.mode <- list(theta = theta0, restart = TRUE)
+  }
   # inla_engine(...) settings override; control.* lists are merged
   inla_args <- utils::modifyList(inla_args, engine$inla_args)
 
@@ -520,4 +527,22 @@ hb_unit <- function(
   }
 
   return(invisible(result))
+}
+
+#' INLA starting values for the Gaussian nested error model
+#'
+#' REML estimates of the Battese-Harter-Fuller model (the compiled fit behind
+#' eblup_bhf()) as log precisions, in INLA's hyperparameter order: the
+#' Gaussian likelihood first, then the domain effect. NULL when REML fails or
+#' sits on the boundary sigma_u^2 = 0, leaving INLA's default start.
+#' @noRd
+.hb_unit_reml_start <- function(formuladata_s, term_labels, y_s, unit_dom_id, n_domains) {
+  fit <- tryCatch({
+    Xs <- stats::model.matrix(stats::reformulate(term_labels), formuladata_s)
+    .bhf_fit(Xs, y_s, unit_dom_id - 1L, n_domains, "REML")
+  }, error = function(e) NULL)
+  if (is.null(fit)) return(NULL)
+  s2 <- c(fit$sigma2_e, fit$sigma2_u)
+  if (!all(is.finite(s2) & s2 > 0)) return(NULL)
+  -log(s2)
 }

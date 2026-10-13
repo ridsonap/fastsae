@@ -69,6 +69,10 @@
 * `hb_unit()` with `popsize_var`: the non-sampled part is now predicted at the non-sampled covariate mean
   $\bar x_{d,r} = (N_d \bar X_d - n_d \bar x_{d,s})/(N_d - n_d)$ (before: at $\bar X_d$), and its posterior
   SD includes $\sigma_e^2/(N_d - n_d)$.
+* `hb_unit()` (Gaussian, non-spatial): INLA's posterior mode search now starts at the REML estimates
+  of the nested error model. Under the vague log-gamma prior it could stall near $\sigma^2_u = 0$
+  depending on the number of threads (e.g. $\hat\sigma^2_u \approx 1$ instead of $\approx 68$ on
+  `cornsoybean`). A `control.mode` passed through `inla_engine()` takes precedence.
 * `benchmark_sae(method = "optimal")`: the adjustment is now proportional to $w_i\,\mathrm{MSE}_i$, the
   minimiser of $\sum_i (\theta_i' - \hat\theta_i)^2/\mathrm{MSE}_i$ subject to the benchmark (before:
   $\mathrm{MSE}_i / w_i$). Results are unchanged for equal weights.
