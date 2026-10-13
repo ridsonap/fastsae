@@ -2,6 +2,7 @@
 * local macOS 26.6 (aarch64), R 4.6.1
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release, oldrel-1)
 * GitHub Actions, CRAN-like: Ubuntu (release), `--as-cran`, without the non-CRAN package 'INLA'
+* win-builder: R-release (4.6.1)
 
 ## R CMD check results
 
@@ -17,9 +18,12 @@
   tests call `skip_if_not_installed("INLA")`, and the vignette chunks that fit
   INLA models are evaluated only when 'INLA' is installed.
 
-Possibly misspelled words in DESCRIPTION are author names (Battese, Harter,
-Herriot, Marhuenda, Pratesi, Salvati, Torabi, Rao, Phan) and standard terms of the
-field (EBLUP, SAE, BYM, ICAR, RW, spatio, unsampled, benchmarking, INLA, NumPyro, JAX).
+  Possibly misspelled words in DESCRIPTION:
+    BYM, Besag, ICAR, Phan, RW, Rao, Torabi, spatio
+
+  These are author names (Besag, Phan, Rao, Torabi) and standard terms of the
+  field: BYM (Besag-York-Mollie model), ICAR (intrinsic conditional
+  autoregressive), RW (random walk, as in RW1/RW2) and "spatio-temporal".
 
 ## Optional Python backend
 `hb_area(engine = jax_engine())` fits models by MCMC with the Python libraries
