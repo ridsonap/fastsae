@@ -2,7 +2,7 @@
 * local macOS 26.6 (aarch64), R 4.6.1
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release, oldrel-1)
 * GitHub Actions, CRAN-like: Ubuntu (release), `--as-cran`, without the non-CRAN package 'INLA'
-* win-builder: R-release (4.6.1)
+* win-builder: R-devel and R-release (4.6.1)
 
 ## R CMD check results
 
