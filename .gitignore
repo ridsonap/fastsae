@@ -41,3 +41,6 @@ htmltools/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# pkgdown site, deployed to the gh-pages branch by CI
+docs/
