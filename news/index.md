@@ -88,6 +88,39 @@
   used (posterior draws or Wang-Fuller-Qu) instead of always reporting
   Wang-Fuller-Qu.
 
+#### Unsampled domains and missing periods in `eblup_stfh()`
+
+- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  no longer requires a complete panel. Cells whose response is `NA` –
+  missing periods of a sampled domain, or domains that are never sampled
+  – stay in the data and are predicted. The model is defined on the full
+  domain x time grid (the SAR effect on all domains of `W`, the AR(1)
+  effect on all periods); the variance components are estimated by REML
+  from the sampled cells (the marginal likelihood with the missing cells
+  integrated out), and every cell gets the best linear unbiased
+  predictor given the sampled data (Saei and Chambers, 2005; Benedetti
+  et al., 2024). A missing period borrows from the other periods of its
+  domain and from the neighbours; a domain never sampled is predicted
+  from its neighbours (spatial kriging).
+- Analytical MSE for those cells: $`g_1 + g_2 + g_3`$, with $`g_3`$ from
+  the exact derivative of the predictor in the variance components. The
+  further correction of the plug-in $`g_1`$ is not applied: it is
+  numerically unstable when $`\rho_1`$ approaches $`\pm 1`$ or a
+  variance component is weakly identified, and in Monte Carlo
+  $`g_1 + g_2 + g_3`$ has a relative bias within a few percent and close
+  to 95% coverage for these cells. The parametric bootstrap now draws
+  the random effects on the full grid, refits on the sampled cells and
+  covers every cell. `df_eblup` gains a `sampled` column;
+  [`print()`](https://rdrr.io/r/base/print.html) reports the number of
+  predicted cells. The auxiliary variables must be known in every cell,
+  and `W` must include the unsampled domains.
+- Results on complete panels are unchanged (bit-for-bit). The
+  predictions and every MSE term are tested against a dense
+  implementation, and `benchmarks/sim_stfh_unsampled.R` checks the MSE
+  estimators by Monte Carlo.
+- The examples now use the full `mys_panel` and `mys_proxmat` (domains
+  21 and 25 are unsampled).
+
 #### Statistical corrections (mathematical audit)
 
 - [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md):

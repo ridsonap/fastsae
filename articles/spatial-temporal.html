@@ -274,12 +274,12 @@ estimation:</p>
 <h3 id="model-formulation-1">Model Formulation<a class="anchor" aria-label="anchor" href="#model-formulation-1"></a>
 </h3>
 <p>The Spatio-Temporal model (Marhuenda, Molina, &amp; Morales, 2013)
-combines spatial correlation and temporal autoregression across a
-balanced panel of
+combines spatial correlation and temporal autoregression for
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
-areas observed over
+areas over
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
-time periods:</p>
+time periods. The panel does not need to be complete: cells without a
+direct estimate are predicted (see below).</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mrow><mi>d</mi><mi>t</mi></mrow></msub><mo>=</mo><msubsup><mi>x</mi><mrow><mi>d</mi><mi>t</mi></mrow><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mrow><mn>1</mn><mi>d</mi></mrow></msub><mo>+</mo><msub><mi>u</mi><mrow><mn>2</mn><mi>d</mi><mi>t</mi></mrow></msub><mo>+</mo><msub><mi>e</mi><mrow><mi>d</mi><mi>t</mi></mrow></msub></mrow><annotation encoding="application/x-tex">y_{dt} = x_{dt}^\top \beta + u_{1d} + u_{2dt} + e_{dt}</annotation></semantics></math></p>
 <p>where: -
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mn>1</mn></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mn>11</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>u</mi><mrow><mn>1</mn><mi>D</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mi>⊤</mi></msup></mrow><annotation encoding="application/x-tex">u_1 = (u_{11}, \dots, u_{1D})^\top</annotation></semantics></math>
@@ -293,6 +293,14 @@ captures dynamic temporal effects for area
 -
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mrow><mi>d</mi><mi>t</mi></mrow></msub><mo>∼</mo><mrow><mtext mathvariant="normal">ind. </mtext><mspace width="0.333em"></mspace></mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msub><mi>D</mi><mrow><mi>d</mi><mi>t</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">e_{dt} \sim \text{ind. } N(0, D_{dt})</annotation></semantics></math>
 are sampling errors.</p>
+<p>The model is defined on the full
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>×</mo><mi>T</mi></mrow><annotation encoding="application/x-tex">D \times T</annotation></semantics></math>
+grid:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mn>1</mn></msub><annotation encoding="application/x-tex">u_1</annotation></semantics></math>
+on all domains of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mn>2</mn></msub><annotation encoding="application/x-tex">u_2</annotation></semantics></math>
+on all periods.</p>
 </div>
 <div class="section level3">
 <h3 id="fitting-the-spatio-temporal-model">Fitting the Spatio-Temporal Model<a class="anchor" aria-label="anchor" href="#fitting-the-spatio-temporal-model"></a>
@@ -300,18 +308,20 @@ are sampling errors.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mys_panel"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Prepare balanced panel without missing values</span></span>
-<span><span class="va">panel_data</span> <span class="op">&lt;-</span> <span class="va">mys_panel</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys_panel</span><span class="op">$</span><span class="va">y</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">mys_panel</span><span class="op">$</span><span class="va">year</span> <span class="op">&gt;=</span> <span class="fl">2024</span>, <span class="op">]</span></span>
-<span><span class="va">W_sub</span> <span class="op">&lt;-</span> <span class="va">mys_proxmat</span><span class="op">[</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">21</span>, <span class="fl">25</span><span class="op">)</span>, <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">21</span>, <span class="fl">25</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co"># 42 domains x 11 years; y is NA for the two domains that are never sampled</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span>sampled <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys_panel</span><span class="op">$</span><span class="va">y</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; sampled</span></span>
+<span><span class="co">#&gt; FALSE  TRUE </span></span>
+<span><span class="co">#&gt;    22   440</span></span>
 <span></span>
-<span><span class="co"># Fit Spatio-Temporal model with the analytical MSE</span></span>
+<span><span class="co"># Fit Spatio-Temporal model with the analytical MSE, on the full panel and full W</span></span>
 <span><span class="va">fit_stfh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_stfh.html">eblup_stfh</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
-<span>  data <span class="op">=</span> <span class="va">panel_data</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">mys_panel</span>,</span>
 <span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
 <span>  domain <span class="op">=</span> <span class="op">~</span><span class="va">area</span>,</span>
 <span>  time <span class="op">=</span> <span class="op">~</span><span class="va">year</span>,</span>
-<span>  W <span class="op">=</span> <span class="va">W_sub</span>,</span>
+<span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
 <span>  model <span class="op">=</span> <span class="st">"ST"</span>,</span>
 <span>  compute_mse <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -321,40 +331,41 @@ are sampling errors.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Summary of fastsae Fit</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────────</span></span></span>
 <span><span class="co">#&gt; Call :</span></span>
-<span><span class="co">#&gt; eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = panel_data,</span></span>
-<span><span class="co">#&gt; domain = ~area, time = ~year, W = W_sub, model = "ST", compute_mse = TRUE,</span></span>
-<span><span class="co">#&gt; print_result = FALSE)</span></span>
+<span><span class="co">#&gt; eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,</span></span>
+<span><span class="co">#&gt; domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =</span></span>
+<span><span class="co">#&gt; TRUE, print_result = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 7 iterations)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 6 iterations)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Method</span>: REML</span></span>
+<span><span class="co">#&gt; <span style="font-weight: bold;">Cells without a direct estimate</span>: 22 of 462 (predicted from the model)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance &amp; Correlation Components:</span></span>
-<span><span class="co">#&gt;    estimate std.error</span></span>
-<span><span class="co">#&gt;   2.6699676 0.7419111</span></span>
-<span><span class="co">#&gt;  -0.9990000        NA</span></span>
-<span><span class="co">#&gt;   0.0000000 0.1473516</span></span>
-<span><span class="co">#&gt;   0.3477329        NA</span></span>
+<span><span class="co">#&gt;    estimate  std.error</span></span>
+<span><span class="co">#&gt;   3.0097493 0.73927860</span></span>
+<span><span class="co">#&gt;  -0.9990000         NA</span></span>
+<span><span class="co">#&gt;   0.0000000 0.02919626</span></span>
+<span><span class="co">#&gt;   0.6990148         NA</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;                   beta  std.error     zvalue pvalue</span></span>
-<span><span class="co">#&gt; (Intercept)  3.7761285  0.5612917  6.7275685 0.0000</span></span>
-<span><span class="co">#&gt; x1          -0.0021031  0.0069943 -0.3006916 0.7636</span></span>
-<span><span class="co">#&gt; x2           0.0394660  0.0362503  1.0887079 0.2763</span></span>
-<span><span class="co">#&gt; x3           0.0344259  0.0349429  0.9852041 0.3245</span></span>
+<span><span class="co">#&gt;                  beta std.error    zvalue pvalue</span></span>
+<span><span class="co">#&gt; (Intercept) 3.7678722 0.5081862 7.4143538 0.0000</span></span>
+<span><span class="co">#&gt; x1          0.0043437 0.0064446 0.6739969 0.5003</span></span>
+<span><span class="co">#&gt; x2          0.0295089 0.0285202 1.0346694 0.3008</span></span>
+<span><span class="co">#&gt; x3          0.0170470 0.0277773 0.6137011 0.5394</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;   loglike       AIC       BIC </span></span>
-<span><span class="co">#&gt; -198.2219  412.4438  434.7437 </span></span>
+<span><span class="co">#&gt; -599.5698 1215.1395 1247.8337 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBLUP Summary Statistics:</span></span>
-<span><span class="co">#&gt;       mse              rse         </span></span>
-<span><span class="co">#&gt;  Min.   :0.1286   Min.   :  5.791  </span></span>
-<span><span class="co">#&gt;  1st Qu.:0.2735   1st Qu.:  9.516  </span></span>
-<span><span class="co">#&gt;  Median :0.3681   Median : 10.835  </span></span>
-<span><span class="co">#&gt;  Mean   :0.4665   Mean   : 15.801  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:0.4572   3rd Qu.: 14.707  </span></span>
-<span><span class="co">#&gt;  Max.   :1.7254   Max.   :119.247</span></span></code></pre></div>
+<span><span class="co">#&gt;       mse               rse          </span></span>
+<span><span class="co">#&gt;  Min.   :0.03419   Min.   :   3.025  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.08203   1st Qu.:   5.250  </span></span>
+<span><span class="co">#&gt;  Median :0.11194   Median :   6.135  </span></span>
+<span><span class="co">#&gt;  Mean   :0.30853   Mean   :  33.247  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:0.16274   3rd Qu.:   9.442  </span></span>
+<span><span class="co">#&gt;  Max.   :3.49903   Max.   :4158.617</span></span></code></pre></div>
 <p>The estimated variance and correlation components include: -
 <code>sigma21</code>: Spatial random effect variance
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>σ</mi><mrow><mi>u</mi><mn>1</mn></mrow><mn>2</mn></msubsup><annotation encoding="application/x-tex">\sigma_{u1}^2</annotation></semantics></math>).
@@ -377,6 +388,46 @@ the components are returned as <code>fit_stfh$g1</code>, …,
 <code>fit_stfh$g4</code>. A parametric bootstrap MSE is available with
 <code>mse_type = "bootstrap"</code> (and <code>B</code>,
 <code>seed</code>).</p>
+</div>
+<div class="section level3">
+<h3 id="unsampled-domains-and-missing-periods">Unsampled Domains and Missing Periods<a class="anchor" aria-label="anchor" href="#unsampled-domains-and-missing-periods"></a>
+</h3>
+<p>Rows whose response is <code>NA</code> are kept and predicted, as
+long as the auxiliary variables are known there. The variance components
+are estimated from the sampled cells only (the marginal likelihood with
+the missing cells integrated out), and each missing cell gets the best
+linear unbiased predictor given the sampled data (Saei &amp; Chambers,
+2005; Benedetti et al., 2024):</p>
+<ul>
+<li>a <strong>missing period</strong> of a sampled domain borrows from
+the other periods of that domain (AR(1) correlation) and from the
+neighbouring domains (SAR);</li>
+<li>a <strong>domain that is never sampled</strong> is predicted from
+its neighbours only (spatial kriging), so <code>W</code> must keep
+it.</li>
+</ul>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">est</span> <span class="op">&lt;-</span> <span class="va">fit_stfh</span><span class="op">$</span><span class="va">df_eblup</span></span>
+<span><span class="co"># Cells predicted without a direct estimate</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">est</span><span class="op">[</span><span class="op">!</span><span class="va">est</span><span class="op">$</span><span class="va">sampled</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"eblup"</span>, <span class="st">"mse"</span>, <span class="st">"rse"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     domain time    eblup      mse      rse</span></span>
+<span><span class="co">#&gt; 21      21 2016 4.272921 3.387713 43.07531</span></span>
+<span><span class="co">#&gt; 25      25 2016 5.068564 3.392035 36.33668</span></span>
+<span><span class="co">#&gt; 63      21 2017 4.288377 3.373262 42.82842</span></span>
+<span><span class="co">#&gt; 67      25 2017 5.090982 3.425226 36.35323</span></span>
+<span><span class="co">#&gt; 105     21 2018 4.291477 3.383788 42.86421</span></span>
+<span><span class="co">#&gt; 109     25 2018 5.061127 3.456327 36.73331</span></span>
+<span></span>
+<span><span class="co"># Their MSE is larger: no direct estimate, only borrowed strength</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">est</span><span class="op">$</span><span class="va">mse</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">est</span><span class="op">$</span><span class="va">sampled</span>, <span class="st">"sampled"</span>, <span class="st">"unsampled"</span><span class="op">)</span>, <span class="va">median</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   sampled unsampled </span></span>
+<span><span class="co">#&gt; 0.1097652 3.3971235</span></span></code></pre></div>
+<p>For these cells the analytical MSE is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mn>1</mn></msub><mo>+</mo><msub><mi>g</mi><mn>2</mn></msub><mo>+</mo><msub><mi>g</mi><mn>3</mn></msub></mrow><annotation encoding="application/x-tex">g_1 + g_2 + g_3</annotation></semantics></math>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>g</mi><mn>3</mn></msub><annotation encoding="application/x-tex">g_3</annotation></semantics></math>
+from the exact derivative of the predictor in the variance components);
+the bootstrap generates the random effects on the full grid and covers
+every cell too.</p>
 <hr>
 </div>
 </div>
@@ -385,7 +436,7 @@ the components are returned as <code>fit_stfh$g1</code>, …,
 </h2>
 <p>You can directly compare EBLUP estimates and uncertainty across
 different models using <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compare Fay-Herriot vs Spatial Fay-Herriot</span></span>
 <span><span class="va">fit_fh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">mys</span><span class="op">)</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">W_clean</span> <span class="op">&lt;-</span> <span class="va">mys_proxmat</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys</span><span class="op">$</span><span class="va">y</span><span class="op">)</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys</span><span class="op">$</span><span class="va">y</span><span class="op">)</span><span class="op">]</span></span>
@@ -416,12 +467,20 @@ Estimation with INLA</a>.</p>
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ul>
+<li>Benedetti, R., Piersimoni, F., Pratesi, M., Salvati, N., &amp;
+Suesse, T. (2024). Handling out-of-sample areas to estimate the
+unemployment rate at local labour market areas in Italy.
+<em>International Statistical Review</em>. <a href="https://doi.org/10.1111/insr.12596" class="external-link uri">https://doi.org/10.1111/insr.12596</a>
+</li>
 <li>Marhuenda, Y., Molina, I., &amp; Morales, D. (2013). Small area
 estimation with spatio-temporal Fay-Herriot models. <em>Computational
 Statistics &amp; Data Analysis</em>, 58, 308–325.</li>
 <li>Pratesi, M., &amp; Salvati, N. (2008). Small area estimation for
 spatially correlated data: A Fay-Herriot with the spatial linear spline
 model. <em>Journal of Applied Statistics</em>, 35(7), 781–794.</li>
+<li>Saei, A., &amp; Chambers, R. (2005). Out of sample estimation for
+small areas using area level data. Southampton Statistical Sciences
+Research Institute, Methodology Working Paper M05/11.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

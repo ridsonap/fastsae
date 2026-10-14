@@ -164,8 +164,9 @@ head(fit_sfh_pb$df_eblup[, c("domain", "y", "eblup", "mse", "mse_pb", "mse_pbbc"
 ### Model Formulation
 
 The Spatio-Temporal model (Marhuenda, Molina, & Morales, 2013) combines
-spatial correlation and temporal autoregression across a balanced panel
-of $`D`$ areas observed over $`T`$ time periods:
+spatial correlation and temporal autoregression for $`D`$ areas over
+$`T`$ time periods. The panel does not need to be complete: cells
+without a direct estimate are predicted (see below).
 
 ``` math
 y_{dt} = x_{dt}^\top \beta + u_{1d} + u_{2dt} + e_{dt}
@@ -178,24 +179,29 @@ effects for area $`d`$:
 $`u_{2dt} = \rho_2 u_{2d,t-1} + \epsilon_{2dt}`$. -
 $`e_{dt} \sim \text{ind. } N(0, D_{dt})`$ are sampling errors.
 
+The model is defined on the full $`D \times T`$ grid: $`u_1`$ on all
+domains of $`W`$, $`u_2`$ on all periods.
+
 ### Fitting the Spatio-Temporal Model
 
 ``` r
 
 data("mys_panel")
 
-# Prepare balanced panel without missing values
-panel_data <- mys_panel[!is.na(mys_panel$y) & mys_panel$year >= 2024, ]
-W_sub <- mys_proxmat[-c(21, 25), -c(21, 25)]
+# 42 domains x 11 years; y is NA for the two domains that are never sampled
+table(sampled = !is.na(mys_panel$y))
+#> sampled
+#> FALSE  TRUE 
+#>    22   440
 
-# Fit Spatio-Temporal model with the analytical MSE
+# Fit Spatio-Temporal model with the analytical MSE, on the full panel and full W
 fit_stfh <- eblup_stfh(
   formula = y ~ x1 + x2 + x3,
-  data = panel_data,
+  data = mys_panel,
   vardir = ~vardir,
   domain = ~area,
   time = ~year,
-  W = W_sub,
+  W = mys_proxmat,
   model = "ST",
   compute_mse = TRUE,
   print_result = FALSE
@@ -205,40 +211,41 @@ summary(fit_stfh)
 #> 
 #> ── Summary of fastsae Fit ──────────────────────────────────────────────────────
 #> Call :
-#> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = panel_data,
-#> domain = ~area, time = ~year, W = W_sub, model = "ST", compute_mse = TRUE,
-#> print_result = FALSE)
+#> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,
+#> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =
+#> TRUE, print_result = FALSE)
 #> 
-#> ✔ Convergence: Yes (in 7 iterations)
+#> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
+#> Cells without a direct estimate: 22 of 462 (predicted from the model)
 #> 
 #> Variance & Correlation Components:
-#>    estimate std.error
-#>   2.6699676 0.7419111
-#>  -0.9990000        NA
-#>   0.0000000 0.1473516
-#>   0.3477329        NA
+#>    estimate  std.error
+#>   3.0097493 0.73927860
+#>  -0.9990000         NA
+#>   0.0000000 0.02919626
+#>   0.6990148         NA
 #> 
 #> Coefficients:
-#>                   beta  std.error     zvalue pvalue
-#> (Intercept)  3.7761285  0.5612917  6.7275685 0.0000
-#> x1          -0.0021031  0.0069943 -0.3006916 0.7636
-#> x2           0.0394660  0.0362503  1.0887079 0.2763
-#> x3           0.0344259  0.0349429  0.9852041 0.3245
+#>                  beta std.error    zvalue pvalue
+#> (Intercept) 3.7678722 0.5081862 7.4143538 0.0000
+#> x1          0.0043437 0.0064446 0.6739969 0.5003
+#> x2          0.0295089 0.0285202 1.0346694 0.3008
+#> x3          0.0170470 0.0277773 0.6137011 0.5394
 #> 
 #> Goodness of Fit:
 #>   loglike       AIC       BIC 
-#> -198.2219  412.4438  434.7437 
+#> -599.5698 1215.1395 1247.8337 
 #> 
 #> EBLUP Summary Statistics:
-#>       mse              rse         
-#>  Min.   :0.1286   Min.   :  5.791  
-#>  1st Qu.:0.2735   1st Qu.:  9.516  
-#>  Median :0.3681   Median : 10.835  
-#>  Mean   :0.4665   Mean   : 15.801  
-#>  3rd Qu.:0.4572   3rd Qu.: 14.707  
-#>  Max.   :1.7254   Max.   :119.247
+#>       mse               rse          
+#>  Min.   :0.03419   Min.   :   3.025  
+#>  1st Qu.:0.08203   1st Qu.:   5.250  
+#>  Median :0.11194   Median :   6.135  
+#>  Mean   :0.30853   Mean   :  33.247  
+#>  3rd Qu.:0.16274   3rd Qu.:   9.442  
+#>  Max.   :3.49903   Max.   :4158.617
 ```
 
 The estimated variance and correlation components include: - `sigma21`:
@@ -252,6 +259,45 @@ the exact derivative of the EBLUP in $`g_3`$ and the curvature term
 $`g_4`$ for the nonlinear $`\rho_1`$, $`\rho_2`$); the components are
 returned as `fit_stfh$g1`, …, `fit_stfh$g4`. A parametric bootstrap MSE
 is available with `mse_type = "bootstrap"` (and `B`, `seed`).
+
+### Unsampled Domains and Missing Periods
+
+Rows whose response is `NA` are kept and predicted, as long as the
+auxiliary variables are known there. The variance components are
+estimated from the sampled cells only (the marginal likelihood with the
+missing cells integrated out), and each missing cell gets the best
+linear unbiased predictor given the sampled data (Saei & Chambers, 2005;
+Benedetti et al., 2024):
+
+- a **missing period** of a sampled domain borrows from the other
+  periods of that domain (AR(1) correlation) and from the neighbouring
+  domains (SAR);
+- a **domain that is never sampled** is predicted from its neighbours
+  only (spatial kriging), so `W` must keep it.
+
+``` r
+
+est <- fit_stfh$df_eblup
+# Cells predicted without a direct estimate
+head(est[!est$sampled, c("domain", "time", "eblup", "mse", "rse")])
+#>     domain time    eblup      mse      rse
+#> 21      21 2016 4.272921 3.387713 43.07531
+#> 25      25 2016 5.068564 3.392035 36.33668
+#> 63      21 2017 4.288377 3.373262 42.82842
+#> 67      25 2017 5.090982 3.425226 36.35323
+#> 105     21 2018 4.291477 3.383788 42.86421
+#> 109     25 2018 5.061127 3.456327 36.73331
+
+# Their MSE is larger: no direct estimate, only borrowed strength
+tapply(est$mse, ifelse(est$sampled, "sampled", "unsampled"), median)
+#>   sampled unsampled 
+#> 0.1097652 3.3971235
+```
+
+For these cells the analytical MSE is $`g_1 + g_2 + g_3`$ ($`g_3`$ from
+the exact derivative of the predictor in the variance components); the
+bootstrap generates the random effects on the full grid and covers every
+cell too.
 
 ------------------------------------------------------------------------
 
@@ -295,9 +341,16 @@ INLA](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md).
 
 ## References
 
+- Benedetti, R., Piersimoni, F., Pratesi, M., Salvati, N., & Suesse, T.
+  (2024). Handling out-of-sample areas to estimate the unemployment rate
+  at local labour market areas in Italy. *International Statistical
+  Review*. <https://doi.org/10.1111/insr.12596>
 - Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation
   with spatio-temporal Fay-Herriot models. *Computational Statistics &
   Data Analysis*, 58, 308–325.
 - Pratesi, M., & Salvati, N. (2008). Small area estimation for spatially
   correlated data: A Fay-Herriot with the spatial linear spline model.
   *Journal of Applied Statistics*, 35(7), 781–794.
+- Saei, A., & Chambers, R. (2005). Out of sample estimation for small
+  areas using area level data. Southampton Statistical Sciences Research
+  Institute, Methodology Working Paper M05/11.

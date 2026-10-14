@@ -48,17 +48,21 @@ eblup_stfh(
 - vardir:
 
   vector, column name or one-sided formula referencing a column in
-  `data`, with the sampling variances of the direct estimator.
+  `data`, with the sampling variances of the direct estimator. Must be
+  positive in the sampled cells; it is ignored (may be `NA`) where the
+  response is `NA`.
 
 - data:
 
-  a data frame (or extension) with `domain * time` rows (balanced
-  panel). Rows may be in any order: they are sorted internally into the
-  domain-major order required by the model (domains in order of first
-  appearance, periods increasing), and the results are returned in the
-  original row order. Note that
+  a data frame (or extension) with one row per domain and time period
+  (`domain * time` rows), including the cells without a direct estimate:
+  for those, the response (and `vardir`) is `NA`, while the auxiliary
+  variables must be available (see Details). Rows may be in any order:
+  they are sorted internally into the domain-major order required by the
+  model (domains in order of first appearance, periods increasing), and
+  the results are returned in the original row order. Note that
   [`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html)
-  instead assumes the data are already in domain-major order.
+  instead assumes a complete panel already in domain-major order.
 
 - domain:
 
@@ -75,7 +79,9 @@ eblup_stfh(
   a square proximity/spatial weights matrix of dimension
   `domain x domain` (row-standardized, values typically in \\\[0,1\]\\),
   with rows and columns in the order in which the domains first appear
-  in `data`.
+  in `data`. It must cover all domains, including the ones that are
+  never sampled: do not drop them from `W`, since their predictions
+  borrow strength from their neighbours through it.
 
 - model:
 
@@ -183,7 +189,9 @@ A list with the same structure as `seblup_area()`, with additional
 
 - `df_eblup`:
 
-  data frame with eblup, mse, rse, random_effect_u1, random_effect_u2.
+  data frame with domain, time, y, eblup, vardir, mse, rse,
+  random_effect_u1, random_effect_u2 and `sampled` (`FALSE` for the
+  cells predicted without a direct estimate).
 
 - `model`:
 
@@ -204,10 +212,40 @@ A list with the same structure as `seblup_area()`, with additional
 
 ## Details
 
-This function requires a complete panel (no NA values in the response
-variable). If your data contains NA values (unsampled areas/time
-periods), please filter them out before calling this function. Future
-versions may support automatic handling of unsampled areas.
+**Unsampled domains and missing periods.** Cells whose response is `NA`
+(a domain without a sample in some period, or in every period) are not
+dropped. The model is defined on the full \\D \times T\\ grid: the SAR
+effect \\u_1\\ lives on all \\D\\ domains of `W` and the AR(1) effect
+\\u_2\\ on all \\T\\ periods. The variance components are estimated by
+REML from the sampled cells, i.e. from the marginal likelihood with the
+missing cells integrated out (missing at random), and every cell gets
+the best linear unbiased predictor of \\x\_{dt}'\beta + u\_{1d} +
+u\_{2dt}\\ given the sampled data (Saei and Chambers, 2005; Benedetti et
+al., 2024 for the spatial effect): \$\$\tilde\theta\_{dt} =
+x\_{dt}'\tilde\beta + a\_{dt}' V^{-1} (y - X\tilde\beta),\$\$ with
+\\a\_{dt}\\ the covariance between the cell and the sampled direct
+estimates. A missing period of a sampled domain borrows from the other
+periods of the domain (AR(1)) and from the neighbours (SAR); a domain
+that is never sampled is predicted from its neighbours only (spatial
+kriging). With `model = "S"` the period effect of a missing cell is
+independent of the data, so only the spatial part is borrowed.
+
+**MSE.** For sampled cells the analytical MSE is \\g_1 + g_2 + 2 g_3 -
+g_4\\ (Marhuenda et al., 2013). For the cells predicted without a direct
+estimate it is \\g_1 + g_2 + g_3\\, where \\g_1\\ and \\g_2\\ are the
+MSE of the predictor with known variance components and \\g_3\\ comes
+from the exact derivative of the predictor in those components (`g4` is
+0 for these cells). The further second-order correction of the plug-in
+\\g_1\\ is not applied: it is numerically unstable when \\\rho_1\\
+approaches \\\pm 1\\ or a variance component is weakly identified, while
+in simulations \\g_1 + g_2 + g_3\\ has a relative bias of a few percent
+and close to nominal coverage for these cells. The parametric bootstrap
+generates the random effects on the full grid and the sampling errors on
+the sampled cells, re-estimates the model on the sampled cells and
+predicts every cell, so it covers both kinds of cells. The auxiliary
+variables must be known for every cell, since they enter the prediction.
+Self-benchmarking calibrates the weighted aggregate of the sampled cells
+of each group.
 
 ## References
 
@@ -218,106 +256,131 @@ versions may support automatic handling of unsampled areas.
 2.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
     Sons.
 
+3.  Saei, A., & Chambers, R. (2005). Out of sample estimation for small
+    areas using area level data. Southampton Statistical Sciences
+    Research Institute, Methodology Working Paper M05/11.
+
+4.  Benedetti, R., Piersimoni, F., Pratesi, M., Salvati, N., &
+    Suesse, T. (2024). Handling out-of-sample areas to estimate the
+    unemployment rate at local labour market areas in Italy.
+    International Statistical Review.
+    [doi:10.1111/insr.12596](https://doi.org/10.1111/insr.12596)
+
 ## Examples
 
 ``` r
 library(fastsae)
-library(dplyr)
 
-mys_panel_nona <- mys_panel |>
-  filter(!is.na(y) & year >= 2024)
-
-# Basic EBLUP without MSE
+# mys_panel: 42 domains x 11 years; domains 21 and 25 are never sampled (y = NA).
+# They stay in the data and in W, and are predicted from their neighbours.
 m1 <- eblup_stfh(
   y ~ x1 + x2 + x3,
-  data = mys_panel_nona,
+  data = mys_panel,
   vardir = ~vardir,
   domain = ~area,
   time = ~year,
-  W = mys_proxmat[-c(21, 25), -c(21, 25)],
+  W = mys_proxmat,
   model = "ST"
 )
+#> ℹ Predicting 22 cells without a direct estimate: 2 unsampled domains (spatial borrowing) and 0 missing periods of sampled domains.
 #> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
-#> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel_nona,
-#> domain = ~area, time = ~year, W = mys_proxmat[-c(21, 25), -c(21, 25)], model =
-#> "ST")
+#> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,
+#> domain = ~area, time = ~year, W = mys_proxmat, model = "ST")
 #> 
-#> ✔ Convergence: Yes (in 7 iterations)
+#> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
+#> Cells without a direct estimate: 22 of 462 (predicted from the model)
 #> 
 #> Fixed Effects Coefficients:
-#>                   beta  std.error     zvalue pvalue
-#> (Intercept)  3.7761285  0.5612917  6.7275685 0.0000
-#> x1          -0.0021031  0.0069943 -0.3006916 0.7636
-#> x2           0.0394660  0.0362503  1.0887079 0.2763
-#> x3           0.0344259  0.0349429  0.9852041 0.3245
+#>                  beta std.error    zvalue pvalue
+#> (Intercept) 3.7678722 0.5081862 7.4143538 0.0000
+#> x1          0.0043437 0.0064446 0.6739969 0.5003
+#> x2          0.0295089 0.0285202 1.0346694 0.3008
+#> x3          0.0170470 0.0277773 0.6137011 0.5394
 #> 
 #> EBLUP Estimates (First 6 domains):
 #>   domain time        y    eblup    vardir mse rse mse_pb random_effect_u1
-#> 1      1 2024 8.408797 8.218580 0.6684322  NA  NA     NA        3.1764860
-#> 2      2 2024 7.746937 7.535062 0.8457547  NA  NA     NA        2.9153948
-#> 3      3 2024 5.902558 5.848560 0.8909541  NA  NA     NA        1.1749562
-#> 4      4 2024 4.326688 4.223733 0.6646833  NA  NA     NA       -1.4343861
-#> 5      5 2024 6.186035 6.394829 1.2914540  NA  NA     NA       -0.1137771
-#> 6      6 2024 4.455711 4.343114 0.3916371  NA  NA     NA       -0.7942036
-#>   random_effect_u2
-#> 1                0
-#> 2                0
-#> 3                0
-#> 4                0
-#> 5                0
-#> 6                0
-#> ... and 114 more rows.
+#> 1      1 2016 8.260507 8.299456 0.6618838  NA  NA     NA        3.0458267
+#> 2      2 2016 7.483862 7.659152 0.8374691  NA  NA     NA        2.8049129
+#> 3      3 2016 5.553658 5.516526 0.8822257  NA  NA     NA        0.8956749
+#> 4      4 2016 3.426513 3.974640 0.6581716  NA  NA     NA       -1.5328766
+#> 5      5 2016 6.457152 6.250714 1.2788021  NA  NA     NA        0.0755370
+#> 6      6 2016 3.608120 4.034304 0.3878004  NA  NA     NA       -1.1911829
+#>   random_effect_u2 sampled
+#> 1                0    TRUE
+#> 2                0    TRUE
+#> 3                0    TRUE
+#> 4                0    TRUE
+#> 5                0    TRUE
+#> 6                0    TRUE
+#> ... and 456 more rows.
 #> 
 
-# Fast Analytical Prasad-Rao MSE (< 0.05 seconds)
+# Analytical MSE for every cell, sampled or not
 m2 <- eblup_stfh(
   y ~ x1 + x2 + x3,
-  data = mys_panel_nona,
+  data = mys_panel,
   vardir = ~vardir,
   domain = ~area,
   time = ~year,
-  W = mys_proxmat[-c(21, 25), -c(21, 25)],
+  W = mys_proxmat,
   model = "ST",
   compute_mse = TRUE,
   mse_type = "analytical"
 )
+#> ℹ Predicting 22 cells without a direct estimate: 2 unsampled domains (spatial borrowing) and 0 missing periods of sampled domains.
 #> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
-#> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel_nona,
-#> domain = ~area, time = ~year, W = mys_proxmat[-c(21, 25), -c(21, 25)], model =
-#> "ST", compute_mse = TRUE, mse_type = "analytical")
+#> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,
+#> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =
+#> TRUE, mse_type = "analytical")
 #> 
-#> ✔ Convergence: Yes (in 7 iterations)
+#> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
+#> Cells without a direct estimate: 22 of 462 (predicted from the model)
 #> 
 #> Fixed Effects Coefficients:
-#>                   beta  std.error     zvalue pvalue
-#> (Intercept)  3.7761285  0.5612917  6.7275685 0.0000
-#> x1          -0.0021031  0.0069943 -0.3006916 0.7636
-#> x2           0.0394660  0.0362503  1.0887079 0.2763
-#> x3           0.0344259  0.0349429  0.9852041 0.3245
+#>                  beta std.error    zvalue pvalue
+#> (Intercept) 3.7678722 0.5081862 7.4143538 0.0000
+#> x1          0.0043437 0.0064446 0.6739969 0.5003
+#> x2          0.0295089 0.0285202 1.0346694 0.3008
+#> x3          0.0170470 0.0277773 0.6137011 0.5394
 #> 
 #> EBLUP Estimates (First 6 domains):
-#>   domain time        y    eblup    vardir       mse       rse mse_pb
-#> 1      1 2024 8.408797 8.218580 0.6684322 0.2460853  6.035955     NA
-#> 2      2 2024 7.746937 7.535062 0.8457547 0.2890231  7.134761     NA
-#> 3      3 2024 5.902558 5.848560 0.8909541 0.2994582  9.356625     NA
-#> 4      4 2024 4.326688 4.223733 0.6646833 0.2461954 11.747447     NA
-#> 5      5 2024 6.186035 6.394829 1.2914540 0.3990277  9.878080     NA
-#> 6      6 2024 4.455711 4.343114 0.3916371 0.1919143 10.086777     NA
-#>   random_effect_u1 random_effect_u2
-#> 1        3.1764860                0
-#> 2        2.9153948                0
-#> 3        1.1749562                0
-#> 4       -1.4343861                0
-#> 5       -0.1137771                0
-#> 6       -0.7942036                0
-#> ... and 114 more rows.
+#>   domain time        y    eblup    vardir        mse      rse mse_pb
+#> 1      1 2016 8.260507 8.299456 0.6618838 0.07410726 3.280052     NA
+#> 2      2 2016 7.483862 7.659152 0.8374691 0.08414180 3.787261     NA
+#> 3      3 2016 5.553658 5.516526 0.8822257 0.08890317 5.404965     NA
+#> 4      4 2016 3.426513 3.974640 0.6581716 0.07343003 6.817718     NA
+#> 5      5 2016 6.457152 6.250714 1.2788021 0.12494337 5.654927     NA
+#> 6      6 2016 3.608120 4.034304 0.3878004 0.05506711 5.816711     NA
+#>   random_effect_u1 random_effect_u2 sampled
+#> 1        3.0458267                0    TRUE
+#> 2        2.8049129                0    TRUE
+#> 3        0.8956749                0    TRUE
+#> 4       -1.5328766                0    TRUE
+#> 5        0.0755370                0    TRUE
+#> 6       -1.1911829                0    TRUE
+#> ... and 456 more rows.
 #> 
+head(m2$df_eblup[!m2$df_eblup$sampled, ])
+#>     domain time  y    eblup vardir      mse      rse mse_pb random_effect_u1
+#> 21      21 2016 NA 4.272921     NA 3.387713 43.07531     NA       0.04211971
+#> 25      25 2016 NA 5.068564     NA 3.392035 36.33668     NA      -0.02580847
+#> 63      21 2017 NA 4.288377     NA 3.373262 42.82842     NA       0.04211971
+#> 67      25 2017 NA 5.090982     NA 3.425226 36.35323     NA      -0.02580847
+#> 105     21 2018 NA 4.291477     NA 3.383788 42.86421     NA       0.04211971
+#> 109     25 2018 NA 5.061127     NA 3.456327 36.73331     NA      -0.02580847
+#>     random_effect_u2 sampled
+#> 21                 0   FALSE
+#> 25                 0   FALSE
+#> 63                 0   FALSE
+#> 67                 0   FALSE
+#> 105                0   FALSE
+#> 109                0   FALSE
 ```

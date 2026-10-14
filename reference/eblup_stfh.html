@@ -125,16 +125,20 @@ R implementation – especially for a large number of domains/time periods.</p>
 
 <dt id="arg-vardir">vardir<a class="anchor" aria-label="anchor" href="#arg-vardir"></a></dt>
 <dd><p>vector, column name or one-sided formula referencing a column
-in <code>data</code>, with the sampling variances of the direct estimator.</p></dd>
+in <code>data</code>, with the sampling variances of the direct estimator. Must be
+positive in the sampled cells; it is ignored (may be <code>NA</code>) where the
+response is <code>NA</code>.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>a data frame (or extension) with <code>domain * time</code> rows (balanced
-panel). Rows may be in any order: they are sorted internally into the
-domain-major order required by the model (domains in order of first appearance,
-periods increasing), and the results are returned in the original row order.
-Note that <code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code> instead assumes the data are already in
-domain-major order.</p></dd>
+<dd><p>a data frame (or extension) with one row per domain and time period
+(<code>domain * time</code> rows), including the cells without a direct estimate: for
+those, the response (and <code>vardir</code>) is <code>NA</code>, while the auxiliary
+variables must be available (see Details). Rows may be in any order: they are
+sorted internally into the domain-major order required by the model (domains in
+order of first appearance, periods increasing), and the results are returned in
+the original row order. Note that <code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code> instead assumes a
+complete panel already in domain-major order.</p></dd>
 
 
 <dt id="arg-domain">domain<a class="anchor" aria-label="anchor" href="#arg-domain"></a></dt>
@@ -150,7 +154,9 @@ in <code>data</code>.</p></dd>
 <dt id="arg-w">W<a class="anchor" aria-label="anchor" href="#arg-w"></a></dt>
 <dd><p>a square proximity/spatial weights matrix of dimension
 <code>domain x domain</code> (row-standardized, values typically in \([0,1]\)), with rows
-and columns in the order in which the domains first appear in <code>data</code>.</p></dd>
+and columns in the order in which the domains first appear in <code>data</code>. It must
+cover all domains, including the ones that are never sampled: do not drop them from
+<code>W</code>, since their predictions borrow strength from their neighbours through it.</p></dd>
 
 
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
@@ -246,7 +252,9 @@ grouping / stratum column in <code>data</code> (e.g. time period / year) for gro
 <dd><p>vector with loglike, AIC, BIC.</p></dd>
 
 <dt><code>df_eblup</code></dt>
-<dd><p>data frame with eblup, mse, rse, random_effect_u1, random_effect_u2.</p></dd>
+<dd><p>data frame with domain, time, y, eblup, vardir, mse, rse,
+random_effect_u1, random_effect_u2 and <code>sampled</code> (<code>FALSE</code> for the cells
+predicted without a direct estimate).</p></dd>
 
 When compute_mse = FALSE, mse and rse are NA.
 <dt><code>model</code></dt>
@@ -265,9 +273,34 @@ When compute_mse = FALSE, mse and rse are NA.
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This function requires a complete panel (no NA values in the response variable).
-If your data contains NA values (unsampled areas/time periods), please filter them out
-before calling this function. Future versions may support automatic handling of unsampled areas.</p>
+    <p><strong>Unsampled domains and missing periods.</strong> Cells whose response is <code>NA</code>
+(a domain without a sample in some period, or in every period) are not dropped. The
+model is defined on the full \(D \times T\) grid: the SAR effect \(u_1\) lives on
+all \(D\) domains of <code>W</code> and the AR(1) effect \(u_2\) on all \(T\) periods.
+The variance components are estimated by REML from the sampled cells, i.e. from the
+marginal likelihood with the missing cells integrated out (missing at random), and every
+cell gets the best linear unbiased predictor of \(x_{dt}'\beta + u_{1d} + u_{2dt}\)
+given the sampled data (Saei and Chambers, 2005; Benedetti et al., 2024 for the
+spatial effect):
+$$\tilde\theta_{dt} = x_{dt}'\tilde\beta + a_{dt}' V^{-1} (y - X\tilde\beta),$$
+with \(a_{dt}\) the covariance between the cell and the sampled direct estimates.
+A missing period of a sampled domain borrows from the other periods of the domain (AR(1))
+and from the neighbours (SAR); a domain that is never sampled is predicted from its
+neighbours only (spatial kriging). With <code>model = "S"</code> the period effect of a missing
+cell is independent of the data, so only the spatial part is borrowed.</p>
+<p><strong>MSE.</strong> For sampled cells the analytical MSE is \(g_1 + g_2 + 2 g_3 - g_4\)
+(Marhuenda et al., 2013). For the cells predicted without a direct estimate it is
+\(g_1 + g_2 + g_3\), where \(g_1\) and \(g_2\) are the MSE of the predictor with known
+variance components and \(g_3\) comes from the exact derivative of the predictor in those
+components (<code>g4</code> is 0 for these cells). The further second-order correction of the
+plug-in \(g_1\) is not applied: it is numerically unstable when \(\rho_1\) approaches
+\(\pm 1\) or a variance component is weakly identified, while in simulations
+\(g_1 + g_2 + g_3\) has a relative bias of a few percent and close to nominal coverage
+for these cells. The parametric bootstrap generates the
+random effects on the full grid and the sampling errors on the sampled cells, re-estimates
+the model on the sampled cells and predicts every cell, so it covers both kinds of cells.
+The auxiliary variables must be known for every cell, since they enter the prediction.
+Self-benchmarking calibrates the weighted aggregate of the sampled cells of each group.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -276,109 +309,130 @@ before calling this function. Future versions may support automatic handling of 
 with spatio-temporal Fay-Herriot models. Computational Statistics &amp; Data
 Analysis, 58, 308-325.</p></li>
 <li><p>Rao, J. N., &amp; Molina, I. (2015). Small area estimation. John Wiley &amp; Sons.</p></li>
+<li><p>Saei, A., &amp; Chambers, R. (2005). Out of sample estimation for small areas using
+area level data. Southampton Statistical Sciences Research Institute, Methodology
+Working Paper M05/11.</p></li>
+<li><p>Benedetti, R., Piersimoni, F., Pratesi, M., Salvati, N., &amp; Suesse, T. (2024).
+Handling out-of-sample areas to estimate the unemployment rate at local labour market
+areas in Italy. International Statistical Review. <a href="https://doi.org/10.1111/insr.12596" class="external-link">doi:10.1111/insr.12596</a></p></li>
 </ol></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae/">fastsae</a></span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">mys_panel_nona</span> <span class="op">&lt;-</span> <span class="va">mys_panel</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">year</span> <span class="op">&gt;=</span> <span class="fl">2024</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Basic EBLUP without MSE</span></span></span>
+<span class="r-in"><span><span class="co"># mys_panel: 42 domains x 11 years; domains 21 and 25 are never sampled (y = NA).</span></span></span>
+<span class="r-in"><span><span class="co"># They stay in the data and in W, and are predicted from their neighbours.</span></span></span>
 <span class="r-in"><span><span class="va">m1</span> <span class="op">&lt;-</span> <span class="fu">eblup_stfh</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span></span>
-<span class="r-in"><span>  data <span class="op">=</span> <span class="va">mys_panel_nona</span>,</span></span>
+<span class="r-in"><span>  data <span class="op">=</span> <span class="va">mys_panel</span>,</span></span>
 <span class="r-in"><span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span></span>
 <span class="r-in"><span>  domain <span class="op">=</span> <span class="op">~</span><span class="va">area</span>,</span></span>
 <span class="r-in"><span>  time <span class="op">=</span> <span class="op">~</span><span class="va">year</span>,</span></span>
-<span class="r-in"><span>  W <span class="op">=</span> <span class="va">mys_proxmat</span><span class="op">[</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">21</span>, <span class="fl">25</span><span class="op">)</span>, <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">21</span>, <span class="fl">25</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span></span>
 <span class="r-in"><span>  model <span class="op">=</span> <span class="st">"ST"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Predicting 22 cells without a direct estimate: 2 unsampled domains (spatial borrowing) and 0 missing periods of sampled domains.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel_nona,</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> domain = ~area, time = ~year, W = mys_proxmat[-c(21, 25), -c(21, 25)], model =</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> "ST")</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> domain = ~area, time = ~year, W = mys_proxmat, model = "ST")</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 7 iterations)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 6 iterations)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: REML</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Cells without a direct estimate</span>: 22 of 462 (predicted from the model)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                   beta  std.error     zvalue pvalue</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.7761285  0.5612917  6.7275685 0.0000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.0021031  0.0069943 -0.3006916 0.7636</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.0394660  0.0362503  1.0887079 0.2763</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.0344259  0.0349429  0.9852041 0.3245</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  beta std.error    zvalue pvalue</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) 3.7678722 0.5081862 7.4143538 0.0000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          0.0043437 0.0064446 0.6739969 0.5003</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2          0.0295089 0.0285202 1.0346694 0.3008</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3          0.0170470 0.0277773 0.6137011 0.5394</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain time        y    eblup    vardir mse rse mse_pb random_effect_u1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 2024 8.408797 8.218580 0.6684322  NA  NA     NA        3.1764860</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 2024 7.746937 7.535062 0.8457547  NA  NA     NA        2.9153948</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 2024 5.902558 5.848560 0.8909541  NA  NA     NA        1.1749562</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 2024 4.326688 4.223733 0.6646833  NA  NA     NA       -1.4343861</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 2024 6.186035 6.394829 1.2914540  NA  NA     NA       -0.1137771</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 2024 4.455711 4.343114 0.3916371  NA  NA     NA       -0.7942036</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   random_effect_u2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 114 more rows.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 2016 8.260507 8.299456 0.6618838  NA  NA     NA        3.0458267</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 2016 7.483862 7.659152 0.8374691  NA  NA     NA        2.8049129</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 2016 5.553658 5.516526 0.8822257  NA  NA     NA        0.8956749</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 2016 3.426513 3.974640 0.6581716  NA  NA     NA       -1.5328766</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 2016 6.457152 6.250714 1.2788021  NA  NA     NA        0.0755370</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 2016 3.608120 4.034304 0.3878004  NA  NA     NA       -1.1911829</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   random_effect_u2 sampled</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 456 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Fast Analytical Prasad-Rao MSE (&lt; 0.05 seconds)</span></span></span>
+<span class="r-in"><span><span class="co"># Analytical MSE for every cell, sampled or not</span></span></span>
 <span class="r-in"><span><span class="va">m2</span> <span class="op">&lt;-</span> <span class="fu">eblup_stfh</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span></span>
-<span class="r-in"><span>  data <span class="op">=</span> <span class="va">mys_panel_nona</span>,</span></span>
+<span class="r-in"><span>  data <span class="op">=</span> <span class="va">mys_panel</span>,</span></span>
 <span class="r-in"><span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span></span>
 <span class="r-in"><span>  domain <span class="op">=</span> <span class="op">~</span><span class="va">area</span>,</span></span>
 <span class="r-in"><span>  time <span class="op">=</span> <span class="op">~</span><span class="va">year</span>,</span></span>
-<span class="r-in"><span>  W <span class="op">=</span> <span class="va">mys_proxmat</span><span class="op">[</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">21</span>, <span class="fl">25</span><span class="op">)</span>, <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">21</span>, <span class="fl">25</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span></span>
 <span class="r-in"><span>  model <span class="op">=</span> <span class="st">"ST"</span>,</span></span>
 <span class="r-in"><span>  compute_mse <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  mse_type <span class="op">=</span> <span class="st">"analytical"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Predicting 22 cells without a direct estimate: 2 unsampled domains (spatial borrowing) and 0 missing periods of sampled domains.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel_nona,</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> domain = ~area, time = ~year, W = mys_proxmat[-c(21, 25), -c(21, 25)], model =</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> "ST", compute_mse = TRUE, mse_type = "analytical")</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> TRUE, mse_type = "analytical")</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 7 iterations)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 6 iterations)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: REML</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Cells without a direct estimate</span>: 22 of 462 (predicted from the model)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                   beta  std.error     zvalue pvalue</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.7761285  0.5612917  6.7275685 0.0000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.0021031  0.0069943 -0.3006916 0.7636</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.0394660  0.0362503  1.0887079 0.2763</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.0344259  0.0349429  0.9852041 0.3245</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  beta std.error    zvalue pvalue</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) 3.7678722 0.5081862 7.4143538 0.0000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          0.0043437 0.0064446 0.6739969 0.5003</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2          0.0295089 0.0285202 1.0346694 0.3008</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3          0.0170470 0.0277773 0.6137011 0.5394</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   domain time        y    eblup    vardir       mse       rse mse_pb</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 2024 8.408797 8.218580 0.6684322 0.2460853  6.035955     NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 2024 7.746937 7.535062 0.8457547 0.2890231  7.134761     NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 2024 5.902558 5.848560 0.8909541 0.2994582  9.356625     NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 2024 4.326688 4.223733 0.6646833 0.2461954 11.747447     NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 2024 6.186035 6.394829 1.2914540 0.3990277  9.878080     NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 2024 4.455711 4.343114 0.3916371 0.1919143 10.086777     NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   random_effect_u1 random_effect_u2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1        3.1764860                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        2.9153948                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3        1.1749562                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4       -1.4343861                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5       -0.1137771                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6       -0.7942036                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 114 more rows.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain time        y    eblup    vardir        mse      rse mse_pb</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 2016 8.260507 8.299456 0.6618838 0.07410726 3.280052     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 2016 7.483862 7.659152 0.8374691 0.08414180 3.787261     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 2016 5.553658 5.516526 0.8822257 0.08890317 5.404965     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 2016 3.426513 3.974640 0.6581716 0.07343003 6.817718     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 2016 6.457152 6.250714 1.2788021 0.12494337 5.654927     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 2016 3.608120 4.034304 0.3878004 0.05506711 5.816711     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   random_effect_u1 random_effect_u2 sampled</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1        3.0458267                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        2.8049129                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3        0.8956749                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4       -1.5328766                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        0.0755370                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6       -1.1911829                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 456 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">m2</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">[</span><span class="op">!</span><span class="va">m2</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">sampled</span>, <span class="op">]</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     domain time  y    eblup vardir      mse      rse mse_pb random_effect_u1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21      21 2016 NA 4.272921     NA 3.387713 43.07531     NA       0.04211971</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25      25 2016 NA 5.068564     NA 3.392035 36.33668     NA      -0.02580847</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 63      21 2017 NA 4.288377     NA 3.373262 42.82842     NA       0.04211971</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 67      25 2017 NA 5.090982     NA 3.425226 36.35323     NA      -0.02580847</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 105     21 2018 NA 4.291477     NA 3.383788 42.86421     NA       0.04211971</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 109     25 2018 NA 5.061127     NA 3.456327 36.73331     NA      -0.02580847</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     random_effect_u2 sampled</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21                 0   FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25                 0   FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 63                 0   FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 67                 0   FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 105                0   FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 109                0   FALSE</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
