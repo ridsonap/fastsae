@@ -46,10 +46,15 @@ their defaults.'><meta property="og:image" content="https://ridsonap.github.io/f
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU)</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/benchmarks.html">Benchmarks</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-benchmarks" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Benchmarks</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-benchmarks"><li><a class="dropdown-item" href="../articles/benchmarks.html">fastsae vs other SAE packages</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() engines: INLA vs JAX (CPU / Apple GPU)</a></li>
+  </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/ridsonap/fastsae" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -203,7 +208,11 @@ the fit reports the largest split R-hat and <code>convergence</code> is
 
 <dt id="arg-device">device<a class="anchor" aria-label="anchor" href="#arg-device"></a></dt>
 <dd><p><code>"auto"</code> (default: CUDA when available, otherwise CPU),
-<code>"cpu"</code>, <code>"cuda"</code> or <code>"metal"</code>.</p></dd>
+<code>"cpu"</code>, <code>"cuda"</code> or <code>"metal"</code> (Apple silicon GPU, through
+jax-metal). JAX fixes its device at the first fit of an R session.
+<code>"metal"</code> has a fixed cost of about two minutes per fit, so on Apple
+silicon it pays off only for large numbers of domains (thousands); for
+that reason <code>"auto"</code> uses the CPU on macOS.</p></dd>
 
 
 <dt id="arg-prior-beta">prior_beta<a class="anchor" aria-label="anchor" href="#arg-prior-beta"></a></dt>

@@ -8,6 +8,8 @@
   Truth](https://ridsonap.github.io/fastsae/articles/finite-population-validation.md):
 - [Getting Started with
   fastsae](https://ridsonap.github.io/fastsae/articles/getting-started.md):
+- [hb_area() Engines: INLA vs JAX on CPU and Apple GPU
+  (Metal)](https://ridsonap.github.io/fastsae/articles/hb-area-engines.md):
 - [Bayesian Area-Level Small Area Estimation with
   INLA](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md):
 - [Model Diagnostics and Residual

@@ -25,11 +25,11 @@
     function, so the defaults of each function are unchanged; settings a
     function does not use are ignored with a warning.
   - `jax_engine(warmup, samples, chains, device, seed, prior_beta, robust, keep_draws, progress)`
-    fits the same area-level models by full MCMC (NumPyro NUTS on JAX,
-    CPU or NVIDIA GPU) through ‘reticulate’ (Suggests); the engine
-    formerly shipped in the separate ‘fastsaegpu’ package now lives in
-    fastsae. It supports all six families,
-    `bym2`/`bym`/`besag`/`generic1` (alias `"leroux"`),
+    fits the same area-level models by full MCMC (NumPyro NUTS on JAX:
+    CPU, NVIDIA GPU or the Apple silicon GPU via `device = "metal"`)
+    through ‘reticulate’ (Suggests); the engine formerly shipped in the
+    separate ‘fastsaegpu’ package now lives in fastsae. It supports all
+    six families, `bym2`/`bym`/`besag`/`generic1` (alias `"leroux"`),
     `rw1`/`ar1`/`iid` and every `st_interaction`, plus
     `prior_beta = "horseshoe"` and `robust = TRUE` (Student-t area
     effects). Results have the same structure as the INLA engine, with
@@ -50,6 +50,16 @@
   `inla_engine(draws = )`, and the posterior draws for the area
   aggregates honour `seed`. Their results carry `engine` and
   `engine_spec` too.
+- `jax_engine(device = "metal")` now samples on the Apple GPU. jax-metal
+  cannot compile two operations of NumPyro’s NUTS sampler (the `popcnt`
+  bit count, and `lax.cond` statements whose outputs are constants), so
+  fits used to fall back to the CPU. fastsae now replaces both with
+  equivalent operations that Metal can compile, and steps the chains
+  from Python; the draws match the CPU sampler. On an Apple M4, Metal is
+  faster than the CPU for large models (about 2x at 10,000 domains) and
+  slower for small ones, where a fixed cost of about two minutes per fit
+  dominates (see the “hb_area() engines” benchmark article).
+  `device = "auto"` keeps using the CPU on macOS.
 - New
   [`setup_numpyro_env()`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)
   and

@@ -38,10 +38,15 @@ hb_area(engine = "jax") and activates it for reticulate.'><meta property="og:ima
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU)</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/benchmarks.html">Benchmarks</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-benchmarks" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Benchmarks</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-benchmarks"><li><a class="dropdown-item" href="../articles/benchmarks.html">fastsae vs other SAE packages</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() engines: INLA vs JAX (CPU / Apple GPU)</a></li>
+  </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/ridsonap/fastsae" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -89,7 +94,7 @@ hb_area(engine = "jax") and activates it for reticulate.'><meta property="og:ima
 <dd><p><code>"auto"</code> (CUDA if <code>nvidia-smi</code> is found, otherwise CPU), <code>"metal"</code>
 (Apple Silicon), <code>"cuda"</code> (NVIDIA), or <code>"cpu"</code>. Versions are pinned to tested
 combinations: <code>jax==0.5.0</code> and <code>numpyro==0.19.0</code> for CPU/CUDA; <code>jax==0.4.34</code>,
-<code>jaxlib==0.4.34</code>, <code>jax-metal==0.1.1</code> for Metal (NUTS still samples on CPU there).</p></dd>
+<code>jaxlib==0.4.34</code>, <code>jax-metal==0.1.1</code> for Metal.</p></dd>
 
 </dl></div>
     <div class="section level2">

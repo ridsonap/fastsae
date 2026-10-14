@@ -25,8 +25,7 @@ setup_numpyro_env(envname = "r-numpyro-gpu", method = "auto", device = "auto")
   `"auto"` (CUDA if `nvidia-smi` is found, otherwise CPU), `"metal"`
   (Apple Silicon), `"cuda"` (NVIDIA), or `"cpu"`. Versions are pinned to
   tested combinations: `jax==0.5.0` and `numpyro==0.19.0` for CPU/CUDA;
-  `jax==0.4.34`, `jaxlib==0.4.34`, `jax-metal==0.1.1` for Metal (NUTS
-  still samples on CPU there).
+  `jax==0.4.34`, `jaxlib==0.4.34`, `jax-metal==0.1.1` for Metal.
 
 ## Value
 

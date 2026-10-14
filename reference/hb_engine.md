@@ -143,7 +143,11 @@ print(x, ...)
 - device:
 
   `"auto"` (default: CUDA when available, otherwise CPU), `"cpu"`,
-  `"cuda"` or `"metal"`.
+  `"cuda"` or `"metal"` (Apple silicon GPU, through jax-metal). JAX
+  fixes its device at the first fit of an R session. `"metal"` has a
+  fixed cost of about two minutes per fit, so on Apple silicon it pays
+  off only for large numbers of domains (thousands); for that reason
+  `"auto"` uses the CPU on macOS.
 
 - prior_beta:
 

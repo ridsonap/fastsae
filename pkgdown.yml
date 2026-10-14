@@ -5,11 +5,12 @@ articles:
   benchmarks: benchmarks.html
   finite-population-validation: finite-population-validation.html
   getting-started: getting-started.html
+  articles/hb-area-engines: hb-area-engines.html
   hb-area-inla: hb-area-inla.html
   model-diagnostics: model-diagnostics.html
   spatial-temporal: spatial-temporal.html
   unit-level-bhf: unit-level-bhf.html
-last_built: 2026-10-13T23:16Z
+last_built: 2026-10-14T06:37Z
 urls:
   reference: https://ridsonap.github.io/fastsae/reference
   article: https://ridsonap.github.io/fastsae/articles
