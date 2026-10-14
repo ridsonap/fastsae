@@ -36,8 +36,7 @@ the same model by MCMC in Stan.
   `fit_sae(likelihood = "beta", spatial_error = TRUE)`, which also uses
   an ICAR effect.
 
-tipsae is run up to $`D = 1,000`$ only; larger grids take too long and
-need too much memory.
+tipsae is run for the Beta model only, up to $`D = 2,500`$.
 
 | Machine | CPU | GPU | Software | Date |
 |:---|:---|:---|:---|:---|
@@ -46,7 +45,8 @@ need too much memory.
 Each engine runs in a separate R process, because JAX fixes its device
 at the first fit of a session. Every fit is run 2 times on the same
 data. The first run includes JAX compilation; the tables and figure show
-the faster, warm run. JAX uses the
+the faster, warm run (the explorer can also show the first run). JAX
+uses the
 [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
 defaults (2 chains × 1,000 draws after 500 warmup), and tipsae uses its
 own defaults. The code is in
@@ -57,6 +57,15 @@ comparable with each other. The ratios within one machine are: GPU vs
 CPU, and INLA vs tipsae.
 
 ## Computation time
+
+Pick a model, a machine and the timing to show. Hover over a point for
+the time, the device and the R-hat of the fit.
+
+Computation time
+
+How much faster is INLA
+
+Static figure (all machines)
 
 ![Warm computation time (log scales). Lower is faster. One row per
 machine.](hb-area-engines_files/figure-html/time-plot-1.png)
@@ -73,16 +82,16 @@ machine.
 | Apple M4 | Beta | 100 | 1.2 s | 6.0 s | 110 s (metal) | 18.5x slower | 107 s | 87x faster |
 | Apple M4 | Beta | 500 | 1.4 s | 36 s | 136 s (metal) | 3.8x slower | 268 s | 186x faster |
 | Apple M4 | Beta | 1,000 | 1.8 s | 78 s | 201 s (metal) | 2.6x slower | 401 s | 224x faster |
-| Apple M4 | Beta | 2,500 | 3.2 s | 538 s | 393 s (metal) | **1.4x faster** | \- | \- |
+| Apple M4 | Beta | 2,500 | 3.2 s | 538 s | 393 s (metal) | **1.4x faster** | 946 s | 296x faster |
 
 The results:
 
 - **INLA is the fastest engine at every size.** It does not sample. For
   example, on Apple M4 the spatial Gaussian model at $`D = 2,500`$ takes
   2.5 s.
-- **tipsae.** At $`D = 1,000`$ on Apple M4, tipsae takes 401 s for the
-  spatial Beta model, INLA takes 1.8 s (224x faster), and JAX on the CPU
-  takes 78 s. So the JAX engine on the CPU is 5x to 18x faster than
+- **tipsae.** At $`D = 2,500`$ on Apple M4, tipsae takes 946 s for the
+  spatial Beta model, INLA takes 3.2 s (296x faster), and JAX on the CPU
+  takes 538 s. So the JAX engine on the CPU is 2x to 18x faster than
   tipsae on the sizes both ran.
 - **The JAX engine’s time grows quickly with $`D`$ for spatial models.**
   It represents the ICAR effect through the eigenvectors of the
@@ -125,6 +134,7 @@ the posterior standard deviations (engine / INLA).
 | Apple M4 | Beta     | tipsae    | 100   | 0.9939 |      0.08100 | 0.837    |
 | Apple M4 | Beta     | tipsae    | 500   | 0.9992 |      0.06900 | 0.798    |
 | Apple M4 | Beta     | tipsae    | 1,000 | 0.9991 |      0.03500 | 0.793    |
+| Apple M4 | Beta     | tipsae    | 2,500 | 0.9999 |      0.04800 | 0.766    |
 
 - **JAX engines.** On every device, the posterior means agree with INLA
   with correlations of at least 0.9999, and the same holds across
@@ -133,7 +143,7 @@ the posterior standard deviations (engine / INLA).
   same estimates.
 - **tipsae.** tipsae agrees with INLA with correlations of at least
   0.993. Its posterior standard deviations are smaller (median ratio
-  0.79 to 0.84), probably because the two packages use different priors.
+  0.77 to 0.84), probably because the two packages use different priors.
 - **Convergence.** Over all JAX fits, the largest split R-hat is 1.007.
   For tipsae it is 1.083 (at $`D = 1,000`$ on Apple M4), above the usual
   1.05 threshold, so its default run length is not quite enough there.
@@ -178,6 +188,6 @@ tipsae and JAX with CUDA, then run the same benchmark:
 - For most surveys (hundreds to a few thousand domains),
   [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
   is the fastest choice.
-- For full MCMC, the JAX engine is much faster than Stan via tipsae, on
-  the CPU alone.
+- For full MCMC, the JAX engine on the CPU alone is faster than Stan via
+  tipsae: 2x to 18x here, with the gap narrowing as $`D`$ grows.
 - A GPU becomes worthwhile for the JAX engine on large spatial models.
