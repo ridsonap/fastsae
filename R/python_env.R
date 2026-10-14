@@ -70,7 +70,7 @@ check_numpyro_available <- function(device = "auto") {
 #' @param device \code{"auto"} (CUDA if \code{nvidia-smi} is found, otherwise CPU), \code{"metal"}
 #'   (Apple Silicon), \code{"cuda"} (NVIDIA), or \code{"cpu"}. Versions are pinned to tested
 #'   combinations: \code{jax==0.5.0} and \code{numpyro==0.19.0} for CPU/CUDA; \code{jax==0.4.34},
-#'   \code{jaxlib==0.4.34}, \code{jax-metal==0.1.1} for Metal (NUTS still samples on CPU there).
+#'   \code{jaxlib==0.4.34}, \code{jax-metal==0.1.1} for Metal.
 #' @return Invisible logical \code{TRUE} upon successful setup.
 #' @seealso \code{\link{check_numpyro_available}}, \code{\link{hb_area}}
 #' @examples
@@ -86,7 +86,7 @@ setup_numpyro_env <- function(envname = "r-numpyro-gpu", method = "auto", device
   device <- match.arg(device, c("auto", "metal", "cuda", "cpu"))
 
   if (device == "auto") {
-    # Not "metal" on Apple Silicon: jax-metal cannot run NumPyro's NUTS
+    # Not "metal" on Apple Silicon: NUTS on Metal is slower than on the CPU
     device <- if (nzchar(Sys.which("nvidia-smi"))) "cuda" else "cpu"
   }
 
@@ -145,8 +145,8 @@ setup_numpyro_env <- function(envname = "r-numpyro-gpu", method = "auto", device
 .warn_device_fallback <- function(device, device_used) {
   if (device == "metal" && grepl("fallback", as.character(device_used))) {
     cli::cli_warn(c(
-      "The Metal backend could not compile NUTS (unsupported operation); sampling ran on CPU.",
-      "i" = "jax-metal does not implement the {.code popcnt} operation used by NumPyro's NUTS, so {.code device = 'metal'} always samples on CPU."
+      "The Metal backend could not compile the model; sampling ran on CPU.",
+      "i" = "jax-metal does not implement every JAX operation. Check the installation with {.code setup_numpyro_env(device = 'metal')}."
     ))
   } else if (device %in% c("metal", "cuda") && !grepl(device, as.character(device_used), ignore.case = TRUE)) {
     cli::cli_warn(c(

@@ -1,0 +1,213 @@
+---
+title: "hb_area() Engines: INLA vs JAX on CPU and Apple GPU (Metal)"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.width = 8, fig.height = 4.2, dpi = 110)
+library(ggplot2)
+
+bench_file <- Filter(file.exists, c(
+  file.path("..", "..", "inst", "extdata", "hb_engine_benchmark.rds"),
+  file.path("inst", "extdata", "hb_engine_benchmark.rds")
+))[1]
+bench <- readRDS(bench_file)
+tm <- bench$timings
+ag <- bench$agreement
+meta <- bench$meta
+
+engine_labels <- c(inla = "INLA (inla_engine)",
+                   cpu = "JAX NUTS, CPU (jax_engine(device = \"cpu\"))",
+                   metal = "JAX NUTS, Apple GPU (jax_engine(device = \"metal\"))")
+engine_colours <- c(inla = "#1D6A5C", cpu = "#E69F00", metal = "#7B5EA7")
+design_labels <- c(gaussian = "Fay-Herriot (Gaussian)", beta = "Beta (proportions)")
+short_labels <- c(gaussian = "Gaussian", beta = "Beta")
+tm$engine_f <- factor(tm$engine, levels = names(engine_labels))
+tm$design_f <- factor(design_labels[tm$design], levels = design_labels)
+fmt_s <- function(x) ifelse(x < 10, sprintf("%.1f s", x), sprintf("%s s", format(round(x), big.mark = ",")))
+n_max <- max(tm$n)
+at_max <- function(design, engine, col = "time_warm") {
+  tm[tm$design == design & tm$engine == engine & tm$n == n_max, col]
+}
+```
+
+`hb_area()` can be estimated by two engines:
+
+- **`inla_engine()`** (default): integrated nested Laplace approximation with
+  [INLA](https://www.r-inla.org).
+- **`jax_engine()`**: full MCMC with NumPyro's No-U-Turn sampler on
+  [JAX](https://jax.readthedocs.io). It runs on the CPU, on an NVIDIA GPU
+  (`device = "cuda"`) or on the GPU of Apple silicon (`device = "metal"`).
+
+This page compares the speed of the engines and how closely their estimates
+agree, on one Apple silicon machine.
+
+## Setup
+
+```{r setup-table}
+py <- meta$python
+knitr::kable(data.frame(
+  Item = c("Machine", "R", "fastsae", "INLA", "JAX / jax-metal / NumPyro", "MCMC settings",
+           "Data", "Timing"),
+  Value = c(meta$machine, meta$r_version, meta$fastsae, meta$inla,
+            if (is.null(py)) "-" else paste(py[["jax"]], "/", py[["jax-metal"]], "/", py[["numpyro"]]),
+            meta$jax_settings,
+            "`sim_area_data(D = n, n_unsampled = 0, seed = 42 + n)`; `y ~ x1 + x2`",
+            sprintf("Each fit run %d times on the same data; the first run includes JAX compilation", meta$reps))
+))
+```
+
+Each engine runs in a separate R process, because JAX fixes its device at
+the first fit of a session. The code is in
+[`benchmarks/bench_hb_area_engines.R`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/bench_hb_area_engines.R).
+
+## Computation time
+
+```{r time-plot, fig.cap = "Warm computation time (log scales). Lower is faster."}
+ggplot(tm, aes(n, time_warm, colour = engine_f)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2.2) +
+  facet_wrap(~design_f) +
+  scale_x_log10(labels = scales::label_comma()) +
+  scale_y_log10(labels = function(x) paste(format(x, scientific = FALSE, drop0trailing = TRUE), "s")) +
+  scale_colour_manual(values = engine_colours, labels = engine_labels, name = NULL) +
+  labs(x = "Number of domains (D)", y = "Time (seconds)") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom", legend.direction = "vertical",
+        panel.grid.minor = element_blank(), panel.spacing = grid::unit(1.5, "lines"))
+```
+
+```{r time-table}
+wide <- reshape(tm[, c("design", "n", "engine", "time_warm")], idvar = c("design", "n"),
+                timevar = "engine", direction = "wide")
+names(wide) <- sub("^time_warm\\.", "", names(wide))
+first <- reshape(tm[, c("design", "n", "engine", "time_first")], idvar = c("design", "n"),
+                 timevar = "engine", direction = "wide")
+names(first) <- sub("^time_first\\.", "", names(first))
+tab <- data.frame(
+  Model = design_labels[wide$design],
+  D = format(wide$n, big.mark = ","),
+  INLA = fmt_s(wide$inla),
+  `JAX CPU` = fmt_s(wide$cpu),
+  `JAX Metal` = fmt_s(wide$metal),
+  `JAX Metal, first run` = fmt_s(first$metal),
+  `Metal vs CPU` = ifelse(wide$metal > wide$cpu,
+                          sprintf("%.1fx slower", wide$metal / wide$cpu),
+                          sprintf("**%.1fx faster**", wide$cpu / wide$metal)),
+  check.names = FALSE
+)
+knitr::kable(tab[order(tab$Model, wide$n), ], row.names = FALSE, align = "lrrrrrr")
+```
+
+```{r crossover}
+speedup <- merge(tm[tm$engine == "metal", c("design", "n", "time_warm")],
+                 tm[tm$engine == "cpu", c("design", "n", "time_warm")],
+                 by = c("design", "n"), suffixes = c("_metal", "_cpu"))
+speedup$metal_faster <- speedup$time_warm_metal < speedup$time_warm_cpu
+first_metal <- function(design) {
+  s <- speedup[speedup$design == design & speedup$metal_faster, ]
+  if (nrow(s) == 0) NA else min(s$n)
+}
+cross <- vapply(names(design_labels), first_metal, numeric(1))
+cross_txt <- vapply(names(design_labels), function(d) {
+  if (is.na(cross[[d]])) {
+    sprintf("for the %s model the CPU is faster at every $D$ tested", short_labels[[d]])
+  } else {
+    sprintf("for the %s model Metal is faster at $D = %s$ and above", short_labels[[d]],
+            format(cross[[d]], big.mark = ","))
+  }
+}, character(1))
+metal_growth <- function(design) {
+  m <- tm[tm$design == design & tm$engine == "metal", ]
+  m$time_warm[m$n == max(m$n)] / m$time_warm[m$n == min(m$n)]
+}
+cpu_growth <- function(design) {
+  m <- tm[tm$design == design & tm$engine == "cpu", ]
+  m$time_warm[m$n == max(m$n)] / m$time_warm[m$n == min(m$n)]
+}
+```
+
+The results:
+
+- **INLA is the fastest engine at every size.** It does not sample, so its
+  time grows slowly with $D$. For example, the Gaussian model at
+  $D = `r format(n_max, big.mark = ",")`$ takes `r fmt_s(at_max("gaussian", "inla"))`.
+- **Metal has a large fixed cost per fit but grows slowly with $D$.** NUTS
+  builds each trajectory in a loop whose length depends on the data, and on
+  Metal every pass through that loop waits for the GPU and the CPU to
+  synchronise. For the Gaussian model, going from
+  $D = `r format(min(tm$n), big.mark = ",")`$ to
+  $D = `r format(n_max, big.mark = ",")`$ multiplies the Metal time by
+  `r sprintf("%.1f", metal_growth("gaussian"))` and the CPU time by
+  `r sprintf("%.0f", cpu_growth("gaussian"))`.
+- **CPU or GPU?** The CPU is faster for small and medium numbers of domains.
+  The GPU catches up as $D$ grows: `r paste(cross_txt, collapse = ", and ")`
+  (of the sizes tested).
+  `jax_engine(device = "auto")` therefore keeps the CPU on macOS, and
+  `device = "metal"` pays off only for large models.
+
+## Agreement of the estimates
+
+The JAX fits are compared with INLA on the same data. `cor` is the
+correlation of the posterior means, `max |diff|` is the largest absolute
+difference between them, and `sd ratio` is the median ratio of the
+posterior standard deviations (JAX / INLA).
+
+```{r agreement}
+ag_tab <- data.frame(
+  Model = design_labels[ag$design],
+  Engine = c(cpu = "JAX CPU", metal = "JAX Metal")[ag$engine],
+  D = format(ag$n, big.mark = ","),
+  cor = sprintf("%.5f", ag$cor_hb),
+  `max |diff|` = signif(ag$max_abs_diff_hb, 2),
+  `sd ratio` = sprintf("%.3f", ag$median_ratio_sd),
+  check.names = FALSE
+)
+knitr::kable(ag_tab[order(ag_tab$Model, ag_tab$Engine, ag$n), ], row.names = FALSE)
+```
+
+```{r rhat}
+rh <- tm[tm$engine != "inla", ]
+```
+
+```{r sd-range}
+sd_range <- function(design) {
+  r <- range(ag$median_ratio_sd[ag$design == design])
+  sprintf("%.2f to %.2f", r[1], r[2])
+}
+```
+
+The posterior means of both MCMC engines agree with INLA, with correlations of
+at least `r sprintf("%.4f", floor(min(ag$cor_hb) * 1e4) / 1e4)`. The posterior
+standard deviations agree closely for the Gaussian model (ratio
+`r sd_range("gaussian")`). For the Beta model they differ from INLA's by a
+few percent (ratio `r sd_range("beta")`, smaller from $D = 1,000$ on), on the
+CPU and on Metal alike. This difference comes from the method and the priors, which are
+not identical in the two engines, and not from the device. The GPU evaluates
+floating-point operations in a different order from the CPU, so the Metal and
+CPU chains differ slightly, but they give the same estimates. The largest
+split R-hat over all JAX fits is
+`r sprintf("%.3f", max(rh$rhat_max, na.rm = TRUE))`.
+
+## Using the Apple GPU
+
+```r
+# One-time setup of the Python environment with jax-metal
+fastsae::setup_numpyro_env(device = "metal")
+
+# In a new R session: request Metal before any other JAX fit
+fit <- hb_area(y ~ x1 + x2, vardir = "vardir", data = df,
+               engine = jax_engine(device = "metal"))
+fit$device   # "metal:METAL:0"
+```
+
+jax-metal does not implement two operations used by NumPyro's NUTS sampler:
+the bit count `popcnt`, and some `lax.cond` statements with constant outputs.
+When `device = "metal"`, fastsae replaces both with equivalent operations
+that Metal supports, and samples the chains sequentially. If a model still
+cannot be compiled on Metal, the fit falls back to the CPU with a warning.
+
+In short: for most surveys (hundreds to a few thousand domains),
+`inla_engine()` is the fastest choice, and `jax_engine(device = "cpu")` is
+the faster way to get full MCMC. `jax_engine(device = "metal")` becomes
+worthwhile for very large numbers of domains.

@@ -92,7 +92,11 @@ the fit reports the largest split R-hat and \code{convergence} is
 \code{rhat_max < 1.05}.}
 
 \item{device}{\code{"auto"} (default: CUDA when available, otherwise CPU),
-\code{"cpu"}, \code{"cuda"} or \code{"metal"}.}
+\code{"cpu"}, \code{"cuda"} or \code{"metal"} (Apple silicon GPU, through
+jax-metal). JAX fixes its device at the first fit of an R session.
+\code{"metal"} has a fixed cost of about two minutes per fit, so on Apple
+silicon it pays off only for large numbers of domains (thousands); for
+that reason \code{"auto"} uses the CPU on macOS.}
 
 \item{prior_beta}{Prior for the regression coefficients: \code{"normal"}
 (default) or \code{"horseshoe"} (regularized horseshoe, for many

@@ -336,6 +336,20 @@ test_that("engine = 'jax' validates sampling variances and counts", {
 
 jax_eng <- jax_engine(warmup = 300, samples = 300, chains = 2, device = "cpu", progress = FALSE)
 
+test_that("the Metal replacement of NUTS' checkpoint index matches NumPyro", {
+  skip_if_no_numpyro()
+  backend <- fastsae:::.get_numpyro_backend(device = "cpu")
+  hmc_util <- reticulate::import("numpyro.infer.hmc_util")
+  jnp <- reticulate::import("jax.numpy")
+  n <- jnp$arange(0L, 4096L, dtype = jnp$int32)
+  ours <- backend$`_leaf_idx_to_ckpt_idxs`(n)
+  ref <- hmc_util$`_leaf_idx_to_ckpt_idxs`(n)
+  expect_identical(as.integer(reticulate::py_to_r(jnp$asarray(ours[[1]])$tolist())),
+                   as.integer(reticulate::py_to_r(jnp$asarray(ref[[1]])$tolist())))
+  expect_identical(as.integer(reticulate::py_to_r(jnp$asarray(ours[[2]])$tolist())),
+                   as.integer(reticulate::py_to_r(jnp$asarray(ref[[2]])$tolist())))
+})
+
 test_that("engine = 'jax' Fay-Herriot agrees with INLA", {
   skip_if_no_numpyro()
   skip_if_not_installed("INLA")

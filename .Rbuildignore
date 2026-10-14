@@ -37,3 +37,4 @@
 ^playground$
 ^inst/python/__pycache__$
 ^\.git$
+^vignettes/articles$

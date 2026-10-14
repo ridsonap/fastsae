@@ -14,7 +14,7 @@ setup_numpyro_env(envname = "r-numpyro-gpu", method = "auto", device = "auto")
 \item{device}{\code{"auto"} (CUDA if \code{nvidia-smi} is found, otherwise CPU), \code{"metal"}
 (Apple Silicon), \code{"cuda"} (NVIDIA), or \code{"cpu"}. Versions are pinned to tested
 combinations: \code{jax==0.5.0} and \code{numpyro==0.19.0} for CPU/CUDA; \code{jax==0.4.34},
-\code{jaxlib==0.4.34}, \code{jax-metal==0.1.1} for Metal (NUTS still samples on CPU there).}
+\code{jaxlib==0.4.34}, \code{jax-metal==0.1.1} for Metal.}
 }
 \value{
 Invisible logical \code{TRUE} upon successful setup.

@@ -22,6 +22,57 @@ def _backend_devices(jax, name):
             pass
     return []
 
+def _popcount32(x):
+    """Bit count of non-negative int32 values with shifts and masks only."""
+    import jax.numpy as jnp
+    x = x.astype(jnp.int32)
+    x = x - ((x >> 1) & 0x55555555)
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333)
+    x = (x + (x >> 4)) & 0x0F0F0F0F
+    x = x + (x >> 8)
+    x = x + (x >> 16)
+    return x & 0x3F
+
+def _leaf_idx_to_ckpt_idxs(n):
+    """numpyro.infer.hmc_util._leaf_idx_to_ckpt_idxs without jnp.bitwise_count."""
+    idx_max = _popcount32(n >> 1)
+    num_subtrees = _popcount32((~n & (n + 1)) - 1)
+    return idx_max - num_subtrees + 1, idx_max
+
+def _patch_numpyro_for_metal():
+    """Work around the two jax-metal gaps that stop NumPyro's NUTS from compiling.
+
+    1. jax-metal cannot legalize ``popcnt`` (``jnp.bitwise_count``), which NUTS uses
+       to index its U-turn checkpoints; it is replaced by an equivalent shift/mask count.
+    2. jax-metal cannot serialize a ``lax.cond`` in which an output is a literal in
+       every branch ("Unable to serialize MPS module"); each branch output is routed
+       through ``lax.optimization_barrier``, which leaves the values unchanged.
+    """
+    from jax import lax
+    from numpyro.infer import hmc_util
+    if getattr(lax.cond, "_fastsae_metal", False):
+        return
+    import jax
+    import jax.numpy as jnp
+    hmc_util._leaf_idx_to_ckpt_idxs = _leaf_idx_to_ckpt_idxs
+    cond = lax.cond
+
+    def _barrier(fun):
+        return lambda *a: jax.tree_util.tree_map(
+            lambda v: lax.optimization_barrier(jnp.asarray(v)), fun(*a)
+        )
+
+    def metal_cond(pred, *args, **kwargs):
+        if len(args) == 4 and not callable(args[0]):
+            # NumPyro's form: cond(pred, true_operand, true_fun, false_operand, false_fun)
+            t_op, t_fun, f_op, f_fun = args
+            return cond(pred, t_op, _barrier(t_fun), f_op, _barrier(f_fun))
+        t_fun, f_fun, *operands = args
+        return cond(pred, _barrier(t_fun), _barrier(f_fun), *operands, **kwargs)
+
+    metal_cond._fastsae_metal = True
+    lax.cond = metal_cond
+
 def init_jax_environment(device="auto"):
     """Initializes JAX on the requested accelerator with graceful CPU fallback."""
     preferred = device
@@ -52,6 +103,8 @@ def init_jax_environment(device="auto"):
     # Pin computation to the selected device; JAX's default backend may differ
     # (e.g. METAL becomes the default whenever jax-metal is installed)
     jax.config.update("jax_default_device", devs[0])
+    if active_dev_str.startswith("metal"):
+        _patch_numpyro_for_metal()
 
     import jax.numpy as jnp
     import numpyro
@@ -394,11 +447,23 @@ def fit_numpyro_hb(
             numpyro.deterministic("shape_param", shape_gamma)
 
     # Run MCMC on GPU/Accelerator
-    # On Apple Metal, sequential avoids vmap control-flow shader limits
-    pref_chain_method = "sequential" if "metal" in dev_str.lower() else ("vectorized" if num_chains > 1 else "sequential")
+    # On Apple Metal, sequential avoids vmap control-flow shader limits (the
+    # vectorized initialisation fails there)
+    on_metal = dev_str.lower().startswith("metal")
+    pref_chain_method = "sequential" if on_metal else ("vectorized" if num_chains > 1 else "sequential")
     rng_key = jax.random.PRNGKey(seed)
     kernel = NUTS(model, init_strategy=init_to_median, target_accept_prob=0.85, max_tree_depth=10)
-    
+
+    # On Metal, NumPyro must step the chain from Python (its progress-bar loop):
+    # the alternative fuses the whole chain into one kernel, which jax-metal
+    # never finishes. The bar itself is silenced when no progress is wanted.
+    import numpyro.util as numpyro_util
+    tqdm_module = numpyro_util.tqdm
+    if on_metal and not progress_bar:
+        import types
+        numpyro_util.tqdm = types.SimpleNamespace(
+            trange=lambda *a, **k: tqdm_module.trange(*a, **{**k, "disable": True})
+        )
     try:
         mcmc = MCMC(
             kernel,
@@ -406,12 +471,12 @@ def fit_numpyro_hb(
             num_samples=num_samples,
             num_chains=num_chains,
             chain_method=pref_chain_method,
-            progress_bar=progress_bar
+            progress_bar=progress_bar or on_metal
         )
         mcmc.run(rng_key)
     except Exception as e:
         err_msg = str(e)
-        if "legalize" in err_msg or "popcnt" in err_msg or "bytecode" in err_msg:
+        if "legalize" in err_msg or "popcnt" in err_msg or "bytecode" in err_msg or "MPS" in err_msg:
             dev_str = "cpu (fallback)"
             cpu_devs = jax.devices("cpu")
             if len(cpu_devs) > 0:
@@ -439,7 +504,9 @@ def fit_numpyro_hb(
             mcmc.run(rng_key)
         else:
             raise e
-            
+    finally:
+        numpyro_util.tqdm = tqdm_module
+
     samples = mcmc.get_samples()
 
     # Convergence: largest split R-hat over the coefficients and the area parameters
