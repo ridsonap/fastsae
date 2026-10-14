@@ -141,6 +141,32 @@ memakai \code{scale}/(\code{Ntrials}, \code{E}) sesuai parameterisasi
 \code{inla\_engine(strategy = "laplace")}; jalur \code{lme4}
 (HB-14, HB-15) telah dihapus.
 
+\paragraph{Perangkat engine JAX.} \code{jax\_engine(device = ...)} memilih
+CPU, GPU NVIDIA (\code{"cuda"}) atau GPU Apple (\code{"metal"}). JAX mengunci
+perangkatnya pada fit pertama satu sesi R; \code{init\_jax\_environment}
+(\code{inst/python/hb\_area\_numpyro.py:76}) menyetel \code{JAX\_PLATFORMS}
+dan \code{jax\_default\_device}. Pada \code{"auto"}, CUDA dipakai bila ada
+GPU NVIDIA, selain itu CPU (juga di macOS). Untuk model spasial, efek ICAR/BYM2
+dinyatakan lewat basis eigen $D\times D$ Laplacian graf (\code{.icar\_spectral},
+\code{R/hb\_area\_jax.R:27}): biaya $O(D^3)$ sekali dan $O(D^2)$ per evaluasi
+gradien, sehingga waktu engine JAX tumbuh cepat dengan $D$
+(bagian~\ref{sec:bench-engine}).
+
+\implnote{jax-metal 0.1.1 tidak dapat mengompilasi NUTS NumPyro apa adanya.
+Dua operasinya tidak didukung: (i) \code{popcnt}
+(\code{jnp.bitwise\_count}) pada indeks checkpoint U-turn, dan (ii)
+\code{lax.cond} yang semua cabangnya mengeluarkan konstanta (``Unable to
+serialize MPS module''). Selain itu, loop rantai yang digabung menjadi satu
+kernel tidak pernah selesai di Metal. Bila perangkatnya Metal,
+\code{\_patch\_numpyro\_for\_metal} (baris 42) mengganti (i) dengan hitung bit
+\emph{shift}/\emph{mask} yang identik (\code{\_popcount32}, baris 25; diuji
+terhadap NumPyro untuk 0--4095) dan melewatkan keluaran setiap cabang (ii)
+lewat \code{lax.optimization\_barrier}, yang tidak mengubah nilai. Rantai
+dijalankan sekuensial dan per langkah dari Python (baris 452--508). Draw
+Metal sama dengan draw CPU hingga galat pembulatan. Bila kompilasi tetap
+gagal, fit kembali ke CPU dengan peringatan (\code{.warn\_device\_fallback},
+\code{R/python\_env.R:145}).}
+
 \subsection{Estimasi MSE}\label{sec:hbarea-mse}
 
 MSE dihitung dari momen posterior (\code{inla\_utils.R:299-304}):

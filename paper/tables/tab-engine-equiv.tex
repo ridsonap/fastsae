@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Kesesuaian tiap engine terhadap INLA pada mesin dan data yang sama, lintas seluruh $D$: korelasi minimum rerata posterior, rentang median rasio sd posterior (engine/INLA), dan $\hat R$ terpisah (\emph{split}) terbesar. Sumber: file \texttt{hb\_engine\_benchmark.rds} di \texttt{inst/extdata} (repo \texttt{fastsae}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}, ditampilkan hingga 6 digit signifikan.}
+\label{tab:engine-equiv}
+\small
+\begin{tabular}{lllrrr}
+\toprule
+Mesin & Model & Engine & $\min r$ & Rasio sd & $\max \hat R$ \\
+\midrule
+Apple M4 & Gaussian & JAX CPU & 0.999974 & 0.99898--1.01188 & 1.00452 \\
+Apple M4 & Gaussian & JAX Metal & 0.999986 & 0.998922--1.01051 & 1.00426 \\
+Apple M4 & Beta & JAX CPU & 0.999961 & 0.963412--1.04363 & 1.00445 \\
+Apple M4 & Beta & JAX Metal & 0.999955 & 0.968362--1.01872 & 1.00706 \\
+Apple M4 & Beta & tipsae & 0.993906 & 0.766323--0.836564 & 1.08265 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

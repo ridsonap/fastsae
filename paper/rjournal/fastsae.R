@@ -3,7 +3,52 @@
 
 ## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align = "center")
+# pdfLaTeX cannot typeset U+2264 in verbatim output (reliability tier labels)
+local({
+  hook <- knitr::knit_hooks$get("output")
+  knitr::knit_hooks$set(output = function(x, options) hook(gsub("\u2264", "<=", x), options))
+})
 library(fastsae)
+
+
+## ----engines-data, include=FALSE----------------------------------------------
+eng <- readRDS("../../inst/extdata/hb_engine_benchmark.rds")
+etm <- eng$timings
+eag <- eng$agreement
+et <- function(design, engine, n) etm$time_warm[etm$design == design & etm$engine == engine & etm$n == n][1]
+e_fmt <- function(x) if (is.na(x)) "--" else if (x < 10) sprintf("%.1f s", x) else sprintf("%s s", format(round(x), big.mark = ","))
+e_nmax <- max(etm$n)
+e_ntip <- max(etm$n[etm$engine == "tipsae"])
+e_rhat_jax <- max(etm$rhat_max[etm$engine %in% c("cpu", "metal")], na.rm = TRUE)
+e_rhat_tip <- max(etm$rhat_max[etm$engine == "tipsae"], na.rm = TRUE)
+e_cor_jax <- min(eag$cor_hb[eag$engine %in% c("cpu", "metal")])
+e_tip_ratio <- et("beta", "tipsae", e_ntip) / et("beta", "inla", e_ntip)
+e_cpu_vs_tip <- range(sapply(sort(unique(etm$n[etm$engine == "tipsae"])), function(n) et("beta", "tipsae", n) / et("beta", "cpu", n)))
+
+
+## ----engines-table, results="asis", echo=FALSE--------------------------------
+e_rows <- vapply(c("gaussian", "beta"), function(d) {
+  paste(vapply(sort(unique(etm$n)), function(n) {
+    sprintf("%s & %s & %s & %s & %s & %s \\\\", if (n == min(etm$n)) c(gaussian = "Gaussian", beta = "Beta")[[d]] else "",
+            format(n, big.mark = ","), e_fmt(et(d, "inla", n)), e_fmt(et(d, "cpu", n)),
+            e_fmt(et(d, "metal", n)), e_fmt(et(d, "tipsae", n)))
+  }, character(1)), collapse = "\n")
+}, character(1))
+cat(sprintf("\\begin{table}[t!]
+\\centering
+\\small
+\\begin{tabular}{lrrrrr}
+\\toprule
+Model & $D$ & INLA & JAX (CPU) & JAX (Apple GPU) & \\CRANpkg{tipsae} \\\\
+\\midrule
+%s
+\\midrule
+%s
+\\bottomrule
+\\end{tabular}
+\\caption{\\label{tab:bench_engines} Warm runtime of \\code{hb\\_area()} with an ICAR area effect by estimation engine on an Apple M4. JAX: NumPyro NUTS, 2 chains $\\times$ 1,000 draws after 500 warmup. \\CRANpkg{tipsae}: Stan defaults, Beta model only.}
+\\end{table}
+", e_rows[["gaussian"]], e_rows[["beta"]]))
 
 
 ## ----load_and_fit-------------------------------------------------------------

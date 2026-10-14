@@ -1,7 +1,7 @@
 # CODE_MAP — Peta kode paket `fastsae`
 
 Sumber: `NAMESPACE`, `R/*.R`, `src/*.cpp`, `src/Makevars`, `DESCRIPTION`.
-Nomor baris mengacu pada keadaan repo per 14 Okt 2026 (`main` setelah `a88ae3d`;
+Nomor baris mengacu pada keadaan repo per 14 Okt 2026 (`main` setelah `4a66caa`;
 versi pertama: commit `0252055`). Dibuat dengan membaca kode, bukan dari
 deskripsi luar.
 
@@ -21,7 +21,7 @@ deskripsi luar.
 | `hb_area` | `R/hb_area.R:231` | HB area-level (6 family; iid/BYM/BYM2/Besag/generic1(Leroux)/SLM + temporal + KH 1–4, separable) | `inla_engine()` (INLA) atau `jax_engine()` (NumPyro NUTS, `R/hb_area_jax.R`) | $\mathrm{sd}^2$ posterior; self-benchmarking posterior via `inla.posterior.sample` | — | — |
 | `hb_unit` | `R/hb_unit.R:123` | HB unit-level (gaussian/binomial/poisson; iid/BYM2/Besag) | INLA, prior `loggamma(0.01,0.01)`; Gaussian non-spasial: start mode REML | $\mathrm{sd}^2$ posterior; koreksi populasi hingga | — | — |
 | `hb_twofold` | `R/hb_twofold.R:136` | HB two-fold subarea | INLA | $\mathrm{sd}^2$; tingkat area via sampling posterior | — | — |
-| `inla_engine`, `jax_engine` | `R/engine.R:83,151` | Objek engine untuk `hb_*` | — | — | — | — |
+| `inla_engine`, `jax_engine` | `R/engine.R:83,155` | Objek engine untuk `hb_*` | — | — | — | — |
 | `setup_numpyro_env`, `check_numpyro_available` | `R/python_env.R:81,16` | Lingkungan Python untuk `jax_engine` | — | — | — | — |
 
 ### 1.2 Utilitas
@@ -29,12 +29,12 @@ deskripsi luar.
 | Fungsi ekspor | File | Fungsi | Metode |
 |---|---|---|---|
 | `benchmark_sae` | `R/benchmark.R:120` | Kalibrasi agregat | Ratio, difference, optimal (KKT, $\delta_i\propto w_i\mathrm{mse}_i$), logit (`uniroot`); target nasional dua tahap; `mse_benchmarked` dengan matriks MSE penuh (`.mse_operator`) |
-| `diagnose` | `R/diagnose.R:53` | Diagnostik model & indikator keandalan | Uji Brown, uji kecocokan $\chi^2$, Moran's I + varian Cliff–Ord, flag RSE |
+| `diagnose` | `R/diagnose.R:75` | Diagnostik model & indikator keandalan | Uji Brown (regresi bias deskriptif; $W$ vs $\chi^2_m$ ekor atas), residual terstandar $(y-\hat\theta)/\sqrt{\psi-\mathrm{MSE}}$, Moran's I + varian Cliff–Ord, flag RSE |
 | `compare_sae` | `R/compare_sae.R:62` | Perbandingan dua model | Pearson/Spearman, MAE, RMSD, rasio MSE, gain RSE |
-| `export_sae`, `add_reliability_flags` | `R/export_sae.R:119,33` | Ekspor tabel; flag RSE | CSV/XLSX; ambang `c(20, 30)` |
-| `map_sae` | `R/map_sae.R:93` | Peta choropleth | ggplot2/sf |
+| `export_sae`, `add_reliability_flags` | `R/export_sae.R:100,35` | Ekspor tabel; flag RSE | CSV/XLSX; ambang BPS `c(25, 50)` |
+| `map_sae` | `R/map_sae.R:95` | Peta choropleth | ggplot2/sf |
 | `create_weights` | `R/create_weights.R:69` | Matriks bobot spasial | queen/rook/knn/distance/idw; gaya W/B/C/U/minmax; fallback pulau |
-| `spatial_test` | `R/spatial_test.R:49` | Uji pra-pemodelan spasial | Moran's I, LM-error/LM-lag (Anselin), perbandingan FH vs SFH |
+| `spatial_test` | `R/spatial_test.R:62` | Uji pra-pemodelan spasial | Moran's I (Cliff–Ord), LM-error/LM-lag (Anselin), LRT ML untuk $\rho=0$; satu uji keputusan (LRT bila `vardir` ada, selain itu LM-error) |
 | `gvf_smooth` | `R/gvf.R:67` | Penghalusan `vardir` | GVF log-linear, Gamma GLM, CV power |
 | `autoplot`, `plot`, `print`, `summary`, `coef`, `fitted`, `residuals` | `R/methods.R`, `R/autoplot.R` | Metode S3 | — |
 | `sim_spatial_weights`, `sim_area_data`, `sim_series_data` | `R/sim_*.R:47,47,66` | Data simulasi | DGP area-level dan STFH |
@@ -60,6 +60,21 @@ Data: `mys`, `mys_panel`, `mys_proxmat`, `cornsoybean`, `cornsoybeanmeans` (`R/d
 
 `src/Makevars`: `CXX_STD = CXX17`, OpenMP lewat `SHLIB_OPENMP_CXXFLAGS`,
 LAPACK/BLAS; `LinkingTo`: `Rcpp`, `RcppArmadillo`, `RcppEigen`.
+
+## 2b. Lapisan Python (`inst/python/`, engine JAX)
+
+| Berkas / fungsi | Peran |
+|---|---|
+| `hb_area_numpyro.py:76` `init_jax_environment` | Memilih perangkat JAX (`cpu`/`cuda`/`metal`) lewat `JAX_PLATFORMS`, mengunci `jax_default_device`; memanggil `_patch_numpyro_for_metal` bila perangkatnya Metal (baris 107) |
+| `hb_area_numpyro.py:25,36` `_popcount32`, `_leaf_idx_to_ckpt_idxs` | Pengganti `jnp.bitwise_count` (`popcnt`, tidak ada di jax-metal) untuk indeks checkpoint U-turn NUTS; identik dengan NumPyro untuk 0–4095 (tes `test_hb_area_engine.R`) |
+| `hb_area_numpyro.py:42` `_patch_numpyro_for_metal` | Menambal NumPyro di sesi Metal: indeks checkpoint di atas, dan `lax.cond` yang keluarannya dilewatkan `lax.optimization_barrier` (jax-metal gagal menserialisasi `cond` yang semua cabangnya mengeluarkan konstanta) |
+| `hb_area_numpyro.py:452-508` | Di Metal: rantai sekuensial dan dijalankan per langkah dari Python (jalur progress-bar NumPyro; loop rantai yang digabung tidak pernah selesai di Metal), bar disenyapkan bila `progress = FALSE`; fallback ke CPU bila kompilasi gagal |
+| `R/hb_area_jax.R:27` `.icar_spectral` | Basis eigen $D\times D$ Laplacian graf untuk efek ICAR/BYM2 di JAX: $O(D^3)$ sekali, $O(D^2)$ per evaluasi gradien |
+| `R/python_env.R:145` `.warn_device_fallback` | Peringatan bila GPU yang diminta tidak dipakai |
+
+Benchmark engine: `benchmarks/bench_hb_area_engines.R` (INLA, JAX CPU/Metal/CUDA, `tipsae`;
+satu proses per engine; hasil `inst/extdata/hb_engine_benchmark*.rds`), notebook CUDA di
+`benchmarks/kaggle/` dan `benchmarks/colab/`.
 
 Ketergantungan (`Imports`): `cli`, `ggplot2`, `Matrix`, `methods`, `Rcpp`,
 `rlang`, `stats`, `utils`. `INLA`, `reticulate`, `sf`, `spdep`, `sn`, `lme4`

@@ -63,8 +63,6 @@ To resolve these limitations, this paper introduces \CRANpkg{fastsae}. Specifica
   \item \textbf{End-to-End Official Statistics Dissemination Suite}: We provide turnkey post-estimation workflows, including automated reliability tagging (\code{add\_reliability\_flags()}) based on official NSO thresholds, model concordance diagnostics (\code{compare\_sae()}), publication-ready choropleth mapping (\code{map\_sae()}), and multi-sheet spreadsheet exports (\code{export\_sae()}).
 \end{enumerate}
 
-\%\% -- Methodological Framework -------------------------------------------------
-
 \section{Methodological framework} \label{sec:methods}
 
 \subsection{Frequentist small area models} \label{sec:methods_freq}
@@ -203,8 +201,6 @@ NSOs classify domain estimates into publication tiers based on the Relative Stan
 \%
 where the default thresholds \((c_1, c_2) = (25\%, 50\%)\) follow the criteria of BPS-Statistics Indonesia (with \(\mathrm{RSE} \le c_1\) reliable and \(\mathrm{RSE} > c_2\) unreliable); other agencies' cut-offs can be supplied.
 
-\%\% -- Software Design ----------------------------------------------------------
-
 \section{Software design and implementation} \label{sec:design}
 
 The architecture of \CRANpkg{fastsae} unites compiled linear algebra with high-level Bayesian GMRF modeling and production reporting. Figure \ref{fig:arch} outlines the structural flow.
@@ -239,8 +235,6 @@ In-Place Fisher-Scoring Updates & Survey Dispersion Injections & Spectral Eigenv
 \end{figure}
 
 The frequentist engines (\code{eblup\_fh()}, \code{eblup\_sfh()}, \code{eblup\_stfh()}, \code{eblup\_bhf()}, \code{eblup\_twofold()}) never form a dense inverse of the marginal covariance: the spatial model works with sparse Cholesky factors (\CRANpkg{RcppEigen}), the spatio-temporal and two-fold models with block-structured Woodbury identities, and the unit-level model with domain-level sufficient statistics, profiling \(\bm{\beta}\) and \(\sigma_e^2\) out of the (restricted) likelihood. The bootstrap MSE loops run in parallel with OpenMP (\code{\#pragma omp parallel for}); random numbers are drawn sequentially from R's generator beforehand, so results depend only on the seed and not on the number of threads. The Bayesian functions (\code{hb\_area()}, \code{hb\_unit()}, \code{hb\_twofold()}) translate formulas, spatial adjacency matrices \(\bm{W}\), and survey dispersion arguments into \pkg{R-INLA} calls. How a model is estimated is specified separately from the model by an engine object: \code{inla\_engine()} holds the INLA strategy, priors, and further \code{INLA::inla()} arguments, and \code{jax\_engine()} fits \code{hb\_area()} models by NUTS sampling in JAX/NumPyro (CPU or GPU) through \CRANpkg{reticulate}. Standard S3 methods (\code{print()}, \code{summary()}, \code{plot()}, \code{coef()}, \code{fitted()}, \code{residuals()}) are implemented across all model classes.
-
-\%\% -- Computational Benchmarks -------------------------------------------------
 
 \section{Computational benchmarks and simulations} \label{sec:simulations}
 
@@ -333,6 +327,39 @@ As shown in Table \ref{tab:bench_beta}, deterministic Laplace approximations in 
 \caption{\label{fig:equiv} Numerical equivalence and inferential concordance between \CRANpkg{fastsae} (INLA) and \CRANpkg{tipsae} (Stan HMC) at $D = 1,000$ ($r = 0.9993$).}
 \end{figure}
 
+\subsection{Estimation engines: INLA versus MCMC on CPU and GPU}
+
+The same \code{hb\_area()} model can be estimated by INLA (\code{inla\_engine()}) or by full MCMC with the No-U-Turn sampler of NumPyro on JAX (\code{jax\_engine()}), on the CPU or on a GPU. We compared the engines on spatial models with a Besag (ICAR) area effect on a regular grid with queen adjacency, for a Gaussian Fay-Herriot model and a Beta model; for the Beta model, \CRANpkg{tipsae} was fitted with its ICAR spatial error. Each engine ran in its own R process on an Apple M4 (10 cores, 16 GB), JAX with 2 chains of 1,000 draws after 500 warmup, and each fit was run twice on the same data; Table\textasciitilde{}\ref{tab:bench_engines} reports the second (warm) run.
+
+\begin{table}[t!]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Model & $D$ & INLA & JAX (CPU) & JAX (Apple GPU) & \CRANpkg{tipsae} \\
+\midrule
+Gaussian & 100 & 1.4 s & 6.4 s & 129 s & -- \\
+ & 500 & 1.4 s & 45 s & 155 s & -- \\
+ & 1,000 & 1.5 s & 94 s & 205 s & -- \\
+ & 2,500 & 2.5 s & 713 s & 474 s & -- \\
+\midrule
+Beta & 100 & 1.2 s & 6.0 s & 110 s & 107 s \\
+ & 500 & 1.4 s & 36 s & 136 s & 268 s \\
+ & 1,000 & 1.8 s & 78 s & 201 s & 401 s \\
+ & 2,500 & 3.2 s & 538 s & 393 s & 946 s \\
+\bottomrule
+\end{tabular}
+\caption{\label{tab:bench_engines} Warm runtime of \code{hb\_area()} with an ICAR area effect by estimation engine on an Apple M4. JAX: NumPyro NUTS, 2 chains $\times$ 1,000 draws after 500 warmup. \CRANpkg{tipsae}: Stan defaults, Beta model only.}
+\end{table}
+
+INLA is the fastest engine at every size: at \(D = 2,500\) it fits the spatial Beta model in 3.2 s, 296 times faster than \CRANpkg{tipsae}. Among the MCMC options, JAX on the CPU is 2 to 18 times faster than Stan, with the gap narrowing as \(D\) grows, because the JAX engine represents the ICAR effect through the eigenvectors of the \(D \times D\) graph Laplacian (\(O(D^2)\) work per gradient). The Apple GPU carries a fixed cost of about two minutes per fit, since each step of the NUTS tree-building loop synchronises the GPU and the CPU, but it overtakes the CPU at \(D = 2,500\) for both models. Running NumPyro's NUTS on Apple GPUs required two workarounds in \CRANpkg{fastsae}, because \pkg{jax-metal} cannot compile the \code{popcnt} bit count or \code{lax.cond} statements with constant outputs; both are replaced by equivalent operations when \code{device = "metal"}. The engines agree closely: the posterior means of JAX on either device correlate with INLA at \(r \geq 0.9999\), and the largest split \(\hat{R}\) over all JAX fits is 1.007 (1.083 for \CRANpkg{tipsae} with its default run length).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig-engines}
+\caption{\label{fig:engines} Warm runtime of the \code{hb\_area()} estimation engines for spatial (ICAR) Gaussian and Beta models on an Apple M4 (log scales).}
+\end{figure}
+
 \subsection{Monte Carlo finite population validation against ground truth}
 
 To assess frequentist design properties, we conducted design-based Monte Carlo simulations under known ground truth at national scale (\(D = 500\) small areas, \(R = 25\) independent sample draws) using a synthetic finite population of \(N = 250,000\) individuals.
@@ -355,8 +382,6 @@ Direct Sample Estimator  & 0.0719 & 27.1\% & 21.7\% & -- & -- & -- \\
 
 Table \ref{tab:mc_truth} demonstrates that \code{hb\_area()} reduces empirical RMSE from 0.0719 (direct survey estimator) to 0.0481, yielding a \(1.92\times\) empirical efficiency gain. Relative Root Mean Squared Error drops from \(27.1\%\) to \(19.1\%\). Comparing Bayesian engines, \CRANpkg{fastsae} achieves a slightly lower empirical RMSE than \CRANpkg{tipsae} (0.0481 vs.~0.0487) and produces narrower credible intervals (0.173 vs.~0.202) while requiring nearly \(9\times\) less runtime per fit.
 \textbf{Operational Takeaway}: \CRANpkg{fastsae} produces well-calibrated, highly efficient area-level predictions that closely track true finite-population parameters while scaling effortlessly to national-scale administrative systems.
-
-\%\% -- Applied Illustration -----------------------------------------------------
 
 \section{Applied illustration and production workflow} \label{sec:applications}
 
@@ -425,10 +450,10 @@ head(bm[, c("domain", "group", "original", "benchmarked", "rel_adjustment_pct")]
 #> 
 #> First 6 benchmarked domains (Level 2):
 #>   domain  group   original benchmarked rel_adjustment_pct
-#> 1      1 Prov_1  2.6646558   0.8977138          -66.31033
-#> 2      2 Prov_1 -1.6547233  -0.5574708          -66.31033
-#> 3      3 Prov_1  1.2504674   0.4212784          -66.31033
-#> 4      4 Prov_1 -0.7988192  -0.2691196          -66.31033
+#> 1      1 Prov_1  2.6646558   0.9111240          -65.80707
+#> 2      2 Prov_1 -1.6547233  -0.5657984          -65.80707
+#> 3      3 Prov_1  1.2504674   0.4275715          -65.80707
+#> 4      4 Prov_1 -0.7988192  -0.2731397          -65.80707
 \end{verbatim}
 
 The calibrated estimates satisfy \(\sum (w_i / \sum w_i) \hat{\theta}_i^{\text{BM}} = 0.50\) exactly.
@@ -444,7 +469,7 @@ table(flags$reliability)
 
 \begin{verbatim}
 #> 
-#>               Reliable (RSE ≤ 25%) Use with caution (25% < RSE ≤ 50%) 
+#>               Reliable (RSE <= 25%) Use with caution (25% < RSE <= 50%) 
 #>                                 37                                  5 
 #>             Unreliable (RSE > 50%) 
 #>                                  0
@@ -467,8 +492,6 @@ autoplot(diag_beta)
 
 \caption{Model diagnostic panels generated via autoplot.}\label{fig:diagplot}
 \end{figure}
-
-\%\% -- Summary and Discussion ---------------------------------------------------
 
 \section{Summary and discussion} \label{sec:summary}
 
@@ -497,8 +520,6 @@ Small area estimation in official statistics requires reconciling mathematical r
 
 As synthesized in Table \ref{tab:synthesis}, \CRANpkg{fastsae} provides substantial efficiency gains across both frequentist and Bayesian paradigms. Future developments will focus on expanding unit-level spatial EBP under non-Gaussian likelihoods, integrating zero-inflated Beta (ZIB) specifications for extreme sparse indicators, and supporting direct spatial polygon streaming.
 
-\%\% -- Computational Details \& Acknowledgments ----------------------------------
-
 \section*{Computational details}
 
 The \CRANpkg{fastsae} results in this paper were obtained using R 4.6.1 with \CRANpkg{fastsae} 1.0.0, \pkg{R-INLA} 26.8.7, and \CRANpkg{ggplot2} 4.0.3 on an Apple M4 processor; the comparison runs used \CRANpkg{sae} 1.3, \CRANpkg{emdi} 2.2, \CRANpkg{tipsae} 1.0, and \CRANpkg{hbsae} 1.2. R and packages from CRAN are available at \url{https://CRAN.R-project.org/}. \pkg{R-INLA} is available from \url{https://www.r-inla.org/}. The \CRANpkg{fastsae} package is available on GitHub at \url{https://github.com/ridsonap/fastsae}.
@@ -506,8 +527,6 @@ The \CRANpkg{fastsae} results in this paper were obtained using R 4.6.1 with \CR
 \section*{Acknowledgments}
 
 The authors thank the Department of Computational Statistics and Department of Statistics at Politeknik Statistika STIS for institutional support. We also acknowledge the valuable domain feedback provided by colleagues at BPS-Statistics Indonesia.
-
-\%\% -- Bibliography -------------------------------------------------------------
 
 \section*{References}
 

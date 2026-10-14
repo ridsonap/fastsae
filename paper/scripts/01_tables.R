@@ -210,5 +210,77 @@ File & Metode & Rerata & Min & Maks \\\\
 }
 mem_summary()
 
+# ---------------------------------------------------------------------------
+# Tabel perbandingan engine hb_area() pada model spasial (ICAR)
+# sumber: hb_engine_benchmark*.rds (benchmarks/bench_hb_area_engines.R)
+# ---------------------------------------------------------------------------
+engine_tables <- function() {
+  files <- list.files(root, pattern = "^hb_engine_benchmark.*\\.rds$")
+  if (length(files) == 0) return(invisible(NULL))
+  B <- lapply(files, function(f) readRDS(file.path(root, f)))
+  tm <- do.call(rbind, lapply(B, `[[`, "timings"))
+  ag <- do.call(rbind, lapply(B, `[[`, "agreement"))
+  model_lab <- c(gaussian = "Gaussian", beta = "Beta")
+  src <- sprintf(SRC, texesc(paste(files, collapse = ", ")))
+  get <- function(m, d, e, n) {
+    v <- tm$time_warm[tm$machine == m & tm$design == d & tm$engine == e & tm$n == n]
+    if (length(v) == 0) "--" else fmt(v[1])
+  }
+  keys <- unique(tm[, c("machine", "design", "n")])
+  keys <- keys[order(keys$machine, match(keys$design, names(model_lab)), keys$n), ]
+  rows <- vapply(seq_len(nrow(keys)), function(i) {
+    k <- keys[i, ]
+    gpu <- intersect(c("metal", "cuda"), tm$engine[tm$machine == k$machine])
+    gpu_txt <- if (length(gpu) == 0) "--" else sprintf("%s (%s)", get(k$machine, k$design, gpu[1], k$n), gpu[1])
+    sprintf("%s & %s & %s & %s & %s & %s & %s \\\\", k$machine, model_lab[[k$design]], k$n,
+            get(k$machine, k$design, "inla", k$n), get(k$machine, k$design, "cpu", k$n),
+            gpu_txt, get(k$machine, k$design, "tipsae", k$n))
+  }, character(1))
+  txt <- sprintf(
+"\\begin{table}[htbp]
+\\centering
+\\caption{Waktu komputasi (detik, run \\emph{warm}) \\code{hb\\_area()} dengan efek ICAR (Besag) pada grid beraturan: INLA, JAX/NumPyro NUTS di CPU dan di GPU, serta \\pkg{tipsae} (Stan, hanya model Beta). JAX: 2 rantai $\\times$ 1000 draw setelah 500 warmup. %s}
+\\label{tab:engine-time}
+\\small
+\\begin{tabular}{llrrrrr}
+\\toprule
+Mesin & Model & $D$ & INLA & JAX CPU & JAX GPU & tipsae \\\\
+\\midrule
+%s
+\\bottomrule
+\\end{tabular}
+\\end{table}
+", src, paste(rows, collapse = "\n"))
+  writeLines(txt, file.path(outdir, "tab-engine-time.tex"))
+
+  eng_lab <- c(cpu = "JAX CPU", metal = "JAX Metal", cuda = "JAX CUDA", tipsae = "tipsae")
+  g <- unique(ag[, c("machine", "design", "engine")])
+  g <- g[order(g$machine, match(g$design, names(model_lab)), match(g$engine, names(eng_lab))), ]
+  rows2 <- vapply(seq_len(nrow(g)), function(i) {
+    k <- g[i, ]
+    a <- ag[ag$machine == k$machine & ag$design == k$design & ag$engine == k$engine, ]
+    r <- tm$rhat_max[tm$machine == k$machine & tm$design == k$design & tm$engine == k$engine]
+    sprintf("%s & %s & %s & %s & %s--%s & %s \\\\", k$machine, model_lab[[k$design]], eng_lab[[k$engine]],
+            fmt(min(a$cor_hb)), fmt(min(a$median_ratio_sd)), fmt(max(a$median_ratio_sd)), fmt(max(r, na.rm = TRUE)))
+  }, character(1))
+  txt2 <- sprintf(
+"\\begin{table}[htbp]
+\\centering
+\\caption{Kesesuaian tiap engine terhadap INLA pada mesin dan data yang sama, lintas seluruh $D$: korelasi minimum rerata posterior, rentang median rasio sd posterior (engine/INLA), dan $\\hat R$ terpisah (\\emph{split}) terbesar. %s}
+\\label{tab:engine-equiv}
+\\small
+\\begin{tabular}{lllrrr}
+\\toprule
+Mesin & Model & Engine & $\\min r$ & Rasio sd & $\\max \\hat R$ \\\\
+\\midrule
+%s
+\\bottomrule
+\\end{tabular}
+\\end{table}
+", src, paste(rows2, collapse = "\n"))
+  writeLines(txt2, file.path(outdir, "tab-engine-equiv.tex"))
+}
+engine_tables()
+
 cat("Selesai. Berkas tabel di", normalizePath(outdir), ":\n")
 print(list.files(outdir, pattern = "\\.tex$"))

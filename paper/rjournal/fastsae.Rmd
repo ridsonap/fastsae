@@ -46,6 +46,11 @@ package:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align = "center")
+# pdfLaTeX cannot typeset U+2264 in verbatim output (reliability tier labels)
+local({
+  hook <- knitr::knit_hooks$get("output")
+  knitr::knit_hooks$set(output = function(x, options) hook(gsub("\u2264", "<=", x), options))
+})
 library(fastsae)
 ```
 
@@ -100,7 +105,7 @@ To resolve these limitations, this paper introduces \CRANpkg{fastsae}. Specifica
   \item \textbf{End-to-End Official Statistics Dissemination Suite}: We provide turnkey post-estimation workflows, including automated reliability tagging (\code{add\_reliability\_flags()}) based on official NSO thresholds, model concordance diagnostics (\code{compare\_sae()}), publication-ready choropleth mapping (\code{map\_sae()}), and multi-sheet spreadsheet exports (\code{export\_sae()}).
 \end{enumerate}
 
-%% -- Methodological Framework -------------------------------------------------
+<!-- Methodological Framework -->
 
 \section{Methodological framework} \label{sec:methods}
 
@@ -229,7 +234,7 @@ NSOs classify domain estimates into publication tiers based on the Relative Stan
 %
 where the default thresholds $(c_1, c_2) = (25\%, 50\%)$ follow the criteria of BPS-Statistics Indonesia (with $\mathrm{RSE} \le c_1$ reliable and $\mathrm{RSE} > c_2$ unreliable); other agencies' cut-offs can be supplied.
 
-%% -- Software Design ----------------------------------------------------------
+<!-- Software Design -->
 
 \section{Software design and implementation} \label{sec:design}
 
@@ -266,7 +271,7 @@ In-Place Fisher-Scoring Updates & Survey Dispersion Injections & Spectral Eigenv
 
 The frequentist engines (\code{eblup\_fh()}, \code{eblup\_sfh()}, \code{eblup\_stfh()}, \code{eblup\_bhf()}, \code{eblup\_twofold()}) never form a dense inverse of the marginal covariance: the spatial model works with sparse Cholesky factors (\CRANpkg{RcppEigen}), the spatio-temporal and two-fold models with block-structured Woodbury identities, and the unit-level model with domain-level sufficient statistics, profiling $\bm{\beta}$ and $\sigma_e^2$ out of the (restricted) likelihood. The bootstrap MSE loops run in parallel with OpenMP (\code{\#pragma omp parallel for}); random numbers are drawn sequentially from R's generator beforehand, so results depend only on the seed and not on the number of threads. The Bayesian functions (\code{hb\_area()}, \code{hb\_unit()}, \code{hb\_twofold()}) translate formulas, spatial adjacency matrices $\bm{W}$, and survey dispersion arguments into \pkg{R-INLA} calls. How a model is estimated is specified separately from the model by an engine object: \code{inla\_engine()} holds the INLA strategy, priors, and further \code{INLA::inla()} arguments, and \code{jax\_engine()} fits \code{hb\_area()} models by NUTS sampling in JAX/NumPyro (CPU or GPU) through \CRANpkg{reticulate}. Standard S3 methods (\code{print()}, \code{summary()}, \code{plot()}, \code{coef()}, \code{fitted()}, \code{residuals()}) are implemented across all model classes.
 
-%% -- Computational Benchmarks -------------------------------------------------
+<!-- Computational Benchmarks -->
 
 \section{Computational benchmarks and simulations} \label{sec:simulations}
 
@@ -361,6 +366,58 @@ As shown in Table \ref{tab:bench_beta}, deterministic Laplace approximations in 
 \end{figure}
 
 
+\subsection{Estimation engines: INLA versus MCMC on CPU and GPU}
+
+```{r engines-data, include=FALSE}
+eng <- readRDS("../../inst/extdata/hb_engine_benchmark.rds")
+etm <- eng$timings
+eag <- eng$agreement
+et <- function(design, engine, n) etm$time_warm[etm$design == design & etm$engine == engine & etm$n == n][1]
+e_fmt <- function(x) if (is.na(x)) "--" else if (x < 10) sprintf("%.1f s", x) else sprintf("%s s", format(round(x), big.mark = ","))
+e_nmax <- max(etm$n)
+e_ntip <- max(etm$n[etm$engine == "tipsae"])
+e_rhat_jax <- max(etm$rhat_max[etm$engine %in% c("cpu", "metal")], na.rm = TRUE)
+e_rhat_tip <- max(etm$rhat_max[etm$engine == "tipsae"], na.rm = TRUE)
+e_cor_jax <- min(eag$cor_hb[eag$engine %in% c("cpu", "metal")])
+e_tip_ratio <- et("beta", "tipsae", e_ntip) / et("beta", "inla", e_ntip)
+e_cpu_vs_tip <- range(sapply(sort(unique(etm$n[etm$engine == "tipsae"])), function(n) et("beta", "tipsae", n) / et("beta", "cpu", n)))
+```
+
+The same \code{hb\_area()} model can be estimated by INLA (\code{inla\_engine()}) or by full MCMC with the No-U-Turn sampler of NumPyro on JAX (\code{jax\_engine()}), on the CPU or on a GPU. We compared the engines on spatial models with a Besag (ICAR) area effect on a regular grid with queen adjacency, for a Gaussian Fay-Herriot model and a Beta model; for the Beta model, \CRANpkg{tipsae} was fitted with its ICAR spatial error. Each engine ran in its own R process on an Apple M4 (10 cores, 16 GB), JAX with 2 chains of 1,000 draws after 500 warmup, and each fit was run twice on the same data; Table~\ref{tab:bench_engines} reports the second (warm) run.
+
+```{r engines-table, results="asis", echo=FALSE}
+e_rows <- vapply(c("gaussian", "beta"), function(d) {
+  paste(vapply(sort(unique(etm$n)), function(n) {
+    sprintf("%s & %s & %s & %s & %s & %s \\\\", if (n == min(etm$n)) c(gaussian = "Gaussian", beta = "Beta")[[d]] else "",
+            format(n, big.mark = ","), e_fmt(et(d, "inla", n)), e_fmt(et(d, "cpu", n)),
+            e_fmt(et(d, "metal", n)), e_fmt(et(d, "tipsae", n)))
+  }, character(1)), collapse = "\n")
+}, character(1))
+cat(sprintf("\\begin{table}[t!]
+\\centering
+\\small
+\\begin{tabular}{lrrrrr}
+\\toprule
+Model & $D$ & INLA & JAX (CPU) & JAX (Apple GPU) & \\CRANpkg{tipsae} \\\\
+\\midrule
+%s
+\\midrule
+%s
+\\bottomrule
+\\end{tabular}
+\\caption{\\label{tab:bench_engines} Warm runtime of \\code{hb\\_area()} with an ICAR area effect by estimation engine on an Apple M4. JAX: NumPyro NUTS, 2 chains $\\times$ 1,000 draws after 500 warmup. \\CRANpkg{tipsae}: Stan defaults, Beta model only.}
+\\end{table}
+", e_rows[["gaussian"]], e_rows[["beta"]]))
+```
+
+INLA is the fastest engine at every size: at $D = `r format(e_ntip, big.mark = ",")`$ it fits the spatial Beta model in `r e_fmt(et("beta", "inla", e_ntip))`, `r round(e_tip_ratio)` times faster than \CRANpkg{tipsae}. Among the MCMC options, JAX on the CPU is `r sprintf("%.0f", e_cpu_vs_tip[1])` to `r sprintf("%.0f", e_cpu_vs_tip[2])` times faster than Stan, with the gap narrowing as $D$ grows, because the JAX engine represents the ICAR effect through the eigenvectors of the $D \times D$ graph Laplacian ($O(D^2)$ work per gradient). The Apple GPU carries a fixed cost of about two minutes per fit, since each step of the NUTS tree-building loop synchronises the GPU and the CPU, but it overtakes the CPU at $D = `r format(e_nmax, big.mark = ",")`$ for both models. Running NumPyro's NUTS on Apple GPUs required two workarounds in \CRANpkg{fastsae}, because \pkg{jax-metal} cannot compile the \code{popcnt} bit count or \code{lax.cond} statements with constant outputs; both are replaced by equivalent operations when \code{device = "metal"}. The engines agree closely: the posterior means of JAX on either device correlate with INLA at $r \geq `r sprintf("%.4f", floor(e_cor_jax * 1e4) / 1e4)`$, and the largest split $\hat{R}$ over all JAX fits is `r sprintf("%.3f", e_rhat_jax)` (`r sprintf("%.3f", e_rhat_tip)` for \CRANpkg{tipsae} with its default run length).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig-engines}
+\caption{\label{fig:engines} Warm runtime of the \code{hb\_area()} estimation engines for spatial (ICAR) Gaussian and Beta models on an Apple M4 (log scales).}
+\end{figure}
+
 \subsection{Monte Carlo finite population validation against ground truth}
 
 To assess frequentist design properties, we conducted design-based Monte Carlo simulations under known ground truth at national scale ($D = 500$ small areas, $R = 25$ independent sample draws) using a synthetic finite population of $N = 250,000$ individuals.
@@ -384,7 +441,7 @@ Direct Sample Estimator  & 0.0719 & 27.1\% & 21.7\% & -- & -- & -- \\
 Table \ref{tab:mc_truth} demonstrates that \code{hb\_area()} reduces empirical RMSE from 0.0719 (direct survey estimator) to 0.0481, yielding a $1.92\times$ empirical efficiency gain. Relative Root Mean Squared Error drops from $27.1\%$ to $19.1\%$. Comparing Bayesian engines, \CRANpkg{fastsae} achieves a slightly lower empirical RMSE than \CRANpkg{tipsae} (0.0481 vs. 0.0487) and produces narrower credible intervals (0.173 vs. 0.202) while requiring nearly $9\times$ less runtime per fit.
 \textbf{Operational Takeaway}: \CRANpkg{fastsae} produces well-calibrated, highly efficient area-level predictions that closely track true finite-population parameters while scaling effortlessly to national-scale administrative systems.
 
-%% -- Applied Illustration -----------------------------------------------------
+<!-- Applied Illustration -->
 
 \section{Applied illustration and production workflow} \label{sec:applications}
 
@@ -445,7 +502,7 @@ diag_beta <- diagnose(fit_beta)
 autoplot(diag_beta)
 ```
 
-%% -- Summary and Discussion ---------------------------------------------------
+<!-- Summary and Discussion -->
 
 \section{Summary and discussion} \label{sec:summary}
 
@@ -474,7 +531,7 @@ Small area estimation in official statistics requires reconciling mathematical r
 
 As synthesized in Table \ref{tab:synthesis}, \CRANpkg{fastsae} provides substantial efficiency gains across both frequentist and Bayesian paradigms. Future developments will focus on expanding unit-level spatial EBP under non-Gaussian likelihoods, integrating zero-inflated Beta (ZIB) specifications for extreme sparse indicators, and supporting direct spatial polygon streaming.
 
-%% -- Computational Details & Acknowledgments ----------------------------------
+<!-- Computational Details & Acknowledgments -->
 
 \section*{Computational details}
 
@@ -484,6 +541,6 @@ The \CRANpkg{fastsae} results in this paper were obtained using R 4.6.1 with \CR
 
 The authors thank the Department of Computational Statistics and Department of Statistics at Politeknik Statistika STIS for institutional support. We also acknowledge the valuable domain feedback provided by colleagues at BPS-Statistics Indonesia.
 
-%% -- Bibliography -------------------------------------------------------------
+<!-- Bibliography -->
 
 \section*{References}

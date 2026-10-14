@@ -60,6 +60,11 @@ Skrip & Pembanding (dari kode) & $n$ & Iterasi / seed \\
 \code{bench\_spatio\_temporal\_beta.R} &
   \code{fastsae} vs \code{tipsae} ($T=5$) &
   30\,--\,1000 & 5; data \code{42+n} \\
+\code{bench\_\allowbreak{}hb\_\allowbreak{}area\_\allowbreak{}engines.R} &
+  \code{hb\_area} dengan \code{inla\_engine()}, \code{jax\_engine()} di CPU dan
+  GPU (Metal/CUDA), dan \code{tipsae::fit\_sae} (Beta); model ICAR &
+  100\,--\,2500 & 2 run per fit (pertama + \emph{warm}); data \code{42+n};
+  satu proses R per engine \\
 \code{bench\_hb\_normal.R} &
   \code{fastsae::hb\_area} vs \code{hbsae::fSAE.Area} &
   30, 50, 100, 250 & 10; data \code{42+n} \\
@@ -268,6 +273,61 @@ tersedia pada skrip \code{benchmarks/compare\_ebp\_tipsae\_truth.R} dan
 \code{sim\_mc\_finite\_population.R} (hasil tersimpan di
 \code{benchmarks/output/}, di luar cakupan \code{inst/extdata}).
 
+\subsection{Perbandingan engine \code{hb\_area()} pada model spasial}\label{sec:bench-engine}
+
+Skrip \code{benchmarks/bench\_hb\_area\_engines.R} mengukur \code{hb\_area()}
+dengan efek area ICAR (\code{spatial = "besag"}) pada grid beraturan
+berketetanggaan \emph{queen}. Data dibangkitkan oleh
+\code{sim\_area\_data(D = n, W = W, n\_unsampled = 0, seed = 42 + n)}. Model
+Gaussian (Fay--Herriot spasial) dan Beta diestimasi dengan
+\code{inla\_engine()}, dengan \code{jax\_engine()} di CPU dan di GPU, serta, untuk
+model Beta, dengan \code{tipsae::fit\_sae(likelihood = "beta",
+spatial\_error = TRUE)}, yang juga memakai efek ICAR. Setiap engine dijalankan
+dalam proses R tersendiri karena JAX mengunci perangkatnya per sesi. Tiap fit
+diulang dua kali pada data yang sama; tabel dan gambar memakai run kedua
+(\emph{warm}), sedangkan run pertama, yang memuat kompilasi JAX, tersimpan
+di file sumber. Kesesuaian dihitung terhadap INLA pada mesin dan data yang
+sama.
+
+\input{tables/tab-engine-time}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig-engines.pdf}
+  \caption{Waktu \emph{warm} engine \code{hb\_area()} terhadap jumlah area $D$
+  (skala log) untuk model ICAR: (a) Gaussian, (b) Beta. Sumber:
+  \texttt{inst/extdata/hb\_engine\_benchmark*.rds}; \texttt{scripts/02\_figures.R}.}
+  \label{fig:engines}
+\end{figure}
+
+\input{tables/tab-engine-equiv}
+
+Pembacaan Tabel~\ref{tab:engine-time}, Tabel~\ref{tab:engine-equiv} dan
+Gambar~\ref{fig:engines}:
+\begin{itemize}
+  \item INLA tercepat pada setiap $D$, dan waktunya hampir tidak bertambah
+        dengan $D$ karena INLA tidak melakukan sampling.
+  \item Waktu engine JAX tumbuh cepat dengan $D$, akibat basis eigen
+        $D\times D$ (bagian~\ref{sec:hbarea-varians};
+        \code{.icar\_spectral}): $O(D^3)$ sekali, $O(D^2)$ per gradien. Pada
+        mesin uji, R memakai BLAS/LAPACK referensi, sehingga dekomposisi eigen
+        ikut terhitung dalam waktu fit.
+  \item GPU Apple (Metal) memiliki biaya tetap sekitar dua menit per fit:
+        tiap putaran loop pembentukan pohon NUTS menunggu sinkronisasi GPU dan
+        CPU. Akibatnya Metal lebih lambat dari CPU untuk $D$ kecil dan baru
+        lebih cepat pada $D$ terbesar yang diuji.
+  \item Engine JAX di CPU lebih cepat dari \pkg{tipsae} pada semua $D$, tetapi
+        selisihnya menyempit seiring $D$ membesar.
+  \item Rerata posterior engine JAX praktis identik dengan INLA, di CPU maupun
+        di GPU. \pkg{tipsae} juga sejalan, tetapi sd posteriornya lebih kecil,
+        kemungkinan karena prior kedua paket berbeda. $\hat R$ \pkg{tipsae} pada
+        satu ukuran melewati 1{,}05 dengan panjang rantai bawaannya
+        (Tabel~\ref{tab:engine-equiv}).
+\end{itemize}
+Hasil GPU NVIDIA (CUDA) dapat direproduksi dengan notebook
+\code{benchmarks/kaggle/} atau \code{benchmarks/colab/}. Halaman artikel
+pkgdown \emph{hb\_area() Engines} memuat versi interaktif perbandingan ini.
+
 \subsection{Kaveat dan keadilan}\label{sec:kaveat}
 
 \begin{enumerate}[label=\arabic*.]
@@ -291,6 +351,10 @@ tersedia pada skrip \code{benchmarks/compare\_ebp\_tipsae\_truth.R} dan
         pada tiga file FH dan \code{beta\_estimates\_n1000} tidak dapat
         direproduksi dari repo; laporan memakainya apa adanya dan
         menandainya.
+  \item \textbf{Engine dengan dua run.} Perbandingan engine
+        (bagian~\ref{sec:bench-engine}) memakai dua run per fit, bukan
+        \code{bench::mark} berulang; variasi antar-run pada fit beberapa
+        menit dapat mencapai beberapa persen.
   \item \textbf{Run inkremental.} Skrip 1--5 menulis file secara inkremental
         (baris lama per $n$ diganti), sehingga file bisa berisi campuran run
         dari waktu yang berbeda.

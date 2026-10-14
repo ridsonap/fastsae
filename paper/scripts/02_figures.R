@@ -31,7 +31,9 @@ labs <- list(
          beta_b = "(b) Beta spasial", beta_c = "(c) Beta spasio-temporal",
          beta_d = "(d) Beta area-level", est_t = "estimasi tipsae", est_f = "estimasi fastsae",
          mse_t = "MSE tipsae (log)", mse_f = "MSE fastsae (log)", pred = "(a) Prediktor area",
-         mse = "(b) MSE", done = "Selesai. Berkas figur di"),
+         mse = "(b) MSE", done = "Selesai. Berkas figur di",
+         D = "jumlah area D", eng_time = "waktu warm (detik, log)",
+         eng_g = "(a) Fay-Herriot spasial (ICAR)", eng_b = "(b) Beta spasial (ICAR)"),
   en = c(n = "number of areas n", time = "median time (seconds, log)", mem = "memory allocated (MB, log)",
          ratio = "time ratio (comparator / fastsae)", fh = "(a) Fay-Herriot",
          sfh = "(b) Spatial Fay-Herriot", stfh = "(c) Spatio-temporal Fay-Herriot",
@@ -39,7 +41,9 @@ labs <- list(
          beta_b = "(b) Spatial Beta", beta_c = "(c) Spatio-temporal Beta",
          beta_d = "(d) Beta", est_t = "tipsae estimate", est_f = "fastsae estimate",
          mse_t = "tipsae MSE (log)", mse_f = "fastsae MSE (log)", pred = "(a) Area predictions",
-         mse = "(b) MSE", done = "Done. Figures in")
+         mse = "(b) MSE", done = "Done. Figures in",
+         D = "number of domains D", eng_time = "warm time (seconds, log)",
+         eng_g = "(a) Spatial Fay-Herriot (ICAR)", eng_b = "(b) Spatial Beta (ICAR)")
 )[[lang]]
 L <- function(id) unname(labs[[id]])
 
@@ -179,6 +183,40 @@ plot(mt, mf, pch = 16, col = "#1b6ca8aa", cex = 0.7, log = "xy",
      main = L("mse"))
 abline(0, 1, col = "red", lwd = 1.5, lty = 2)
 par(op); dev.off()
+
+# ---------------------------------------------------------------------------
+# Figur 6: engine hb_area() pada model spasial (INLA, JAX CPU/GPU, tipsae)
+# sumber: hb_engine_benchmark*.rds; garis putus-putus = mesin kedua dst.
+# ---------------------------------------------------------------------------
+eng_files <- list.files(root, pattern = "^hb_engine_benchmark.*\\.rds$", full.names = TRUE)
+if (length(eng_files) > 0) {
+  tm <- do.call(rbind, lapply(eng_files, function(f) readRDS(f)$timings))
+  eng_col <- c(inla = "#1D6A5C", cpu = "#E69F00", metal = "#7B5EA7", cuda = "#76B900", tipsae = "#C0392B")
+  eng_lab <- c(inla = "INLA", cpu = "JAX CPU", metal = "JAX Metal", cuda = "JAX CUDA", tipsae = "tipsae")
+  machines <- unique(tm$machine)
+  pdf(fig("fig-engines.pdf"), width = 9, height = 4.4, useDingbats = FALSE)
+  op <- par(mfrow = c(1, 2), mar = c(4.4, 4.6, 2.6, 1.1), cex.lab = 1.05)
+  for (d in c("gaussian", "beta")) {
+    sub <- tm[tm$design == d, ]
+    ns <- sort(unique(sub$n))
+    plot(NA, xlim = range(log10(ns)), ylim = range(sub$time_warm), log = "y", xaxt = "n",
+         xlab = L("D"), ylab = L("eng_time"), main = L(if (d == "gaussian") "eng_g" else "eng_b"))
+    axis(1, at = log10(ns), labels = ns)
+    grid(col = "grey85", lty = 1)
+    for (m in seq_along(machines)) for (e in names(eng_col)) {
+      r <- sub[sub$engine == e & sub$machine == machines[m], ]
+      if (nrow(r) == 0) next
+      r <- r[order(r$n), ]
+      lines(log10(r$n), r$time_warm, col = eng_col[[e]], lwd = 2, lty = m, type = "b", pch = 16)
+    }
+    present <- intersect(names(eng_col), unique(sub$engine))
+    legend("topleft", legend = eng_lab[present], col = eng_col[present], lwd = 2, pch = 16,
+           bty = "n", cex = 0.85)
+    if (length(machines) > 1) legend("bottomright", legend = machines, lty = seq_along(machines),
+                                     lwd = 2, bty = "n", cex = 0.8)
+  }
+  par(op); dev.off()
+}
 
 cat(L("done"), normalizePath(out_dir), ":\n")
 print(list.files(out_dir, pattern = "\\.pdf$"))

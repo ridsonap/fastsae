@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\caption{Waktu komputasi (detik, run \emph{warm}) \code{hb\_area()} dengan efek ICAR (Besag) pada grid beraturan: INLA, JAX/NumPyro NUTS di CPU dan di GPU, serta \pkg{tipsae} (Stan, hanya model Beta). JAX: 2 rantai $\times$ 1000 draw setelah 500 warmup. Sumber: file \texttt{hb\_engine\_benchmark.rds} di \texttt{inst/extdata} (repo \texttt{fastsae}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}, ditampilkan hingga 6 digit signifikan.}
+\label{tab:engine-time}
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Mesin & Model & $D$ & INLA & JAX CPU & JAX GPU & tipsae \\
+\midrule
+Apple M4 & Gaussian & 100 &   1.359 &   6.383 & 128.595 (metal) & -- \\
+Apple M4 & Gaussian & 500 &   1.447 &  44.889 & 155.156 (metal) & -- \\
+Apple M4 & Gaussian & 1000 &   1.526 &  94.396 & 204.951 (metal) & -- \\
+Apple M4 & Gaussian & 2500 &   2.499 & 712.926 & 474.448 (metal) & -- \\
+Apple M4 & Beta & 100 &    1.24 &   5.965 & 110.468 (metal) & 107.496 \\
+Apple M4 & Beta & 500 &   1.441 &  35.982 &  136.28 (metal) & 268.243 \\
+Apple M4 & Beta & 1000 &   1.789 &  78.077 &  200.78 (metal) & 400.755 \\
+Apple M4 & Beta & 2500 &   3.199 & 538.146 & 393.048 (metal) & 945.842 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
