@@ -58,7 +58,7 @@
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
-    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
   </ul>
 </li>
@@ -67,7 +67,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-benchmarks" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Benchmarks</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-benchmarks">
 <li><a class="dropdown-item" href="../articles/benchmarks.html">fastsae vs other SAE packages</a></li>
-    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() engines: INLA vs JAX (CPU / Apple GPU)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
   </ul>
 </li>
       </ul>
@@ -379,14 +379,14 @@ Bayesian models fitted with <code><a href="../reference/hb_area.html">hb_area()<
 <span><span class="co">#&gt; [1] 17.64954</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $mean_sae_rse</span></span>
-<span><span class="co">#&gt; [1] 106.2227</span></span>
+<span><span class="co">#&gt; [1] 106.2249</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $median_sae_rse</span></span>
-<span><span class="co">#&gt; [1] 18.65605</span></span>
+<span><span class="co">#&gt; [1] 18.6559</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $eff_ratio_summary</span></span>
 <span><span class="co">#&gt;      Min   Q1.25%   Median     Mean   Q3.75%      Max </span></span>
-<span><span class="co">#&gt; 1.137440 1.273243 1.319812 1.326835 1.411235 1.501012 </span></span>
+<span><span class="co">#&gt; 1.137444 1.273248 1.319816 1.326840 1.411241 1.501019 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $prop_gain</span></span>
 <span><span class="co">#&gt; [1] 100</span></span>

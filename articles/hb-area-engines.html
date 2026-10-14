@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>hb_area() Engines: INLA vs JAX on CPU and Apple GPU (Metal) • fastsae</title>
+<title>hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae • fastsae</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -16,7 +16,7 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
-<script src="../extra.js"></script><meta property="og:title" content="hb_area() Engines: INLA vs JAX on CPU and Apple GPU (Metal)">
+<script src="../extra.js"></script><meta property="og:title" content="hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae">
 <script>
   // Force light mode as default for first-time visitors
   if (!localStorage.getItem('theme')) {
@@ -58,7 +58,7 @@
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
-    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
   </ul>
 </li>
@@ -67,7 +67,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-benchmarks" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Benchmarks</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-benchmarks">
 <li><a class="dropdown-item" href="../articles/benchmarks.html">fastsae vs other SAE packages</a></li>
-    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() engines: INLA vs JAX (CPU / Apple GPU)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
   </ul>
 </li>
       </ul>
@@ -96,7 +96,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>hb_area() Engines: INLA vs JAX on CPU and Apple GPU (Metal)</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/ridsonap/fastsae/blob/main/vignettes/articles/hb-area-engines.Rmd" class="external-link"><code>vignettes/articles/hb-area-engines.Rmd</code></a></small>
@@ -116,162 +116,193 @@ No-U-Turn sampler on <a href="https://jax.readthedocs.io" class="external-link">
 runs on the CPU, on an NVIDIA GPU (<code>device = "cuda"</code>) or on
 the GPU of Apple silicon (<code>device = "metal"</code>).</li>
 </ul>
-<p>This page compares the speed of the engines and how closely their
-estimates agree, on one Apple silicon machine.</p>
+<p>This page compares the speed of both engines, on the CPU and on a
+GPU, and how closely their estimates agree. The comparison uses spatial
+area-level models. For the Beta model it also includes the <a href="https://CRAN.R-project.org/package=tipsae" class="external-link">tipsae</a> package,
+which fits the same model by MCMC in Stan.</p>
+<blockquote>
+<p><strong>CUDA results pending.</strong> The NVIDIA GPU measurements
+(Google Colab, T4) will be added here. They can be reproduced with the
+notebook linked at the end of this page.</p>
+</blockquote>
 <div class="section level2">
 <h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
 </h2>
+<p><strong>Models.</strong></p>
+<ul>
+<li>
+<strong>Data:</strong> a regular grid of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
+cells with queen adjacency, simulated by
+<code>sim_area_data(D = n, W = W, n_unsampled = 0, seed = 42 + n)</code>.</li>
+<li>
+<strong>Gaussian:</strong>
+<code>hb_area(y_gaussian ~ x1 + x2, spatial = "besag")</code>, a
+Fay-Herriot model with an intrinsic CAR (Besag) area effect.</li>
+<li>
+<strong>Beta:</strong>
+<code>hb_area(y_beta ~ x1 + x2, family = "beta", spatial = "besag")</code>.
+tipsae fits it with
+<code>fit_sae(likelihood = "beta", spatial_error = TRUE)</code>, which
+also uses an ICAR effect.</li>
+</ul>
+<p>tipsae is run up to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 1,000</annotation></semantics></math>
+only; larger grids take too long and need too much memory.</p>
 <table class="table">
 <colgroup>
-<col width="25%">
-<col width="75%">
+<col width="5%">
+<col width="18%">
+<col width="5%">
+<col width="64%">
+<col width="6%">
 </colgroup>
 <thead><tr class="header">
-<th align="left">Item</th>
-<th align="left">Value</th>
+<th align="left">Machine</th>
+<th align="left">CPU</th>
+<th align="left">GPU</th>
+<th align="left">Software</th>
+<th align="left">Date</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">Machine</td>
-<td align="left">Darwin arm64 Apple M4</td>
-</tr>
-<tr class="even">
-<td align="left">R</td>
-<td align="left">R version 4.6.1 (2026-06-24)</td>
-</tr>
-<tr class="odd">
-<td align="left">fastsae</td>
-<td align="left">1.0.0</td>
-</tr>
-<tr class="even">
-<td align="left">INLA</td>
-<td align="left">26.8.7</td>
-</tr>
-<tr class="odd">
-<td align="left">JAX / jax-metal / NumPyro</td>
-<td align="left">0.5.0 / 0.1.1 / 0.19.0</td>
-</tr>
-<tr class="even">
-<td align="left">MCMC settings</td>
-<td align="left">jax_engine() defaults: 2 chains x 1000 draws, 500
-warmup</td>
-</tr>
-<tr class="odd">
-<td align="left">Data</td>
-<td align="left">
-<code>sim_area_data(D = n, n_unsampled = 0, seed = 42 + n)</code>;
-<code>y ~ x1 + x2</code>
-</td>
-</tr>
-<tr class="even">
-<td align="left">Timing</td>
-<td align="left">Each fit run 2 times on the same data; the first run
-includes JAX compilation</td>
-</tr>
-</tbody>
+<tbody><tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Apple M4 (10 cores, 16 GB RAM)</td>
+<td align="left">Apple M4</td>
+<td align="left">R 4.6.1; fastsae 1.0.0; INLA 26.8.7; tipsae 1.0.3; jax
+0.5.0, jaxlib 0.5.0, jax-metal 0.1.1, numpyro 0.19.0</td>
+<td align="left">2026-10-14</td>
+</tr></tbody>
 </table>
 <p>Each engine runs in a separate R process, because JAX fixes its
-device at the first fit of a session. The code is in <a href="https://github.com/ridsonap/fastsae/blob/main/benchmarks/bench_hb_area_engines.R" class="external-link"><code>benchmarks/bench_hb_area_engines.R</code></a>.</p>
+device at the first fit of a session. Every fit is run 2 times on the
+same data. The first run includes JAX compilation; the tables and figure
+show the faster, warm run. JAX uses the <code><a href="../reference/hb_engine.html">jax_engine()</a></code>
+defaults (2 chains × 1,000 draws after 500 warmup), and tipsae uses its
+own defaults. The code is in <a href="https://github.com/ridsonap/fastsae/blob/main/benchmarks/bench_hb_area_engines.R" class="external-link"><code>benchmarks/bench_hb_area_engines.R</code></a>.</p>
+<p><strong>Comparing machines.</strong> Times measured on different
+machines are not comparable with each other. The ratios within one
+machine are: GPU vs CPU, and INLA vs tipsae.</p>
 </div>
 <div class="section level2">
 <h2 id="computation-time">Computation time<a class="anchor" aria-label="anchor" href="#computation-time"></a>
 </h2>
 <div class="figure">
-<img src="hb-area-engines_files/figure-html/time-plot-1.png" class="r-plt" alt="Warm computation time (log scales). Lower is faster." width="880"><p class="caption">
-Warm computation time (log scales). Lower is faster.
+<img src="hb-area-engines_files/figure-html/time-plot-1.png" class="r-plt" alt="Warm computation time (log scales). Lower is faster. One row per machine." width="880"><p class="caption">
+Warm computation time (log scales). Lower is faster. One row per
+machine.
 </p>
 </div>
-<table class="table">
+<table style="width:100%;" class="table">
 <colgroup>
-<col width="25%">
-<col width="7%">
+<col width="10%">
+<col width="10%">
+<col width="6%">
 <col width="6%">
 <col width="8%">
-<col width="10%">
-<col width="23%">
+<col width="15%">
 <col width="17%">
+<col width="7%">
+<col width="16%">
 </colgroup>
 <thead><tr class="header">
+<th align="left">Machine</th>
 <th align="left">Model</th>
-<th align="right">D</th>
+<th align="left">D</th>
 <th align="right">INLA</th>
 <th align="right">JAX CPU</th>
-<th align="right">JAX Metal</th>
-<th align="right">JAX Metal, first run</th>
-<th align="right">Metal vs CPU</th>
+<th align="right">JAX GPU</th>
+<th align="right">GPU vs CPU</th>
+<th align="right">tipsae</th>
+<th align="right">INLA vs tipsae</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">Beta (proportions)</td>
-<td align="right">100</td>
-<td align="right">1.3 s</td>
-<td align="right">5.7 s</td>
-<td align="right">119 s</td>
-<td align="right">124 s</td>
-<td align="right">20.8x slower</td>
-</tr>
-<tr class="even">
-<td align="left">Beta (proportions)</td>
-<td align="right">1,000</td>
-<td align="right">1.7 s</td>
-<td align="right">104 s</td>
-<td align="right">149 s</td>
-<td align="right">149 s</td>
-<td align="right">1.4x slower</td>
-</tr>
-<tr class="odd">
-<td align="left">Beta (proportions)</td>
-<td align="right">5,000</td>
-<td align="right">3.2 s</td>
-<td align="right">340 s</td>
-<td align="right">236 s</td>
-<td align="right">256 s</td>
-<td align="right"><strong>1.4x faster</strong></td>
-</tr>
-<tr class="even">
-<td align="left">Beta (proportions)</td>
-<td align="right">10,000</td>
-<td align="right">4.8 s</td>
-<td align="right">659 s</td>
-<td align="right">314 s</td>
-<td align="right">328 s</td>
-<td align="right"><strong>2.1x faster</strong></td>
-</tr>
-<tr class="odd">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="right">100</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
+<td align="left">100</td>
 <td align="right">1.4 s</td>
-<td align="right">5.3 s</td>
-<td align="right">122 s</td>
-<td align="right">127 s</td>
-<td align="right">22.8x slower</td>
+<td align="right">6.4 s</td>
+<td align="right">129 s (metal)</td>
+<td align="right">20.1x slower</td>
+<td align="right">-</td>
+<td align="right">-</td>
 </tr>
 <tr class="even">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="right">1,000</td>
-<td align="right">1.5 s</td>
-<td align="right">37 s</td>
-<td align="right">159 s</td>
-<td align="right">160 s</td>
-<td align="right">4.3x slower</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
+<td align="left">500</td>
+<td align="right">1.4 s</td>
+<td align="right">45 s</td>
+<td align="right">155 s (metal)</td>
+<td align="right">3.5x slower</td>
+<td align="right">-</td>
+<td align="right">-</td>
 </tr>
 <tr class="odd">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="right">5,000</td>
-<td align="right">1.7 s</td>
-<td align="right">207 s</td>
-<td align="right">237 s</td>
-<td align="right">239 s</td>
-<td align="right">1.1x slower</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
+<td align="left">1,000</td>
+<td align="right">1.5 s</td>
+<td align="right">94 s</td>
+<td align="right">205 s (metal)</td>
+<td align="right">2.2x slower</td>
+<td align="right">-</td>
+<td align="right">-</td>
 </tr>
 <tr class="even">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="right">10,000</td>
-<td align="right">1.9 s</td>
-<td align="right">606 s</td>
-<td align="right">332 s</td>
-<td align="right">332 s</td>
-<td align="right"><strong>1.8x faster</strong></td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
+<td align="left">2,500</td>
+<td align="right">2.5 s</td>
+<td align="right">713 s</td>
+<td align="right">474 s (metal)</td>
+<td align="right"><strong>1.5x faster</strong></td>
+<td align="right">-</td>
+<td align="right">-</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">100</td>
+<td align="right">1.2 s</td>
+<td align="right">6.0 s</td>
+<td align="right">110 s (metal)</td>
+<td align="right">18.5x slower</td>
+<td align="right">107 s</td>
+<td align="right">87x faster</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">500</td>
+<td align="right">1.4 s</td>
+<td align="right">36 s</td>
+<td align="right">136 s (metal)</td>
+<td align="right">3.8x slower</td>
+<td align="right">268 s</td>
+<td align="right">186x faster</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">1,000</td>
+<td align="right">1.8 s</td>
+<td align="right">78 s</td>
+<td align="right">201 s (metal)</td>
+<td align="right">2.6x slower</td>
+<td align="right">401 s</td>
+<td align="right">224x faster</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">2,500</td>
+<td align="right">3.2 s</td>
+<td align="right">538 s</td>
+<td align="right">393 s (metal)</td>
+<td align="right"><strong>1.4x faster</strong></td>
+<td align="right">-</td>
+<td align="right">-</td>
 </tr>
 </tbody>
 </table>
@@ -279,56 +310,61 @@ Warm computation time (log scales). Lower is faster.
 <ul>
 <li>
 <strong>INLA is the fastest engine at every size.</strong> It does
-not sample, so its time grows slowly with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>.
-For example, the Gaussian model at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>10</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 10,000</annotation></semantics></math>
-takes 1.9 s.</li>
+not sample. For example, on the Apple M4 the spatial Gaussian model at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
+takes 2.5 s.</li>
 <li>
-<strong>Metal has a large fixed cost per fit but grows slowly with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>.</strong>
-NUTS builds each trajectory in a loop whose length depends on the data,
-and on Metal every pass through that loop waits for the GPU and the CPU
-to synchronise. For the Gaussian model, going from
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">D = 100</annotation></semantics></math>
-to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>10</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 10,000</annotation></semantics></math>
-multiplies the Metal time by 2.7 and the CPU time by
-<ol start="113" style="list-style-type: decimal"><li>
-</li></ol>
-</li>
+<strong>tipsae.</strong> At
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 1,000</annotation></semantics></math>
+on the Apple M4, tipsae takes 401 s for the spatial Beta model, INLA
+takes 1.8 s (224x faster), and JAX on the CPU takes 78 s. So the JAX
+engine on the CPU is 5x to 18x faster than tipsae on the sizes both
+ran.</li>
 <li>
-<strong>CPU or GPU?</strong> The CPU is faster for small and medium
-numbers of domains. The GPU catches up as
+<strong>The JAX engine’s time grows quickly with
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
-grows: for the Gaussian model Metal is faster at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>10</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 10,000</annotation></semantics></math>
-and above, and for the Beta model Metal is faster at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>5</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 5,000</annotation></semantics></math>
-and above (of the sizes tested).
-<code>jax_engine(device = "auto")</code> therefore keeps the CPU on
-macOS, and <code>device = "metal"</code> pays off only for large
-models.</li>
+for spatial models.</strong> It represents the ICAR effect through the
+eigenvectors of the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>×</mo><mi>D</mi></mrow><annotation encoding="application/x-tex">D \times D</annotation></semantics></math>
+graph Laplacian. Computing them costs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>D</mi><mn>3</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">O(D^3)</annotation></semantics></math>
+once, and each gradient evaluation then costs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>D</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">O(D^2)</annotation></semantics></math>.
+Dense matrix work of this kind is where a GPU helps.</li>
+<li>
+<strong>CPU or GPU?</strong> On the Apple M4 (Metal): the GPU is
+faster from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
+for the Gaussian model, and the GPU is faster from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
+for the Beta model. The GPU has a fixed cost per fit (on Metal, every
+pass through NUTS’ tree-building loop waits for the GPU and the CPU to
+synchronise), so it pays off only once
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
+is large. <code>jax_engine(device = "auto")</code> uses CUDA when an
+NVIDIA GPU is present and the CPU otherwise, including on macOS.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="agreement-of-the-estimates">Agreement of the estimates<a class="anchor" aria-label="anchor" href="#agreement-of-the-estimates"></a>
 </h2>
-<p>The JAX fits are compared with INLA on the same data.
+<p>Every engine is compared with INLA on the same machine and data.
 <code>cor</code> is the correlation of the posterior means,
 <code>max |diff|</code> is the largest absolute difference between them,
 and <code>sd ratio</code> is the median ratio of the posterior standard
-deviations (JAX / INLA).</p>
+deviations (engine / INLA).</p>
 <table class="table">
 <colgroup>
+<col width="12%">
+<col width="12%">
+<col width="14%">
+<col width="8%">
+<col width="9%">
 <col width="29%">
 <col width="12%">
-<col width="8%">
-<col width="10%">
-<col width="26%">
-<col width="11%">
 </colgroup>
 <thead><tr class="header">
+<th align="left">Machine</th>
 <th align="left">Model</th>
 <th align="left">Engine</th>
 <th align="left">D</th>
@@ -338,171 +374,228 @@ deviations (JAX / INLA).</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">Beta (proportions)</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
 <td align="left">JAX CPU</td>
 <td align="left">100</td>
-<td align="left">0.99994</td>
-<td align="right">0.00430</td>
-<td align="left">1.032</td>
+<td align="left">1.0000</td>
+<td align="right">0.02200</td>
+<td align="left">1.012</td>
 </tr>
 <tr class="even">
-<td align="left">Beta (proportions)</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
+<td align="left">JAX CPU</td>
+<td align="left">500</td>
+<td align="left">1.0000</td>
+<td align="right">0.01700</td>
+<td align="left">1.001</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
 <td align="left">JAX CPU</td>
 <td align="left">1,000</td>
-<td align="left">1.00000</td>
-<td align="right">0.00100</td>
-<td align="left">0.956</td>
-</tr>
-<tr class="odd">
-<td align="left">Beta (proportions)</td>
-<td align="left">JAX CPU</td>
-<td align="left">5,000</td>
-<td align="left">1.00000</td>
-<td align="right">0.00054</td>
-<td align="left">0.961</td>
+<td align="left">1.0000</td>
+<td align="right">0.01900</td>
+<td align="left">1.001</td>
 </tr>
 <tr class="even">
-<td align="left">Beta (proportions)</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
 <td align="left">JAX CPU</td>
-<td align="left">10,000</td>
-<td align="left">1.00000</td>
-<td align="right">0.00043</td>
-<td align="left">0.967</td>
-</tr>
-<tr class="odd">
-<td align="left">Beta (proportions)</td>
-<td align="left">JAX Metal</td>
-<td align="left">100</td>
-<td align="left">0.99991</td>
-<td align="right">0.00340</td>
-<td align="left">1.032</td>
-</tr>
-<tr class="even">
-<td align="left">Beta (proportions)</td>
-<td align="left">JAX Metal</td>
-<td align="left">1,000</td>
-<td align="left">0.99999</td>
-<td align="right">0.00140</td>
-<td align="left">0.950</td>
-</tr>
-<tr class="odd">
-<td align="left">Beta (proportions)</td>
-<td align="left">JAX Metal</td>
-<td align="left">5,000</td>
-<td align="left">1.00000</td>
-<td align="right">0.00049</td>
-<td align="left">0.946</td>
-</tr>
-<tr class="even">
-<td align="left">Beta (proportions)</td>
-<td align="left">JAX Metal</td>
-<td align="left">10,000</td>
-<td align="left">1.00000</td>
-<td align="right">0.00044</td>
-<td align="left">0.943</td>
-</tr>
-<tr class="odd">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="left">JAX CPU</td>
-<td align="left">100</td>
-<td align="left">0.99999</td>
-<td align="right">0.02400</td>
-<td align="left">1.004</td>
-</tr>
-<tr class="even">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="left">JAX CPU</td>
-<td align="left">1,000</td>
-<td align="left">0.99999</td>
-<td align="right">0.01600</td>
-<td align="left">1.000</td>
-</tr>
-<tr class="odd">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="left">JAX CPU</td>
-<td align="left">5,000</td>
-<td align="left">0.99999</td>
-<td align="right">0.02400</td>
-<td align="left">1.000</td>
-</tr>
-<tr class="even">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="left">JAX CPU</td>
-<td align="left">10,000</td>
-<td align="left">0.99999</td>
-<td align="right">0.01500</td>
+<td align="left">2,500</td>
+<td align="left">1.0000</td>
+<td align="right">0.01900</td>
 <td align="left">0.999</td>
 </tr>
 <tr class="odd">
-<td align="left">Fay-Herriot (Gaussian)</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
 <td align="left">JAX Metal</td>
 <td align="left">100</td>
-<td align="left">0.99999</td>
+<td align="left">1.0000</td>
+<td align="right">0.01400</td>
+<td align="left">1.011</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
+<td align="left">JAX Metal</td>
+<td align="left">500</td>
+<td align="left">1.0000</td>
+<td align="right">0.01700</td>
+<td align="left">1.001</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
+<td align="left">JAX Metal</td>
+<td align="left">1,000</td>
+<td align="left">1.0000</td>
 <td align="right">0.02000</td>
-<td align="left">1.007</td>
+<td align="left">1.001</td>
 </tr>
 <tr class="even">
-<td align="left">Fay-Herriot (Gaussian)</td>
+<td align="left">Apple M4</td>
+<td align="left">Gaussian</td>
 <td align="left">JAX Metal</td>
-<td align="left">1,000</td>
-<td align="left">0.99999</td>
-<td align="right">0.01500</td>
-<td align="left">1.002</td>
-</tr>
-<tr class="odd">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="left">JAX Metal</td>
-<td align="left">5,000</td>
-<td align="left">0.99999</td>
-<td align="right">0.01600</td>
-<td align="left">0.999</td>
-</tr>
-<tr class="even">
-<td align="left">Fay-Herriot (Gaussian)</td>
-<td align="left">JAX Metal</td>
-<td align="left">10,000</td>
-<td align="left">0.99999</td>
+<td align="left">2,500</td>
+<td align="left">1.0000</td>
 <td align="right">0.01800</td>
 <td align="left">0.999</td>
 </tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX CPU</td>
+<td align="left">100</td>
+<td align="left">1.0000</td>
+<td align="right">0.00300</td>
+<td align="left">1.044</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX CPU</td>
+<td align="left">500</td>
+<td align="left">1.0000</td>
+<td align="right">0.00200</td>
+<td align="left">0.987</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX CPU</td>
+<td align="left">1,000</td>
+<td align="left">1.0000</td>
+<td align="right">0.00170</td>
+<td align="left">0.980</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX CPU</td>
+<td align="left">2,500</td>
+<td align="left">1.0000</td>
+<td align="right">0.00075</td>
+<td align="left">0.963</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">100</td>
+<td align="left">1.0000</td>
+<td align="right">0.00360</td>
+<td align="left">1.019</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">500</td>
+<td align="left">1.0000</td>
+<td align="right">0.00110</td>
+<td align="left">0.983</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">1,000</td>
+<td align="left">1.0000</td>
+<td align="right">0.00130</td>
+<td align="left">0.985</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">2,500</td>
+<td align="left">1.0000</td>
+<td align="right">0.00050</td>
+<td align="left">0.968</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">tipsae</td>
+<td align="left">100</td>
+<td align="left">0.9939</td>
+<td align="right">0.08100</td>
+<td align="left">0.837</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">tipsae</td>
+<td align="left">500</td>
+<td align="left">0.9992</td>
+<td align="right">0.06900</td>
+<td align="left">0.798</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">tipsae</td>
+<td align="left">1,000</td>
+<td align="left">0.9991</td>
+<td align="right">0.03500</td>
+<td align="left">0.793</td>
+</tr>
 </tbody>
 </table>
-<p>The posterior means of both MCMC engines agree with INLA, with
-correlations of at least 0.9999. The posterior standard deviations agree
-closely for the Gaussian model (ratio 1.00 to 1.01). For the Beta model
-they differ from INLA’s by a few percent (ratio 0.94 to 1.03, smaller
-from
+<ul>
+<li>
+<strong>JAX engines.</strong> On every device, the posterior means
+agree with INLA with correlations of at least 0.9999, and the same holds
+across devices. The GPU evaluates floating-point operations in a
+different order from the CPU, so the chains differ slightly, but they
+give the same estimates.</li>
+<li>
+<strong>tipsae.</strong> tipsae agrees with INLA with correlations
+of at least 0.993. Its posterior standard deviations are smaller (median
+ratio 0.79 to 0.84), probably because the two packages use different
+priors.</li>
+<li>
+<strong>Convergence.</strong> Over all JAX fits, the largest split
+R-hat is 1.007. For tipsae it is 1.083 (at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 1,000</annotation></semantics></math>
-on), on the CPU and on Metal alike. This difference comes from the
-method and the priors, which are not identical in the two engines, and
-not from the device. The GPU evaluates floating-point operations in a
-different order from the CPU, so the Metal and CPU chains differ
-slightly, but they give the same estimates. The largest split R-hat over
-all JAX fits is 1.009.</p>
+on the Apple M4), above the usual 1.05 threshold, so its default run
+length is not quite enough there.</li>
+</ul>
 </div>
 <div class="section level2">
-<h2 id="using-the-apple-gpu">Using the Apple GPU<a class="anchor" aria-label="anchor" href="#using-the-apple-gpu"></a>
+<h2 id="using-a-gpu">Using a GPU<a class="anchor" aria-label="anchor" href="#using-a-gpu"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># One-time setup of the Python environment with jax-metal</span></span>
-<span><span class="fu">fastsae</span><span class="fu">::</span><span class="fu"><a href="../reference/setup_numpyro_env.html">setup_numpyro_env</a></span><span class="op">(</span>device <span class="op">=</span> <span class="st">"metal"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># One-time setup of the Python environment (CUDA on Linux/Windows, Metal on Apple silicon)</span></span>
+<span><span class="fu">fastsae</span><span class="fu">::</span><span class="fu"><a href="../reference/setup_numpyro_env.html">setup_numpyro_env</a></span><span class="op">(</span>device <span class="op">=</span> <span class="st">"cuda"</span><span class="op">)</span>   <span class="co"># or device = "metal"</span></span>
 <span></span>
-<span><span class="co"># In a new R session: request Metal before any other JAX fit</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>, data <span class="op">=</span> <span class="va">df</span>,</span>
-<span>               engine <span class="op">=</span> <span class="fu"><a href="../reference/hb_engine.html">jax_engine</a></span><span class="op">(</span>device <span class="op">=</span> <span class="st">"metal"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">fit</span><span class="op">$</span><span class="va">device</span>   <span class="co"># "metal:METAL:0"</span></span></code></pre></div>
-<p>jax-metal does not implement two operations used by NumPyro’s NUTS
-sampler: the bit count <code>popcnt</code>, and some
-<code>lax.cond</code> statements with constant outputs. When
+<span><span class="co"># In a new R session: request the GPU before any other JAX fit</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>, data <span class="op">=</span> <span class="va">df</span>, spatial <span class="op">=</span> <span class="st">"besag"</span>, W <span class="op">=</span> <span class="va">W</span>,</span>
+<span>               engine <span class="op">=</span> <span class="fu"><a href="../reference/hb_engine.html">jax_engine</a></span><span class="op">(</span>device <span class="op">=</span> <span class="st">"cuda"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fit</span><span class="op">$</span><span class="va">device</span></span></code></pre></div>
+<p><strong>Metal.</strong> jax-metal does not implement two operations
+used by NumPyro’s NUTS sampler: the bit count <code>popcnt</code>, and
+some <code>lax.cond</code> statements with constant outputs. With
 <code>device = "metal"</code>, fastsae replaces both with equivalent
-operations that Metal supports, and samples the chains sequentially. If
-a model still cannot be compiled on Metal, the fit falls back to the CPU
-with a warning.</p>
-<p>In short: for most surveys (hundreds to a few thousand domains),
-<code><a href="../reference/hb_engine.html">inla_engine()</a></code> is the fastest choice, and
-<code>jax_engine(device = "cpu")</code> is the faster way to get full
-MCMC. <code>jax_engine(device = "metal")</code> becomes worthwhile for
-very large numbers of domains.</p>
+operations and samples the chains sequentially. If a model still cannot
+be compiled on Metal, the fit falls back to the CPU with a warning.</p>
+<p><strong>Reproduce the CUDA results.</strong> Use the notebook <a href="https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb" class="external-link"><code>benchmarks/colab/hb_area_engines_colab.ipynb</code></a>.
+Open it in Google Colab, choose an R runtime with a T4 GPU, and run all
+cells. It installs fastsae, INLA, tipsae and JAX with CUDA, then runs
+the same benchmark.</p>
+<p><strong>In short:</strong></p>
+<ul>
+<li>For most surveys (hundreds to a few thousand domains),
+<code><a href="../reference/hb_engine.html">inla_engine()</a></code> is the fastest choice.</li>
+<li>For full MCMC, the JAX engine is much faster than Stan via tipsae,
+on the CPU alone.</li>
+<li>A GPU becomes worthwhile for the JAX engine on large spatial
+models.</li>
+</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
