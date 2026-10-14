@@ -186,6 +186,14 @@ if (file.exists(dest)) {
 }
 
 save_results <- function(runs) {
+  all_runs <- runs
+  # Report only the requested grid (an earlier run may have used other sizes)
+  runs <- lapply(runs, function(r) {
+    keep <- r[names(r) %in% as.character(ns)]
+    attr(keep, "python") <- attr(r, "python")
+    keep
+  })
+  runs <- runs[lengths(runs) > 0]
   timings <- do.call(rbind, lapply(runs, function(r) do.call(rbind, lapply(r, `[[`, "timing"))))
   rownames(timings) <- NULL
   timings <- cbind(machine = machine, timings)
@@ -222,7 +230,7 @@ save_results <- function(runs) {
     model = "Besag ICAR on a regular grid with queen adjacency",
     reps = as.integer(reps)
   )
-  saveRDS(list(timings = timings, agreement = agreement, meta = meta, runs = runs), dest)
+  saveRDS(list(timings = timings, agreement = agreement, meta = meta, runs = all_runs), dest)
   invisible(list(timings = timings, agreement = agreement))
 }
 
