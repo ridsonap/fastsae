@@ -31,7 +31,7 @@
 #
 # Usage: Rscript benchmarks/bench_hb_area_engines.R [--n=100,500,1000,2500]
 #          [--designs=gaussian,beta] [--engines=inla,cpu,metal,tipsae] [--reps=2]
-#          [--tipsae-max-n=1000] [--machine="Apple M4"] [--out=path.rds]
+#          [--tipsae-max-n=2500] [--machine="Apple M4"] [--out=path.rds]
 # ==============================================================================
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -142,7 +142,7 @@ ns <- as.integer(split_arg(arg_value("n", "100,500,1000,2500")))
 designs <- split_arg(arg_value("designs", "gaussian,beta"))
 engines <- split_arg(arg_value("engines", "inla,cpu,metal,tipsae"))
 reps <- arg_value("reps", "2")
-tipsae_max_n <- as.integer(arg_value("tipsae-max-n", "1000"))
+tipsae_max_n <- as.integer(arg_value("tipsae-max-n", "2500"))
 script <- normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1]))
 dest <- arg_value("out", file.path(dirname(script), "..", "inst", "extdata", "hb_engine_benchmark.rds"))
 

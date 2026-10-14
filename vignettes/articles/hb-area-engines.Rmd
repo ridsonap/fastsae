@@ -82,8 +82,8 @@ if (!has_cuda) {
   tipsae fits it with `fit_sae(likelihood = "beta", spatial_error = TRUE)`,
   which also uses an ICAR effect.
 
-tipsae is run up to $D = `r fmt_n(max(tm$n[tm$engine == "tipsae"]))`$ only;
-larger grids take too long and need too much memory.
+tipsae is run for the Beta model only, up to
+$D = `r fmt_n(max(tm$n[tm$engine == "tipsae"]))`$.
 
 ```{r setup-table}
 py_txt <- function(py) {
@@ -105,7 +105,7 @@ knitr::kable(do.call(rbind, lapply(metas, function(m) data.frame(
 Each engine runs in a separate R process, because JAX fixes its device at
 the first fit of a session. Every fit is run `r metas[[1]]$reps` times on the
 same data. The first run includes JAX compilation; the tables and figure show
-the faster, warm run. JAX uses the `jax_engine()` defaults (2 chains × 1,000
+the faster, warm run (the explorer can also show the first run). JAX uses the `jax_engine()` defaults (2 chains × 1,000
 draws after 500 warmup), and tipsae uses its own defaults. The code is in
 [`benchmarks/bench_hb_area_engines.R`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/bench_hb_area_engines.R).
 
@@ -114,6 +114,171 @@ comparable with each other. The ratios within one machine are: GPU vs CPU,
 and INLA vs tipsae.
 
 ## Computation time
+
+Pick a model, a machine and the timing to show. Hover over a point for the
+time, the device and the R-hat of the fit.
+
+```{r explorer-data, results = "asis"}
+js_rows <- tm[, c("machine", "design", "engine", "n", "time_warm", "time_first", "device", "rhat_max")]
+cat("<script>\nwindow.ENGINE_BENCH = ",
+    jsonlite::toJSON(list(rows = js_rows, machines = machines, engines = used,
+                          labels = as.list(engine_labels[used]),
+                          colours = as.list(engine_colours[used]),
+                          designs = as.list(short_labels)),
+                     dataframe = "rows", auto_unbox = TRUE, digits = 6, na = "null"),
+    ";\n</script>\n", sep = "")
+```
+
+```{=html}
+<div class="my-4 p-3 border rounded bg-light" id="engine-explorer">
+  <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="btn-group" role="group" aria-label="Model" id="eng-design-group"></div>
+    <div class="btn-group" role="group" aria-label="Machine" id="eng-machine-group"></div>
+    <div class="btn-group" role="group" aria-label="Timing" id="eng-time-group"></div>
+  </div>
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-bold" id="eng-main-title">Computation time</div>
+    <div class="card-body" style="position: relative; height: 360px;">
+      <canvas id="eng-main-chart"></canvas>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold" id="eng-speed-title">How much faster is INLA</div>
+    <div class="card-body" style="position: relative; height: 280px;">
+      <canvas id="eng-speed-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const B = window.ENGINE_BENCH;
+  if (!B) return;
+  const cur = { design: "gaussian", machine: B.machines[0], time: "time_warm" };
+  const TIMES = { time_warm: "Warm run", time_first: "First run (with compilation)" };
+  let chartMain = null, chartSpeed = null;
+
+  const fmtS = x => x == null ? "n/a" :
+    (x < 10 ? x.toFixed(1) : Math.round(x).toLocaleString("en")) + " s";
+  const rowsNow = () => B.rows.filter(r => r.design === cur.design && r.machine === cur.machine);
+  const sizes = rows => [...new Set(rows.map(r => r.n))].sort((a, b) => a - b);
+  const find = (rows, e, n) => rows.find(r => r.engine === e && r.n === n);
+
+  function buttonGroup(id, items, key, colour) {
+    const box = document.getElementById(id);
+    box.innerHTML = "";
+    Object.entries(items).forEach(([value, label]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      const on = cur[key] === value;
+      b.className = "btn btn-sm " + (on ? "btn-" + colour + " active" : "btn-outline-" + colour);
+      b.onclick = () => { cur[key] = value; drawButtons(); update(); };
+      box.appendChild(b);
+    });
+  }
+
+  function drawButtons() {
+    buttonGroup("eng-design-group", B.designs, "design", "primary");
+    const machines = {};
+    B.machines.forEach(m => machines[m] = m);
+    buttonGroup("eng-machine-group", machines, "machine", "secondary");
+    buttonGroup("eng-time-group", TIMES, "time", "success");
+  }
+
+  function update() {
+    const rows = rowsNow();
+    const ns = sizes(rows);
+    const engines = B.engines.filter(e => rows.some(r => r.engine === e));
+    const labels = ns.map(n => n.toLocaleString("en"));
+
+    chartMain.data.labels = labels;
+    chartMain.data.datasets = engines.map(e => ({
+      label: B.labels[e], engine: e,
+      data: ns.map(n => { const r = find(rows, e, n); return r ? r[cur.time] : null; }),
+      borderColor: B.colours[e], backgroundColor: B.colours[e],
+      tension: 0.25, pointRadius: 5, pointHoverRadius: 7
+    }));
+    chartMain.$ns = ns;
+    chartMain.update();
+
+    const others = engines.filter(e => e !== "inla");
+    chartSpeed.data.labels = labels;
+    chartSpeed.data.datasets = others.map(e => ({
+      label: "vs " + B.labels[e], engine: e,
+      data: ns.map(n => {
+        const i = find(rows, "inla", n), o = find(rows, e, n);
+        return i && o ? o[cur.time] / i[cur.time] : null;
+      }),
+      backgroundColor: B.colours[e], borderRadius: 4
+    }));
+    chartSpeed.update();
+
+    document.getElementById("eng-main-title").textContent =
+      "Computation time, " + B.designs[cur.design] + " model, " + cur.machine +
+      " (" + TIMES[cur.time].toLowerCase() + ", log scale)";
+    document.getElementById("eng-speed-title").textContent =
+      "How much faster is INLA, " + B.designs[cur.design] + " model, " + cur.machine + " (log scale)";
+  }
+
+  function init() {
+    const c1 = document.getElementById("eng-main-chart");
+    const c2 = document.getElementById("eng-speed-chart");
+    if (!c1 || !c2) return;
+    if (typeof Chart === "undefined") { setTimeout(init, 200); return; }
+    drawButtons();
+    chartMain = new Chart(c1.getContext("2d"), {
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false },
+        scales: {
+          x: { title: { display: true, text: "Number of domains (D)" } },
+          y: { type: "logarithmic", title: { display: true, text: "Time (seconds)" } }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: ctx => {
+            const r = find(rowsNow(), ctx.dataset.engine, chartMain.$ns[ctx.dataIndex]);
+            let s = ctx.dataset.label + ": " + fmtS(ctx.raw);
+            if (r && r.device) s += " · " + r.device;
+            if (r && r.rhat_max != null) s += " · R-hat " + r.rhat_max.toFixed(3);
+            return s;
+          } } }
+        }
+      }
+    });
+    chartSpeed = new Chart(c2.getContext("2d"), {
+      type: "bar",
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of domains (D)" } },
+          y: { type: "logarithmic", title: { display: true, text: "INLA is ... x faster" } }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: ctx =>
+            ctx.dataset.label + ": INLA " + (ctx.raw ? ctx.raw.toFixed(1) + "x faster" : "n/a") } }
+        }
+      }
+    });
+    update();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+```
+
+```{=html}
+<details class="mb-3"><summary>Static figure (all machines)</summary>
+```
 
 ```{r time-plot, fig.height = 2.3 + 2.3 * length(machines), fig.cap = "Warm computation time (log scales). Lower is faster. One row per machine."}
 ggplot(tm, aes(n, time_warm, colour = engine_f)) +
@@ -129,6 +294,10 @@ ggplot(tm, aes(n, time_warm, colour = engine_f)) +
   theme(legend.position = "bottom", panel.grid.minor = element_blank(),
         panel.spacing = grid::unit(1.2, "lines"),
         strip.text.y = element_text(angle = 0, hjust = 0))
+```
+
+```{=html}
+</details>
 ```
 
 ```{r time-table}
@@ -292,6 +461,7 @@ and JAX with CUDA, then run the same benchmark:
 
 - For most surveys (hundreds to a few thousand domains), `inla_engine()` is
   the fastest choice.
-- For full MCMC, the JAX engine is much faster than Stan via tipsae, on
-  the CPU alone.
+- For full MCMC, the JAX engine on the CPU alone is faster than Stan via
+  tipsae: `r if (exists("r") && length(r) > 0) sprintf("%.0fx to %.0fx here", min(r), max(r)) else ""`,
+  with the gap narrowing as $D$ grows.
 - A GPU becomes worthwhile for the JAX engine on large spatial models.
