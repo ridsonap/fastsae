@@ -282,5 +282,41 @@ Mesin & Model & Engine & $\\min r$ & Rasio sd & $\\max \\hat R$ \\\\
 }
 engine_tables()
 
+# ---------------------------------------------------------------------------
+# Tabel simulasi Monte Carlo eblup_stfh dengan sel tak tersampel
+# sumber: benchmarks/output/sim_stfh_unsampled.rds (benchmarks/sim_stfh_unsampled.R)
+# ---------------------------------------------------------------------------
+stfh_unsampled_table <- function() {
+  f <- file.path(root, "..", "..", "benchmarks", "output", "sim_stfh_unsampled.rds")
+  if (!file.exists(f)) return(invisible(NULL))
+  sim <- readRDS(f)
+  sm <- sim$summary
+  st <- sim$settings
+  lab <- c(sampled = "tersampel", gap = "periode hilang",
+           "unsampled domain" = "domain tanpa sampel")
+  rows <- sprintf("%s & %d & %s & %s & %s & %s & %s \\\\", lab[sm$type], sm$cells,
+                  fmt(sm$mse_eblup), fmt(sm$mse_synthetic), fmt(sm$rb_analytical_pct),
+                  fmt(sm$rb_bootstrap_pct), fmt(sm$coverage_pct))
+  txt <- sprintf(
+"\\begin{table}[htbp]
+\\centering
+\\caption{Simulasi Monte Carlo berbasis model untuk \\code{eblup\\_stfh} dengan sel tanpa estimasi langsung: $D=%d$, $T=%d$, %d replikasi (bootstrap $B=%d$ pada %d replikasi pertama), $(\\sigma_1^2,\\rho_1,\\sigma_2^2,\\rho_2)=(%s)$. MSE empiris EBLUP dan estimator sintetis $x'\\hat\\beta$; bias relatif (\\%%) estimator MSE analitik dan bootstrap; cakupan (\\%%) interval $\\hat\\theta\\pm1{,}96\\sqrt{\\widehat{\\mathrm{MSE}}}$ analitik, dirata-ratakan per jenis sel. Sumber: \\texttt{benchmarks/output/sim\\_stfh\\_unsampled.rds} (\\texttt{benchmarks/sim\\_stfh\\_unsampled.R}); angka dihitung ulang oleh \\texttt{scripts/01\\_tables.R}.}
+\\label{tab:stfh-unsampled-sim}
+\\small
+\\begin{tabular}{lrrrrrr}
+\\toprule
+Jenis sel & Sel & \\multicolumn{2}{c}{MSE empiris} & \\multicolumn{2}{c}{RB (\\%%)} & Cakupan \\\\
+\\cmidrule(lr){3-4} \\cmidrule(lr){5-6}
+ & & EBLUP & sintetis & analitik & bootstrap & (\\%%) \\\\
+\\midrule
+%s
+\\bottomrule
+\\end{tabular}
+\\end{table}
+", st$D, st$T, st$R, st$B, st$R_boot, paste(format(st$pars), collapse = ", "), paste(rows, collapse = "\n"))
+  writeLines(txt, file.path(outdir, "tab-stfh-unsampled-sim.tex"))
+}
+stfh_unsampled_table()
+
 cat("Selesai. Berkas tabel di", normalizePath(outdir), ":\n")
 print(list.files(outdir, pattern = "\\.tex$"))

@@ -105,7 +105,7 @@ head(fit_sfh_pb$df_eblup[, c("domain", "y", "eblup", "mse", "mse_pb", "mse_pbbc"
 
 ### Model Formulation
 
-The Spatio-Temporal model (Marhuenda, Molina, & Morales, 2013) combines spatial correlation and temporal autoregression across a balanced panel of $D$ areas observed over $T$ time periods:
+The Spatio-Temporal model (Marhuenda, Molina, & Morales, 2013) combines spatial correlation and temporal autoregression for $D$ areas over $T$ time periods. The panel does not need to be complete: cells without a direct estimate are predicted (see below).
 
 $$y_{dt} = x_{dt}^\top \beta + u_{1d} + u_{2dt} + e_{dt}$$
 
@@ -114,23 +114,24 @@ where:
 - $u_{2d} = (u_{2d1}, \dots, u_{2dT})^\top$ captures dynamic temporal effects for area $d$: $u_{2dt} = \rho_2 u_{2d,t-1} + \epsilon_{2dt}$.
 - $e_{dt} \sim \text{ind. } N(0, D_{dt})$ are sampling errors.
 
+The model is defined on the full $D \times T$ grid: $u_1$ on all domains of $W$, $u_2$ on all periods.
+
 ### Fitting the Spatio-Temporal Model
 
 ```{r stfh_fit}
 data("mys_panel")
 
-# Prepare balanced panel without missing values
-panel_data <- mys_panel[!is.na(mys_panel$y) & mys_panel$year >= 2024, ]
-W_sub <- mys_proxmat[-c(21, 25), -c(21, 25)]
+# 42 domains x 11 years; y is NA for the two domains that are never sampled
+table(sampled = !is.na(mys_panel$y))
 
-# Fit Spatio-Temporal model with the analytical MSE
+# Fit Spatio-Temporal model with the analytical MSE, on the full panel and full W
 fit_stfh <- eblup_stfh(
   formula = y ~ x1 + x2 + x3,
-  data = panel_data,
+  data = mys_panel,
   vardir = ~vardir,
   domain = ~area,
   time = ~year,
-  W = W_sub,
+  W = mys_proxmat,
   model = "ST",
   compute_mse = TRUE,
   print_result = FALSE
@@ -149,6 +150,31 @@ The analytical MSE is $g_1 + g_2 + 2 g_3 - g_4$ (Prasad-Rao type, with the exact
 EBLUP in $g_3$ and the curvature term $g_4$ for the nonlinear $\rho_1$, $\rho_2$); the components are
 returned as `fit_stfh$g1`, ..., `fit_stfh$g4`. A parametric bootstrap MSE is available with
 `mse_type = "bootstrap"` (and `B`, `seed`).
+
+### Unsampled Domains and Missing Periods
+
+Rows whose response is `NA` are kept and predicted, as long as the auxiliary variables are
+known there. The variance components are estimated from the sampled cells only (the marginal
+likelihood with the missing cells integrated out), and each missing cell gets the best linear
+unbiased predictor given the sampled data (Saei & Chambers, 2005; Benedetti et al., 2024):
+
+- a **missing period** of a sampled domain borrows from the other periods of that domain
+  (AR(1) correlation) and from the neighbouring domains (SAR);
+- a **domain that is never sampled** is predicted from its neighbours only (spatial kriging),
+  so `W` must keep it.
+
+```{r stfh_unsampled}
+est <- fit_stfh$df_eblup
+# Cells predicted without a direct estimate
+head(est[!est$sampled, c("domain", "time", "eblup", "mse", "rse")])
+
+# Their MSE is larger: no direct estimate, only borrowed strength
+tapply(est$mse, ifelse(est$sampled, "sampled", "unsampled"), median)
+```
+
+For these cells the analytical MSE is $g_1 + g_2 + g_3$ ($g_3$ from the exact derivative of the
+predictor in the variance components); the bootstrap generates the random effects on the full
+grid and covers every cell too.
 
 ---
 
@@ -181,5 +207,7 @@ For full details and a case study on Italian poverty data, see the vignette [Bay
 
 ## References
 
+- Benedetti, R., Piersimoni, F., Pratesi, M., Salvati, N., & Suesse, T. (2024). Handling out-of-sample areas to estimate the unemployment rate at local labour market areas in Italy. *International Statistical Review*. https://doi.org/10.1111/insr.12596
 - Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models. *Computational Statistics & Data Analysis*, 58, 308–325.
 - Pratesi, M., & Salvati, N. (2008). Small area estimation for spatially correlated data: A Fay-Herriot with the spatial linear spline model. *Journal of Applied Statistics*, 35(7), 781–794.
+- Saei, A., & Chambers, R. (2005). Out of sample estimation for small areas using area level data. Southampton Statistical Sciences Research Institute, Methodology Working Paper M05/11.

@@ -191,20 +191,19 @@ test_that("negative sampling variance throws error", {
 })
 
 test_that("eblup_stfh validation and edge cases", {
-  # Unsampled areas (NA in response)
-  expect_error(
-    eblup_stfh(
-      y ~ x1 + x2 + x3,
-      data = mys_panel,
-      vardir = ~vardir,
-      domain = ~area,
-      time = ~year,
-      W = mys_proxmat,
-      model = "ST",
-      print_result = FALSE
-    ),
-    "does not support unsampled areas"
+  # Unsampled areas (NA in response) are predicted, not rejected
+  # (see test-eblup_stfh_unsampled.R)
+  fit_na <- eblup_stfh(
+    y ~ x1 + x2 + x3,
+    data = mys_panel,
+    vardir = ~vardir,
+    domain = ~area,
+    time = ~year,
+    W = mys_proxmat,
+    model = "ST",
+    print_result = FALSE
   )
+  expect_equal(sum(!fit_na$df_eblup$sampled), sum(is.na(mys_panel$y)))
 
   # W contains NA
   W_na <- mys_proxmat_nona

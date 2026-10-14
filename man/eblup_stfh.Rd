@@ -35,14 +35,18 @@ eblup_stfh(
 (response ~ auxiliary variables). Variables must be present in \code{data}.}
 
 \item{vardir}{vector, column name or one-sided formula referencing a column
-in \code{data}, with the sampling variances of the direct estimator.}
+in \code{data}, with the sampling variances of the direct estimator. Must be
+positive in the sampled cells; it is ignored (may be \code{NA}) where the
+response is \code{NA}.}
 
-\item{data}{a data frame (or extension) with \code{domain * time} rows (balanced
-panel). Rows may be in any order: they are sorted internally into the
-domain-major order required by the model (domains in order of first appearance,
-periods increasing), and the results are returned in the original row order.
-Note that \code{sae::eblupSTFH()} instead assumes the data are already in
-domain-major order.}
+\item{data}{a data frame (or extension) with one row per domain and time period
+(\code{domain * time} rows), including the cells without a direct estimate: for
+those, the response (and \code{vardir}) is \code{NA}, while the auxiliary
+variables must be available (see Details). Rows may be in any order: they are
+sorted internally into the domain-major order required by the model (domains in
+order of first appearance, periods increasing), and the results are returned in
+the original row order. Note that \code{sae::eblupSTFH()} instead assumes a
+complete panel already in domain-major order.}
 
 \item{domain}{vector, column name or one-sided formula referencing a domain names column
 in \code{data}. If NULL, the domains are numbered consecutively.}
@@ -52,7 +56,9 @@ in \code{data}.}
 
 \item{W}{a square proximity/spatial weights matrix of dimension
 \code{domain x domain} (row-standardized, values typically in \eqn{[0,1]}), with rows
-and columns in the order in which the domains first appear in \code{data}.}
+and columns in the order in which the domains first appear in \code{data}. It must
+cover all domains, including the ones that are never sampled: do not drop them from
+\code{W}, since their predictions borrow strength from their neighbours through it.}
 
 \item{model}{character, either \code{"ST"} (spatio-temporal, default) or
 \code{"S"} (spatial only, no AR(1) temporal component).}
@@ -113,7 +119,9 @@ A list with the same structure as \code{seblup_area()}, with additional
 \item{\code{estcoef}}{data frame with beta, std.error, tvalue, pvalue.}
 \item{\code{estvarcomp}}{data frame with estimate, std.error for sigma21, rho1, sigma22, rho2.}
 \item{\code{goodness}}{vector with loglike, AIC, BIC.}
-\item{\code{df_eblup}}{data frame with eblup, mse, rse, random_effect_u1, random_effect_u2.}
+\item{\code{df_eblup}}{data frame with domain, time, y, eblup, vardir, mse, rse,
+random_effect_u1, random_effect_u2 and \code{sampled} (\code{FALSE} for the cells
+predicted without a direct estimate).}
 When \code{compute_mse = FALSE}, mse and rse are \code{NA}.
 \item{\code{model}}{model type ("ST" or "S").}
 \item{\code{convergence}}{logical, whether the algorithm converged.}
@@ -130,40 +138,64 @@ but the estimation loop runs in compiled C++/Armadillo, making it substantially 
 R implementation -- especially for a large number of domains/time periods.
 }
 \details{
-This function requires a complete panel (no NA values in the response variable).
-If your data contains NA values (unsampled areas/time periods), please filter them out
-before calling this function. Future versions may support automatic handling of unsampled areas.
+\strong{Unsampled domains and missing periods.} Cells whose response is \code{NA}
+(a domain without a sample in some period, or in every period) are not dropped. The
+model is defined on the full \eqn{D \times T} grid: the SAR effect \eqn{u_1} lives on
+all \eqn{D} domains of \code{W} and the AR(1) effect \eqn{u_2} on all \eqn{T} periods.
+The variance components are estimated by REML from the sampled cells, i.e. from the
+marginal likelihood with the missing cells integrated out (missing at random), and every
+cell gets the best linear unbiased predictor of \eqn{x_{dt}'\beta + u_{1d} + u_{2dt}}
+given the sampled data (Saei and Chambers, 2005; Benedetti et al., 2024 for the
+spatial effect):
+\deqn{\tilde\theta_{dt} = x_{dt}'\tilde\beta + a_{dt}' V^{-1} (y - X\tilde\beta),}
+with \eqn{a_{dt}} the covariance between the cell and the sampled direct estimates.
+A missing period of a sampled domain borrows from the other periods of the domain (AR(1))
+and from the neighbours (SAR); a domain that is never sampled is predicted from its
+neighbours only (spatial kriging). With \code{model = "S"} the period effect of a missing
+cell is independent of the data, so only the spatial part is borrowed.
+
+\strong{MSE.} For sampled cells the analytical MSE is \eqn{g_1 + g_2 + 2 g_3 - g_4}
+(Marhuenda et al., 2013). For the cells predicted without a direct estimate it is
+\eqn{g_1 + g_2 + g_3}, where \eqn{g_1} and \eqn{g_2} are the MSE of the predictor with known
+variance components and \eqn{g_3} comes from the exact derivative of the predictor in those
+components (\code{g4} is 0 for these cells). The further second-order correction of the
+plug-in \eqn{g_1} is not applied: it is numerically unstable when \eqn{\rho_1} approaches
+\eqn{\pm 1} or a variance component is weakly identified, while in simulations
+\eqn{g_1 + g_2 + g_3} has a relative bias of a few percent and close to nominal coverage
+for these cells. The parametric bootstrap generates the
+random effects on the full grid and the sampling errors on the sampled cells, re-estimates
+the model on the sampled cells and predicts every cell, so it covers both kinds of cells.
+The auxiliary variables must be known for every cell, since they enter the prediction.
+Self-benchmarking calibrates the weighted aggregate of the sampled cells of each group.
 }
 \examples{
 library(fastsae)
-library(dplyr)
 
-mys_panel_nona <- mys_panel |>
-  filter(!is.na(y) & year >= 2024)
-
-# Basic EBLUP without MSE
+# mys_panel: 42 domains x 11 years; domains 21 and 25 are never sampled (y = NA).
+# They stay in the data and in W, and are predicted from their neighbours.
 m1 <- eblup_stfh(
   y ~ x1 + x2 + x3,
-  data = mys_panel_nona,
+  data = mys_panel,
   vardir = ~vardir,
   domain = ~area,
   time = ~year,
-  W = mys_proxmat[-c(21, 25), -c(21, 25)],
+  W = mys_proxmat,
   model = "ST"
 )
 
-# Fast Analytical Prasad-Rao MSE (< 0.05 seconds)
+# Analytical MSE for every cell, sampled or not
 m2 <- eblup_stfh(
   y ~ x1 + x2 + x3,
-  data = mys_panel_nona,
+  data = mys_panel,
   vardir = ~vardir,
   domain = ~area,
   time = ~year,
-  W = mys_proxmat[-c(21, 25), -c(21, 25)],
+  W = mys_proxmat,
   model = "ST",
   compute_mse = TRUE,
   mse_type = "analytical"
 )
+head(m2$df_eblup[!m2$df_eblup$sampled, ])
 
 }
 \references{
@@ -172,5 +204,11 @@ m2 <- eblup_stfh(
 with spatio-temporal Fay-Herriot models. Computational Statistics & Data
 Analysis, 58, 308-325.
 \item Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
+\item Saei, A., & Chambers, R. (2005). Out of sample estimation for small areas using
+area level data. Southampton Statistical Sciences Research Institute, Methodology
+Working Paper M05/11.
+\item Benedetti, R., Piersimoni, F., Pratesi, M., Salvati, N., & Suesse, T. (2024).
+Handling out-of-sample areas to estimate the unemployment rate at local labour market
+areas in Italy. International Statistical Review. \doi{10.1111/insr.12596}
 }
 }

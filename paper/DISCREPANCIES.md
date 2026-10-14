@@ -127,6 +127,7 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
 | STFH-6 | Kolom bernama `tvalue` tetapi p-value dihitung dari distribusi normal. | `src/eblup_stfh_core.cpp:483-486` |
 | STFH-7 | $F^{-1}$ untuk `std.error` berasal dari iterasi terakhir $\theta_k$, sedangkan estimasi yang dilaporkan $\theta_{k+1}$. | `src/eblup_stfh_core.cpp:319-323` vs `:496-512` |
 | STFH-8 | Cabang `param_invalid` mengembalikan `convergence = TRUE` dengan `estcoef = NULL` (praktis tak tercapai, tetapi struktur return inkonsisten); nama `goodness` berbeda dari SFH (`loglike` vs `loglikelihood`). | `src/eblup_stfh_core.cpp:346-374,478` |
+| STFH-9 | **Diselesaikan (14 Okt 2026).** Dulu respons `NA` ditolak sehingga pengguna harus membuang domain tanpa sampel dan periode hilang (contoh dokumentasi membuang area 21 dan 25 dari `mys_panel` dan `W`). Kini model didefinisikan pada grid $D\times T$, REML pada sel tersampel, BLUP untuk sel lain (Saei & Chambers 2005; Benedetti dkk. 2024), MSE $g_1+g_2+g_3$ untuk sel tanpa sampel, bootstrap untuk semua sel; panel lengkap identik bit demi bit. | `R/eblup_stfh.R:260-296,331-341`; `src/eblup_stfh_core.cpp:853-872,1373-1500` |
 
 ## F. Lapisan Bayes/INLA (`hb_area`, `hb_unit`, `hb_twofold`)
 

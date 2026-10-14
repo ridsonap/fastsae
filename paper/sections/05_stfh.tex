@@ -5,41 +5,54 @@
 
 \subsection{Setting data dan kapan dipakai}\label{sec:stfh-setting}
 
-Data harus berupa \emph{panel seimbang}: satu baris per (domain, waktu), dengan
-periode yang sama di setiap domain dan tanpa \code{NA} pada respons.
-\fct{eblup\_stfh} menolak respons \code{NA} (\code{cli\_abort},
-\code{R/eblup\_stfh.R:168-176}) dan panel yang tidak seimbang (baris 248-260)
---- berbeda dengan dua model FH sebelumnya yang memakai \code{NA} sebagai
-penanda domain tanpa sampel. Inti C++ membutuhkan urutan \emph{domain-major};
+Data berisi satu baris per (domain, waktu) untuk \emph{seluruh} grid
+$D\times T$, dengan periode yang sama di setiap domain (pemeriksaan baris,
+\code{R/eblup\_stfh.R:284-296}). Respons boleh \code{NA}: sel seperti itu
+adalah sel tanpa estimasi langsung, baik periode yang hilang pada domain
+tersampel maupun domain yang tidak pernah tersampel. Sel tersebut tidak
+dibuang tetapi diprediksi (bagian~\ref{sec:stfh-prediktor}). Variabel bantu
+wajib tersedia di setiap sel (baris 262-267), dan \code{vardir} wajib positif
+di sel tersampel (baris 274-276). $W$ harus mencakup semua domain, termasuk
+yang tidak pernah tersampel. Inti C++ membutuhkan urutan \emph{domain-major};
 data diurutkan secara internal (domain menurut kemunculan pertama, yang juga
 harus menjadi urutan baris $W$; waktu menaik) dan hasilnya dikembalikan ke
-urutan baris pemanggil (baris 178-212, 333-345). Model ini dipakai bila
-estimasi tersedia untuk $T$ periode per domain dan kita ingin memakai kedua
-jenis korelasi: spasial antar domain dan temporal antar waktu dalam domain yang
-sama. Rujukan utamanya \citet{marhuenda2013small}; implementasinya mengikuti
-\code{sae::eblupSTFH}.
+urutan baris pemanggil (baris 204-250, 379-391). Model ini dipakai bila
+estimasi tersedia untuk beberapa periode per domain dan kita ingin memakai
+kedua jenis korelasi: spasial antar domain dan temporal antar waktu dalam
+domain yang sama. Rujukan utamanya \citet{marhuenda2013small};
+implementasinya mengikuti \code{sae::eblupSTFH}, yang hanya menerima panel
+lengkap.
 
 \subsection{Persamaan model}\label{sec:stfh-model}
 
 \begin{equation}
-  y_{dt}=x_{dt}'\beta+u^{(1)}_d+u^{(2)}_{dt}+e_{dt},
+  y_{dt}=\theta_{dt}+e_{dt},\qquad
+  \theta_{dt}=x_{dt}'\beta+u^{(1)}_d+u^{(2)}_{dt},
   \qquad e_{dt}\sim N(0,\psi_{dt}),
   \label{eq:stfh-model}
 \end{equation}
-dengan dua komponen (penulisan \emph{domain-major}, $M=D\times T$,
-$Z=\Imat_D\otimes\mathbf 1_T$):
+dengan dua komponen yang didefinisikan pada \emph{seluruh} grid (penulisan
+\emph{domain-major}, $Z=\Imat_D\otimes\mathbf 1_T$):
 \begin{align}
   u^{(1)} &\sim N\bigl(0,\;\sigma_1^2\Omega_1\bigr),
     &\Omega_1&=\bigl[(\Imat-\rho_1\Wmat)'(\Imat-\rho_1\Wmat)\bigr]^{-1},
     \label{eq:stfh-spatial}\\
   u^{(2)} &\sim N\bigl(0,\;\Imat_D\otimes\sigma_2^2\Omega_2\bigr),
-    &(\Omega_2)_{tt'}&=\frac{\rho_2^{\abs{t-t'}}}{1-\rho_2^2},
+    &(\Omega_2)_{tt'}&=\frac{\rho_2^{\abs{t-t'}}}{1-\rho_2^2}.
     \label{eq:stfh-temporal}
 \end{align}
-sehingga $\Vm=A+Z\,\sigma_1^2\Omega_1Z'$ dengan
-$A=\mathrm{blockdiag}_d(\sigma_2^2\Omega_2+\diag(\psi_d))$. Efek spasial
-\emph{konstan sepanjang waktu} dalam satu domain, dan $u^{(2)}$ adalah proses
-AR(1) per domain.
+Hanya sel tersampel $S$ (yaitu $y_{dt}$ tidak \code{NA}) yang mempunyai
+$y_{dt}$. Misalkan $S_d$ himpunan periode tersampel domain $d$ dan
+$n=\abs S$. Maka
+\begin{equation}
+  \Vm_S=A+Z_S\,\sigma_1^2\Omega_1Z_S',\qquad
+  A=\mathrm{blockdiag}_d\bigl(\sigma_2^2\,\Omega_2[S_d,S_d]+\diag(\psi_d)\bigr),
+  \label{eq:stfh-VS}
+\end{equation}
+dengan blok kosong untuk domain tanpa sampel. Efek spasial \emph{konstan
+sepanjang waktu} dalam satu domain, dan $u^{(2)}$ adalah proses AR(1) per
+domain. Pada panel lengkap $S$ mencakup seluruh grid dan
+\eqref{eq:stfh-VS} menjadi bentuk biasa dengan $M=DT$.
 
 \implnote{Struktur ini \emph{bukan} salah satu interaksi Knorr--Held tipe
 I--IV: tidak ada interaksi spasial$\times$temporal di mana efek spasial
@@ -47,8 +60,8 @@ berubah tiap waktu. Model \code{model = "S"} mematikan struktur temporal
 ($\Omega_2=\Imat$, $A$ diagonal). Perbedaan ini tercatat sebagai STFH-1 dan
 harus dipahami saat membaca hasil.}
 
-\paragraph{Evaluasi terstruktur, tanpa matriks $M\times M$.} Dengan Woodbury
-(\code{src/eblup\_stfh\_core.cpp:71-88})
+\paragraph{Evaluasi terstruktur, tanpa matriks $n\times n$.} Dengan Woodbury
+(\code{src/eblup\_stfh\_core.cpp:104-121})
 \begin{equation}
 \begin{aligned}
   \Vm^{-1}&=A^{-1}-(A^{-1}Z)\,\mathbf C^{-1}(A^{-1}Z)',
@@ -58,53 +71,81 @@ harus dipahami saat membaca hasil.}
 \end{aligned}
   \label{eq:stfh-woodbury}
 \end{equation}
-dengan $U=[A^{-1}Z,\;\Vm^{-1}\Xmat]$ ($M\times(D+p)$). Turunan $\Vm_a$
-berbentuk $ZB_aZ'$ ($\sigma_1^2,\rho_1$) atau $\Imat_D\otimes E_a$
-($\sigma_2^2,\rho_2$), sehingga skor, informasi Fisher, galat baku, dan MSE
-hanya membutuhkan blok $D\times D$, $(D+p)\times(D+p)$, dan $T\times T$:
-biaya $O(D^3+MT(D+p))$ per iterasi alih-alih $O(M^3)$, dan memori
-$O(M(D+p))$ alih-alih $O(M^2)$. Hasilnya identik secara aljabar dengan
-perhitungan padat. Log-determinan memakai lemma determinan
+dengan $U=[A^{-1}Z,\;\Vm^{-1}\Xmat]$ ($n\times(D+p)$) dan $Z=Z_S$. Turunan
+$\Vm_a$ berbentuk $ZB_aZ'$ ($\sigma_1^2,\rho_1$) atau
+$\mathrm{blockdiag}_d(E_a[S_d,S_d])$ ($\sigma_2^2,\rho_2$), sehingga skor,
+informasi Fisher, galat baku, dan MSE hanya membutuhkan blok $D\times D$,
+$(D+p)\times(D+p)$, dan $\abs{S_d}\times\abs{S_d}$: biaya $O(D^3+nT(D+p))$
+per iterasi alih-alih $O(n^3)$, dan memori $O(n(D+p))$ alih-alih $O(n^2)$.
+Hasilnya identik secara aljabar dengan perhitungan padat. Log-determinan
+memakai lemma determinan
 $\log\abs{\Vm}=\log\abs{A}+\log\abs{\sigma_1^2\Omega_1}+\log\abs{\mathbf C}$.
+Indeks per domain (baris awal di data ringkas dan periode tersampel) dibangun
+oleh \code{st\_make\_index} (baris 83-101). Matriks $T\times T$ yang
+diterapkan per blok diiris menjadi $[S_d,S_d]$; pada panel lengkap tidak ada
+pengirisan dan aritmetikanya sama persis dengan versi panel lengkap
+sebelumnya.
 
 \subsection{Prediktor titik}\label{sec:stfh-prediktor}
 
-Dengan $r=y-\Xmat\betah$, kedua komponen acak diprediksi dari proyeksi spasial
-dan temporalnya (baris 931-957):
+Dengan $r=y_S-\Xmat_S\betah$, kedua komponen acak diprediksi dari proyeksi
+spasial dan temporalnya (baris 1055-1078):
 \begin{equation}
   \hat u^{(1)}=\sigma_1^2\Omega_1\,Z'\Vm^{-1}r,
   \qquad
-  \hat u^{(2)}_d=\sigma_2^2\Omega_2\bigl(\Vm^{-1}r\bigr)_d,
+  \hat u^{(2)}_d=\sigma_2^2\,\Omega_2[\,\cdot\,,S_d]\bigl(\Vm^{-1}r\bigr)_d,
   \qquad
   \hat\theta_{dt}=x_{dt}'\betah+\hat u^{(1)}_d+\hat u^{(2)}_{dt}.
   \label{eq:stfh-pred}
 \end{equation}
 $\hat u^{(1)}$ identik pada seluruh periode satu domain. Untuk
-\code{model = "S"} suku temporal menjadi $\sigma_2^2(\Vm^{-1}r)$.
+\code{model = "S"} suku temporal menjadi $\sigma_2^2(\Vm^{-1}r)$ di sel
+tersampel.
+
+\paragraph{Sel tanpa estimasi langsung.} \eqref{eq:stfh-pred} berlaku untuk
+setiap sel $i=(d,t)$ pada grid, tersampel atau tidak: ia adalah BLUP dari
+$\theta_i$ berdasarkan data tersampel \citep{saei2005out}, yaitu
+\begin{equation}
+  \tilde\theta_i=x_i'\betah+a_i'\Vm^{-1}(y_S-\Xmat_S\betah),\qquad
+  a_i=\mathrm{Cov}(\theta_i,y_S)=\sigma_1^2\,\Omega_1[d,d(k)]
+  +\mathbf 1\{d(k)=d\}\,\sigma_2^2\,\Omega_2[t,t(k)],
+  \label{eq:stfh-blup}
+\end{equation}
+untuk baris tersampel $k$ dengan domain $d(k)$ dan periode $t(k)$
+(\code{st\_full\_u}, baris 672-697; baris 1373-1398). Periode yang hilang
+pada domain tersampel meminjam kekuatan dari periode lain domain itu (AR(1))
+dan dari tetangganya (SAR). Domain yang tidak pernah tersampel hanya
+meminjam dari tetangga, karena $u^{(2)}$ independen antar domain. Ini adalah
+\emph{kriging} spasial, seperti pada model SAR Fay--Herriot dengan area di
+luar sampel \citep{benedetti2024handling}. Untuk \code{model = "S"}, $u^{(2)}$
+sel yang hilang independen dari data sehingga hanya bagian spasial yang
+dipinjam. Asumsinya \emph{missing at random}: pola sel tersampel tidak
+bergantung pada $\theta$.
 
 \subsection{Estimasi komponen varians}\label{sec:stfh-varians}
 
 Parameter: $\theta=(\sigma_1^2,\rho_1,\sigma_2^2,\rho_2)$ untuk
 \code{"ST"} dan $(\sigma_1^2,\rho_1,\sigma_2^2)$ untuk \code{"S"}. Nilai awal
-default $0.5\,\mathrm{median}(\psi)$ untuk varians dan $0.5$ untuk korelasi
-(baris 756-760), semua dapat dioverride lewat argumen \code{*\_start}.
+default $0.5\,\mathrm{median}(\psi_S)$ untuk varians dan $0.5$ untuk korelasi
+(baris 874-878), semua dapat dioverride lewat argumen \code{*\_start}.
 Skoring selalu berbentuk REML (\code{method} di-hardcode \code{"REML"},
-\code{R/eblup\_stfh.R:325}):
+\code{R/eblup\_stfh.R:371}) pada sel tersampel, yaitu likelihood marginal
+dengan sel yang hilang diintegrasikan keluar:
 \begin{equation}
-  S_a=-\tfrac12\tr(P V_a)+\tfrac12 y'P V_a P y,
+  S_a=-\tfrac12\tr(P V_a)+\tfrac12 y_S'P V_a P y_S,
   \qquad
   F_{ab}=\tfrac12\tr(P V_a P V_b),
   \label{eq:stfh-score}
 \end{equation}
 dihitung lewat \eqref{eq:stfh-woodbury}. Langkah $F^{-1}S$, $\rho_1,\rho_2$
 dipetakan ke $\pm0.999$ bila $\abs\rho\ge1$, konvergensi relatif $\le10^{-4}$
-dengan maksimum 100 iterasi (baris 803-835) --- persis iterasi
+dengan maksimum 100 iterasi (baris 921-953) --- persis iterasi
 \code{sae::eblupSTFH}.
 
 Bila iterasi klasik gagal (biasanya karena iterasi varians menjadi negatif
 dan $\Vm$ tak-definit saat $\rho_1\to1$) atau konvergen ke varians negatif,
 dijalankan \emph{fallback} REML terkendala \code{stfh\_fit\_safeguarded}
-(baris 460-578, 837-865): Fisher scoring terproyeksi pada $\sigma^2_{1,2}\ge0$,
+(baris 557-668, 955-984): Fisher scoring terproyeksi pada $\sigma^2_{1,2}\ge0$,
 $\abs{\rho}\le0.999$, parameter di batas aktif ditahan (termasuk korelasi dari
 varians yang bernilai $0$, yang tidak teridentifikasi), dan \emph{step
 halving} sampai log-likelihood REML tidak turun. Fit yang konvergen pada
@@ -115,16 +156,16 @@ normal (kolom \code{tvalue} disalin ke \code{zvalue} di R, STFH-6). Galat
 baku komponen varians mengikuti \code{sae::eblupSTFH} (invers informasi
 iterasi klasik terakhir, STFH-7) bila iterasi itu konvergen, dan dari
 informasi di estimasi akhir bila fallback dipakai; parameter yang tidak
-teridentifikasi di batas mendapat \code{NA} (baris 1000-1037).
+teridentifikasi di batas mendapat \code{NA} (baris 1120-1158).
 
 \subsection{Estimasi MSE}\label{sec:stfh-mse}
 
 Kolom \code{mse} dan \code{rse} diisi \code{NA} kecuali
-\code{compute\_mse = TRUE} (\code{R/eblup\_stfh.R:355-397}; STFH-2). Ada dua
+\code{compute\_mse = TRUE} (\code{R/eblup\_stfh.R:402-444}; STFH-2). Ada dua
 jenis lewat \code{mse\_type}:
 
-\paragraph{Analitik (default).} MSE Prasad--Rao orde kedua
-\citep{marhuenda2013small} dalam bentuk terstruktur (baris 1039-1234):
+\paragraph{Analitik (default), sel tersampel.} MSE Prasad--Rao orde kedua
+\citep{marhuenda2013small} dalam bentuk terstruktur (baris 1161-1370):
 \begin{align}
   g_1&=\psi-\psi^2\diag(\Vm^{-1}),\qquad
   g_2=\psi^2\diag\bigl(\Vm^{-1}\Xmat Q\Xmat'\Vm^{-1}\bigr),
@@ -143,66 +184,109 @@ kedua $V_{jk}$). Korelasi di batas ($\abs\rho\ge0.999$) diperlakukan tetap,
 seperti pada SFH. Komponen $g_1$--$g_4$ juga dikembalikan sebagai elemen
 objek.
 
+\paragraph{Analitik, sel tanpa estimasi langsung.} Untuk prediktor
+\eqref{eq:stfh-blup} dengan $R_i=x_i'-a_i'\Vm^{-1}\Xmat$ (baris 1396-1500):
+\begin{equation}
+\begin{aligned}
+  g_1(i)&=\mathrm{Var}(\theta_i-x_i'\beta)-a_i'\Vm^{-1}a_i,\qquad
+  g_2(i)=R_iQR_i',\\
+  g_3(i)&=\sum_{a,b}F^{ab}\,\ell_a'P\ell_b,\qquad
+  \ell_a'=\partial_a a_i'-\bigl(a_i'\Vm^{-1}+R_iQ\Xmat'\Vm^{-1}\bigr)V_a,\\
+  \widehat{\mathrm{MSE}}(i)&=g_1+g_2+g_3,
+\end{aligned}
+  \label{eq:stfh-mse-oos}
+\end{equation}
+dengan $\mathrm{Var}(\theta_i-x_i'\beta)=\sigma_1^2\Omega_1[d,d]+\sigma_2^2\Omega_2[t,t]$
+(atau $+\sigma_2^2$ untuk \code{"S"}). $g_3$ berasal dari turunan eksak
+prediktor terhadap komponen varians, $\partial_a\tilde\theta_i=\ell_a'Py$.
+Kolom \code{g4} bernilai $0$ untuk sel ini.
+
+\implnote{Koreksi orde kedua untuk bias $g_1(\hat\theta)$, yaitu
+$\tfrac12\tr(F^{-1}\nabla^2g_1)$ (dipakai untuk domain tak-tersampel pada
+\fct{eblup\_sfh}), sempat diimplementasikan dan cocok dengan turunan beda hingga
+dari implementasi padat. Namun koreksi itu tidak stabil secara numerik bila
+$\rho_1$ mendekati $\pm1$ ($\Omega_1$ hampir singular) atau bila suatu
+komponen varians lemah teridentifikasi: dalam simulasi
+(Tabel~\ref{tab:stfh-unsampled-sim}) beberapa replikasi menghasilkan suku
+yang meledak sehingga bias relatif rata-ratanya ratusan hingga ribuan persen.
+Tanpa koreksi itu, $g_1+g_2+g_3$ memberi bias relatif beberapa persen dan
+cakupan mendekati 95\% untuk kedua jenis sel tanpa sampel. Karena itu koreksi
+tidak dipakai.}
+
 \paragraph{Bootstrap parametrik} (\code{mse\_type = "bootstrap"},
 \code{src/eblup\_stfh\_pbmse.cpp}):
 \begin{enumerate}[label=\arabic*.]
   \item fit awal penuh pada data asli;
-  \item bangkitkan $u^{(1)\ast}\sim N(0,\sigma_1^2\Omega_1)$ lewat faktor
-        Cholesky \emph{bawah} $\Omega_1=LL'$, $u^{(2)\ast}$ AR(1) per domain,
-        dan $\varepsilon^\ast\sim N(0,\psi)$ --- \emph{sekuensial, sebelum}
-        region paralel;
+  \item bangkitkan $u^{(1)\ast}\sim N(0,\sigma_1^2\Omega_1)$ pada semua $D$
+        domain lewat faktor Cholesky \emph{bawah} $\Omega_1=LL'$, $u^{(2)\ast}$
+        AR(1) per domain pada semua $T$ periode, dan $\varepsilon^\ast\sim
+        N(0,\psi)$ hanya pada sel tersampel --- \emph{sekuensial, sebelum}
+        region paralel (baris 158-188);
   \item dalam \texttt{\#pragma omp parallel for schedule(dynamic)}:
-        $y^\ast=\Xmat\hat\beta+Zu^{(1)\ast}+u^{(2)\ast}+\varepsilon^\ast$,
-        lalu komponen varians \emph{diestimasi ulang} dengan REML
-        (\code{stfh\_fit\_arma}) seperti \code{sae::pbmseSTFH}, sehingga
-        ketidakpastian $\hat\theta$ ($g_3$) ikut tertangkap;
+        $y_S^\ast=\mu^\ast_S+\varepsilon^\ast$ dengan
+        $\mu^\ast=\Xmat\hat\beta+Zu^{(1)\ast}+u^{(2)\ast}$, lalu komponen
+        varians \emph{diestimasi ulang} dengan REML pada sel tersampel
+        (\code{stfh\_fit\_arma}) seperti \code{sae::pbmseSTFH}, dan setiap
+        sel grid diprediksi dengan \eqref{eq:stfh-blup};
   \item replikat yang fit-nya gagal diganti draw baru sampai tepat $B$
         replikat valid (maksimum $5B$ percobaan);
-        $\widehat{\mathrm{MSE}}=B^{-1}\sum_b(\hat\theta_b^\ast-\mu_b^\ast)^2$,
-        $\mu^\ast=\Xmat\hat\beta+Zu^{(1)\ast}+u^{(2)\ast}$.
+        $\widehat{\mathrm{MSE}}_i=B^{-1}\sum_b(\hat\theta_{b,i}^\ast-\mu_{b,i}^\ast)^2$
+        untuk \emph{setiap} sel, tersampel atau tidak.
 \end{enumerate}
 Bila \code{mse\_type} tidak diberikan tetapi \code{B} diberikan, bootstrap
-yang dipilih (kompatibilitas dengan versi sebelumnya, baris 152-160).
+yang dipilih (kompatibilitas dengan versi sebelumnya, baris 190-198).
+
+\paragraph{Validasi.} Prediksi semua sel, $\betah$, $g_1$, dan $g_2$
+dibandingkan dengan implementasi padat (pembentukan $\Vm_S$ penuh) dan
+cocok sampai presisi mesin. $g_3$ cocok sampai $10^{-10}$ relatif, dan
+$g_4$ sel tersampel cocok dengan turunan beda hingga
+(\code{tests/testthat/test-eblup\_stfh\_unsampled.R}). Pada panel lengkap,
+hasilnya identik bit demi bit dengan versi sebelum dukungan sel tak tersampel.
+Tabel~\ref{tab:stfh-unsampled-sim} merangkum simulasi Monte Carlo berbasis
+model.
+
+\input{tables/tab-stfh-unsampled-sim}
 
 \subsection{Pseudo-code}\label{sec:stfh-algo}
 
 \begin{algorithm}[htbp]
-\caption{\texttt{eblup\_stfh} --- alur sebenarnya (\texttt{R/eblup\_stfh.R:126-434}, \texttt{src/eblup\_stfh\_core.cpp:715-1261})}
+\caption{\texttt{eblup\_stfh} --- alur sebenarnya (\texttt{R/eblup\_stfh.R:164-480}, \texttt{src/eblup\_stfh\_core.cpp:826-1529})}
 \label{alg:stfh}
 \KwIn{formula, \code{vardir}, \code{data}, \code{domain}, \code{time}, $W$ ($D\times D$),
   \code{model} $\in$\{ST, S\}, nilai awal, \code{compute\_mse}, \code{mse\_type}, \code{B}, \code{n\_threads}, \code{seed}}
-\KwOut{\code{df\_eblup} (per domain $\times$ waktu), \code{estvarcomp}, \code{goodness}, $g_1$--$g_4$}
+\KwOut{\code{df\_eblup} (setiap domain $\times$ waktu, termasuk kolom \code{sampled}), \code{estvarcomp}, \code{goodness}, $g_1$--$g_4$}
 \tcp*{\emph{Lapis R}}
-\textbf{gagal} bila respons mengandung \code{NA} (168-176)\;
-urutkan domain-major (domain menurut kemunculan, waktu menaik) (178-212)\;
-\textbf{gagal} bila \code{vardir} $\le0$, panel tidak seimbang, dimensi $\ne D\times T$, atau $W$ bukan $D\times D$ (240-281)\;
-validasi \code{sigma*\_start} $\ge0$ dan \code{rho*\_start} $\in(-1,1)$ (283-295)\;
-$\hat\theta,\ldots\leftarrow$ \texttt{.eblup\_stfh\_core} (297-312)\;
-\If{\code{compute\_mse}}{analitik: salin \code{mse\_analytical}; bootstrap: \texttt{.pbmse\_stfh} (355-390)}
-\uElse{\texttt{mse = rse = NA} (391-397)}\;
-kembalikan ke urutan baris pemanggil (426)\;
+urutkan domain-major (domain menurut kemunculan, waktu menaik) (204-250)\;
+\textbf{gagal} bila variabel bantu \code{NA}, semua respons \code{NA}, \code{vardir} sel tersampel tidak positif, baris grid tidak lengkap, atau $W$ bukan $D\times D$ (260-316)\;
+validasi \code{sigma*\_start} $\ge0$ dan \code{rho*\_start} $\in(-1,1)$ (317-330)\;
+$\hat\theta,\ldots\leftarrow$ \texttt{.eblup\_stfh\_core} (343-356)\;
+\If{\code{compute\_mse}}{analitik: salin \code{mse\_analytical}; bootstrap: \texttt{.pbmse\_stfh} (402-436)}
+\uElse{\texttt{mse = rse = NA} (437-444)}\;
+kembalikan ke urutan baris pemanggil (472)\;
 \caption*{}
 \tcp*{\emph{Lapis C++}}
-$\sigma_{1,2}^{2}\leftarrow0.5\,\mathrm{median}(\psi)$ (bila tidak diberikan);\quad
-  $\rho_{1,2}\leftarrow$ argumen (756-780)\;
+$S\leftarrow$ sel dengan $y$ tidak \code{NA}; indeks per domain (\texttt{st\_make\_index}, 853-872)\;
+$\sigma_{1,2}^{2}\leftarrow0.5\,\mathrm{median}(\psi_S)$ (bila tidak diberikan);\quad
+  $\rho_{1,2}\leftarrow$ argumen (874-878)\;
 \While{\texttt{diff} $>$ \code{precision} \textbf{dan} $k<$ \code{maxiter}}{
-  bangun $A^{-1}$ per blok $T\times T$, $\mathbf C$ ($D\times D$), $U$ \eqref{eq:stfh-woodbury} (\texttt{st\_build})\;
+  bangun $A^{-1}$ per blok $\abs{S_d}\times\abs{S_d}$, $\mathbf C$ ($D\times D$), $U$ \eqref{eq:stfh-woodbury} (\texttt{st\_build})\;
   $S,F\leftarrow$ \eqref{eq:stfh-score} terstruktur (\texttt{st\_score\_info})\;
   $\theta_{k+1}\leftarrow\theta_k+F^{-1}S$;\quad
   bila $|\rho_{1,2}|\ge1$ maka $\rho_{1,2}\leftarrow\pm0.999$\;
-  $\texttt{diff}\leftarrow\max\abs{(\theta_{k+1}-\theta_k)/\theta_k^{\text{safe}}}$ (803-835)\;
+  $\texttt{diff}\leftarrow\max\abs{(\theta_{k+1}-\theta_k)/\theta_k^{\text{safe}}}$ (921-953)\;
 }
-\If{gagal \textbf{atau} varians negatif}{fallback REML terkendala \texttt{stfh\_fit\_safeguarded} (837-865)}
-$\sigma^2\leftarrow\max(0,\cdot)$;\ $\betah\leftarrow Q\Xmat'V^{-1}y$ (867-934)\;
-$\hat u^{(1)},\hat u^{(2)}\leftarrow$ \eqref{eq:stfh-pred};\ $\hat\theta\leftarrow\Xmat\betah+\hat u^{(1)}+\hat u^{(2)}$ (936-957)\;
-loglik, AIC, BIC lewat lemma determinan (959-983)\;
-galat baku $\beta$ dan komponen varians (985-1037)\;
-$g_1,\dots,g_4$ \eqref{eq:stfh-g12}--\eqref{eq:stfh-g34} terstruktur; MSE dan RSE analitik (1039-1234)\;
+\If{gagal \textbf{atau} varians negatif}{fallback REML terkendala \texttt{stfh\_fit\_safeguarded} (955-984)}
+$\sigma^2\leftarrow\max(0,\cdot)$;\ $\betah\leftarrow Q\Xmat_S'V^{-1}y_S$ (986-1053)\;
+$\hat u^{(1)},\hat u^{(2)}\leftarrow$ \eqref{eq:stfh-pred} di sel tersampel (1055-1078)\;
+loglik, AIC, BIC lewat lemma determinan (1080-1104)\;
+galat baku $\beta$ dan komponen varians (1106-1158)\;
+$g_1,\dots,g_4$ \eqref{eq:stfh-g12}--\eqref{eq:stfh-g34} terstruktur di sel tersampel (1161-1370)\;
+BLUP \eqref{eq:stfh-blup} dan MSE \eqref{eq:stfh-mse-oos} untuk sel lain (1373-1500)\;
 \end{algorithm}
 
 \subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:stfh-api}
 
-\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_stfh} (\texttt{R/eblup\_stfh.R:126-150}).}]
+\begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_stfh} (\texttt{R/eblup\_stfh.R:164-188}).}]
 eblup_stfh(formula, vardir, data, domain, time, W,
            model = c("ST", "S"), maxiter = 100, precision = 1e-4,
            sigma21_start = NULL, rho1_start = 0.5,
@@ -217,14 +301,18 @@ eblup_stfh(formula, vardir, data, domain, time, W,
 
 \begin{itemize}
   \item \code{domain}, \code{time} --- nama kolom/kolom formula penanda domain
-        dan waktu (wajib; panel harus seimbang, urutan baris bebas).
+        dan waktu (wajib; satu baris per sel grid, urutan baris bebas).
   \item \code{W} --- matriks tetangga $D\times D$ (hanya antar domain, tanpa
-        dimensi waktu), dengan urutan domain menurut kemunculan pertama.
+        dimensi waktu) untuk \emph{semua} domain, dengan urutan domain menurut
+        kemunculan pertama.
   \item \code{model} --- \code{"ST"} (default, AR(1) temporal) atau
         \code{"S"} (tanpa struktur temporal).
   \item \code{compute\_mse}, \code{mse\_type} --- \code{FALSE} (default)
         menghasilkan \code{mse = NA}; \code{TRUE} dengan \code{"analytical"}
         (default) atau \code{"bootstrap"}.
+  \item \code{self\_benchmark} --- kalibrasi agregat berbobot sel tersampel
+        per kelompok (\code{.setup\_self\_benchmark} menormalkan bobot pada
+        sel tersampel).
 \end{itemize}
 
 Objek keluaran: \code{"fastsae"} berisi \code{estcoef}
@@ -232,26 +320,24 @@ Objek keluaran: \code{"fastsae"} berisi \code{estcoef}
 \code{estvarcomp} (4 atau 3 baris \code{estimate, std.error}), \code{goodness}
 (\code{loglike, AIC, BIC} --- nama berbeda dari SFH, STFH-8), \code{df\_eblup}
 dengan kolom \code{domain, time, y, eblup, vardir, mse, rse, mse\_pb,
-random\_effect\_u1, random\_effect\_u2}, \code{mse\_analytical},
+random\_effect\_u1, random\_effect\_u2, sampled} (\code{y} dan \code{vardir}
+\code{NA} di sel tanpa estimasi langsung), \code{mse\_analytical},
 \code{rse\_analytical}, \code{g1}--\code{g4}, \code{mse\_type}, \code{B},
 \code{convergence}, \code{n\_iter}, \code{method = "REML"}.
 
-\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_stfh.Rd}); panel dibuat lengkap dengan penyaringan.}]
+\begin{lstlisting}[language=R,caption={Contoh yang dapat dijalankan (dari \texttt{man/eblup\_stfh.Rd}); domain 21 dan 25 tidak pernah tersampel.}]
 library(fastsae)
-library(dplyr)
 
-mys_panel_nona <- mys_panel |>
-  filter(!is.na(y) & year >= 2024)
-
-m1 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel_nona,
+m1 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel,
                  vardir = ~vardir, domain = ~area, time = ~year,
-                 W = mys_proxmat[-c(21, 25), -c(21, 25)], model = "ST")
+                 W = mys_proxmat, model = "ST")
 
-# dengan MSE analitik Prasad-Rao
-m2 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel_nona,
+# MSE analitik untuk setiap sel, tersampel atau tidak
+m2 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel,
                  vardir = ~vardir, domain = ~area, time = ~year,
-                 W = mys_proxmat[-c(21, 25), -c(21, 25)], model = "ST",
+                 W = mys_proxmat, model = "ST",
                  compute_mse = TRUE, mse_type = "analytical")
+head(m2$df_eblup[!m2$df_eblup$sampled, ])
 \end{lstlisting}
 
 \subsection{Referensi kunci}\label{sec:stfh-ref}
@@ -259,6 +345,7 @@ m2 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel_nona,
 \citet{marhuenda2013small} adalah rujukan model dan sekaligus rujukan yang
 disebut roxygen (\code{R/eblup\_stfh.R}) bersama \citet{rao2015small};
 gabungan data deret waktu dengan potongan lintas bagian yang menjadi dasar
-model semacam ini dirintis \citet{rao1994small}. Implementasi pembandingnya
-\pkg{sae} \citep{molina2015sae}. Seluruh rujukan terdaftar di
-\code{references.bib}.
+model semacam ini dirintis \citet{rao1994small}. Prediksi sel di luar sampel
+mengikuti \citet{saei2005out} dan, untuk efek SAR pada area di luar sampel,
+\citet{benedetti2024handling}. Implementasi pembandingnya \pkg{sae}
+\citep{molina2015sae}. Seluruh rujukan terdaftar di \code{references.bib}.

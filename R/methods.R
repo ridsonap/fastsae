@@ -83,6 +83,10 @@ print.fastsae <- function(x, ...) {
   if (!is.null(x$method)) {
     cli::cli_text("{.strong Method}: {x$method}")
   }
+  smp <- x$df_eblup$sampled
+  if (is.logical(smp) && any(!smp, na.rm = TRUE)) {
+    cli::cli_text("{.strong Cells without a direct estimate}: {sum(!smp)} of {length(smp)} (predicted from the model)")
+  }
 
   if (isTRUE(x$self_benchmark)) {
     bm_label <- .bench_label(x$benchmark_method)
@@ -229,6 +233,10 @@ print.summary.fastsae <- function(x, ...) {
   }
   if (!is.null(x$method)) {
     cli::cli_text("{.strong Method}: {x$method}")
+  }
+  smp <- x$df_eblup$sampled
+  if (is.logical(smp) && any(!smp, na.rm = TRUE)) {
+    cli::cli_text("{.strong Cells without a direct estimate}: {sum(!smp)} of {length(smp)} (predicted from the model)")
   }
 
   if (isTRUE(x$self_benchmark)) {

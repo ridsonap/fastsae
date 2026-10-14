@@ -17,7 +17,7 @@ deskripsi luar.
 | `eblup_bhf` | `R/eblup_bhf.R:62` | Battese–Harter–Fuller unit-level | REML/ML terprofil atas $\gamma=\sigma_u^2/\sigma_e^2$ (grid log + Brent, C++ `.bhf_fit_cpp`); prediktor `.eblup_bhf_cpp` | Bootstrap parametrik (C++ `.pbmse_bhf_cpp`) | `src/eblup_bhf_core.cpp:221,246`, `src/eblup_unit.cpp:8` | ya: `eblup_bhf_core.cpp:283` |
 | `eblup_twofold` | `R/eblup_twofold.R:76` | Two-fold subarea | Fisher scoring 2 parameter $(\sigma_v^2,\sigma_u^2)$ (C++), informasi REML eksak | Analitik $g_1+g_2+2g_3$ (− bias ML) + bootstrap parametrik | `src/eblup_twofold.cpp:303` | ya: `eblup_twofold.cpp:558` |
 | `eblup_sfh` | `R/eblup_sfh.R:131` | Spatial FH (SAR pada semua $D$ domain) | Fisher scoring $(\sigma^2,\rho)$ + fallback terkendala; faktorisasi sparse `SarEngine` | Analitik $g_1+g_2+2g_3-g_4$ (+ kriging orde kedua); `pbmse`; `npbmse` | `src/eblup_sfh_core.cpp:393`, `eblup_sfh_pbmse.cpp:15`, `eblup_sfh_npbmse.cpp:15`, `sar_engine.h` | ya: `eblup_sfh_pbmse.cpp:116`, `eblup_sfh_npbmse.cpp:188` |
-| `eblup_stfh` | `R/eblup_stfh.R:126` | Spatio-temporal FH (efek spasial konstan-waktu + AR(1)) | REML 3/4 parameter terstruktur (Woodbury, tanpa matriks $M\times M$) + fallback terkendala | Analitik $g_1+g_2+2g_3-g_4$ + bootstrap parametrik | `src/eblup_stfh_core.cpp:715`, `eblup_stfh_pbmse.cpp:62` | ya: `eblup_stfh_pbmse.cpp:182` |
+| `eblup_stfh` | `R/eblup_stfh.R:164` | Spatio-temporal FH (efek spasial konstan-waktu + AR(1)) pada grid $D\times T$; sel `y = NA` (periode hilang, domain tanpa sampel) diprediksi dengan BLUP | REML 3/4 parameter terstruktur pada sel tersampel (Woodbury, blok per domain, tanpa matriks $n\times n$) + fallback terkendala | Tersampel: analitik $g_1+g_2+2g_3-g_4$; tanpa sampel: $g_1+g_2+g_3$; bootstrap parametrik untuk semua sel | `src/eblup_stfh_core.cpp:826`, `eblup_stfh_pbmse.cpp:62` | ya: `eblup_stfh_pbmse.cpp:193` |
 | `hb_area` | `R/hb_area.R:231` | HB area-level (6 family; iid/BYM/BYM2/Besag/generic1(Leroux)/SLM + temporal + KH 1–4, separable) | `inla_engine()` (INLA) atau `jax_engine()` (NumPyro NUTS, `R/hb_area_jax.R`) | $\mathrm{sd}^2$ posterior; self-benchmarking posterior via `inla.posterior.sample` | — | — |
 | `hb_unit` | `R/hb_unit.R:123` | HB unit-level (gaussian/binomial/poisson; iid/BYM2/Besag) | INLA, prior `loggamma(0.01,0.01)`; Gaussian non-spasial: start mode REML | $\mathrm{sd}^2$ posterior; koreksi populasi hingga | — | — |
 | `hb_twofold` | `R/hb_twofold.R:136` | HB two-fold subarea | INLA | $\mathrm{sd}^2$; tingkat area via sampling posterior | — | — |
@@ -55,7 +55,7 @@ Data: `mys`, `mys_panel`, `mys_proxmat`, `cornsoybean`, `cornsoybeanmeans` (`R/d
 | `eblup_sfh_pbmse.cpp` | `.seblup_pbmse` | Bootstrap parametrik spatial FH | line 116 |
 | `eblup_sfh_npbmse.cpp` | `.seblup_npbmse` | Bootstrap nonparametrik spatial FH | line 188 |
 | `eblup_stfh_core.cpp` | `.eblup_stfh_core` | Fit STFH terstruktur + MSE analitik | – |
-| `eblup_stfh_pbmse.cpp` | `.pbmse_stfh` | Bootstrap parametrik STFH (estimasi ulang $\theta$) | line 182 |
+| `eblup_stfh_pbmse.cpp` | `.pbmse_stfh` | Bootstrap parametrik STFH (estimasi ulang $\theta$; semua sel grid) | line 193 |
 | `RcppExports.cpp` / `R/RcppExports.R` | stub registrasi | useDynLib(registration=TRUE) | – |
 
 `src/Makevars`: `CXX_STD = CXX17`, OpenMP lewat `SHLIB_OPENMP_CXXFLAGS`,

@@ -111,7 +111,7 @@ When small area data are collected across longitudinal waves \(t = 1, \dots, T\)
 y_{it} = \bm{x}_{it}^\top \bm{\beta} + u_{1,it} + u_{2,it} + e_{it},
 \end{equation}
 \%
-where \(\bm{u}_1 = \rho_1 \bm{W} \bm{u}_1 + \bm{\epsilon}_1\) is a spatial SAR effect that is constant over time within each area (\(u_{1,it} = u_{1,i}\)) and \(u_{2,it} = \rho_2 u_{2,i,t-1} + \epsilon_{2,it}\) follows an AR(1) temporal process with \(|\rho_2| < 1\), as in \citet{marhuenda2013small}. In \CRANpkg{fastsae}, the covariance \(\bm{V} = \bm{A} + \bm{Z}\bm{V}_{u_1}\bm{Z}^\top\) (with \(\bm{A}\) block diagonal in \(T \times T\) blocks) is never formed: REML scores, Fisher information, and the analytical MSE (\(g_1 + g_2 + 2g_3 - g_4\)) are computed from \(T \times T\), \(D \times D\), and low-rank \(DT \times (D + p)\) pieces via the Woodbury identity.
+where \(\bm{u}_1 = \rho_1 \bm{W} \bm{u}_1 + \bm{\epsilon}_1\) is a spatial SAR effect that is constant over time within each area (\(u_{1,it} = u_{1,i}\)) and \(u_{2,it} = \rho_2 u_{2,i,t-1} + \epsilon_{2,it}\) follows an AR(1) temporal process with \(|\rho_2| < 1\), as in \citet{marhuenda2013small}. In \CRANpkg{fastsae}, the covariance \(\bm{V} = \bm{A} + \bm{Z}\bm{V}_{u_1}\bm{Z}^\top\) (with \(\bm{A}\) block diagonal in \(T \times T\) blocks) is never formed: REML scores, Fisher information, and the analytical MSE (\(g_1 + g_2 + 2g_3 - g_4\)) are computed from \(T \times T\), \(D \times D\), and low-rank \(DT \times (D + p)\) pieces via the Woodbury identity. The panel need not be complete: the model is defined on the full \(D \times T\) grid, the variance components are estimated by REML from the sampled cells, and missing periods as well as areas that are never sampled are predicted by the best linear unbiased predictor given the sampled data \citep{saei2005out}, with analytical (second-order) and parametric bootstrap MSE for every cell.
 
 \subsubsection{Unit-level Battese-Harter-Fuller model}
 
@@ -450,10 +450,10 @@ head(bm[, c("domain", "group", "original", "benchmarked", "rel_adjustment_pct")]
 #> 
 #> First 6 benchmarked domains (Level 2):
 #>   domain  group   original benchmarked rel_adjustment_pct
-#> 1      1 Prov_1  2.6646558   0.9111240          -65.80707
-#> 2      2 Prov_1 -1.6547233  -0.5657984          -65.80707
-#> 3      3 Prov_1  1.2504674   0.4275715          -65.80707
-#> 4      4 Prov_1 -0.7988192  -0.2731397          -65.80707
+#> 1      1 Prov_1  2.6646558   0.9212939          -65.42541
+#> 2      2 Prov_1 -1.6547233  -0.5721139          -65.42541
+#> 3      3 Prov_1  1.2504674   0.4323440          -65.42541
+#> 4      4 Prov_1 -0.7988192  -0.2761885          -65.42541
 \end{verbatim}
 
 The calibrated estimates satisfy \(\sum (w_i / \sum w_i) \hat{\theta}_i^{\text{BM}} = 0.50\) exactly.

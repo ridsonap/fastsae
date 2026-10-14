@@ -5,6 +5,14 @@
 // structured representation of V (block-diagonal A plus the rank-D term
 // Z Vu1 Z'; see "Structured evaluation" below): no M x M matrix is formed.
 //
+// The model is defined on the full D x T grid. Cells without a direct
+// estimate (NA y: intermittent gaps or whole unsampled domains) are left out of
+// the likelihood, which is then the marginal likelihood of the observed cells
+// (the SAR effect u1 still lives on all D domains, the AR(1) effect u2 on all
+// T periods), and they are predicted by the BLUP (see "All D x T cells" in
+// .eblup_stfh_core()). With every cell observed, the arithmetic is the
+// balanced-panel one.
+//
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
 #include "eblup_stfh_core.h"
@@ -69,9 +77,34 @@ static arma::mat build_omega2_d2(int Tt, double rho2) {
 }
 
 // ============================================================================
+// st_make_index(): observed cells of the D x T grid -> per-domain layout of
+// the compact (observed-only) rows.
+// ============================================================================
+StIndex st_make_index(int D, int T, const arma::uvec& observed) {
+  StIndex ix;
+  ix.D = D; ix.T = T;
+  ix.off.assign(D + 1, 0);
+  ix.tix.resize(D);
+  std::vector<arma::uword> pos;
+  for (int d = 0; d < D; ++d) {
+    std::vector<arma::uword> ts;
+    for (int t = 0; t < T; ++t) {
+      if (observed(d * T + t)) { ts.push_back(t); pos.push_back(d * T + t); }
+    }
+    ix.tix[d] = arma::conv_to<arma::uvec>::from(ts);
+    ix.off[d + 1] = ix.off[d] + (int) ts.size();
+  }
+  ix.n = ix.off[D];
+  ix.full = (ix.n == D * T);
+  ix.obs = arma::conv_to<arma::uvec>::from(pos);
+  return ix;
+}
+
+// ============================================================================
 // Structured evaluation (no M x M matrices)
 //
-// V = A + Z Vu1 Z', A = blockdiag(A_d) (T x T per domain), Z = I_D (x) 1_T.
+// V = A + Z Vu1 Z', A = blockdiag(A_d) (n_d x n_d per domain: the observed
+// periods; empty for an unsampled domain), Z = the domain indicator of each row.
 // With Woodbury, V^{-1} = A^{-1} - (A^{-1}Z) C^{-1} (A^{-1}Z)',
 // C = Vu1^{-1} + Z'A^{-1}Z, and
 //   P = V^{-1} - V^{-1}X Q X'V^{-1} = A^{-1} - U Wm U',
@@ -89,19 +122,33 @@ static arma::mat build_omega2_d2(int Tt, double rho2) {
 namespace {
 struct StPieces {
   int D = 0, T = 0, M = 0;
-  bool isST = true, hasVu1 = true;
-  std::vector<arma::mat> Ainv;   // D blocks, T x T
+  bool isST = true, hasVu1 = true, full = true;
+  std::vector<int> off;          // compact rows of domain d: off[d] .. off[d+1]-1
+  std::vector<arma::uvec> tix;   // observed periods of domain d
+  std::vector<arma::mat> Ainv;   // D blocks, n_d x n_d (empty: unsampled domain)
   arma::mat AZ;                  // M x D, A^{-1} Z
   arma::vec c;                   // D, 1'A_d^{-1}1
   arma::mat Cmat, Cinv;          // D x D (when sigma21 != 0)
   arma::mat Omega1, Omega2, dOmega2;
   double logdetA = 0.0;
 };
+// Compact rows f..l of domain d; false for a domain without observed cells.
+inline bool st_rng(const StPieces& p, int d, int& f, int& l) {
+  f = p.off[d];
+  l = p.off[d + 1] - 1;
+  return l >= f;
+}
+// The block of a T x T matrix E for the observed periods of domain d.
+inline arma::mat st_sub(const StPieces& p, const arma::mat& E, int d) {
+  return p.full ? E : arma::mat(E.submat(p.tix[d], p.tix[d]));
+}
 }  // namespace
 
-static bool st_build(const arma::vec& th, bool isST, int D, int T,
+static bool st_build(const arma::vec& th, bool isST, const StIndex& ix,
                      const arma::vec& vardir, const arma::mat& W, StPieces& p) {
-  p.D = D; p.T = T; p.M = D * T; p.isST = isST;
+  const int D = ix.D, T = ix.T;
+  p.D = D; p.T = T; p.M = ix.n; p.isST = isST;
+  p.full = ix.full; p.off = ix.off; p.tix = ix.tix;
   const arma::mat I = arma::eye<arma::mat>(D, D);
   const arma::mat ImrW = I - th(1) * W;
   const arma::mat A1 = arma::symmatu(ImrW.t() * ImrW);
@@ -112,11 +159,13 @@ static bool st_build(const arma::vec& th, bool isST, int D, int T,
   p.c.set_size(D);
   p.logdetA = 0.0;
   for (int d = 0; d < D; ++d) {
-    const int f = d * T, l = f + T - 1;
+    int f, l;
+    if (!st_rng(p, d, f, l)) { p.c(d) = 0.0; p.Ainv[d].reset(); continue; }
     const arma::vec psi_d = vardir.subvec(f, l);
     arma::mat Ad;
     if (isST) {
-      Ad = arma::symmatu(th(2) * p.Omega2 + arma::diagmat(psi_d));
+      if (p.full) Ad = arma::symmatu(th(2) * p.Omega2 + arma::diagmat(psi_d));
+      else Ad = arma::symmatu(th(2) * st_sub(p, p.Omega2, d) + arma::diagmat(psi_d));
     } else {
       const arma::vec bd = th(2) + psi_d;
       if (arma::any(bd <= 0.0)) return false;
@@ -142,25 +191,40 @@ static bool st_build(const arma::vec& th, bool isST, int D, int T,
 // A^{-1} Y, (I (x) E) Y, blockdiag(A_d^{-1} E) Y, Z'Y, V^{-1} Y
 static arma::mat st_Ainv(const StPieces& p, const arma::mat& Y) {
   arma::mat R(Y.n_rows, Y.n_cols);
+  int f, l;
   for (int d = 0; d < p.D; ++d) {
-    const int f = d * p.T, l = f + p.T - 1;
+    if (!st_rng(p, d, f, l)) continue;
     R.rows(f, l) = p.Ainv[d] * Y.rows(f, l);
   }
   return R;
 }
+// blockdiag(E[tix_d, tix_d]) Y for a T x T matrix E
 static arma::mat st_blk(const StPieces& p, const arma::mat& E, const arma::mat& Y) {
   arma::mat R(Y.n_rows, Y.n_cols);
+  int f, l;
   for (int d = 0; d < p.D; ++d) {
-    const int f = d * p.T, l = f + p.T - 1;
-    R.rows(f, l) = E * Y.rows(f, l);
+    if (!st_rng(p, d, f, l)) continue;
+    if (p.full) R.rows(f, l) = E * Y.rows(f, l);
+    else R.rows(f, l) = st_sub(p, E, d) * Y.rows(f, l);
   }
   return R;
 }
 static arma::mat st_Zt(const StPieces& p, const arma::mat& Y) {
-  arma::mat R(p.D, Y.n_cols);
+  arma::mat R(p.D, Y.n_cols, fill::zeros);
+  int f, l;
   for (int d = 0; d < p.D; ++d) {
-    const int f = d * p.T, l = f + p.T - 1;
+    if (!st_rng(p, d, f, l)) continue;
     R.row(d) = arma::sum(Y.rows(f, l), 0);
+  }
+  return R;
+}
+// Z S: row i of the result is row d(i) of S (S has D rows)
+static arma::mat st_Z(const StPieces& p, const arma::mat& S) {
+  arma::mat R(p.M, S.n_cols);
+  int f, l;
+  for (int d = 0; d < p.D; ++d) {
+    if (!st_rng(p, d, f, l)) continue;
+    R.rows(f, l) = arma::repmat(S.row(d), l - f + 1, 1);
   }
   return R;
 }
@@ -186,7 +250,8 @@ struct StLR {
     avec.zeros(p.M);
     if (p.hasVu1)
       for (int d = 0; d < p.D; ++d) {
-        const int f = d * p.T, l = f + p.T - 1;
+        int f, l;
+        if (!st_rng(p, d, f, l)) continue;
         avec.subvec(f, l) = p.AZ.submat(f, d, l, d);
       }
   }
@@ -202,7 +267,8 @@ struct StLR {
     arma::mat R = ViX * Sm.rows(off, off + px - 1);
     if (p.hasVu1)
       for (int d = 0; d < p.D; ++d) {
-        const int f = d * p.T, l = f + p.T - 1;
+        int f, l;
+        if (!st_rng(p, d, f, l)) continue;
         R.rows(f, l) += avec.subvec(f, l) * Sm.row(d);
       }
     return R;
@@ -212,7 +278,8 @@ struct StLR {
     arma::vec out = arma::sum(Y.cols(off, off + px - 1) % ViX, 1);
     if (p.hasVu1)
       for (int d = 0; d < p.D; ++d) {
-        const int f = d * p.T, l = f + p.T - 1;
+        int f, l;
+        if (!st_rng(p, d, f, l)) continue;
         out.subvec(f, l) += avec.subvec(f, l) % Y.submat(f, d, l, d);
       }
     return out;
@@ -223,7 +290,8 @@ struct StLR {
     Ud.cols(off, off + px - 1) = ViX;
     if (p.hasVu1)
       for (int d = 0; d < p.D; ++d) {
-        const int f = d * p.T, l = f + p.T - 1;
+        int f, l;
+        if (!st_rng(p, d, f, l)) continue;
         Ud.submat(f, d, l, d) = avec.subvec(f, l);
       }
     return Ud;
@@ -244,6 +312,7 @@ namespace {
 struct BSF {
   int D = 0, T = 0, M = 0, off = 0, px = 0, r = 0;
   bool hasA = false;
+  std::vector<int> roff;          // compact rows of each domain (as StPieces::off)
   arma::vec a;
   arma::mat Xp;
   // F S  (M x k)
@@ -251,7 +320,8 @@ struct BSF {
     arma::mat R = Xp * Sm.rows(off, off + px - 1);
     if (hasA)
       for (int d = 0; d < D; ++d) {
-        const int f = d * T, l = f + T - 1;
+        const int f = roff[d], l = roff[d + 1] - 1;
+        if (l < f) continue;
         R.rows(f, l) += a.subvec(f, l) * Sm.row(d);
       }
     return R;
@@ -261,7 +331,8 @@ struct BSF {
     arma::vec out = arma::sum(Y.cols(off, off + px - 1) % Xp, 1);
     if (hasA)
       for (int d = 0; d < D; ++d) {
-        const int f = d * T, l = f + T - 1;
+        const int f = roff[d], l = roff[d + 1] - 1;
+        if (l < f) continue;
         out.subvec(f, l) += a.subvec(f, l) % Y.submat(f, d, l, d);
       }
     return out;
@@ -270,14 +341,15 @@ struct BSF {
 BSF bsf_of(const StLR& L) {
   BSF F;
   F.D = L.p.D; F.T = L.p.T; F.M = L.p.M; F.off = L.off; F.px = L.px; F.r = L.r;
-  F.hasA = L.p.hasVu1; F.a = L.avec; F.Xp = L.ViX;
+  F.hasA = L.p.hasVu1; F.a = L.avec; F.Xp = L.ViX; F.roff = L.p.off;
   return F;
 }
 // blockdiag(Xb) F
 BSF bsf_transform(const BSF& F, const std::vector<arma::mat>& Xb) {
   BSF G = F;
   for (int d = 0; d < F.D; ++d) {
-    const int f = d * F.T, l = f + F.T - 1;
+    const int f = F.roff[d], l = F.roff[d + 1] - 1;
+    if (l < f) continue;
     if (F.hasA) G.a.subvec(f, l) = Xb[d] * F.a.subvec(f, l);
     G.Xp.rows(f, l) = Xb[d] * F.Xp.rows(f, l);
   }
@@ -363,7 +435,11 @@ static bool st_score_info(const StPieces& p, const arma::vec& th, const arma::ma
     EU[j] = st_blk(p, E[j], Ud);
     UtEU[j] = L.Ut(EU[j]);                                     // U' E_j U
     double trAE = 0.0;
-    for (int d = 0; d < D; ++d) trAE += arma::accu(p.Ainv[d] % E[j].t());
+    int f, l;
+    for (int d = 0; d < D; ++d)
+      if (!st_rng(p, d, f, l)) continue;
+      else if (p.full) trAE += arma::accu(p.Ainv[d] % E[j].t());
+      else trAE += arma::accu(p.Ainv[d] % st_sub(p, E[j], d).t());
     const arma::vec EPy = st_blk(p, E[j], arma::mat(Py));
     S(2 + j) = -0.5 * (trAE - arma::accu(Wm % UtEU[j].t())) + 0.5 * arma::dot(Py, EPy);
     // Z'P E_j P Z = (AZ - U G)' E_j (AZ - U G)
@@ -394,9 +470,17 @@ static bool st_score_info(const StPieces& p, const arma::vec& th, const arma::ma
   for (int j = 0; j < nE; ++j) {
     for (int k = j; k < nE; ++k) {
       double T1 = 0.0;
+      int f, l;
       for (int d = 0; d < D; ++d) {
-        const arma::mat AEj = p.Ainv[d] * E[j], AEk = p.Ainv[d] * E[k];
-        T1 += arma::accu(AEj % AEk.t());
+        if (!st_rng(p, d, f, l)) continue;
+        if (p.full) {
+          const arma::mat AEj = p.Ainv[d] * E[j], AEk = p.Ainv[d] * E[k];
+          T1 += arma::accu(AEj % AEk.t());
+        } else {
+          const arma::mat Ejd = st_sub(p, E[j], d), Ekd = st_sub(p, E[k], d);
+          const arma::mat AEj = p.Ainv[d] * Ejd, AEk = p.Ainv[d] * Ekd;
+          T1 += arma::accu(AEj % AEk.t());
+        }
       }
       // U' E_k A^-1 E_j U
       const arma::mat UEAEU = L.Ut(st_blk(p, E[k], st_Ainv(p, EU[j])));
@@ -420,13 +504,13 @@ static bool st_score_info(const StPieces& p, const arma::vec& th, const arma::ma
 // Pure Armadillo (thread-safe).
 // ============================================================================
 static bool stfh_reml_eval(
-    const arma::vec& th, bool isST, int D, int Tt,
+    const arma::vec& th, bool isST, const StIndex& ix,
     const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
     const arma::mat& W, bool want_SF,
     double& ll, arma::vec& S, arma::mat& F
 ) {
   StPieces p;
-  if (!st_build(th, isST, D, Tt, vardir, W, p)) return false;
+  if (!st_build(th, isST, ix, vardir, W, p)) return false;
   arma::mat ViX, Q;
   arma::vec Py;
   arma::vec S0;
@@ -446,7 +530,7 @@ static bool stfh_reml_eval(
   if (p.hasVu1) {
     if (th(0) <= 0.0) return false;
     if (!arma::log_det(ld, sg, p.Omega1) || sg <= 0) return false;
-    logdetV += D * std::log(th(0)) + ld;
+    logdetV += ix.D * std::log(th(0)) + ld;
     if (!arma::log_det(ld, sg, p.Cmat) || sg <= 0) return false;
     logdetV += ld;
   }
@@ -472,7 +556,7 @@ static bool stfh_reml_eval(
 // ============================================================================
 static bool stfh_fit_safeguarded(
     const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
-    const arma::mat& W, int D, int Tt, bool isST,
+    const arma::mat& W, const StIndex& ix, bool isST,
     int maxiter, double precision, arma::vec& th, int& iters
 ) {
   const int nparam = isST ? 4 : 3;
@@ -487,7 +571,7 @@ static bool stfh_fit_safeguarded(
   double ll;
   arma::vec S;
   arma::mat F;
-  if (!stfh_reml_eval(th, isST, D, Tt, X, y, vardir, W, true, ll, S, F)) return false;
+  if (!stfh_reml_eval(th, isST, ix, X, y, vardir, W, true, ll, S, F)) return false;
 
   // Near a nearly unidentified ridge (e.g. sigma22 -> 0 with rho2 -> 1, where
   // only sigma22 / (1 - rho2^2) is well determined) progress per iteration is
@@ -551,7 +635,7 @@ static bool stfh_fit_safeguarded(
       t = 1.0;
       for (int h = 0; h < 20; ++h) {
         cand = project(th + t * step);
-        if (stfh_reml_eval(cand, isST, D, Tt, X, y, vardir, W, false, llc, Sc, Fc) &&
+        if (stfh_reml_eval(cand, isST, ix, X, y, vardir, W, false, llc, Sc, Fc) &&
             llc > ll) {
           accepted = true;
           break;
@@ -561,7 +645,7 @@ static bool stfh_fit_safeguarded(
       if (accepted) break;
     }
     if (!accepted) return true;  // no ascent direction left: constrained maximum
-    if (!stfh_reml_eval(cand, isST, D, Tt, X, y, vardir, W, true, llc, Sc, Fc)) return false;
+    if (!stfh_reml_eval(cand, isST, ix, X, y, vardir, W, true, llc, Sc, Fc)) return false;
     const bool full_step = (t == 1.0);
 
     const double rel = arma::max(arma::abs(cand - th) / arma::max(arma::abs(th), 1e-4 * arma::ones<arma::vec>(nparam)));
@@ -578,6 +662,41 @@ static bool stfh_fit_safeguarded(
 }
 
 // ============================================================================
+// st_full_u(): random effects on the full D x T grid from V^-1 (y - X beta)
+//   u1 = sigma21 Omega1 Z'V^-1 r  (all D domains: kriging for unsampled ones)
+//   u2_d = sigma22 Omega2[., tix_d] (V^-1 r)_d  (all T periods of domain d;
+//          model "S": sigma22 (V^-1 r)_i at the observed cells, 0 elsewhere)
+// Returned as two D*T vectors (domain-major). At observed cells these equal the
+// EBLUP's random effects; elsewhere they are the BLUP of the unobserved effects.
+// ============================================================================
+static void st_full_u(const StPieces& p, double s21, double s22,
+                      const arma::vec& invVresid, arma::vec& u1_full, arma::vec& u2_full) {
+  const int D = p.D, T = p.T;
+  arma::vec zr(D, fill::zeros);
+  {
+    int f, l;
+    for (int d = 0; d < D; ++d) if (st_rng(p, d, f, l)) zr(d) = arma::sum(invVresid.subvec(f, l));
+  }
+  const arma::mat Vu1 = s21 * p.Omega1;                  // stored first, as before
+  const arma::vec u1 = Vu1 * zr;
+  u1_full.set_size(D * T);
+  u2_full.zeros(D * T);
+  int f, l;
+  for (int d = 0; d < D; ++d) {
+    u1_full.subvec(d * T, d * T + T - 1).fill(u1(d));
+    if (!st_rng(p, d, f, l)) continue;
+    const arma::vec r_d = invVresid.subvec(f, l);
+    if (p.isST) {
+      if (p.full) u2_full.subvec(d * T, d * T + T - 1) = s22 * (p.Omega2 * r_d);
+      else u2_full.subvec(d * T, d * T + T - 1) = s22 * (arma::mat(p.Omega2.cols(p.tix[d])) * r_d);
+    } else {
+      for (arma::uword k = 0; k < p.tix[d].n_elem; ++k)
+        u2_full(d * T + p.tix[d](k)) = s22 * r_d(k);
+    }
+  }
+}
+
+// ============================================================================
 // stfh_fit_arma()
 //
 // Pure Armadillo REML Fisher-scoring fit + EBLUP (no R objects, no R RNG),
@@ -588,10 +707,11 @@ static bool stfh_fit_safeguarded(
 // ============================================================================
 STFitArma stfh_fit_arma(
     const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
-    const arma::mat& W, int D, int Tt, bool isST,
+    const arma::mat& W, const StIndex& ix, bool isST,
     int maxiter, double precision,
     double sigma21_start, double rho1_start,
-    double sigma22_start, double rho2_start
+    double sigma22_start, double rho2_start,
+    const arma::mat& Xfull
 ) {
   STFitArma res;
   res.ok = false;
@@ -616,7 +736,7 @@ STFitArma stfh_fit_arma(
     thetak = thetak1;
 
     StPieces sp;
-    if (!st_build(thetak, isST, D, Tt, vardir, W, sp)) { primary_failed = true; break; }
+    if (!st_build(thetak, isST, ix, vardir, W, sp)) { primary_failed = true; break; }
     arma::vec S;
     arma::mat F, ViX_k, Q_k;
     arma::vec Py_k;
@@ -645,7 +765,7 @@ STFitArma stfh_fit_arma(
     th(0) = sigma21_start; th(1) = rho1_start; th(2) = sigma22_start;
     if (isST) th(3) = rho2_start;
     int it2 = 0;
-    if (!stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST, maxiter, precision, th, it2)) {
+    if (!stfh_fit_safeguarded(X, y, vardir, W, ix, isST, maxiter, precision, th, it2)) {
       res.n_iter = k + it2;
       return res;
     }
@@ -655,7 +775,7 @@ STFitArma stfh_fit_arma(
     // same constrained re-maximisation as in .eblup_stfh_core()
     arma::vec th = thetak1;
     int it2 = 0;
-    if (!stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST, maxiter, precision, th, it2)) {
+    if (!stfh_fit_safeguarded(X, y, vardir, W, ix, isST, maxiter, precision, th, it2)) {
       res.n_iter = k + it2;
       return res;
     }
@@ -673,31 +793,21 @@ STFitArma stfh_fit_arma(
   thf(0) = s21; thf(1) = r1; thf(2) = s22;
   if (isST) thf(3) = r2;
   StPieces spf;
-  if (!st_build(thf, isST, D, Tt, vardir, W, spf)) return res;
+  if (!st_build(thf, isST, ix, vardir, W, spf)) return res;
   const arma::mat ViXf = st_Vinv(spf, X);
   arma::mat Q;
   if (!arma::inv_sympd(Q, arma::symmatu(X.t() * ViXf))) return res;
   res.beta = Q * (ViXf.t() * y);
   const arma::vec invVresid = st_Vinv(spf, arma::mat(y - X * res.beta));
-  struct { arma::mat Vu1, Omega2; } mpf = { s21 * spf.Omega1, isST ? spf.Omega2 : arma::mat() };
 
-  // u1 = Vu1 Z1' V^{-1} r ;  u2 = (I_D x sigma22 Omega2) V^{-1} r
-  arma::vec tZ1invVresid(D);
-  for (int d = 0; d < D; ++d) {
-    tZ1invVresid(d) = arma::sum(invVresid.subvec(d * Tt, d * Tt + Tt - 1));
-  }
-  const arma::vec u1 = mpf.Vu1 * tZ1invVresid;
-
-  arma::vec eblup = X * res.beta;
-  for (int d = 0; d < D; ++d) {
-    const int first = d * Tt, last = first + Tt - 1;
-    const arma::vec r_d = invVresid.subvec(first, last);
-    eblup.subvec(first, last) += u1(d) +
-      (isST ? arma::vec(s22 * (mpf.Omega2 * r_d)) : arma::vec(s22 * r_d));
-  }
+  // EBLUP of every D x T cell: x' beta + u1_d + u2_dt (BLUP where unobserved)
+  arma::vec u1_full, u2_full;
+  st_full_u(spf, s21, s22, invVresid, u1_full, u2_full);
+  res.theta = Xfull * res.beta;
+  // same association as the balanced-panel code: X beta + (u1 + u2)
+  const arma::vec eblup = res.theta + (u1_full + u2_full);
 
   res.eblup = eblup;
-  res.theta = X * res.beta;
   res.sigma21 = s21;
   res.rho1 = r1;
   res.sigma22 = s22;
@@ -730,28 +840,36 @@ List eblup_stfh_core(
 ) {
   if (model != "S" && model != "ST") Rcpp::stop("Argument model must be \"S\" or \"ST\".");
 
-  const int M = D * Tt;
+  const int Mfull = D * Tt;
   const int p = Xall.n_cols;
-  if ((int) Xall.n_rows != M) Rcpp::stop("nrow(Xall) must equal D*T.");
-  if ((int) yall.n_elem != M) Rcpp::stop("length(yall) must equal D*T.");
-  if ((int) vardirall.n_elem != M) Rcpp::stop("length(vardirall) must equal D*T.");
+  if ((int) Xall.n_rows != Mfull) Rcpp::stop("nrow(Xall) must equal D*T.");
+  if ((int) yall.n_elem != Mfull) Rcpp::stop("length(yall) must equal D*T.");
+  if ((int) vardirall.n_elem != Mfull) Rcpp::stop("length(vardirall) must equal D*T.");
   if ((int) proxmat.n_rows != D || (int) proxmat.n_cols != D)
     Rcpp::stop("proxmat must be a square D x D matrix.");
+  if (!Xall.is_finite()) Rcpp::stop("Xall must be finite in every cell (also where y is NA).");
 
   // =====================================================================
-  // Check for NA values (unsampled areas)
-  // For this version, unsampled areas are not yet supported
+  // Observed cells: y not NA. The others (intermittent gaps, unsampled
+  // domains) are predicted from the model fitted to the observed cells.
+  // X, y, vardir below are the compact (observed-only) data, domain-major.
   // =====================================================================
-  bool adaNA = yall.has_nan();
-  if (adaNA) {
-    Rcpp::stop("This version does not support unsampled areas (NA in response). "
-         "Please use a complete panel or contact the maintainer for the unsampled-area feature.");
-  }
-
-  // For now, use the original implementation for complete panels
-  const arma::mat& X = Xall;
-  const arma::vec& y = yall;
-  const arma::vec& vardir = vardirall;
+  arma::uvec observed(Mfull);
+  for (int i = 0; i < Mfull; ++i) observed(i) = std::isfinite(yall(i)) ? 1u : 0u;
+  const StIndex ix = st_make_index(D, Tt, observed);
+  const int M = ix.n;
+  if (M == 0) Rcpp::stop("All cells are unsampled (y is NA everywhere) -- cannot fit the model.");
+  // balanced panel: use the inputs themselves (same memory, same arithmetic)
+  const arma::mat Xc = ix.full ? arma::mat() : arma::mat(Xall.rows(ix.obs));
+  const arma::vec yc = ix.full ? arma::vec() : arma::vec(yall.elem(ix.obs));
+  const arma::vec vc = ix.full ? arma::vec() : arma::vec(vardirall.elem(ix.obs));
+  const arma::mat& X = ix.full ? Xall : Xc;
+  const arma::vec& y = ix.full ? yall : yc;
+  const arma::vec& vardir = ix.full ? vardirall : vc;
+  if (!vardir.is_finite() || arma::any(vardir <= 0.0))
+    Rcpp::stop("vardir must be finite and positive in every sampled cell.");
+  if (M <= p + (model == "ST" ? 4 : 3))
+    Rcpp::stop("Too few sampled cells (%d) for %d fixed effects and the variance components.", M, p);
 
   const double med_vardir = arma::median(vardir);
   if (sigma21_start < 0) sigma21_start = 0.5 * med_vardir;
@@ -807,7 +925,7 @@ List eblup_stfh_core(
     // Score and Fisher information, structured (no M x M matrices; see
     // st_score_info). Algebraically identical to the dense computation.
     StPieces sp;
-    if (!st_build(thetak, isST, D, Tt, vardir, W, sp)) { primary_failed = true; break; }
+    if (!st_build(thetak, isST, ix, vardir, W, sp)) { primary_failed = true; break; }
     arma::mat ViX_k, Q_k;
     arma::vec Py_k;
     if (!st_score_info(sp, thetak, X, y, W, WtW, S, F, ViX_k, Q_k, Py_k)) { primary_failed = true; break; }
@@ -843,7 +961,7 @@ List eblup_stfh_core(
     th(0) = sigma21_start; th(1) = rho1_start; th(2) = sigma22_start;
     if (isST) th(3) = rho2_start;
     int it2 = 0;
-    const bool ok2 = stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST,
+    const bool ok2 = stfh_fit_safeguarded(X, y, vardir, W, ix, isST,
                                           maxiter, precision, th, it2);
     k += it2;
     if (!ok2) return make_fail_result(false);
@@ -856,7 +974,7 @@ List eblup_stfh_core(
     // REML likelihood under the constraints, starting from the truncated point.
     arma::vec th = thetak1;
     int it2 = 0;
-    const bool ok2 = stfh_fit_safeguarded(X, y, vardir, W, D, Tt, isST,
+    const bool ok2 = stfh_fit_safeguarded(X, y, vardir, W, ix, isST,
                                           maxiter, precision, th, it2);
     k += it2;
     if (!ok2) return make_fail_result(false);
@@ -917,10 +1035,10 @@ List eblup_stfh_core(
   // Everything below uses the structured representation of V (StPieces):
   //   V^-1 = A^-1 - A^-1 Z C^-1 Z' A^-1 and P = A^-1 - U Wm U', with A^-1
   //   block diagonal (T x T blocks), U = [A^-1 Z, V^-1 X], Wm = diag(C^-1, Q).
-  // No M x M matrix is formed (M = D T).
+  // No M x M matrix is formed (M = number of observed cells).
   // ==========================================================================
   StPieces spf;
-  if (!st_build(thetak1, isST, D, Tt, vardir, W, spf)) return fail_final();
+  if (!st_build(thetak1, isST, ix, vardir, W, spf)) return fail_final();
   const bool haveVu1 = spf.hasVu1;
 
   // REML score/information at the final estimates, V^-1 X and Q
@@ -938,9 +1056,10 @@ List eblup_stfh_core(
   const arma::vec tZ1invVresid = st_Zt(spf, arma::mat(invVresid));
   arma::vec u1est = (sigma21_f * spf.Omega1) * tZ1invVresid;
   arma::vec u1dt(M);
-  for (int d = 0; d < D; ++d) {
-    const int first = d * Tt, last = first + Tt - 1;
-    u1dt.subvec(first, last).fill(u1est(d));
+  {
+    int first, last;
+    for (int d = 0; d < D; ++d)
+      if (st_rng(spf, d, first, last)) u1dt.subvec(first, last).fill(u1est(d));
   }
 
   arma::vec u2dt(M);
@@ -948,9 +1067,11 @@ List eblup_stfh_core(
     u2dt = sigma22_f * invVresid;
   } else {
     arma::mat sigma22Omega2 = sigma22_f * spf.Omega2;
+    int first, last;
     for (int d = 0; d < D; ++d) {
-      const int first = d * Tt, last = first + Tt - 1;
-      u2dt.subvec(first, last) = sigma22Omega2 * invVresid.subvec(first, last);
+      if (!st_rng(spf, d, first, last)) continue;
+      if (spf.full) u2dt.subvec(first, last) = sigma22Omega2 * invVresid.subvec(first, last);
+      else u2dt.subvec(first, last) = st_sub(spf, sigma22Omega2, d) * invVresid.subvec(first, last);
     }
   }
 
@@ -1049,11 +1170,19 @@ List eblup_stfh_core(
   const arma::mat Udense = LR.dense();
   auto blk_apply = [&](const std::vector<arma::mat>& Xb, const arma::mat& Y) -> arma::mat {
     arma::mat R(Y.n_rows, Y.n_cols);
+    int f, l;
     for (int d = 0; d < D; ++d) {
-      const int f = d * Tt, l = f + Tt - 1;
+      if (!st_rng(spf, d, f, l)) continue;
       R.rows(f, l) = Xb[d] * Y.rows(f, l);
     }
     return R;
+  };
+  // per-domain blocks E[tix_d, tix_d] of a T x T matrix E
+  auto blocks_of = [&](const arma::mat& E) -> std::vector<arma::mat> {
+    std::vector<arma::mat> B(D);
+    int f, l;
+    for (int d = 0; d < D; ++d) if (st_rng(spf, d, f, l)) B[d] = st_sub(spf, E, d);
+    return B;
   };
   auto Papply = [&](const arma::mat& Y) -> arma::mat {    // P Y
     return st_Ainv(spf, Y) - Uf.mul(Wm * Ut(Y));
@@ -1064,8 +1193,9 @@ List eblup_stfh_core(
   auto diag_PXP = [&](const std::vector<arma::mat>& Xb) -> arma::vec {
     arma::vec out(M);
     std::vector<arma::mat> AX(D), AXt(D);
+    int f, l;
     for (int d = 0; d < D; ++d) {
-      const int f = d * Tt, l = f + Tt - 1;
+      if (!st_rng(spf, d, f, l)) continue;
       AX[d] = spf.Ainv[d] * Xb[d];
       AXt[d] = spf.Ainv[d] * Xb[d].t();
       out.subvec(f, l) = arma::diagvec(AX[d] * spf.Ainv[d]);
@@ -1080,7 +1210,8 @@ List eblup_stfh_core(
   // g1 = psi - psi^2 diag(V^-1), diag(V^-1) = diag(A^-1) - a_i^2 C^-1_dd
   arma::vec invV_diag(M);
   for (int d = 0; d < D; ++d) {
-    const int f = d * Tt, l = f + Tt - 1;
+    int f, l;
+    if (!st_rng(spf, d, f, l)) continue;
     invV_diag.subvec(f, l) = arma::diagvec(spf.Ainv[d]);
     if (haveVu1) invV_diag.subvec(f, l) -= arma::square(avec.subvec(f, l)) * spf.Cinv(d, d);
   }
@@ -1176,10 +1307,19 @@ List eblup_stfh_core(
         const double w = wgt(2 + j, 2 + kk);
         if (w == 0.0) continue;
         std::vector<arma::mat> Xblk(D), AEj(D), AEk(D);
+        int f, l;
         for (int d = 0; d < D; ++d) {
-          Xblk[d] = Eb[j] * spf.Ainv[d] * Eb[kk];
-          AEj[d] = spf.Ainv[d] * Eb[j];
-          AEk[d] = spf.Ainv[d] * Eb[kk];
+          if (!st_rng(spf, d, f, l)) continue;
+          if (spf.full) {
+            Xblk[d] = Eb[j] * spf.Ainv[d] * Eb[kk];
+            AEj[d] = spf.Ainv[d] * Eb[j];
+            AEk[d] = spf.Ainv[d] * Eb[kk];
+          } else {
+            const arma::mat Ejd = st_sub(spf, Eb[j], d), Ekd = st_sub(spf, Eb[kk], d);
+            Xblk[d] = Ejd * spf.Ainv[d] * Ekd;
+            AEj[d] = spf.Ainv[d] * Ejd;
+            AEk[d] = spf.Ainv[d] * Ekd;
+          }
         }
         const BSF Bj = bsf_transform(Uf, AEj), Bk = bsf_transform(Uf, AEk);
         const arma::mat Nj = Wm * UtEU[j], Nk = Wm * UtEU[kk];
@@ -1215,7 +1355,7 @@ List eblup_stfh_core(
     auto add_e = [&](int a, int b, const arma::mat& E) {      // V_ab = I (x) E
       const double w = wgt(a, b);
       if (w == 0.0) return;
-      g4 += 0.5 * w * (psi2 % diag_PXP(std::vector<arma::mat>(D, E)));
+      g4 += 0.5 * w * (psi2 % diag_PXP(blocks_of(E)));
     };
     add_z(0, 1, -OCO);
     const arma::mat d2Om1 = 2.0 * OCO * derivrho1 * spf.Omega1 -
@@ -1228,18 +1368,145 @@ List eblup_stfh_core(
   }
 
   arma::vec mse_anal = g1 + g2 + 2.0 * g3 - g4;
-  arma::vec rse_anal(M);
-  for (int i = 0; i < M; ++i) {
-    rse_anal(i) = (std::abs(eblup(i)) < 1e-12) ? NA_REAL : (std::sqrt(mse_anal(i)) / std::abs(eblup(i)) * 100.0);
+
+  // ================================================================
+  // All D x T cells. Observed cells keep the EBLUP and MSE above. An
+  // unobserved cell i = (d, t) (gap, or a domain without any sample) gets the
+  // BLUP of theta_i = x_i' beta + u1_d + u2_dt from the observed data
+  // (Saei & Chambers 2005; Benedetti et al. 2024 for the SAR effect),
+  //   theta~_i = x_i' beta~ + a_i' V^-1 (y - X beta~),
+  //   a_i = Cov(theta_i, y) : sigma21 Omega1[d, d(k)] + 1{d(k) = d} sigma22 Omega2[t, t(k)]
+  // (model "S": no second term, the u2 of an unobserved cell is independent
+  // of the data). Its MSE is
+  //   g1 = G_ii - a_i' V^-1 a_i,  g2 = R_i Q R_i',  R_i = x_i' - a_i' V^-1 X,
+  //   g3 = sum_ab Finv_ab l_a' P l_b,  l_a' = A_a - (a'V^-1 + R_i Q X'V^-1) V_a
+  //   (exact derivative of the predictor in the variance parameters),
+  //   MSE = g1 + g2 + g3.
+  // The second-order correction of the plug-in g1, 1/2 sum_jk Finv_jk d2 g1 /
+  // d th_j d th_k, is not applied: it is numerically unstable when rho1 is
+  // close to +-1 (nearly singular Omega1) or a variance component is weakly
+  // identified, and in Monte Carlo (benchmarks/sim_stfh_unsampled.R) g1 + g2 +
+  // g3 has a relative bias within a few percent and ~95% coverage while the
+  // corrected form is dominated by a few replicates with an exploding term.
+  // ================================================================
+  const arma::uvec unobs = arma::find(observed == 0);
+  const arma::uword r = unobs.n_elem;
+  arma::vec u1_full, u2_full;
+  st_full_u(spf, sigma21_f, sigma22_f, invVresid, u1_full, u2_full);
+  for (int d = 0; d < D; ++d) u1_full.subvec(d * Tt, d * Tt + Tt - 1).fill(u1est(d));
+  arma::vec eblup_full = Xall * beta + (u1_full + u2_full);
+  eblup_full.elem(ix.obs) = eblup;
+  u2_full.elem(ix.obs) = u2dt;
+  arma::vec mse_full(Mfull), g1_full(Mfull), g2_full(Mfull), g3_full(Mfull), g4_full(Mfull);
+  mse_full.elem(ix.obs) = mse_anal;
+  g1_full.elem(ix.obs) = g1;
+  g2_full.elem(ix.obs) = g2;
+  g3_full.elem(ix.obs) = g3;
+  g4_full.elem(ix.obs) = g4;
+
+  if (r > 0) {
+    const arma::uvec dr = unobs / Tt, tr = unobs - dr * Tt;      // domain, period
+    const arma::uvec dk = ix.obs / Tt, tk = ix.obs - dk * Tt;     // of the observed rows
+    // r x M blocks of a and its derivatives:
+    //   ZZ(K)_ik = K[d_i, d(k)],   EE(E)_ik = 1{d(k) = d_i} E[t_i, t(k)]
+    auto ZZ = [&](const arma::mat& K) -> arma::mat { return K.submat(dr, dk); };
+    auto EE = [&](const arma::mat& E) -> arma::mat {
+      arma::mat R_(r, M, fill::zeros);
+      int f, l;
+      for (arma::uword i = 0; i < r; ++i) {
+        if (!st_rng(spf, (int) dr(i), f, l)) continue;
+        R_.submat(i, f, i, l) = E.submat(arma::uvec{tr(i)}, spf.tix[dr(i)]);
+      }
+      return R_;
+    };
+    auto dZZ = [&](const arma::mat& K) -> arma::vec {             // K[d_i, d_i]
+      arma::vec v(r);
+      for (arma::uword i = 0; i < r; ++i) v(i) = K(dr(i), dr(i));
+      return v;
+    };
+    auto dEE = [&](const arma::mat& E) -> arma::vec {             // E[t_i, t_i]
+      arma::vec v(r);
+      for (arma::uword i = 0; i < r; ++i) v(i) = E(tr(i), tr(i));
+      return v;
+    };
+
+    const arma::mat d1Om1 = -OCO;                                  // d Omega1 / d rho1
+    const arma::mat Ir = arma::eye<arma::mat>(Tt, Tt);
+    const arma::mat zero_rM(r, M, fill::zeros);
+
+    // a (r x M) and Var(u_i)
+    arma::mat A = sigma21_f * ZZ(spf.Omega1);
+    if (isST && sigma22_f != 0.0) A += sigma22_f * EE(spf.Omega2);
+    const arma::vec Grr = sigma21_f * dZZ(spf.Omega1) +
+      (isST ? arma::vec(sigma22_f * dEE(spf.Omega2)) : arma::vec(r, fill::value(sigma22_f)));
+
+    // first derivatives of a (parameter order sigma21, rho1, sigma22, rho2)
+    std::vector<arma::mat> Aj = { ZZ(spf.Omega1), sigma21_f * ZZ(d1Om1),
+                                  isST ? EE(spf.Omega2) : zero_rM };
+    if (isST) Aj.push_back(sigma22_f * EE(spf.dOmega2));
+
+    // V_j Y for the compact data (Y: M x k)
+    auto Vz = [&](const arma::mat& K, const arma::mat& Y) -> arma::mat { return st_Z(spf, K * st_Zt(spf, Y)); };
+    auto Vj = [&](int j, const arma::mat& Y) -> arma::mat {
+      switch (j) {
+      case 0: return Vz(spf.Omega1, Y);
+      case 1: return Vz(sigma21_f * d1Om1, Y);
+      case 2: return isST ? st_blk(spf, spf.Omega2, Y) : st_blk(spf, Ir, Y);
+      default: return st_blk(spf, sigma22_f * spf.dOmega2, Y);
+      }
+    };
+    auto Kmul = [&](const arma::mat& Y) -> arma::mat { return st_Vinv(spf, Y); };            // V^-1 Y
+    auto Pmul = [&](const arma::mat& Y) -> arma::mat {                                        // P Y
+      return st_Vinv(spf, Y) - ViXf * (Q * (ViXf.t() * Y));
+    };
+    auto dg = [](const arma::mat& M1, const arma::mat& M2) -> arma::vec { return arma::sum(M1 % M2, 1); };
+
+    const arma::mat KAt = Kmul(A.t());                    // V^-1 a      (M x r)
+    const arma::mat AK = KAt.t();                         // a' V^-1     (r x M)
+    const arma::mat Xr = Xall.rows(unobs);
+    const arma::mat Rr = Xr - AK * X;                     // x_i' - a'V^-1 X
+    arma::vec g1o = Grr - dg(A, AK);
+    arma::vec g2o = dg(Rr * Q, Rr);
+
+    // g3: exact derivative of the BLUP, d theta~_i / d th_a = l_a' P y
+    const arma::mat Bmat = AK + Rr * Q * ViXf.t();        // r x M
+    std::vector<arma::mat> L(nparam), PLt(nparam);
+    for (int a = 0; a < nparam; ++a) {
+      L[a] = Aj[a] - Vj(a, Bmat.t()).t();
+      PLt[a] = Pmul(L[a].t());
+    }
+    arma::vec g3o(r, fill::zeros);
+    for (int a = 0; a < nparam; ++a)
+      for (int b = 0; b < nparam; ++b)
+        if (Finv(a, b) != 0.0) g3o += Finv(a, b) * dg(L[a], PLt[b].t());
+
+    g1o.transform([](double v) { return v < 0.0 ? 0.0 : v; });
+    g2o.transform([](double v) { return v < 0.0 ? 0.0 : v; });
+    g3o.transform([](double v) { return v < 0.0 ? 0.0 : v; });
+
+    mse_full.elem(unobs) = g1o + g2o + g3o;
+    g1_full.elem(unobs) = g1o;
+    g2_full.elem(unobs) = g2o;
+    g3_full.elem(unobs) = g3o;
+    g4_full.elem(unobs).zeros();
   }
 
-  // df_eblup with random effects
+  arma::vec rse_full(Mfull);
+  for (int i = 0; i < Mfull; ++i) {
+    rse_full(i) = (std::abs(eblup_full(i)) < 1e-12 || mse_full(i) < 0.0) ? NA_REAL
+      : (std::sqrt(mse_full(i)) / std::abs(eblup_full(i)) * 100.0);
+  }
+  LogicalVector sampled(Mfull);
+  for (int i = 0; i < Mfull; ++i) sampled[i] = observed(i) == 1u;
+
+  // df_eblup with random effects, for all D x T cells (domain-major)
   DataFrame df_eblup = DataFrame::create(
-    _["eblup"] = NumericVector(eblup.begin(), eblup.end()),
-    _["mse"] = NumericVector(mse_anal.begin(), mse_anal.end()),
-    _["rse"] = NumericVector(rse_anal.begin(), rse_anal.end()),
-    _["random_effect_u1"] = NumericVector(u1dt.begin(), u1dt.end()),
-    _["random_effect_u2"] = NumericVector(u2dt.begin(), u2dt.end())
+    _["eblup"] = NumericVector(eblup_full.begin(), eblup_full.end()),
+    _["mse"] = NumericVector(mse_full.begin(), mse_full.end()),
+    _["rse"] = NumericVector(rse_full.begin(), rse_full.end()),
+    _["random_effect_u1"] = NumericVector(u1_full.begin(), u1_full.end()),
+    _["random_effect_u2"] = NumericVector(u2_full.begin(), u2_full.end()),
+    _["sampled"] = sampled
   );
 
   // Return structure matching seblup_area + estvarcomp + analytical MSE
@@ -1248,12 +1515,13 @@ List eblup_stfh_core(
     _["estvarcomp"] = estvarcomp,
     _["goodness"] = goodness,
     _["df_eblup"] = df_eblup,
-    _["mse_analytical"] = NumericVector(mse_anal.begin(), mse_anal.end()),
-    _["rse_analytical"] = NumericVector(rse_anal.begin(), rse_anal.end()),
-    _["g1"] = NumericVector(g1.begin(), g1.end()),
-    _["g2"] = NumericVector(g2.begin(), g2.end()),
-    _["g3"] = NumericVector(g3.begin(), g3.end()),
-    _["g4"] = NumericVector(g4.begin(), g4.end()),
+    _["mse_analytical"] = NumericVector(mse_full.begin(), mse_full.end()),
+    _["rse_analytical"] = NumericVector(rse_full.begin(), rse_full.end()),
+    _["g1"] = NumericVector(g1_full.begin(), g1_full.end()),
+    _["g2"] = NumericVector(g2_full.begin(), g2_full.end()),
+    _["g3"] = NumericVector(g3_full.begin(), g3_full.end()),
+    _["g4"] = NumericVector(g4_full.begin(), g4_full.end()),
+    _["n_sampled"] = M,
     _["model"] = model,
     _["convergence"] = true,
     _["n_iter"] = k

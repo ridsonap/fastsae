@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Simulasi Monte Carlo berbasis model untuk \code{eblup\_stfh} dengan sel tanpa estimasi langsung: $D=50$, $T=5$, 200 replikasi (bootstrap $B=100$ pada 50 replikasi pertama), $(\sigma_1^2,\rho_1,\sigma_2^2,\rho_2)=(0.5, 0.5, 0.2, 0.5)$. MSE empiris EBLUP dan estimator sintetis $x'\hat\beta$; bias relatif (\%) estimator MSE analitik dan bootstrap; cakupan (\%) interval $\hat\theta\pm1{,}96\sqrt{\widehat{\mathrm{MSE}}}$ analitik, dirata-ratakan per jenis sel. Sumber: \texttt{benchmarks/output/sim\_stfh\_unsampled.rds} (\texttt{benchmarks/sim\_stfh\_unsampled.R}); angka dihitung ulang oleh \texttt{scripts/01\_tables.R}.}
+\label{tab:stfh-unsampled-sim}
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Jenis sel & Sel & \multicolumn{2}{c}{MSE empiris} & \multicolumn{2}{c}{RB (\%)} & Cakupan \\
+\cmidrule(lr){3-4} \cmidrule(lr){5-6}
+ & & EBLUP & sintetis & analitik & bootstrap & (\%) \\
+\midrule
+tersampel & 207 & 0.0682052 & 0.861458 & 0.0447287 & 3.19653 & 94.8237 \\
+periode hilang & 23 & 0.223885 & 0.850855 & -0.956272 & 2.03308 & 93.8696 \\
+domain tanpa sampel & 20 & 0.806336 & 0.930835 & 3.20254 & 2.29949 &  94.925 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

@@ -76,8 +76,19 @@ List pbmse_stfh(
 ) {
   if (seed >= 0) set_r_seed(seed);
 
+  // Full D x T grid; cells with NA y are unobserved (gaps / unsampled
+  // domains). The bootstrap generates u1, u2 on the full grid and sampling
+  // errors on the observed cells only, refits on the observed cells, and
+  // predicts every cell, so the MSE covers the unobserved cells too.
   const int M = D * Tt;
-  const double med_vardir = median(vardirall);
+  arma::uvec observed(M);
+  for (int i = 0; i < M; ++i) observed(i) = std::isfinite(yall(i)) ? 1u : 0u;
+  const StIndex ix = st_make_index(D, Tt, observed);
+  const arma::mat Xc = ix.full ? arma::mat() : arma::mat(Xall.rows(ix.obs));
+  const arma::vec vc = ix.full ? arma::vec() : arma::vec(vardirall.elem(ix.obs));
+  const arma::mat& Xobs = ix.full ? Xall : Xc;
+  const arma::vec& vardir_obs = ix.full ? vardirall : vc;
+  const double med_vardir = median(vardir_obs);
 
   // ============================================================================
   // 1) Initial fit using the robust .eblup_stfh_core function
@@ -150,7 +161,7 @@ List pbmse_stfh(
 
     mat U1_boot(D, need);
     mat U2_boot(M, need);
-    mat Eps_boot(M, need);
+    mat Eps_boot(ix.n, need);
     for (int b = 0; b < need; ++b) {
       vec u1_d(D);
       generate_u1_sar(D, sigma21_est, rho1_est, proxmat, L_omega1, u1_d);
@@ -171,8 +182,8 @@ List pbmse_stfh(
         }
       }
 
-      for (int i = 0; i < M; ++i) {
-        Eps_boot(i, b) = R::rnorm(0.0, std::sqrt(vardirall(i)));
+      for (int i = 0; i < ix.n; ++i) {
+        Eps_boot(i, b) = R::rnorm(0.0, std::sqrt(vardir_obs(i)));
       }
     }
 
@@ -186,16 +197,17 @@ List pbmse_stfh(
         u1_expanded.subvec(d * Tt, (d + 1) * Tt - 1).fill(U1_boot(d, b));
       }
       const vec mudt_b = theta_est + u1_expanded + U2_boot.col(b);
-      const vec y_boot = mudt_b + Eps_boot.col(b);
+      const vec y_boot = ix.full ? vec(mudt_b + Eps_boot.col(b)) : vec(vec(mudt_b.elem(ix.obs)) + Eps_boot.col(b));
 
       // Re-estimate theta by REML in every replicate (as in Marhuenda et al.
       // 2013 / sae::pbmseSTFH); with theta held fixed the bootstrap would only
       // capture g1 + g2 and miss the variance-component uncertainty (g3).
       // Same default starting values as the original fit.
       STFitArma fit_b = stfh_fit_arma(
-        Xall, y_boot, vardirall, proxmat, D, Tt, isST,
+        Xobs, y_boot, vardir_obs, proxmat, ix, isST,
         maxiter, precision,
-        0.5 * med_vardir, 0.5, 0.5 * med_vardir, 0.5
+        0.5 * med_vardir, 0.5, 0.5 * med_vardir, 0.5,
+        Xall
       );
 
       if (fit_b.ok && fit_b.converged) {
