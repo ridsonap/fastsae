@@ -29,7 +29,7 @@
 # The file is rewritten after every engine/design, and combinations already in
 # it are skipped, so an interrupted run resumes where it stopped.
 #
-# Usage: Rscript benchmarks/bench_hb_area_engines.R [--n=100,1000,5000,10000]
+# Usage: Rscript benchmarks/bench_hb_area_engines.R [--n=100,500,1000,2500]
 #          [--designs=gaussian,beta] [--engines=inla,cpu,metal,tipsae] [--reps=2]
 #          [--tipsae-max-n=1000] [--machine="Apple M4"] [--out=path.rds]
 # ==============================================================================
@@ -138,7 +138,7 @@ if ("--child" %in% args) {
 }
 
 # ---- Driver -------------------------------------------------------------------
-ns <- as.integer(split_arg(arg_value("n", "100,1000,5000,10000")))
+ns <- as.integer(split_arg(arg_value("n", "100,500,1000,2500")))
 designs <- split_arg(arg_value("designs", "gaussian,beta"))
 engines <- split_arg(arg_value("engines", "inla,cpu,metal,tipsae"))
 reps <- arg_value("reps", "2")
