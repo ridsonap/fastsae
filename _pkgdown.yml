@@ -50,7 +50,7 @@ navbar:
         - text: "--------------------"
         - text: "Performance Benchmarks"
           href: articles/benchmarks.html
-        - text: "hb_area() Engines: INLA vs JAX (CPU / Apple GPU)"
+        - text: "hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae"
           href: articles/hb-area-engines.html
         - text: "Finite Population Validation"
           href: articles/finite-population-validation.html
@@ -59,7 +59,7 @@ navbar:
       menu:
         - text: "fastsae vs other SAE packages"
           href: articles/benchmarks.html
-        - text: "hb_area() engines: INLA vs JAX (CPU / Apple GPU)"
+        - text: "hb_area() engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae"
           href: articles/hb-area-engines.html
     reference:
       text: Reference
