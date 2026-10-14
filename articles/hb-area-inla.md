@@ -238,30 +238,30 @@ summary(fit_beta_st)
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00
-#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8078e-10  2.7947e-01
+#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8081e-10  2.7947e-01
 #>             ci_upper
 #> (Intercept)  -2.2218
 #> x             0.5321
 #> 
 #> Hyperparameters:
-#>                                 mean        sd 0.025quant  0.5quant 0.975quant
-#> Precision for ..domain_id..  18.2230  6.626405   8.634434  17.10223   34.34989
-#> Precision for ..time_id..   172.3123 78.432865  72.153445 155.45029  373.04314
+#>                                  mean        sd 0.025quant  0.5quant 0.975quant
+#> Precision for ..domain_id..  18.22303  6.626461   8.634506  17.10221   34.35017
+#> Precision for ..time_id..   172.31311 78.435261  72.153185 155.45015  373.05135
 #>                                  mode
-#> Precision for ..domain_id..  15.06377
-#> Precision for ..time_id..   127.08501
+#> Precision for ..domain_id..  15.06366
+#> Precision for ..time_id..   127.08355
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -976.34159 
+#>                                            -976.34165 
 #>                                                    pD 
-#>                                              56.02334 
+#>                                              56.02355 
 #>                                                  WAIC 
-#>                                            -984.78945 
+#>                                            -984.78965 
 #>                                                 pWAIC 
-#>                                              38.70806 
+#>                                              38.70809 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                             439.32544 
+#>                                             439.32543 
 #> 
 #> HB Summary Statistics:
 #>        hb           linear_pred           sd                mse           
@@ -274,7 +274,7 @@ summary(fit_beta_st)
 #>       rse        
 #>  Min.   : 6.370  
 #>  1st Qu.: 8.725  
-#>  Median : 9.812  
+#>  Median : 9.813  
 #>  Mean   : 9.827  
 #>  3rd Qu.:10.979  
 #>  Max.   :13.670
@@ -289,19 +289,19 @@ standard errors, and 95% Credible Intervals:
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 #>                domain time      y         hb          sd       rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554656 0.006127598 11.031462 0.04408741
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225899 0.006131545  7.453951 0.07068307
-#> 3               IMOLA 2014 0.1033 0.09343253 0.010214678 10.932677 0.07511429
-#> 4         PIANURA EST 2014 0.0633 0.06509832 0.006294766  9.669629 0.05342032
-#> 5       PIANURA OVEST 2014 0.0625 0.07112659 0.007870630 11.065664 0.05671281
-#> 6      PORRETTA TERME 2014 0.1276 0.09608711 0.012916390 13.442376 0.07314329
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554649 0.006127601 11.031483 0.04408734
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225897 0.006131554  7.453964 0.07068304
+#> 3               IMOLA 2014 0.1033 0.09343256 0.010214705 10.932703 0.07511426
+#> 4         PIANURA EST 2014 0.0633 0.06509829 0.006294778  9.669652 0.05342027
+#> 5       PIANURA OVEST 2014 0.0625 0.07112657 0.007870647 11.065693 0.05671276
+#> 6      PORRETTA TERME 2014 0.1276 0.09608724 0.012916432 13.442401 0.07314333
 #>     ci_upper
-#> 1 0.06810579
+#> 1 0.06810574
 #> 2 0.09473234
-#> 3 0.11517421
-#> 4 0.07814088
-#> 5 0.08759936
-#> 6 0.12376118
+#> 3 0.11517429
+#> 4 0.07814089
+#> 5 0.08759938
+#> 6 0.12376138
 ```
 
 ------------------------------------------------------------------------
@@ -395,37 +395,37 @@ fit_pois <- hb_area(
 summary(fit_pois)
 #> 
 #> Variance Components:
-#> sigma2_u: 0.063256 
+#> sigma2_u: 0.063257 
 #> rho (spatial): 0.4756 
 #> phi (spatial fraction): 0.4756 
 #> 
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01
-#> x1           3.8369e-01  4.9804e-02  7.7040e+00  1.3187e-14  2.8563e-01
-#> x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4855e-19 -3.6363e-01
+#> x1           3.8369e-01  4.9803e-02  7.7041e+00  1.3181e-14  2.8563e-01
+#> x2          -2.9735e-01  3.3472e-02 -8.8835e+00  6.4817e-19 -3.6363e-01
 #>             ci_upper
 #> (Intercept)   0.4120
 #> x1            0.4820
 #> x2           -0.2317
 #> 
 #> Hyperparameters:
-#>                                   mean        sd 0.025quant   0.5quant
-#> Precision for ..domain_id.. 17.0201090 4.6704592 9.50754064 16.4615743
-#> Phi for ..domain_id..        0.4755907 0.2611267 0.05378769  0.4645409
+#>                                  mean        sd 0.025quant   0.5quant
+#> Precision for ..domain_id.. 17.020056 4.6703583 9.50741011 16.4616097
+#> Phi for ..domain_id..        0.475593 0.2611304 0.05378276  0.4645453
 #>                             0.975quant       mode
-#> Precision for ..domain_id.. 27.7457140 15.4390245
-#> Phi for ..domain_id..        0.9367084  0.2294295
+#> Precision for ..domain_id.. 27.7451879 15.4392845
+#> Phi for ..domain_id..        0.9367107  0.2294091
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                             317.61485 
+#>                                             317.61486 
 #>                                                    pD 
-#>                                              31.75464 
+#>                                              31.75461 
 #>                                                  WAIC 
-#>                                             309.63790 
+#>                                             309.63797 
 #>                                                 pWAIC 
-#>                                              17.13688 
+#>                                              17.13691 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
 #>                                            -169.74606 
 #> 
@@ -434,9 +434,9 @@ summary(fit_pois)
 #>  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  
 #>  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  
 #>  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  
-#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665241  
+#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665231  
 #>  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  
-#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683070  
+#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5682974  
 #>       rse        
 #>  Min.   : 2.790  
 #>  1st Qu.: 5.156  
