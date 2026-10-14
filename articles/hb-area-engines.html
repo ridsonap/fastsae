@@ -121,9 +121,9 @@ GPU, and how closely their estimates agree. The comparison uses spatial
 area-level models. For the Beta model it also includes the <a href="https://CRAN.R-project.org/package=tipsae" class="external-link">tipsae</a> package,
 which fits the same model by MCMC in Stan.</p>
 <blockquote>
-<p><strong>CUDA results pending.</strong> The NVIDIA GPU measurements
-(Google Colab, T4) will be added here. They can be reproduced with the
-notebook linked at the end of this page.</p>
+<p><strong>NVIDIA GPU (CUDA) results pending.</strong> They will be
+added here. They can be reproduced with the notebooks linked at the end
+of this page.</p>
 </blockquote>
 <div class="section level2">
 <h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
@@ -310,16 +310,15 @@ machine.
 <ul>
 <li>
 <strong>INLA is the fastest engine at every size.</strong> It does
-not sample. For example, on the Apple M4 the spatial Gaussian model at
+not sample. For example, on Apple M4 the spatial Gaussian model at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
 takes 2.5 s.</li>
 <li>
 <strong>tipsae.</strong> At
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 1,000</annotation></semantics></math>
-on the Apple M4, tipsae takes 401 s for the spatial Beta model, INLA
-takes 1.8 s (224x faster), and JAX on the CPU takes 78 s. So the JAX
-engine on the CPU is 5x to 18x faster than tipsae on the sizes both
-ran.</li>
+on Apple M4, tipsae takes 401 s for the spatial Beta model, INLA takes
+1.8 s (224x faster), and JAX on the CPU takes 78 s. So the JAX engine on
+the CPU is 5x to 18x faster than tipsae on the sizes both ran.</li>
 <li>
 <strong>The JAX engine’s time grows quickly with
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
@@ -332,8 +331,8 @@ once, and each gradient evaluation then costs
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>D</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">O(D^2)</annotation></semantics></math>.
 Dense matrix work of this kind is where a GPU helps.</li>
 <li>
-<strong>CPU or GPU?</strong> On the Apple M4 (Metal): the GPU is
-faster from
+<strong>CPU or GPU?</strong> On Apple M4 (Metal): the GPU is faster
+from
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
 for the Gaussian model, and the GPU is faster from
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
@@ -562,8 +561,8 @@ priors.</li>
 <strong>Convergence.</strong> Over all JAX fits, the largest split
 R-hat is 1.007. For tipsae it is 1.083 (at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 1,000</annotation></semantics></math>
-on the Apple M4), above the usual 1.05 threshold, so its default run
-length is not quite enough there.</li>
+on Apple M4), above the usual 1.05 threshold, so its default run length
+is not quite enough there.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -583,10 +582,21 @@ some <code>lax.cond</code> statements with constant outputs. With
 <code>device = "metal"</code>, fastsae replaces both with equivalent
 operations and samples the chains sequentially. If a model still cannot
 be compiled on Metal, the fit falls back to the CPU with a warning.</p>
-<p><strong>Reproduce the CUDA results.</strong> Use the notebook <a href="https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb" class="external-link"><code>benchmarks/colab/hb_area_engines_colab.ipynb</code></a>.
-Open it in Google Colab, choose an R runtime with a T4 GPU, and run all
-cells. It installs fastsae, INLA, tipsae and JAX with CUDA, then runs
-the same benchmark.</p>
+<p><strong>Reproduce the CUDA results.</strong> Two notebooks install
+fastsae, INLA, tipsae and JAX with CUDA, then run the same
+benchmark:</p>
+<ul>
+<li>
+<strong>Kaggle</strong> (recommended): <a href="https://github.com/ridsonap/fastsae/blob/main/benchmarks/kaggle/hb_area_engines_kaggle.ipynb" class="external-link"><code>benchmarks/kaggle/hb_area_engines_kaggle.ipynb</code></a>.
+Import it into a Kaggle notebook. Set the language to R, choose a GPU
+accelerator and turn the internet on. Then use <em>Save &amp; Run
+All</em>, which runs the whole benchmark on Kaggle’s servers without the
+browser open.</li>
+<li>
+<strong>Google Colab</strong>: <a href="https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb" class="external-link"><code>benchmarks/colab/hb_area_engines_colab.ipynb</code></a>.
+Choose an R runtime with a T4 GPU and run all cells. Keep the tab open
+until the run finishes.</li>
+</ul>
 <p><strong>In short:</strong></p>
 <ul>
 <li>For most surveys (hundreds to a few thousand domains),

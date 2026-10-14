@@ -18,9 +18,8 @@ area-level models. For the Beta model it also includes the
 [tipsae](https://CRAN.R-project.org/package=tipsae) package, which fits
 the same model by MCMC in Stan.
 
-> **CUDA results pending.** The NVIDIA GPU measurements (Google Colab,
-> T4) will be added here. They can be reproduced with the notebook
-> linked at the end of this page.
+> **NVIDIA GPU (CUDA) results pending.** They will be added here. They
+> can be reproduced with the notebooks linked at the end of this page.
 
 ## Setup
 
@@ -79,18 +78,18 @@ machine.
 The results:
 
 - **INLA is the fastest engine at every size.** It does not sample. For
-  example, on the Apple M4 the spatial Gaussian model at $`D = 2,500`$
-  takes 2.5 s.
-- **tipsae.** At $`D = 1,000`$ on the Apple M4, tipsae takes 401 s for
-  the spatial Beta model, INLA takes 1.8 s (224x faster), and JAX on the
-  CPU takes 78 s. So the JAX engine on the CPU is 5x to 18x faster than
+  example, on Apple M4 the spatial Gaussian model at $`D = 2,500`$ takes
+  2.5 s.
+- **tipsae.** At $`D = 1,000`$ on Apple M4, tipsae takes 401 s for the
+  spatial Beta model, INLA takes 1.8 s (224x faster), and JAX on the CPU
+  takes 78 s. So the JAX engine on the CPU is 5x to 18x faster than
   tipsae on the sizes both ran.
 - **The JAX engine’s time grows quickly with $`D`$ for spatial models.**
   It represents the ICAR effect through the eigenvectors of the
   $`D \times D`$ graph Laplacian. Computing them costs $`O(D^3)`$ once,
   and each gradient evaluation then costs $`O(D^2)`$. Dense matrix work
   of this kind is where a GPU helps.
-- **CPU or GPU?** On the Apple M4 (Metal): the GPU is faster from
+- **CPU or GPU?** On Apple M4 (Metal): the GPU is faster from
   $`D = 2,500`$ for the Gaussian model, and the GPU is faster from
   $`D = 2,500`$ for the Beta model. The GPU has a fixed cost per fit (on
   Metal, every pass through NUTS’ tree-building loop waits for the GPU
@@ -136,9 +135,8 @@ the posterior standard deviations (engine / INLA).
   0.993. Its posterior standard deviations are smaller (median ratio
   0.79 to 0.84), probably because the two packages use different priors.
 - **Convergence.** Over all JAX fits, the largest split R-hat is 1.007.
-  For tipsae it is 1.083 (at $`D = 1,000`$ on the Apple M4), above the
-  usual 1.05 threshold, so its default run length is not quite enough
-  there.
+  For tipsae it is 1.083 (at $`D = 1,000`$ on Apple M4), above the usual
+  1.05 threshold, so its default run length is not quite enough there.
 
 ## Using a GPU
 
@@ -160,11 +158,18 @@ with equivalent operations and samples the chains sequentially. If a
 model still cannot be compiled on Metal, the fit falls back to the CPU
 with a warning.
 
-**Reproduce the CUDA results.** Use the notebook
-[`benchmarks/colab/hb_area_engines_colab.ipynb`](https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb).
-Open it in Google Colab, choose an R runtime with a T4 GPU, and run all
-cells. It installs fastsae, INLA, tipsae and JAX with CUDA, then runs
-the same benchmark.
+**Reproduce the CUDA results.** Two notebooks install fastsae, INLA,
+tipsae and JAX with CUDA, then run the same benchmark:
+
+- **Kaggle** (recommended):
+  [`benchmarks/kaggle/hb_area_engines_kaggle.ipynb`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/kaggle/hb_area_engines_kaggle.ipynb).
+  Import it into a Kaggle notebook. Set the language to R, choose a GPU
+  accelerator and turn the internet on. Then use *Save & Run All*, which
+  runs the whole benchmark on Kaggle’s servers without the browser open.
+- **Google Colab**:
+  [`benchmarks/colab/hb_area_engines_colab.ipynb`](https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb).
+  Choose an R runtime with a T4 GPU and run all cells. Keep the tab open
+  until the run finishes.
 
 **In short:**
 
