@@ -163,9 +163,11 @@ tipsae and JAX with CUDA, then run the same benchmark:
 
 - **Kaggle** (recommended):
   [`benchmarks/kaggle/hb_area_engines_kaggle.ipynb`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/kaggle/hb_area_engines_kaggle.ipynb).
-  Import it into a Kaggle notebook. Set the language to R, choose a GPU
-  accelerator and turn the internet on. Then use *Save & Run All*, which
-  runs the whole benchmark on Kaggle’s servers without the browser open.
+  Import it into a Kaggle notebook. It is a Python notebook, because
+  Kaggle gives GPUs to Python notebooks, and it installs R itself.
+  Choose a GPU accelerator and turn the internet on. Then use *Save &
+  Run All*, which runs the whole benchmark on Kaggle’s servers without
+  the browser open.
 - **Google Colab**:
   [`benchmarks/colab/hb_area_engines_colab.ipynb`](https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb).
   Choose an R runtime with a T4 GPU and run all cells. Keep the tab open
