@@ -16,7 +16,8 @@ ag <- do.call(rbind, lapply(bench, `[[`, "agreement"))
 metas <- lapply(bench, `[[`, "meta")
 
 machines <- unique(tm$machine)
-machines <- c(machines[!grepl("Colab", machines)], machines[grepl("Colab", machines)])
+cloud <- grepl("Colab|Kaggle", machines)
+machines <- c(machines[!cloud], machines[cloud])
 has_cuda <- "cuda" %in% tm$engine
 
 engine_labels <- c(inla = "INLA (inla_engine)",
@@ -64,8 +65,8 @@ same model by MCMC in Stan.
 
 ```{r pending, results = "asis"}
 if (!has_cuda) {
-  cat("> **CUDA results pending.** The NVIDIA GPU measurements (Google Colab, T4) will be added",
-      "here. They can be reproduced with the notebook linked at the end of this page.\n")
+  cat("> **NVIDIA GPU (CUDA) results pending.** They will be added here. They can be reproduced",
+      "with the notebooks linked at the end of this page.\n")
 }
 ```
 
@@ -175,7 +176,7 @@ crossover <- function(machine, design) {
 gpu_txt <- vapply(machines, function(m) {
   gpu <- gpu_of(m)
   if (is.na(gpu)) return(NA_character_)
-  sprintf("On the %s (%s): %s.", m, c(metal = "Metal", cuda = "CUDA")[[gpu]],
+  sprintf("On %s (%s): %s.", m, c(metal = "Metal", cuda = "CUDA")[[gpu]],
           paste(vapply(names(design_labels), function(d) crossover(m, d), character(1)),
                 collapse = ", and "))
 }, character(1))
@@ -187,7 +188,7 @@ tip_txt <- if (nrow(tip) == 0) "" else {
   n_tip <- max(tip$n[tip$machine == m])
   both <- tip[tip$machine == m, "n"]
   r <- vapply(both, function(n) time_of(m, "beta", "tipsae", n) / time_of(m, "beta", "cpu", n), numeric(1))
-  s <- sprintf(paste0("At $D = %s$ on the %s, tipsae takes %s for the spatial Beta model, ",
+  s <- sprintf(paste0("At $D = %s$ on %s, tipsae takes %s for the spatial Beta model, ",
                  "INLA takes %s (%sx faster), and JAX on the CPU takes %s."),
           fmt_n(n_tip), m, fmt_s(time_of(m, "beta", "tipsae", n_tip)),
           fmt_s(time_of(m, "beta", "inla", n_tip)),
@@ -203,7 +204,7 @@ n_max <- max(tm$n[tm$machine == m1])
 The results:
 
 - **INLA is the fastest engine at every size.** It does not sample. For
-  example, on the `r m1` the spatial Gaussian model at
+  example, on `r m1` the spatial Gaussian model at
   $D = `r fmt_n(n_max)`$ takes `r fmt_s(time_of(m1, "gaussian", "inla", n_max))`.
 - **tipsae.** `r tip_txt`
 - **The JAX engine's time grows quickly with $D$ for spatial models.** It
@@ -253,7 +254,7 @@ rh <- tm[tm$engine != "inla", ]
 - **tipsae.** `r if (nrow(tp) > 0) sprintf("tipsae agrees with INLA with correlations of at least %.3f. Its posterior standard deviations are %s (median ratio %.2f to %.2f), probably because the two packages use different priors.", floor(min(tp$cor_hb) * 1e3) / 1e3, ifelse(max(tp$median_ratio_sd) < 1, "smaller", "different"), min(tp$median_ratio_sd), max(tp$median_ratio_sd)) else ""`
 - **Convergence.** Over all JAX fits, the largest split R-hat is
   `r sprintf("%.3f", max(rh$rhat_max[rh$engine != "tipsae"], na.rm = TRUE))`.
-  `r if (any(rh$engine == "tipsae")) { tr <- rh[rh$engine == "tipsae", ]; worst <- tr[which.max(tr$rhat_max), ]; sprintf("For tipsae it is %.3f (at $D = %s$ on the %s)%s.", worst$rhat_max, fmt_n(worst$n), worst$machine, if (worst$rhat_max > 1.05) ", above the usual 1.05 threshold, so its default run length is not quite enough there" else "") } else ""`
+  `r if (any(rh$engine == "tipsae")) { tr <- rh[rh$engine == "tipsae", ]; worst <- tr[which.max(tr$rhat_max), ]; sprintf("For tipsae it is %.3f (at $D = %s$ on %s)%s.", worst$rhat_max, fmt_n(worst$n), worst$machine, if (worst$rhat_max > 1.05) ", above the usual 1.05 threshold, so its default run length is not quite enough there" else "") } else ""`
 
 ## Using a GPU
 
@@ -273,11 +274,18 @@ outputs. With `device = "metal"`, fastsae replaces both with equivalent
 operations and samples the chains sequentially. If a model still cannot be
 compiled on Metal, the fit falls back to the CPU with a warning.
 
-**Reproduce the CUDA results.** Use the notebook
-[`benchmarks/colab/hb_area_engines_colab.ipynb`](https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb).
-Open it in Google Colab, choose an R runtime with a T4 GPU, and run all
-cells. It installs fastsae, INLA, tipsae and JAX with CUDA, then runs the
-same benchmark.
+**Reproduce the CUDA results.** Two notebooks install fastsae, INLA, tipsae
+and JAX with CUDA, then run the same benchmark:
+
+- **Kaggle** (recommended):
+  [`benchmarks/kaggle/hb_area_engines_kaggle.ipynb`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/kaggle/hb_area_engines_kaggle.ipynb).
+  Import it into a Kaggle notebook. Set the language to R, choose a GPU
+  accelerator and turn the internet on. Then use *Save & Run All*, which
+  runs the whole benchmark on Kaggle's servers without the browser open.
+- **Google Colab**:
+  [`benchmarks/colab/hb_area_engines_colab.ipynb`](https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb).
+  Choose an R runtime with a T4 GPU and run all cells. Keep the tab open
+  until the run finishes.
 
 **In short:**
 

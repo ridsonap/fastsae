@@ -169,8 +169,10 @@ ram_gb <- if (Sys.info()[["sysname"]] == "Darwin") {
 } else {
   as.numeric(sub("\\D*(\\d+).*", "\\1", grep("MemTotal", readLines("/proc/meminfo"), value = TRUE))) / 1024^2
 }
-machine <- arg_value("machine", if (dir.exists("/content") && !is.na(gpu_name) &&
-                                      nzchar(Sys.which("nvidia-smi"))) {
+has_nvidia <- !is.na(gpu_name) && nzchar(Sys.which("nvidia-smi"))
+machine <- arg_value("machine", if (dir.exists("/kaggle") && has_nvidia) {
+  paste0("Kaggle, ", gpu_name)
+} else if (dir.exists("/content") && has_nvidia) {
   paste0("Google Colab, ", gpu_name)
 } else if (!is.na(cpu_name) && grepl("Apple", cpu_name)) {
   cpu_name
