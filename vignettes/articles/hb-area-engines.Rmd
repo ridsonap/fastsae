@@ -121,7 +121,8 @@ time, the device and the R-hat of the fit.
 ```{r explorer-data, results = "asis"}
 js_rows <- tm[, c("machine", "design", "engine", "n", "time_warm", "time_first", "device", "rhat_max")]
 cat("<script>\nwindow.ENGINE_BENCH = ",
-    jsonlite::toJSON(list(rows = js_rows, machines = machines, engines = used,
+    # I(): keep length-1 vectors as JSON arrays (auto_unbox would turn them into scalars)
+    jsonlite::toJSON(list(rows = js_rows, machines = I(machines), engines = I(used),
                           labels = as.list(engine_labels[used]),
                           colours = as.list(engine_colours[used]),
                           designs = as.list(short_labels)),
@@ -155,6 +156,8 @@ cat("<script>\nwindow.ENGINE_BENCH = ",
 (function() {
   const B = window.ENGINE_BENCH;
   if (!B) return;
+  B.machines = [].concat(B.machines);
+  B.engines = [].concat(B.engines);
   const cur = { design: "gaussian", machine: B.machines[0], time: "time_warm" };
   const TIMES = { time_warm: "Warm run", time_first: "First run (with compilation)" };
   let chartMain = null, chartSpeed = null;
