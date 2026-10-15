@@ -33,7 +33,10 @@ hb_area(
 \item{formula}{An object of class \code{formula} specifying the fixed-effects model
 (e.g., \code{y ~ x1 + x2}).}
 
-\item{data}{A \code{data.frame} containing the area-level data (one row per area).}
+\item{data}{A \code{data.frame} containing the area-level data (one row per area, or per
+area and period). Areas without a direct estimate (unsampled areas) are kept as rows
+with \code{NA} response and their covariates; they are predicted from the model. An
+area with no row in \code{data} has no covariates and is not predicted.}
 
 \item{domain}{Vector, column name, or one-sided formula referencing the area/domain
 identifier in \code{data}. If \code{NULL}, domains are numbered consecutively.}
@@ -89,10 +92,17 @@ Options:
   \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1) / RW
     (corresponds to classical Spatio-Temporal Fay-Herriot models, Marhuenda et al. 2013).
   \item \code{"type1"}: Knorr-Held (2000) Type I interaction (unstructured space \eqn{\times} unstructured time).
-  \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time).
-  \item \code{"type3"}: Knorr-Held Type III interaction (structured space \eqn{\times} unstructured time).
-  \item \code{"type4"}: Knorr-Held Type IV interaction (structured space \eqn{\times} structured time).
-}}
+  \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time):
+    an independent \code{temporal} process for each domain.
+  \item \code{"type3"}: Knorr-Held Type III interaction (structured space \eqn{\times} unstructured time):
+    an independent ICAR field for each period.
+  \item \code{"type4"}: Knorr-Held Type IV interaction (structured space \eqn{\times} structured time):
+    an ICAR field evolving over time with the \code{temporal} structure.
+}
+The \code{"type*"} options add the interaction to the main spatial and temporal
+effects. \code{"type3"} and \code{"type4"} need a structured \code{spatial} effect
+(\code{"bym2"}, \code{"bym"}, \code{"besag"} or \code{"leroux"}); with INLA the interaction
+is an ICAR (\code{"besag"}) field on the graph of \code{W}.}
 
 \item{W}{Proximity or spatial adjacency matrix. Can be a square \code{matrix},
 \code{Matrix}, or \code{spdep} \code{nb} or \code{listw} object. Dimensions must
@@ -149,7 +159,7 @@ now given to \code{\link{inla_engine}()}; passed here they are forwarded to it w
 warning.}
 }
 \value{
-An object of class \code{c("fastsae_hb_area", "fastsae")} containing:
+An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containing:
 \itemize{
   \item \code{df_hb}: Data frame with domain estimates, including \code{domain},
     \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},

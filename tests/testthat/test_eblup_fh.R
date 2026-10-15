@@ -128,8 +128,9 @@ test_that("random effect variance agrees with sae::mseFH", {
 
 # Goodness of fit ---------------------------------------------------------
 test_that("goodness statistics agree with sae::mseFH", {
+  gn <- c("loglikelihood", "AIC", "BIC")
   expect_equal(
-    as.numeric(fit_fast$goodness),
+    as.numeric(fit_fast$goodness[gn]),
     as.numeric(fit_sae$est$fit$goodness[-4]),
     tolerance = tol
   )
@@ -139,6 +140,16 @@ test_that("goodness statistics agree with sae::mseFH", {
     as.numeric(fit_sae_ml$est$fit$goodness[-4]),
     tolerance = tol
   )
+})
+
+test_that("REML fits also report the restricted log-likelihood", {
+  X <- model.matrix(~ x1 + x2 + x3, mysnona)
+  V <- diag(fit_fast$random_effect_var + mysnona$vardir)
+  ll <- .loglik_dense(mysnona$y, X, V)
+  expect_named(fit_fast$goodness, c("loglikelihood", "AIC", "BIC", "loglikelihood_reml"))
+  expect_equal(unname(fit_fast$goodness["loglikelihood"]), unname(ll["ml"]), tolerance = 1e-8)
+  expect_equal(unname(fit_fast$goodness["loglikelihood_reml"]), unname(ll["reml"]), tolerance = 1e-8)
+  expect_named(fit_fast_ml$goodness, c("loglikelihood", "AIC", "BIC"))
 })
 
 

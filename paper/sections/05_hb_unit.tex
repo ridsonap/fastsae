@@ -77,9 +77,12 @@ Jenis interval juga berbeda: kuantil posterior bila tanpa
 
 \begin{itemize}
   \item Prior presisi komponen acak: \code{prior\_prec} default
-        \code{loggamma(0.01, 0.01)} --- \emph{berbeda} dari
-        \fct{hb\_area} dan \fct{hb\_twofold} yang memakai
-        \code{pc.prec(1, 0.01)} (HB-8).
+        \code{loggamma(0.01, 0.01)}, berbeda dari \fct{hb\_area} dan
+        \fct{hb\_twofold} yang memakai \code{pc.prec(1, 0.01)} (HB-8). Ini
+        disengaja: PC prior itu memberi peluang 0,01 pada simpangan baku
+        $>1$ dan terlalu menyusutkan efek area pada respons berskala mentah
+        (pada data \code{cornsoybean}, korelasi HB--EBLUP turun dari $>0{,}85$
+        ke $0{,}84$).
   \item \code{strategy} default \code{"laplace"}; \code{num.threads} dipaksa
         \code{"1:1"} dengan pemulihan \code{on.exit} (baris 296-301),
         sehingga fungsi ini selalu serial.

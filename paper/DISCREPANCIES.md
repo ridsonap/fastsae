@@ -8,7 +8,7 @@ Kode pendukung lengkap: `paper/_notes/*.md`.
 Pembacaan: **kode adalah sumber kebenaran**; laporan selalu menggambarkan apa yang
 dilakukan kode, lalu memberi *implementation note* yang menunjuk ke butir di sini.
 
-## Status per 14 Okt 2026
+## Status per 15 Okt 2026
 
 Daftar di bawah dibuat pada 3–4 Okt 2026 (commit `0252055`); nomor baris pada
 tabel mengacu ke commit itu. Sejak itu kode berubah (audit matematis `90a422f`,
@@ -46,16 +46,55 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     `benchmark()` dan sisa kode `df_ebp` dihapus.
   - DOC-1 s.d. DOC-8 dan DOC-10 (README, beranda situs, dan vignette dihasilkan
     dari `inst/extdata` oleh `benchmarks/update_benchmark_docs.R`).
-- **Bukan kesalahan:** SFH-1 — karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik
-  $y'PDPy$ sama dengan kuadratik skor ML terprofil.
+  - Perbaikan pra-rilis 1.0.0 (15 Okt 2026):
+    - HB-1–HB-4: interaksi Knorr–Held type2–4 kini term terpisah pada salinan
+      indeks (`..time_id2..`, `..domain_id2..`): type2 = proses `temporal` per
+      domain, type3/type4 = medan ICAR per periode / berevolusi menurut
+      `temporal`. type3/type4 tanpa efek spasial terstruktur dihentikan dengan
+      pesan. Separable + Leroux kini memakai `besagproper2`, model Leroux yang
+      sama (sebelumnya crash di GMRFLib).
+    - HB-5: `slm` + `separable` dihentikan dengan pesan.
+    - HB-6: `inla_engine(link = )` dipakai (`control.family$control.link`) dan
+      divalidasi per family; invers-link draws mengikuti link.
+    - HB-9/HB-10: `random_effect_var` bym = komponen spasial; fallback tidak
+      pernah memakai presisi observasi; term interaksi tidak dibaca sebagai
+      efek utama.
+    - HB-16: kelas `hb_area` kini memuat `fastsae_hb`.
+    - TFH-8: MSE negatif menjadi `NA` dengan warning.
+    - TFH-9 + konvensi goodness: `loglikelihood`/AIC/BIC semua model frequentist
+      memakai log-likelihood penuh pada estimasi (konvensi `sae`, Marhuenda,
+      Morales & Pardo 2014). Fit REML menambah `loglikelihood_reml`. BIC
+      two-fold memakai jumlah sub-area tersampel.
+    - STFH-8: `param_invalid` mengembalikan `convergence = FALSE`; nama
+      `loglike` menjadi `loglikelihood`.
+    - SFH-6: dokumentasi `estcoef` kini menyebut `zvalue`.
+- **Bukan kesalahan (disengaja, kini didokumentasikan):**
+  - SFH-1: karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik $y'PDPy$ sama dengan
+    kuadratik skor ML terprofil.
+  - FH-3/SFH-3: AIC/BIC dari log-likelihood penuh juga untuk REML, sama seperti
+    `sae`. Likelihood REML bergantung pada $X$, sehingga tidak dapat
+    membandingkan model dengan kovariat berbeda. Kini ditambah
+    `loglikelihood_reml`.
+  - STFH-4: hanya REML, mengikuti Marhuenda, Molina & Morales (2013) dan
+    `sae::eblupSTFH`.
+  - STFH-6: `tvalue` dipertahankan demi kompatibilitas dengan `sae`;
+    dokumentasi menyebutnya statistik z.
+  - STFH-7: SE $\theta$ dari iterasi terakhir sama dengan `sae::eblupSTFH`.
+  - FH-5: `stderr_beta` duplikat untuk kompatibilitas 0.1.0.
+  - HB-17: area tak tersampel diprediksi bila barisnya ada dengan `y = NA`;
+    tanpa baris tidak ada kovariat. Kini dijelaskan di dokumentasi `data`.
+  - UT-13/UT-14: sudah terdokumentasi di kode sekarang.
+  - HB-8: perbedaan prior `hb_unit` (`loggamma(0.01, 0.01)`) disengaja.
+    `pc.prec(1, 0.01)` bergantung skala dan terlalu menyusutkan pada respons
+    unit-level berskala mentah (dicoba: korelasi HB–EBLUP `cornsoybean` turun
+    ke 0,84). Kini dijelaskan di dokumentasi `inla_engine(prior_prec = )`.
 - **Sebagian:** HB-21 (`control.fixed` kini diset untuk self-benchmarking WFQ),
   DOC-11 (baris `fastsae` kini dapat direproduksi, termasuk kolom `fastsae`
   `beta_estimates_n1000.rds` dengan `sim_area_data(D = 1000, spatial_type = "knn",
   seed = 1042)`; baris `sae`/`emdi` dan kolom `tipsae` belum).
-- **Masih berlaku:** FH-1–FH-7, BHF-2, BHF-3, BHF-6, BHF-9, BHF-10, TFH-1,
-  TFH-3–TFH-9, SFH-3, SFH-6, SFH-9, SFH-10, STFH-1, STFH-4, STFH-6–STFH-8,
-  HB-1–HB-6, HB-8–HB-12, HB-16–HB-20, UT-5, UT-11, UT-13, UT-14, DOC-9 (artikel
-  JSS lama).
+- **Masih berlaku:** FH-1, FH-2, FH-4, FH-6, FH-7, BHF-2, BHF-3, BHF-6, BHF-9,
+  BHF-10, TFH-1, TFH-3–TFH-7, SFH-9, SFH-10, STFH-1, HB-11, HB-12, HB-18–HB-20,
+  UT-5, UT-11, DOC-9 (artikel JSS lama).
 
 ---
 

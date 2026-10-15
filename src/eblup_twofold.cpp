@@ -69,7 +69,8 @@ struct TwofoldFit {
   mat InfoInv;  // inverse Fisher information for (s2v, s2u)
   int niter = 0;
   bool conv = false;
-  double loglik = 0.0;
+  double loglik = 0.0;                     // full (ML-form) log-likelihood
+  double loglik_reml = arma::datum::nan;   // restricted log-likelihood (REML fits)
 };
 
 // Everything that depends on (s2v, s2u) in one pass over the areas:
@@ -283,16 +284,17 @@ TwofoldFit twofold_fit(const mat& Xs, const vec& ys, const vec& psis,
     }
     const double n = (double)Xs.n_rows;
     const double l2pi = std::log(2.0 * datum::pi);
-    if (is_ml) {
-      f.loglik = -0.5 * (n * l2pi + core);
-    } else {
+    // Full log-likelihood at the estimates for ML and REML (the convention of
+    // sae for the FH models), so that AIC/BIC compare different covariates.
+    f.loglik = -0.5 * (n * l2pi + core);
+    if (!is_ml) {
       // Restricted log-likelihood:
       // -1/2 [ (n-p) log 2pi + log|V| + log|X'V^{-1}X| - log|X'X| + r'V^{-1}r ]
       double ldQ = 0.0, sgQ = 0.0, ldXX = 0.0, sgXX = 0.0;
       log_det(ldQ, sgQ, f.Q);                       // log|Q| = -log|X'V^{-1}X|
       const mat XtX = Xs.t() * Xs;
       log_det(ldXX, sgXX, XtX);
-      f.loglik = -0.5 * ((n - p) * l2pi + core - ldQ - ldXX);
+      f.loglik_reml = -0.5 * ((n - p) * l2pi + core - ldQ - ldXX);
     }
   }
   return f;
@@ -619,10 +621,12 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
 
   // Paper notation: sigma2_v = area, sigma2_u = subarea
   NumericVector s2 = NumericVector::create(_["sigma2_v"] = s2v, _["sigma2_u"] = s2u);
+  // BIC uses the number of observations (sampled subareas), as m in eblup_fh
   NumericVector goodness = NumericVector::create(
     _["loglikelihood"] = f.loglik,
     _["AIC"] = -2.0 * f.loglik + 2.0 * (p + 2),
-    _["BIC"] = -2.0 * f.loglik + (p + 2) * std::log((double)m_fit));
+    _["BIC"] = -2.0 * f.loglik + (p + 2) * std::log((double)Ns));
+  if (!std::isnan(f.loglik_reml)) goodness.push_back(f.loglik_reml, "loglikelihood_reml");
 
   return List::create(
     _["random_effect_var"] = s2, _["estcoef"] = df_coef, _["df_eblup"] = df_eblup,

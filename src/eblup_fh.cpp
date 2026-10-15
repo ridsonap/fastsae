@@ -169,6 +169,8 @@ List eblup_core(
   // ================================================================
   vec resid_sq = resid % resid;
   vec log_term = log(2.0 * M_PI * sigma_vardir) + resid_sq / sigma_vardir;
+  // Full (ML-form) log-likelihood at the estimates for any method, as in
+  // sae::eblupFH, so that AIC/BIC compare models with different covariates.
   const double loglike = -0.5 * accu(log_term);
   const double AIC = -2.0 * loglike + 2.0 * (p + 1);
   const double BIC = -2.0 * loglike + (p + 1) * std::log((double) m);
@@ -178,6 +180,15 @@ List eblup_core(
     Rcpp::Named("AIC") = AIC,
     Rcpp::Named("BIC") = BIC
   );
+  if (!is_ml) {
+    // Restricted log-likelihood (the REML objective):
+    // l_ML + p/2 log 2pi - 1/2 log|X'V^-1 X| + 1/2 log|X'X|
+    double ldQ = 0.0, sgQ = 0.0, ldXX = 0.0, sgXX = 0.0;
+    log_det(ldQ, sgQ, Q);
+    log_det(ldXX, sgXX, mat(Xt * Xs));
+    goodness.push_back(loglike + 0.5 * p * std::log(2.0 * M_PI) + 0.5 * ldQ + 0.5 * ldXX,
+                       "loglikelihood_reml");
+  }
 
   // ================================================================
   // MSE computation

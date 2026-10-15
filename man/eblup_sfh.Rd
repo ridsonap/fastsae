@@ -79,14 +79,19 @@ grouping / stratum column in \code{data} (e.g. province) for group-specific self
 }
 \value{
 The function returns a list with the following objects:
-\code{estcoef} a data frame with the estimated model coefficients in the first column (beta),
-their asymptotic standard errors in the second column (std.error),
-the t-statistics in the third column (tvalue) and the p-values of the significance of each coefficient
-in last column (pvalue) \cr
+\code{estcoef} a data frame with the estimated model coefficients (\code{beta}), their
+asymptotic standard errors (\code{std.error}, repeated as \code{stderr_beta} for
+compatibility with fastsae 0.1.0), the z-statistics (\code{zvalue}) and the normal
+p-values (\code{pvalue}) \cr
 \code{random_effect_var} estimated random effect variance \cr
 \code{rho} estimated spatial autocorrelation parameter \cr
 \code{estvarcomp} a data frame with parameter, estimate, and std.error \cr
-\code{goodness} vector containing several goodness-of-fit measures: loglikelihood, AIC, and BIC \cr
+\code{goodness} named vector: \code{loglikelihood} (the full Gaussian log-likelihood at the
+estimates), \code{AIC} and \code{BIC} computed from it and, for \code{method = "REML"},
+\code{loglikelihood_reml} (the restricted log-likelihood that REML maximises). AIC and
+BIC use the full log-likelihood for ML and REML fits alike, as \pkg{sae} does and as in
+Marhuenda, Morales and Pardo (2014): the restricted likelihood depends on the covariates,
+so only the full one compares models with different covariates. \cr
 \code{df_eblup} a data frame that contains the following columns: \cr
 \itemize{
 \item \code{y} variable response \cr
@@ -169,6 +174,7 @@ m2 <- eblup_sfh(
 }
 \references{
 \enumerate{
+\item Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information criteria for Fay-Herriot model selection. \emph{Computational Statistics & Data Analysis}, 70, 268-280.
 \item Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
 }
 }

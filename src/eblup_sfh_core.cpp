@@ -527,6 +527,8 @@ List seblup_core(
   // loglikelihood: log|V| = log|Psi| + log|M| - log|A|
   const double logdetV = accu(log(vardir)) + S.logdetM() - S.logdetA();
   const double quadform = dot(resid, Vi * resid);
+  // Full (ML-form) log-likelihood at the estimates for ML and REML, as in
+  // sae::eblupSFH, so that AIC/BIC compare models with different covariates.
   const double loglike = -0.5 * (m * std::log(2.0 * M_PI) + logdetV + quadform);
   const double AIC = -2.0 * loglike + 2.0 * (p + 2);
   const double BIC = -2.0 * loglike + (p + 2) * std::log((double) m);
@@ -536,6 +538,15 @@ List seblup_core(
     Rcpp::Named("AIC") = AIC,
     Rcpp::Named("BIC") = BIC
   );
+  if (!isML) {
+    // Restricted log-likelihood (the REML objective):
+    // l_ML + p/2 log 2pi - 1/2 log|X'V^-1 X| + 1/2 log|X'X|
+    double ldQ = 0.0, sgQ = 0.0, ldXX = 0.0, sgXX = 0.0;
+    log_det(ldQ, sgQ, Q);
+    log_det(ldXX, sgXX, mat(X.t() * X));
+    goodness.push_back(loglike + 0.5 * p * std::log(2.0 * M_PI) + 0.5 * ldQ + 0.5 * ldXX,
+                       "loglikelihood_reml");
+  }
 
   // ================================================================
   // MSE computations

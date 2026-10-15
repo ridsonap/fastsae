@@ -884,7 +884,7 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
     n <- nrow(df)
     rows <- grep("^Predictor:", rownames(smp[[1]]$latent))[seq_len(n)]
     eta <- vapply(smp, function(z) z$latent[rows, 1], numeric(n))
-    theta <- switch(fam, gaussian = eta, binomial = stats::plogis(eta), beta = stats::plogis(eta), exp(eta))
+    theta <- .inla_inv_link(eta, fam, object$link)
     Tc <- theta - rowMeans(theta)
     S1 <- ncol(Tc) - 1
     return(make_op(function(v) Tc %*% crossprod(Tc, v) / S1, rowSums(Tc^2) / S1))

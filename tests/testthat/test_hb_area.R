@@ -494,12 +494,12 @@ test_that("hb_area handles ST interaction types", {
                          spatial = "bym", temporal = "ar1", st_interaction = "separable", W = W_st, print_result = FALSE)
   expect_s3_class(fit_sep_bym, "fastsae_hb_area")
 
-  # separable with generic1 (crashes inside INLA GMRFLib)
-  expect_error(
-    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
-            spatial = "generic1", temporal = "ar1", st_interaction = "separable", W = W_st, print_result = FALSE),
-    "Fitting model with INLA failed"
-  )
+  # separable with generic1 (Leroux; grouped as besagproper2)
+  fit_sep_ler <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+                         spatial = "leroux", temporal = "ar1", st_interaction = "separable", W = W_st, print_result = FALSE)
+  expect_s3_class(fit_sep_ler, "fastsae_hb_area")
+  expect_true(is.numeric(fit_sep_ler$rho) && fit_sep_ler$rho > 0 && fit_sep_ler$rho < 1)
+  expect_equal(nrow(fit_sep_ler$fit$summary.random[["..domain_id.."]]), D * T_per)
 
   # separable with spatial = none
   fit_sep_none <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
@@ -511,26 +511,83 @@ test_that("hb_area handles ST interaction types", {
                     spatial = "none", temporal = "ar1", st_interaction = "type1", print_result = FALSE)
   expect_s3_class(fit_t1, "fastsae_hb_area")
 
-  # type2 (INLA failure)
-  expect_error(
-    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
-            spatial = "none", temporal = "ar1", st_interaction = "type2", print_result = FALSE),
-    "Fitting model with INLA failed"
-  )
+  # Knorr-Held II-IV: main effects plus a D x T interaction on copied indices
+  fit_t2 <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+                    spatial = "none", temporal = "ar1", st_interaction = "type2", print_result = FALSE)
+  sr <- fit_t2$fit$summary.random
+  expect_equal(nrow(sr[["..domain_id.."]]), D)
+  expect_equal(nrow(sr[["..time_id.."]]), T_per)
+  expect_equal(nrow(sr[["..time_id2.."]]), D * T_per)
+  # the reported AR(1) correlation is the main temporal effect, not the interaction
+  expect_equal(fit_t2$rho_time, fit_t2$fit$summary.hyperpar["Rho for ..time_id..", "mean"])
 
-  # type3 (INLA failure)
-  expect_error(
-    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
-            spatial = "besag", temporal = "ar1", st_interaction = "type3", W = W_st, print_result = FALSE),
-    "Fitting model with INLA failed"
-  )
+  for (tp in c("type3", "type4")) {
+    fit_t <- hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+                     spatial = "besag", temporal = "rw1", st_interaction = tp, W = W_st, print_result = FALSE)
+    sr <- fit_t$fit$summary.random
+    expect_equal(nrow(sr[["..domain_id.."]]), D)
+    expect_equal(nrow(sr[["..domain_id2.."]]), D * T_per)
+    expect_equal(fit_t$random_effect_var,
+                 1 / fit_t$fit$summary.hyperpar["Precision for ..domain_id..", "mean"], tolerance = 0.5)
+    expect_true(all(is.finite(fit_t$df_hb$hb)))
+  }
 
-  # type4 (INLA failure)
+  # type3 / type4 need a structured spatial effect
   expect_error(
     hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
-            spatial = "besag", temporal = "ar1", st_interaction = "type4", W = W_st, print_result = FALSE),
-    "Fitting model with INLA failed"
+            spatial = "none", temporal = "ar1", st_interaction = "type3", print_result = FALSE),
+    "needs a structured spatial effect"
   )
+  expect_error(
+    hb_area(y ~ x, data = df_st, domain = "domain", time = "time", vardir = "vardir",
+            spatial = "slm", temporal = "ar1", st_interaction = "separable", W = W_st, print_result = FALSE),
+    "cannot be combined"
+  )
+})
+
+test_that("hb_area reports the spatial component of bym", {
+  skip_if_not_installed("INLA")
+  set.seed(3)
+  D <- 8
+  df <- data.frame(domain = 1:D, x = rnorm(D))
+  df$y <- 2 + df$x + rnorm(D, 0, 0.3)
+  df$vardir <- 0.05
+  W <- matrix(0, D, D)
+  for (i in 1:(D - 1)) W[i, i + 1] <- W[i + 1, i] <- 1
+  fit <- hb_area(y ~ x, data = df, domain = "domain", vardir = "vardir", spatial = "bym", W = W,
+                 print_result = FALSE)
+  hp <- fit$fit$summary.hyperpar
+  row_s <- "Precision for ..domain_id.. (spatial component)"
+  expect_identical(fit$random_effect_var, .post_mean_variance(fit$fit, row_s, hp[row_s, "mean"]))
+})
+
+test_that("inla_engine(link = ) changes the link of the likelihood", {
+  skip_if_not_installed("INLA")
+  set.seed(11)
+  D <- 15
+  df <- data.frame(domain = 1:D, x = rnorm(D), n = 40)
+  df$y <- stats::rbinom(D, df$n, stats::plogis(-0.5 + 0.8 * df$x)) / df$n
+  fit_logit <- hb_area(y ~ x, data = df, domain = "domain", family = "binomial", trials = "n",
+                       print_result = FALSE)
+  fit_probit <- hb_area(y ~ x, data = df, domain = "domain", family = "binomial", trials = "n",
+                        engine = inla_engine(link = "probit"), print_result = FALSE)
+  expect_identical(fit_logit$link, "logit")
+  expect_identical(fit_probit$link, "probit")
+  # estimates stay on the probability scale; coefficients are on the probit scale
+  expect_true(all(fit_probit$df_hb$hb > 0 & fit_probit$df_hb$hb < 1))
+  expect_lt(abs(fit_probit$estcoef["x", "beta"]), abs(fit_logit$estcoef["x", "beta"]))
+  eta <- fit_probit$fit$summary.linear.predictor$mean[seq_len(D)]
+  expect_equal(fit_probit$df_hb$hb, stats::pnorm(eta), tolerance = 0.02)
+
+  expect_error(
+    hb_area(y ~ x, data = df, domain = "domain", family = "binomial", trials = "n",
+            engine = inla_engine(link = "log"), print_result = FALSE),
+    "not available for"
+  )
+  expect_equal(.inla_inv_link(0.3, "beta", "cloglog"), 1 - exp(-exp(0.3)))
+  expect_equal(.inla_inv_link(0.3, "beta", "loglog"), exp(-exp(-0.3)))
+  expect_equal(.inla_inv_link(0.3, "poisson"), exp(0.3))
+  expect_equal(.inla_inv_link(0.3, "gaussian"), 0.3)
 })
 
 test_that("hb_area prior/spatial branches work", {

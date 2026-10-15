@@ -39,10 +39,17 @@
 #' @param print_result print coefficient or not, default value is TRUE.
 #'
 #' @returns The function returns a list with the following objects:
-#' \code{estcoef} a data frame with the estimated model coefficients,
+#' \code{estcoef} a data frame with the estimated model coefficients (\code{beta}), their
+#'    standard errors (\code{std.error}, repeated as \code{stderr_beta} for compatibility
+#'    with fastsae 0.1.0), z-statistics (\code{zvalue}) and normal p-values (\code{pvalue}),
 #' \code{random_effect_var} named vector with the estimated area (\code{sigma2_v}) and
 #' subarea (\code{sigma2_u}) variances (paper notation),
-#' \code{goodness} vector containing several goodness-of-fit measures,
+#' \code{goodness} named vector: \code{loglikelihood} (the full Gaussian log-likelihood at the
+#'    estimates), \code{AIC} and \code{BIC} computed from it and, for \code{method = "REML"},
+#'    \code{loglikelihood_reml} (the restricted log-likelihood that REML maximises). AIC and
+#'    BIC use the full log-likelihood for ML and REML fits alike, following the convention of
+#'    \pkg{sae} for the Fay-Herriot models: the restricted likelihood depends on the covariates,
+#'    so only the full one compares models with different covariates.; BIC uses the number of sampled subareas,
 #' \code{df_eblup} a data frame that contains domain, subarea, y, eblup, vardir,
 #' random_effect_area, random_effect_subarea, mse, and rse. \cr
 #'
@@ -165,6 +172,18 @@ eblup_twofold <- function(
   res$df_eblup <- res$df_eblup[, c("domain", "subarea", "y", "eblup", "vardir",
                                    "random_effect_area", "random_effect_subarea",
                                    "mse", "rse")]
+
+  # A negative second-order MSE estimate (possible with the ML bias correction) is not a
+  # usable MSE: report NA rather than a NaN RSE
+  neg_mse <- which(res$df_eblup$mse < 0)
+  if (length(neg_mse) > 0) {
+    cli::cli_warn(c(
+      "The MSE estimate is negative for {length(neg_mse)} subarea{?s}; set to {.code NA}.",
+      "i" = "Consider {.code method = \"REML\"} or {.code mse = \"bootstrap\"}."
+    ))
+    res$df_eblup$mse[neg_mse] <- NA_real_
+    res$df_eblup$rse[neg_mse] <- NA_real_
+  }
 
   if (!is.null(sb_info)) {
     res$self_benchmark <- TRUE

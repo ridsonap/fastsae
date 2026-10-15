@@ -88,8 +88,15 @@ Log-likelihood, AIC, dan BIC dihitung dari \eqref{eq:loglik-ml} dengan $m$
 = jumlah area tersampel, $\mathrm{AIC}=-2\ell+2(p+1)$,
 $\mathrm{BIC}=-2\ell+(p+1)\log m$ (\code{baris 170-174}).
 
-\implnote{Ketiga ukuran kecocokan itu selalu berbentuk ML meski
-\code{method = "REML"} (FH-3), dan koreksi bias orde-kedua
+Untuk \code{method = "REML"} ditambahkan \code{loglikelihood\_reml}, yaitu
+log-likelihood terbatas yang dimaksimumkan REML:
+$\ell_R=\ell+\tfrac p2\log2\pi-\tfrac12\log|\Xmat'V^{-1}\Xmat|+\tfrac12\log|\Xmat'\Xmat|$.
+
+\implnote{Loglik, AIC, dan BIC sengaja berbentuk ML meski
+\code{method = "REML"} (FH-3), sama dengan \pkg{sae::eblupFH} dan kriteria
+Marhuenda, Morales \& Pardo (2014). Likelihood terbatas bergantung pada
+$\Xmat$, sehingga tidak dapat membandingkan model dengan kovariat berbeda.
+Koreksi bias orde-kedua
 $-b\,B_d^2$ hanya dipakai untuk ML (FH-4) --- perilaku yang sama dengan
 \pkg{sae::mseFH}. Kolom \code{estcoef} memuat dua kolom galat baku yang identik
 (\code{std.error} dan \code{stderr\_beta}; FH-5), dan \code{vardir} wajib

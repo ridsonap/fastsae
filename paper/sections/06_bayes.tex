@@ -167,7 +167,10 @@ menjadi default \pkg{INLA} untuk presisi likelihood Gaussian
 (\code{loggamma(1, 5e-5)}).
 
 Tabel~\ref{tab:prior-paket} mencatat prior yang \emph{sebenarnya} dipakai
-tiap fungsi, yang tidak konsisten antar fungsi.
+tiap fungsi. Perbedaan \fct{hb\_unit} disengaja (HB-8): \code{pc.prec(1, 0.01)}
+mengandaikan simpangan baku efek area berorde 1 (proporsi, rate, skala log),
+sedangkan respons unit-level sering berskala mentah, sehingga dipakai prior
+log-gamma yang samar.
 
 \begin{table}[htbp]
 \centering

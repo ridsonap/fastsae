@@ -242,7 +242,7 @@ test_that("engine = 'jax' maps arguments to the backend and returns the fastsae 
   expect_equal(a$scale_factor, .icar_spectral(chain_W(12))$scale_factor)
   expect_equal(dim(a$eig_vectors), c(12, 12))
 
-  expect_s3_class(fit, c("fastsae_hb_area", "fastsae"))
+  expect_s3_class(fit, c("fastsae_hb_area", "fastsae_hb", "fastsae"))
   expect_equal(fit$engine, "jax")
   expect_identical(fit$engine_spec, jax_engine(samples = 50, device = "cpu", prior_beta = "horseshoe"))
   expect_equal(fit$spatial, "generic1")

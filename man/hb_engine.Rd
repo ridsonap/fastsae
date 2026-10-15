@@ -43,7 +43,10 @@ Laplace approximation, highest accuracy), \code{"simplified.laplace"}
 
 \item{link}{Link function for the likelihood (\code{hb_area()} only).
 \code{NULL} (default) uses the canonical link of the family: identity for
-gaussian, logit for binomial and beta, log for poisson, nbinomial and gamma.}
+gaussian, logit for binomial and beta, log for poisson, nbinomial and gamma.
+Binomial and beta also accept \code{"probit"}, \code{"cloglog"} and
+\code{"loglog"}. The estimates (\code{hb}) are on the response scale for
+any link.}
 
 \item{scale_model}{Logical; scale the intrinsic GMRF models (besag, bym,
 rw1, rw2) to a generalized variance of 1. Default \code{TRUE}.}
@@ -52,7 +55,13 @@ rw1, rw2) to a generalized variance of 1. Default \code{TRUE}.}
 effect. \code{NULL} (default): the PC prior
 \code{list(prior = "pc.prec", param = c(1, 0.01))} in \code{hb_area()} and
 \code{hb_twofold()}, \code{list(prior = "loggamma", param = c(0.01, 0.01))}
-in \code{hb_unit()}.}
+in \code{hb_unit()}. The PC prior puts probability 0.01 on a standard
+deviation above 1, which suits area-level responses such as proportions,
+rates and log scales; unit-level responses are often on a raw scale (e.g.
+hectares), where it would over-shrink the area effects, hence the vague
+log-gamma prior. For an area-level response with a large scale, set
+\code{prior_prec = list(prior = "pc.prec", param = c(U, 0.01))} with
+\code{U} a plausible upper value of the area standard deviation.}
 
 \item{prior_phi}{Prior for the mixing parameter of \code{spatial = "bym2"}.
 \code{NULL} (default): the PC prior \code{list(prior = "pc", param = c(0.5, 0.5))}.}

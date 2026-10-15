@@ -37,7 +37,10 @@
 #'
 #' @param formula An object of class \code{formula} specifying the fixed-effects model
 #'   (e.g., \code{y ~ x1 + x2}).
-#' @param data A \code{data.frame} containing the area-level data (one row per area).
+#' @param data A \code{data.frame} containing the area-level data (one row per area, or per
+#'   area and period). Areas without a direct estimate (unsampled areas) are kept as rows
+#'   with \code{NA} response and their covariates; they are predicted from the model. An
+#'   area with no row in \code{data} has no covariates and is not predicted.
 #' @param domain Vector, column name, or one-sided formula referencing the area/domain
 #'   identifier in \code{data}. If \code{NULL}, domains are numbered consecutively.
 #' @param family Character string specifying the response distribution / likelihood.
@@ -99,10 +102,17 @@
 #'     \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1) / RW
 #'       (corresponds to classical Spatio-Temporal Fay-Herriot models, Marhuenda et al. 2013).
 #'     \item \code{"type1"}: Knorr-Held (2000) Type I interaction (unstructured space \eqn{\times} unstructured time).
-#'     \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time).
-#'     \item \code{"type3"}: Knorr-Held Type III interaction (structured space \eqn{\times} unstructured time).
-#'     \item \code{"type4"}: Knorr-Held Type IV interaction (structured space \eqn{\times} structured time).
+#'     \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time):
+#'       an independent \code{temporal} process for each domain.
+#'     \item \code{"type3"}: Knorr-Held Type III interaction (structured space \eqn{\times} unstructured time):
+#'       an independent ICAR field for each period.
+#'     \item \code{"type4"}: Knorr-Held Type IV interaction (structured space \eqn{\times} structured time):
+#'       an ICAR field evolving over time with the \code{temporal} structure.
 #'   }
+#'   The \code{"type*"} options add the interaction to the main spatial and temporal
+#'   effects. \code{"type3"} and \code{"type4"} need a structured \code{spatial} effect
+#'   (\code{"bym2"}, \code{"bym"}, \code{"besag"} or \code{"leroux"}); with INLA the interaction
+#'   is an ICAR (\code{"besag"}) field on the graph of \code{W}.
 #' @param self_benchmark Logical. If \code{TRUE}, the weighted aggregate of the area
 #'   estimates is made to match the direct survey aggregate or \code{benchmark_target}; see
 #'   \code{benchmark_method}.
@@ -133,7 +143,7 @@
 #'   now given to \code{\link{inla_engine}()}; passed here they are forwarded to it with a
 #'   warning.
 #'
-#' @returns An object of class \code{c("fastsae_hb_area", "fastsae")} containing:
+#' @returns An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containing:
 #' \itemize{
 #'   \item \code{df_hb}: Data frame with domain estimates, including \code{domain},
 #'     \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},
@@ -258,6 +268,18 @@ hb_area <- function(
   if (spatial == "leroux") spatial <- "generic1" # same model; INLA calls it generic1
   temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
   st_interaction <- match.arg(tolower(st_interaction), choices = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"))
+  if (spatial == "slm" && st_interaction == "separable") {
+    cli::cli_abort(c(
+      "{.code spatial = \"slm\"} cannot be combined with {.code st_interaction = \"separable\"}.",
+      "i" = "Use {.code spatial = \"bym2\"}, {.code \"besag\"} or {.code \"leroux\"} for a spatial field evolving over time."
+    ))
+  }
+  if (st_interaction %in% c("type3", "type4") && !spatial %in% c("bym2", "bym", "besag", "generic1")) {
+    cli::cli_abort(c(
+      "{.code st_interaction = \"{st_interaction}\"} needs a structured spatial effect.",
+      "i" = "Use {.code spatial = \"bym2\"}, {.code \"bym\"}, {.code \"besag\"} or {.code \"leroux\"} with {.arg W}."
+    ))
+  }
   engine <- .resolve_inla_engine(
     engine, missing(engine), list(...), "hb_area",
     defaults = list(
@@ -273,8 +295,11 @@ hb_area <- function(
       spatial = spatial, temporal = temporal, family = family,
       self_benchmark = self_benchmark, benchmark_method = benchmark_method
     )
-  } else if (isTRUE(self_benchmark) && benchmark_method == "posterior" && engine$draws < 1) {
-    cli::cli_abort("Posterior self-benchmarking needs {.code inla_engine(draws = )} of at least 1.")
+  } else {
+    if (isTRUE(self_benchmark) && benchmark_method == "posterior" && engine$draws < 1) {
+      cli::cli_abort("Posterior self-benchmarking needs {.code inla_engine(draws = )} of at least 1.")
+    }
+    .check_inla_link(engine$link, family)
   }
 
   if (!is.data.frame(data)) {
@@ -535,7 +560,9 @@ hb_area <- function(
     n_times <- length(unique_times)
     time_id <- as.integer(factor(time, levels = unique_times))
     inla_data$..time_id.. <- time_id
+    inla_data$..time_id2.. <- time_id
   }
+  inla_data$..domain_id2.. <- domain_id
 
   # Map family name to INLA family
   inla_family <- switch(family,
@@ -681,9 +708,13 @@ hb_area <- function(
           temporal, "'), scale.model = ", scale_model, ", hyper = list(prec.unstruct = prior_prec, prec.spatial = prior_prec))"
         ))
       } else if (spatial == "generic1") {
+        # Grouped generic1 needs a non-negative diagonal of Cmatrix (I - R has not);
+        # besagproper2 is the same Leroux model, Q = tau((1 - lambda) I + lambda R)
+        hyper_leroux <- list(prec = prior_prec)
+        if (!is.null(hyper_generic1$beta)) hyper_leroux$lambda <- hyper_generic1$beta
         rand_terms <- c(rand_terms, paste0(
-          "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, group = ..time_id.., control.group = list(model = '",
-          temporal, "'), hyper = hyper_generic1)"
+          "f(..domain_id.., model = 'besagproper2', graph = W_obj$graph, group = ..time_id.., control.group = list(model = '",
+          temporal, "'), hyper = hyper_leroux)"
         ))
       } else {
         rand_terms <- c(rand_terms, paste0(
@@ -696,32 +727,32 @@ hb_area <- function(
         "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
       ))
       rand_terms <- c(rand_terms, "f(..obs_id.., model = 'iid', hyper = list(prec = prior_prec))")
-    } else if (st_interaction == "type2") {
+    } else if (st_interaction %in% c("type2", "type3", "type4")) {
+      # Knorr-Held (2000) interactions: main effects plus a space-time term on
+      # copies of the indices (INLA allows each covariate in one f() only)
       rand_terms <- c(rand_terms, paste0(
         "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
       ))
-      rand_terms <- c(rand_terms, paste0(
-        "f(..time_id.., model = '", temporal, "', group = ..domain_id.., control.group = list(model = 'iid')",
-        scale_model_time, ", hyper = hyper_time)"
-      ))
-    } else if (st_interaction == "type3") {
-      rand_terms <- c(rand_terms, paste0(
-        "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
-      ))
-      if (spatial != "none") {
+      if (st_interaction == "type2") {
+        # unstructured space x structured time: one temporal process per domain
         rand_terms <- c(rand_terms, paste0(
-          "f(..domain_id.., model = '", spatial, "', graph = W_obj$graph, group = ..time_id.., control.group = list(model = 'iid'), scale.model = ",
-          scale_model, ", hyper = list(prec = prior_prec))"
+          "f(..time_id2.., model = '", temporal, "', group = ..domain_id.., control.group = list(model = 'iid')",
+          scale_model_time, ", hyper = hyper_time)"
         ))
-      }
-    } else if (st_interaction == "type4") {
-      rand_terms <- c(rand_terms, paste0(
-        "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
-      ))
-      if (spatial != "none") {
+      } else {
+        # structured space (ICAR) x unstructured (type3) or structured (type4) time
+        group_model <- if (st_interaction == "type3") "iid" else temporal
+        group_extra <- if (group_model %in% c("rw1", "rw2")) {
+          paste0(", scale.model = ", scale_model)
+        } else if (group_model == "ar1" && !is.null(prior_rho_time)) {
+          ", hyper = list(rho = prior_rho_time)"
+        } else {
+          ""
+        }
         rand_terms <- c(rand_terms, paste0(
-          "f(..domain_id.., model = '", spatial, "', graph = W_obj$graph, group = ..time_id.., control.group = list(model = '",
-          temporal, "'), scale.model = ", scale_model, ", hyper = list(prec = prior_prec))"
+          "f(..domain_id2.., model = 'besag', graph = W_obj$graph, scale.model = ", scale_model,
+          ", group = ..time_id.., control.group = list(model = '", group_model, "'", group_extra,
+          "), hyper = list(prec = prior_prec))"
         ))
       }
     }
@@ -840,6 +871,10 @@ hb_area <- function(
     inla_args$E <- exposure
   }
 
+  # Link function of the likelihood (canonical when link = NULL)
+  link <- .check_inla_link(link, family)
+  inla_args$control.family$control.link <- list(model = link)
+
   # Run INLA fitting
   fit <- tryCatch(
     do.call(INLA::inla, inla_args),
@@ -876,7 +911,7 @@ hb_area <- function(
 
   if (!is.null(sb_info)) {
     if (identical(sb_info$method, "posterior")) {
-      res <- .posterior_benchmark(res, sb_info, family, n_draws = benchmark_draws, seed = benchmark_seed)
+      res <- .posterior_benchmark(res, sb_info, family, n_draws = benchmark_draws, seed = benchmark_seed, link = link)
     }
     res$self_benchmark <- TRUE
     res$benchmark_method <- sb_info$method
@@ -897,6 +932,8 @@ hb_area <- function(
       res$df_eblup$y <- sb_info$original_y
     }
   }
+
+  res$link <- link
 
   if (inherits(data, "sf") && requireNamespace("sf", quietly = TRUE)) {
     if (!is.null(res$df_hb) && nrow(res$df_hb) == nrow(data)) {

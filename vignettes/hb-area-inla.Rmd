@@ -136,7 +136,13 @@ When data are observed longitudinally across $T \ge 2$ time periods, specify `ti
 - **`"domain-specific"`** (matching `tipsae`): Domain-specific random walks / AR(1) processes with shared precision:
   $$\eta_{dt} = x_{dt}^\top \beta + s_d + t_{d, t}, \quad t_{d, \cdot} \sim \text{RW1}(\sigma_t^2)$$
 - **`"separable"`** (matching classical `eblup_stfh`): Spatial random field evolving dynamically across time with AR(1) temporal correlation.
-- **`"type1"` to `"type4"`**: Full Knorr-Held (2000) classifications of space-time interactions.
+- **`"type1"` to `"type4"`**: Knorr-Held (2000) interactions $\delta_{dt}$ added to the main effects, $\eta_{dt} = x_{dt}^\top \beta + s_d + \gamma_t + \delta_{dt}$:
+  - `"type1"`: $\delta_{dt}$ independent (unstructured space $\times$ unstructured time);
+  - `"type2"`: an independent `temporal` process for each domain (unstructured space $\times$ structured time);
+  - `"type3"`: an independent ICAR field for each period (structured space $\times$ unstructured time);
+  - `"type4"`: an ICAR field evolving with the `temporal` structure (structured space $\times$ structured time).
+
+  `"type3"` and `"type4"` need a structured `spatial` effect (`"bym2"`, `"bym"`, `"besag"` or `"leroux"`).
 
 ---
 

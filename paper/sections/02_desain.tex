@@ -277,20 +277,20 @@ masing-masing fungsi.}
 \toprule
 Fungsi & \code{class()} & Elemen khusus \\
 \midrule
-\code{eblup\_fh} & \code{fastsae} & \code{goodness} (loglik ML, AIC, BIC) \\
+\code{eblup\_fh} & \code{fastsae} & \code{goodness} (loglik penuh, AIC, BIC; REML: + \code{loglikelihood\_reml}) \\
 \code{eblup\_sfh} & \code{fastsae} & \code{rho}, \code{estvarcomp}, \code{W} \\
 \code{eblup\_stfh} & \code{fastsae} & \code{estvarcomp} 4 baris; \code{g1}--\code{g4}; \code{mse/rse = NA} bila \code{compute\_mse = FALSE} \\
 \code{eblup\_bhf} & \code{fastsae}, \code{fastsae\_unit} & \code{fit} (estimasi dan residual), \code{samp\_size}; tanpa \code{goodness} \\
 \code{eblup\_twofold} & \code{fastsae} & \code{level = "subarea"}, \code{sigma2\_v}/\code{sigma2\_u} \\
-\code{hb\_area} & \code{fastsae\_hb\_area}, \code{fastsae} & \code{fit} (objek \code{inla}, atau hasil NumPyro untuk \code{jax\_engine}), \code{engine}, \code{hyperpar} \\
+\code{hb\_area} & \code{fastsae\_hb\_area}, \code{fastsae\_hb}, \code{fastsae} & \code{fit} (objek \code{inla}, atau hasil NumPyro untuk \code{jax\_engine}), \code{engine}, \code{hyperpar} \\
 \code{hb\_unit}, \code{hb\_twofold} & \code{fastsae\_hb*}, \code{fastsae\_hb}, \code{fastsae} & \code{goodness} berupa \code{list} (DIC, WAIC, marginal likelihood) \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 Metode \code{print}/\code{summary} (bagian~\ref{sec:utilitas}) memakai elemen
-ini; karena itu perbedaan kecil di atas (misalnya \code{hb\_area} tanpa kelas
-\code{fastsae\_hb}, HB-16) berdampak pada perilaku turunan.
+ini. Sejak 1.0.0 ketiga fungsi Bayes berbagi kelas \code{fastsae\_hb}
+(sebelumnya \code{hb\_area} tidak, HB-16).
 
 \subsection{Ringkasan desain}
 

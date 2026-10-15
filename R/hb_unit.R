@@ -40,7 +40,8 @@
 #'   If \code{NULL} (default), means are extracted directly from \code{Xpop}.
 #' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
 #'   object holding the approximation strategy, the priors (\code{prior_prec}, default
-#'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}; \code{prior_phi} for BYM2),
+#'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}, vague on any response scale;
+#'   \code{prior_phi} for BYM2),
 #'   \code{scale_model} and further \code{INLA::inla()} arguments.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec},

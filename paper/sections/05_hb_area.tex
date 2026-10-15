@@ -23,7 +23,8 @@ Kerangka umum yang dirangkai fungsi ini adalah model latent Gaussian:
   \varphi\sim N\bigl(0,\;\tau^{-1}Q^{-1}\bigr),
   \label{eq:hbarea-model}
 \end{equation}
-dengan $g$ link default family (identitas, logit, log) dan $Q$ struktur
+dengan $g$ link family (default identitas, logit, log; binomial dan beta juga
+menerima probit, cloglog, loglog lewat \code{inla\_engine(link = )}) dan $Q$ struktur
 presisi yang dipilih lewat argumen \code{spatial}, \code{temporal}, dan
 \code{st\_interaction}. Struktur spasial yang tersedia persis seperti yang
 didefinisikan \pkg{INLA} (baris 570-649 \code{R/hb\_area.R}):
@@ -60,22 +61,32 @@ Pilihan kode & Bentuk presisi & Padanan KH \\
 \code{domain-specific} & grup per domain, model temporal & (dipakai \pkg{tipsae}) \\
 \code{separable}     & $Q_{\text{space}}\otimes Q_{\text{time}}$ & --- \\
 \code{type1}         & $\Imat_{DT}$ i.i.d.\ + efek waktu & KH I \\
-\code{type2}         & $Q_{\text{time}}$ per domain + efek waktu & KH II \\
-\code{type3}         & $Q_{\text{space}}$ per waktu + efek waktu & KH III \\
-\code{type4}         & $Q_{\text{space}}\otimes\Imat_T$ + efek waktu & KH IV \\
+\code{type2}         & $\Imat_D\otimes Q_{\text{time}}$ + efek utama & KH II \\
+\code{type3}         & $Q_{\text{ICAR}}\otimes\Imat_T$ + efek utama & KH III \\
+\code{type4}         & $Q_{\text{ICAR}}\otimes Q_{\text{time}}$ + efek utama & KH IV \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\implnote{Tiga hal pada tabel di atas harus dibaca bersama temuan
-\code{DISCREPANCIES.md}: \code{type2} \emph{selalu gagal} karena dua
-\code{f()} memakai indeks waktu yang sama, yang ditolak \pkg{INLA}
-(HB-1); \code{type3}/\code{type4} dengan \code{spatial} $\ne$\code{"none"}
-\emph{selalu gagal} karena term spasial ditambah dua kali (HB-2); dan
-\code{type3}/\code{type4} dengan \code{spatial = "none"} diam-diam tidak
-membuat interaksi sama sekali (HB-3). Selain itu \code{spatial = "slm"}
-tidak punya penjaga \code{separable}, sehingga keduanya menggabungkan dua
-term spasial (HB-5).}
+Interaksi KH II--IV adalah term \emph{tambahan} pada salinan indeks
+(\code{..time\_id2..}, \code{..domain\_id2..}), karena \pkg{INLA} hanya
+mengizinkan satu \code{f()} per kovariat. type2 memakai
+\code{f(..time\_id2.., model = temporal, group = ..domain\_id..,
+control.group = iid)}; type3/type4 memakai
+\code{f(..domain\_id2.., model = "besag", group = ..time\_id..)} dengan
+\code{control.group} \code{iid} (type3) atau \code{temporal} (type4).
+type3/type4 mensyaratkan efek spasial terstruktur
+(\code{bym2}/\code{bym}/\code{besag}/\code{leroux}).
+\code{separable} dengan \code{leroux} memakai \code{besagproper2}, model
+Leroux yang sama, karena \code{generic1} ber-group menolak diagonal
+\code{Cmatrix} negatif.
+
+\implnote{Sebelum rilis 1.0.0, type2 selalu gagal (indeks waktu ganda,
+HB-1), type3/type4 dengan \code{spatial} $\ne$ \code{"none"} selalu gagal
+(indeks domain ganda, HB-2), dan type3/type4 dengan
+\code{spatial = "none"} diam-diam tidak membuat interaksi (HB-3). Kini
+kombinasi terakhir dihentikan dengan pesan, demikian juga
+\code{slm} + \code{separable} (HB-5).}
 
 \subsection{Prediktor titik}\label{sec:hbarea-prediktor}
 
@@ -111,9 +122,12 @@ Tidak ada Fisher scoring: seluruh inferensi diserahkan ke
         semuanya \code{TRUE};
   \item \code{control.inla} $=$ \code{strategy} pilihan pengguna
         (\code{"laplace"} default);
-  \item \code{control.predictor} $=$ \code{compute = TRUE, link = 1}
-        --- argumen \code{link} pengguna \emph{tidak pernah dipakai}
-        (HB-6);
+  \item \code{control.predictor} $=$ \code{compute = TRUE, link = 1}, dan
+        \code{control.family\$control.link\$model} $=$ link pilihan
+        pengguna (divalidasi per family; sebelum 1.0.0 argumen \code{link}
+        tidak pernah dipakai, HB-6). Draws posterior untuk
+        \emph{self-benchmarking} dan \fct{benchmark\_sae} memakai invers-link
+        yang sama;
   \item prior komponen acak spasial/temporal: \code{prior\_prec} default
         \code{pc.prec(1, 0.01)}; prior korelasi spasial \code{prior\_phi}
         default \code{pc(0.5, 0.5)}; \code{prior\_prec\_time} default juga
@@ -131,6 +145,9 @@ Varians efek acak yang dilaporkan (\code{random\_effect\_var}) adalah rerata
 posterior varians $\mathbb E[1/\tau\mid y]$ dari marginal presisinya
 (\code{.post\_mean\_variance}, \code{inla\_utils.R:20-36}), bukan
 $1/\mathbb E[\tau\mid y]$ yang lebih kecil karena ketaksamaan Jensen.
+Untuk \code{spatial = "bym"} yang dilaporkan adalah komponen spasial
+(sebelum 1.0.0: komponen iid, HB-9), dan term interaksi ruang--waktu tidak
+pernah dibaca sebagai efek utama.
 Likelihood Gaussian dengan \code{vardir} memakai \code{scale} $=1/\psi_d$
 dan presisi tetap $1$ sehingga $\Var(y_d)=\psi_d$ persis; family lain
 memakai \code{scale}/(\code{Ntrials}, \code{E}) sesuai parameterisasi
@@ -226,7 +243,7 @@ $\hat\theta,\mathrm{sd},\mathrm{CI},\texttt{mse},\texttt{rse}\leftarrow$
   \eqref{eq:hbarea-pred}--\eqref{eq:hbarea-mse} (\code{.extract\_inla\_results}, 854-875)\;
 \If{\code{self\_benchmark} posterior}{\texttt{.posterior\_benchmark} (877-899)}
 perakitan \code{df\_hb}, \code{hyperpar}, \code{goodness}
-  (DIC, WAIC, marginal likelihood), kelas \code{c("fastsae\_hb\_area","fastsae")} (\code{inla\_utils.R:377})\;
+  (DIC, WAIC, marginal likelihood), kelas \code{c("fastsae\_hb\_area","fastsae\_hb","fastsae")}\;
 \end{algorithm}
 
 \subsection{Signature, argumen, objek keluaran, dan contoh}\label{sec:hbarea-api}
@@ -278,7 +295,7 @@ jax_engine(warmup = 500, samples = 1000, chains = 2,
         \fct{create\_weights}.
 \end{itemize}
 
-Objek keluaran: \code{c("fastsae\_hb\_area", "fastsae")} berisi
+Objek keluaran: \code{c("fastsae\_hb\_area", "fastsae\_hb", "fastsae")} berisi
 \code{df\_hb} (kolom \code{domain, y, hb, sd, mse, rse, ci\_lower,
 ci\_upper, linear\_pred} + kolom family), \code{fit} (objek \code{inla}),
 \code{hyperpar}, \code{goodness}, \code{random\_effect\_var},

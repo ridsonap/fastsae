@@ -116,9 +116,16 @@ grouping / stratum column in \code{data} (e.g. time period / year) for group-spe
 A list with the same structure as \code{seblup_area()}, with additional
 \code{estvarcomp} for spatio-temporal variance/autocorrelation components:
 \describe{
-\item{\code{estcoef}}{data frame with beta, std.error, tvalue, pvalue.}
+\item{\code{estcoef}}{data frame with \code{beta}, \code{std.error}, \code{tvalue},
+\code{pvalue}, as in \code{sae::eblupSTFH()}, plus \code{stderr_beta} and \code{zvalue}
+(copies, for the column names of the other fastsae models). The p-values use the
+normal distribution, so \code{tvalue} is a z-statistic.}
 \item{\code{estvarcomp}}{data frame with estimate, std.error for sigma21, rho1, sigma22, rho2.}
-\item{\code{goodness}}{vector with loglike, AIC, BIC.}
+\item{\code{goodness}}{named vector: \code{loglikelihood}, the full Gaussian
+log-likelihood at the REML estimates (as \code{loglike} in \code{sae::eblupSTFH()}),
+\code{AIC} and \code{BIC} computed from it, and \code{loglikelihood_reml}, the
+restricted log-likelihood that REML maximises. The full log-likelihood is used for AIC
+and BIC because the restricted one depends on the covariates.}
 \item{\code{df_eblup}}{data frame with domain, time, y, eblup, vardir, mse, rse,
 random_effect_u1, random_effect_u2 and \code{sampled} (\code{FALSE} for the cells
 predicted without a direct estimate).}
@@ -138,6 +145,13 @@ but the estimation loop runs in compiled C++/Armadillo, making it substantially 
 R implementation -- especially for a large number of domains/time periods.
 }
 \details{
+\strong{Estimation method.} The variance components are estimated by REML only, as in
+Marhuenda, Molina and Morales (2013) and \code{sae::eblupSTFH()}, which derive the
+Fisher-scoring algorithm, the analytical MSE and the bootstrap for REML; there is no
+\code{method} argument. The standard errors of the variance components are those of
+\code{sae::eblupSTFH()}: the inverse REML information of the last Fisher-scoring
+iteration.
+
 \strong{Unsampled domains and missing periods.} Cells whose response is \code{NA}
 (a domain without a sample in some period, or in every period) are not dropped. The
 model is defined on the full \eqn{D \times T} grid: the SAR effect \eqn{u_1} lives on

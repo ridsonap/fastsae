@@ -303,3 +303,34 @@ test_that("eblup_twofold validation and edge cases", {
 })
 
 
+
+test_that("eblup_twofold goodness uses the full log-likelihood, plus REML", {
+  set.seed(7)
+  m <- 25
+  dat <- do.call(rbind, lapply(seq_len(m), function(d) {
+    nd <- sample(2:5, 1)
+    data.frame(area = d, subarea = paste0(d, "-", seq_len(nd)), x1 = rnorm(nd),
+               vardir = runif(nd, 0.2, 0.8))
+  }))
+  dat$y <- 1 + dat$x1 + rnorm(m, sd = 0.8)[dat$area] + rnorm(nrow(dat), sd = 0.6) +
+    rnorm(nrow(dat), sd = sqrt(dat$vardir))
+  X <- model.matrix(~ x1, dat)
+  n <- nrow(dat)
+  p <- ncol(X)
+  for (meth in c("REML", "ML")) {
+    fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
+                         data = dat, method = meth, print_result = FALSE)
+    s2 <- fit$random_effect_var
+    V <- s2[["sigma2_v"]] * outer(dat$area, dat$area, "==") + diag(s2[["sigma2_u"]] + dat$vardir)
+    ll <- .loglik_dense(dat$y, X, V)
+    gd <- fit$goodness
+    expect_equal(unname(gd["loglikelihood"]), unname(ll["ml"]), tolerance = 1e-8)
+    expect_equal(unname(gd["AIC"]), unname(-2 * ll["ml"] + 2 * (p + 2)), tolerance = 1e-8)
+    expect_equal(unname(gd["BIC"]), unname(-2 * ll["ml"] + (p + 2) * log(n)), tolerance = 1e-8)
+    if (meth == "REML") {
+      expect_equal(unname(gd["loglikelihood_reml"]), unname(ll["reml"]), tolerance = 1e-8)
+    } else {
+      expect_false("loglikelihood_reml" %in% names(gd))
+    }
+  }
+})

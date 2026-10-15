@@ -175,11 +175,22 @@
   rho_time <- NULL
 
   if (!is.null(hyper_summary) && nrow(hyper_summary) > 0) {
+    hyper_names <- rownames(hyper_summary)
+    # Interaction terms on copied indices (..domain_id2.., ..time_id2..) are not main effects
+    main_rows <- function(pattern) {
+      rows <- grep(pattern, hyper_names, value = TRUE)
+      rows[!grepl("_id2\\.\\.", rows)]
+    }
+
     # Spatial / Area random effect precision
-    prec_rows <- grep("Precision for (\\.\\.domain_id\\.\\.|domain)", rownames(hyper_summary), value = TRUE)
+    prec_rows <- main_rows("Precision for (\\.\\.domain_id\\.\\.|domain)")
+    # bym: report the structured (spatial) component, not the iid one
+    spat_comp <- grep("spatial component", prec_rows, value = TRUE)
+    if (length(spat_comp) > 0) prec_rows <- spat_comp
     if (length(prec_rows) == 0 && spatial == "none" && temporal == "none") {
-      # Fallback for simple IID
-      prec_rows <- grep("Precision for", rownames(hyper_summary), value = TRUE)
+      # Fallback for simple IID; never the precision of the observations
+      prec_rows <- main_rows("^Precision for")
+      prec_rows <- prec_rows[!grepl("observations", prec_rows)]
     }
     if (length(prec_rows) > 0) {
       prec_est <- hyper_summary[prec_rows[1], "mean"]
@@ -189,7 +200,7 @@
     }
 
     # Temporal precision
-    prec_time_rows <- grep("Precision for (\\.\\.time_id\\.\\.|time)", rownames(hyper_summary), value = TRUE)
+    prec_time_rows <- main_rows("Precision for (\\.\\.time_id\\.\\.|time)")
     if (length(prec_time_rows) > 0) {
       prec_time_est <- hyper_summary[prec_time_rows[1], "mean"]
       if (!is.na(prec_time_est) && prec_time_est > 0) {
@@ -198,10 +209,12 @@
     }
 
     # Look for Phi (spatial proportion in BYM2), Beta (generic1 / Leroux), or Rho (slm)
-    phi_rows <- grep("Phi for", rownames(hyper_summary), value = TRUE)
-    beta_rows <- grep("Beta for", rownames(hyper_summary), value = TRUE)
-    rho_rows <- grep("Rho for (\\.\\.domain_id\\.\\.|domain)", rownames(hyper_summary), value = TRUE)
-    rho_time_rows <- grep("Rho for (\\.\\.time_id\\.\\.|time)", rownames(hyper_summary), value = TRUE)
+    phi_rows <- main_rows("Phi for")
+    beta_rows <- main_rows("^(Beta|Lambda) for")
+    rho_rows <- main_rows("^Rho for (\\.\\.domain_id\\.\\.|domain)")
+    rho_time_rows <- main_rows("^Rho for (\\.\\.time_id\\.\\.|time)")
+    # separable: the AR(1) of the spatial field over time is a group correlation
+    if (length(rho_time_rows) == 0) rho_time_rows <- main_rows("^GroupRho for")
 
     if (length(phi_rows) > 0) {
       phi <- hyper_summary[phi_rows[1], "mean"]
@@ -374,7 +387,7 @@
     call = call
   )
 
-  class(out) <- c("fastsae_hb_area", "fastsae")
+  class(out) <- c("fastsae_hb_area", "fastsae_hb", "fastsae")
   return(out)
 }
 
@@ -393,21 +406,17 @@
 #' @param family Response family.
 #' @param n_draws Number of posterior draws.
 #' @param seed Seed passed to `INLA::inla.posterior.sample()` (0 = random).
+#' @param link Link function (`NULL`: canonical link of `family`).
 #' @return `res` with benchmarked `df_hb` columns; the unbenchmarked estimate
 #'   is kept in `hb_unbenchmarked`.
 #' @noRd
-.posterior_benchmark <- function(res, sb_info, family, n_draws = 1000, seed = 0L) {
+.posterior_benchmark <- function(res, sb_info, family, n_draws = 1000, seed = 0L, link = NULL) {
   n <- nrow(res$df_hb)
   smp <- INLA::inla.posterior.sample(n = n_draws, result = res$fit, seed = as.integer(seed))
   rn <- rownames(smp[[1]]$latent)
   pred_rows <- grep("^Predictor:", rn)[seq_len(n)]
   eta <- vapply(smp, function(s) s$latent[pred_rows, 1], numeric(n))
-  theta <- switch(family,
-    gaussian = eta,
-    binomial = stats::plogis(eta),
-    beta = stats::plogis(eta),
-    exp(eta) # poisson / nbinomial (rate) / gamma
-  )
+  theta <- .inla_inv_link(eta, family, link)
   theta_bm <- .benchmark_adjust(theta, sb_info, .benchmark_type_for_family(family))
   df <- res$df_hb
   df$hb_unbenchmarked <- df$hb
@@ -476,4 +485,47 @@
     df_hb$estimated_count <- hb_est * exposure
   }
   df_hb
+}
+
+#' Link functions supported per response family (INLA names)
+#'
+#' The first entry is the canonical link used when `link = NULL`.
+#' @noRd
+.inla_links <- function(family) {
+  switch(family,
+    gaussian = "identity",
+    binomial = ,
+    beta = c("logit", "probit", "cloglog", "loglog"),
+    "log" # poisson, nbinomial, gamma
+  )
+}
+
+#' Validate `inla_engine(link = )` against the response family
+#' @return The link to use (canonical when `link` is `NULL`).
+#' @noRd
+.check_inla_link <- function(link, family) {
+  ok <- .inla_links(family)
+  if (is.null(link)) return(ok[1])
+  link <- tolower(link)
+  if (!link %in% ok) {
+    cli::cli_abort(c(
+      "{.code link = \"{link}\"} is not available for {.code family = \"{family}\"}.",
+      "i" = "Use {.or {.val {ok}}}."
+    ))
+  }
+  link
+}
+
+#' Inverse link: linear predictor to the mean scale
+#' @noRd
+.inla_inv_link <- function(eta, family, link = NULL) {
+  link <- link %||% .inla_links(family)[1]
+  switch(link,
+    identity = eta,
+    logit = stats::plogis(eta),
+    probit = stats::pnorm(eta),
+    cloglog = 1 - exp(-exp(eta)),
+    loglog = exp(-exp(-eta)),
+    log = exp(eta)
+  )
 }

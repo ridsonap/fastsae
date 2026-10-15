@@ -41,7 +41,7 @@
 #' Fit hb_area() by MCMC (NumPyro NUTS on JAX)
 #'
 #' Receives the data prepared by `hb_area()` and returns the same
-#' `c("fastsae_hb_area", "fastsae")` structure as the INLA engine.
+#' `c("fastsae_hb_area", "fastsae_hb", "fastsae")` structure as the INLA engine.
 #' Self-benchmarking adjusts the posterior draws with `.benchmark_adjust()`,
 #' exactly as `.posterior_benchmark()` does for INLA.
 #' @noRd
@@ -291,6 +291,6 @@
     out$df_hb <- sf::st_set_geometry(out$df_hb, sf::st_geometry(data))
   }
 
-  class(out) <- c("fastsae_hb_area", "fastsae")
+  class(out) <- c("fastsae_hb_area", "fastsae_hb", "fastsae")
   out
 }
