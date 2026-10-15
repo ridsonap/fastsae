@@ -228,15 +228,15 @@ test_that("goodness statistics agree with sae::mseSFH", {
   )
 })
 
-test_that("SFH REML fits also report the restricted log-likelihood", {
+test_that("SFH REML fits report the full log-likelihood only", {
   X <- model.matrix(~ x1 + x2 + x3, mysnona)
   W <- as.matrix(mys_proxmat_nona)
   A <- diag(nrow(W)) - fit_fast$rho * W
   V <- fit_fast$random_effect_var * solve(t(A) %*% A) + diag(mysnona$vardir)
-  ll <- .loglik_dense(mysnona$y, X, V)
-  expect_equal(unname(fit_fast$goodness["loglikelihood"]), unname(ll["ml"]), tolerance = 1e-6)
-  expect_equal(unname(fit_fast$goodness["loglikelihood_reml"]), unname(ll["reml"]), tolerance = 1e-6)
-  expect_false("loglikelihood_reml" %in% names(fit_fast_ml$goodness))
+  expect_named(fit_fast$goodness, c("loglikelihood", "AIC", "BIC"))
+  expect_equal(unname(fit_fast$goodness["loglikelihood"]),
+               .loglik_dense(mysnona$y, X, V), tolerance = 1e-6)
+  expect_named(fit_fast_ml$goodness, c("loglikelihood", "AIC", "BIC"))
 })
 
 

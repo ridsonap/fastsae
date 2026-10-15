@@ -123,9 +123,9 @@ normal distribution, so \code{tvalue} is a z-statistic.}
 \item{\code{estvarcomp}}{data frame with estimate, std.error for sigma21, rho1, sigma22, rho2.}
 \item{\code{goodness}}{named vector: \code{loglikelihood}, the full Gaussian
 log-likelihood at the REML estimates (as \code{loglike} in \code{sae::eblupSTFH()}),
-\code{AIC} and \code{BIC} computed from it, and \code{loglikelihood_reml}, the
-restricted log-likelihood that REML maximises. The full log-likelihood is used for AIC
-and BIC because the restricted one depends on the covariates.}
+and \code{AIC} and \code{BIC} computed from it. The restricted (REML) likelihood is
+not reported: it depends on the covariates through X, so it cannot compare models
+with different covariates.}
 \item{\code{df_eblup}}{data frame with domain, time, y, eblup, vardir, mse, rse,
 random_effect_u1, random_effect_u2 and \code{sampled} (\code{FALSE} for the cells
 predicted without a direct estimate).}

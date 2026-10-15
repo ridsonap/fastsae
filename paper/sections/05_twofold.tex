@@ -95,12 +95,11 @@ $s_k/\mathcal I_{kk}$ (baris 205-228); nilai negatif dipaksa $0$ (baris
 
 \implnote{Dua hal yang tidak ada pada FH: (i) varian estimasi komponen
 diambil dari \emph{invers matriks informasi Fisher} final, bukan bentuk
-tertutup $\VarA=2/\sum w^2$ (TFH-3); (ii) untuk REML dilaporkan juga
-\code{loglikelihood\_reml},
-$\ell_R=-\tfrac12[(n-p)\log2\pi+\text{core}+\log|\Xmat'V^{-1}\Xmat|
--\log|\Xmat'\Xmat|]$. Seperti FH dan SFH, \code{loglikelihood}, AIC, dan BIC
-memakai log-likelihood penuh pada estimasi; BIC memakai $n$ = jumlah
-sub-area tersampel (TFH-9, diperbaiki sebelum rilis 1.0.0).}
+tertutup $\VarA=2/\sum w^2$ (TFH-3); (ii) sebelum rilis 1.0.0, goodness
+fit REML dihitung dari log-likelihood terbatas. Kini, seperti FH dan SFH,
+\code{loglikelihood}, AIC, dan BIC memakai log-likelihood penuh
+$-\tfrac12[n\log2\pi+\text{core}]$ pada estimasi untuk ML maupun REML, dan
+BIC memakai $n$ = jumlah sub-area tersampel (TFH-9).}
 
 \subsection{Estimasi MSE}\label{sec:twofold-mse}
 

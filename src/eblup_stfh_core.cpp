@@ -1096,19 +1096,13 @@ List eblup_stfh_core(
   }
 
   // Full (ML-form) log-likelihood at the REML estimates, as in sae::eblupSTFH,
-  // so that AIC/BIC compare models with different covariates; the restricted
-  // log-likelihood (the REML objective) is reported next to it.
+  // so that AIC/BIC compare models with different covariates.
   const double loglike = -0.5 * (M * std::log(2.0 * M_PI) + logdetV + quadform);
   const double AIC = -2.0 * loglike + 2.0 * (p + nparam);
   const double BIC = -2.0 * loglike + std::log((double) M) * (p + nparam);
-  double ldQ = 0.0, sgQ = 0.0, ldXX = 0.0, sgXX = 0.0;
-  arma::log_det(ldQ, sgQ, Q);
-  arma::log_det(ldXX, sgXX, arma::mat(X.t() * X));
-  const double loglike_reml = loglike + 0.5 * p * std::log(2.0 * M_PI) + 0.5 * ldQ + 0.5 * ldXX;
 
   NumericVector goodness = NumericVector::create(
-    _["loglikelihood"] = loglike, _["AIC"] = AIC, _["BIC"] = BIC,
-    _["loglikelihood_reml"] = loglike_reml
+    _["loglikelihood"] = loglike, _["AIC"] = AIC, _["BIC"] = BIC
   );
 
   // SE for beta

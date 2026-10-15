@@ -63,8 +63,8 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     - TFH-8: MSE negatif menjadi `NA` dengan warning.
     - TFH-9 + konvensi goodness: `loglikelihood`/AIC/BIC semua model frequentist
       memakai log-likelihood penuh pada estimasi (konvensi `sae`, Marhuenda,
-      Morales & Pardo 2014). Fit REML menambah `loglikelihood_reml`. BIC
-      two-fold memakai jumlah sub-area tersampel.
+      Morales & Pardo 2014), untuk ML maupun REML. Likelihood REML tidak
+      dilaporkan. BIC two-fold memakai jumlah sub-area tersampel.
     - STFH-8: `param_invalid` mengembalikan `convergence = FALSE`; nama
       `loglike` menjadi `loglikelihood`.
     - SFH-6: dokumentasi `estcoef` kini menyebut `zvalue`.
@@ -73,8 +73,9 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     kuadratik skor ML terprofil.
   - FH-3/SFH-3: AIC/BIC dari log-likelihood penuh juga untuk REML, sama seperti
     `sae`. Likelihood REML bergantung pada $X$, sehingga tidak dapat
-    membandingkan model dengan kovariat berbeda. Kini ditambah
-    `loglikelihood_reml`.
+    membandingkan model dengan kovariat berbeda, sehingga tidak dilaporkan
+    (`sae` dan Marhuenda, Morales & Pardo 2014 juga hanya melaporkan
+    log-likelihood penuh).
   - STFH-4: hanya REML, mengikuti Marhuenda, Molina & Morales (2013) dan
     `sae::eblupSTFH`.
   - STFH-6: `tvalue` dipertahankan demi kompatibilitas dengan `sae`;

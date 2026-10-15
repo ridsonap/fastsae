@@ -53,11 +53,10 @@
 #' \code{rho} estimated spatial autocorrelation parameter \cr
 #' \code{estvarcomp} a data frame with parameter, estimate, and std.error \cr
 #' \code{goodness} named vector: \code{loglikelihood} (the full Gaussian log-likelihood at the
-#'    estimates), \code{AIC} and \code{BIC} computed from it and, for \code{method = "REML"},
-#'    \code{loglikelihood_reml} (the restricted log-likelihood that REML maximises). AIC and
-#'    BIC use the full log-likelihood for ML and REML fits alike, as \pkg{sae} does and as in
-#'    Marhuenda, Morales and Pardo (2014): the restricted likelihood depends on the covariates,
-#'    so only the full one compares models with different covariates. \cr
+#'    estimates, for ML and REML fits alike), \code{AIC} and \code{BIC} computed from it, as
+#'    \pkg{sae} does and as in Marhuenda, Morales and Pardo (2014). The restricted (REML)
+#'    likelihood is not reported: it depends on the covariates through X, so it cannot
+#'    compare models with different covariates. \cr
 #' \code{df_eblup} a data frame that contains the following columns: \cr
 #'    * \code{y} variable response \cr
 #'    * \code{eblup} estimated results for each area \cr

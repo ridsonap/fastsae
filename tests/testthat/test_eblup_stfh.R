@@ -116,23 +116,22 @@ test_that("estvarcomp agrees with sae::eblupSTFH", {
 # ------------------------------------------------------------------
 
 test_that("goodness statistics agree with sae::eblupSTFH", {
-  expect_named(fit_fast$goodness, c("loglikelihood", "AIC", "BIC", "loglikelihood_reml"))
+  expect_named(fit_fast$goodness, c("loglikelihood", "AIC", "BIC"))
   expect_equal(
-    as.numeric(fit_fast$goodness[c("loglikelihood", "AIC", "BIC")]),
+    as.numeric(fit_fast$goodness),
     as.numeric(fit_sae$fit$goodness),
     tolerance = tol
   )
 })
 
-test_that("the restricted log-likelihood matches the dense REML objective", {
+test_that("the log-likelihood matches the dense Gaussian likelihood", {
   D <- length(unique(mys_panel_nona$area))
   Tt <- length(unique(mys_panel_nona$year))
   X <- model.matrix(~ x1 + x2 + x3, mys_panel_nona)
   th <- fit_fast$estvarcomp$estimate
   pr <- .stfh_dense_parts(th, as.matrix(mys_proxmat_nona), D, Tt)
   ll <- .loglik_dense(mys_panel_nona$y, X, pr$G + diag(mys_panel_nona$vardir))
-  expect_equal(unname(fit_fast$goodness["loglikelihood"]), unname(ll["ml"]), tolerance = 1e-6)
-  expect_equal(unname(fit_fast$goodness["loglikelihood_reml"]), unname(ll["reml"]), tolerance = 1e-6)
+  expect_equal(unname(fit_fast$goodness["loglikelihood"]), ll, tolerance = 1e-6)
 })
 
 # ------------------------------------------------------------------
