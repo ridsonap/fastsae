@@ -69,7 +69,7 @@ head(df_pop)
 
 ### 2. Fit BHF Model with Bootstrap MSE
 
-We fit the model using `eblup_bhf()`. To estimate domain-level Mean Squared Error (MSE), set `compute_mse = TRUE`:
+We fit the model using `eblup_bhf()`. The domain-level Mean Squared Error (MSE) is estimated by parametric bootstrap (`mse_type = "bootstrap"`, the default; `mse_type = "none"` skips it):
 
 ```{r fit_bhf}
 fit_bhf <- eblup_bhf(
@@ -79,7 +79,7 @@ fit_bhf <- eblup_bhf(
   domain_var = "County",
   popsize_var = "PopnSegments",
   method = "REML",
-  compute_mse = TRUE,
+  mse_type = "bootstrap",
   B = 50,
   seed = 123,
   print_result = FALSE

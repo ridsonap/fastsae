@@ -151,7 +151,7 @@ $\hat\theta,\widehat{\mathrm{MSE}},\ldots\leftarrow$ \FCore{$\Xmat,y,\psi$,
 \If{\code{transform = "log"}}{transformasi balik \eqref{eq:fh-log} (195--227)}
 sisipkan \code{domain} ke \code{df\_eblup}; \code{class} $\leftarrow$
 \code{"fastsae"} (229--253)\;
-\If{\texttt{!convergence}}{\texttt{cli\_alert\_danger} dan kembalikan (255--258)}
+\If{\texttt{!convergence}}{\texttt{warning} (\texttt{.warn\_no\_convergence}) dan kembalikan}
 \FPrint{objek} bila \code{print\_result}\;
 \caption*{}
 \SetKwFunction{FFindNonfinite}{find\_nonfinite}
@@ -191,6 +191,7 @@ $\mathrm{RSE}\leftarrow100\sqrt{\mathrm{MSE}}/\abs{\hat\theta}$;
 \begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_fh} (\texttt{R/eblup\_fh.R:98-112}).}]
 eblup_fh(formula, vardir, domain = NULL, data,
          method = c("REML", "ML"), transform = c("none", "log"),
+         mse_type = c("analytical", "none"),
          maxiter = 100, precision = 1e-4, print_result = TRUE,
          self_benchmark = FALSE, benchmark_weight = NULL,
          benchmark_target = NULL, benchmark_group = NULL)

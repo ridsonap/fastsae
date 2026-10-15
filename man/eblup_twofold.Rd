@@ -11,7 +11,7 @@ eblup_twofold(
   subarea = NULL,
   data,
   method = c("REML", "ML"),
-  mse = c("analytical", "bootstrap"),
+  mse_type = c("analytical", "bootstrap", "none"),
   B = 200,
   seed = NULL,
   maxiter = 100,
@@ -38,10 +38,11 @@ in \code{data}. If NULL, rows are numbered consecutively.}
 
 \item{method}{Fitting method can be chosen between 'REML' and 'ML'.}
 
-\item{mse}{MSE estimation method: 'analytical' (Prasad-Rao g1+g2+2*g3, fast; ML adds the bias correction) or
-'bootstrap' (parametric bootstrap, slower but robust).}
+\item{mse_type}{MSE estimator: 'analytical' (default; Prasad-Rao g1+g2+2*g3, fast; ML adds
+the bias correction), 'bootstrap' (parametric bootstrap, slower but robust) or 'none'
+(no MSE; \code{mse} and \code{rse} are \code{NA}).}
 
-\item{B}{number of parametric bootstrap replicates (only used if mse = 'bootstrap').}
+\item{B}{number of parametric bootstrap replicates (only used if mse_type = 'bootstrap').}
 
 \item{seed}{integer seed for bootstrap resampling (NULL = no seed set).}
 

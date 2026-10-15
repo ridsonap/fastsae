@@ -160,9 +160,12 @@ teridentifikasi di batas mendapat \code{NA} (baris 1120-1158).
 
 \subsection{Estimasi MSE}\label{sec:stfh-mse}
 
-Kolom \code{mse} dan \code{rse} diisi \code{NA} kecuali
-\code{compute\_mse = TRUE} (\code{R/eblup\_stfh.R:402-444}; STFH-2). Ada dua
-jenis lewat \code{mse\_type}:
+Jenis MSE dipilih lewat \code{mse\_type}: \code{"analytical"} (default sejak
+1.0.0), \code{"bootstrap"}, atau \code{"none"} (kolom \code{mse} dan \code{rse}
+diisi \code{NA}; STFH-2). Argumen \code{compute\_mse} dari 0.1.0 masih diterima
+dengan peringatan \emph{deprecation}: \code{FALSE} berarti \code{"none"} dan
+\code{TRUE} berarti \code{"bootstrap"} bila \code{B} diberikan, selain itu
+\code{"analytical"}.
 
 \paragraph{Analitik (default), sel tersampel.} MSE Prasad--Rao orde kedua
 \citep{marhuenda2013small} dalam bentuk terstruktur (baris 1161-1370):
@@ -253,14 +256,14 @@ model.
 \caption{\texttt{eblup\_stfh} --- alur sebenarnya (\texttt{R/eblup\_stfh.R:164-480}, \texttt{src/eblup\_stfh\_core.cpp:826-1529})}
 \label{alg:stfh}
 \KwIn{formula, \code{vardir}, \code{data}, \code{domain}, \code{time}, $W$ ($D\times D$),
-  \code{model} $\in$\{ST, S\}, nilai awal, \code{compute\_mse}, \code{mse\_type}, \code{B}, \code{n\_threads}, \code{seed}}
+  \code{model} $\in$\{ST, S\}, nilai awal, \code{mse\_type}, \code{B}, \code{n\_threads}, \code{seed}}
 \KwOut{\code{df\_eblup} (setiap domain $\times$ waktu, termasuk kolom \code{sampled}), \code{estvarcomp}, \code{goodness}, $g_1$--$g_4$}
 \tcp*{\emph{Lapis R}}
 urutkan domain-major (domain menurut kemunculan, waktu menaik) (204-250)\;
 \textbf{gagal} bila variabel bantu \code{NA}, semua respons \code{NA}, \code{vardir} sel tersampel tidak positif, baris grid tidak lengkap, atau $W$ bukan $D\times D$ (260-316)\;
 validasi \code{sigma*\_start} $\ge0$ dan \code{rho*\_start} $\in(-1,1)$ (317-330)\;
 $\hat\theta,\ldots\leftarrow$ \texttt{.eblup\_stfh\_core} (343-356)\;
-\If{\code{compute\_mse}}{analitik: salin \code{mse\_analytical}; bootstrap: \texttt{.pbmse\_stfh} (402-436)}
+\If{\code{mse\_type} $\ne$ none}{analitik: salin \code{mse\_analytical}; bootstrap: \texttt{.pbmse\_stfh} (402-436)}
 \uElse{\texttt{mse = rse = NA} (437-444)}\;
 kembalikan ke urutan baris pemanggil (472)\;
 \caption*{}
@@ -291,12 +294,11 @@ eblup_stfh(formula, vardir, data, domain, time, W,
            model = c("ST", "S"), maxiter = 100, precision = 1e-4,
            sigma21_start = NULL, rho1_start = 0.5,
            sigma22_start = NULL, rho2_start = 0.5,
-           compute_mse = FALSE,
-           mse_type = c("analytical", "bootstrap"),
+           mse_type = c("analytical", "bootstrap", "none"),
            B = 100, n_threads = 1, seed = -1,
            self_benchmark = FALSE, benchmark_weight = NULL,
            benchmark_target = NULL, benchmark_group = NULL,
-           print_result = TRUE)
+           print_result = TRUE, compute_mse)  # compute_mse: deprecated
 \end{lstlisting}
 
 \begin{itemize}
@@ -307,9 +309,9 @@ eblup_stfh(formula, vardir, data, domain, time, W,
         kemunculan pertama.
   \item \code{model} --- \code{"ST"} (default, AR(1) temporal) atau
         \code{"S"} (tanpa struktur temporal).
-  \item \code{compute\_mse}, \code{mse\_type} --- \code{FALSE} (default)
-        menghasilkan \code{mse = NA}; \code{TRUE} dengan \code{"analytical"}
-        (default) atau \code{"bootstrap"}.
+  \item \code{mse\_type} --- \code{"analytical"} (default), \code{"bootstrap"},
+        atau \code{"none"} (\code{mse = NA}). \code{compute\_mse} sudah
+        \emph{deprecated}.
   \item \code{self\_benchmark} --- kalibrasi agregat berbobot sel tersampel
         per kelompok (\code{.setup\_self\_benchmark} menormalkan bobot pada
         sel tersampel).
@@ -338,7 +340,7 @@ m1 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel,
 m2 <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel,
                  vardir = ~vardir, domain = ~area, time = ~year,
                  W = mys_proxmat, model = "ST",
-                 compute_mse = TRUE, mse_type = "analytical")
+                 mse_type = "analytical")
 head(m2$df_eblup[!m2$df_eblup$sampled, ])
 \end{lstlisting}
 

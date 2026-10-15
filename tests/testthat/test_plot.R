@@ -36,7 +36,7 @@ test_that("autoplot.list works for multiple models", {
   fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", print_result = FALSE)
   fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3,
     data = mys, vardir = "vardir",
-    W = mys_proxmat, print_result = FALSE, mse_method = "analytical"
+    W = mys_proxmat, print_result = FALSE, mse_type = "analytical"
   )
 
   # Create list of models

@@ -21,6 +21,9 @@
 #'   does not include the additional O(1/m) terms for the estimation of \eqn{\beta} and
 #'   \eqn{\sigma^2_u}. The MSE on the original scale is the delta-method approximation
 #'   \eqn{\hat\theta^2 \cdot mse_{log}}.
+#' @param mse_type MSE estimator: \code{"analytical"} (default; Prasad-Rao, with the
+#'   Datta-Lahiri bias correction for ML, as in \code{sae::mseFH()}) or \code{"none"}
+#'   (no MSE; \code{mse} and \code{rse} are \code{NA}).
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
 #' @param print_result print coefficient or not, default value is TRUE.
@@ -109,6 +112,7 @@ eblup_fh <- function(
   data,
   method = c("REML", "ML"),
   transform = c("none", "log"),
+  mse_type = c("analytical", "none"),
   maxiter = 100,
   precision = 1e-4,
   print_result = TRUE,
@@ -119,6 +123,7 @@ eblup_fh <- function(
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
   transform <- match.arg(transform, choices = c("none", "log"))
+  mse_type <- match.arg(mse_type, choices = c("analytical", "none"))
 
   if (is.null(domain)) {
     domain <- 1:nrow(data)
@@ -183,6 +188,7 @@ eblup_fh <- function(
   if (anyNA(X)) {
     cli::cli_abort("Auxiliary variables contain NA values.")
   }
+  .check_area_inputs(X, y, vardir)
 
   res <- .eblup_core(
     Xall = X,
@@ -199,6 +205,7 @@ eblup_fh <- function(
   res$model <- if (transform == "log") "Log-FH" else "FH"
   res$method <- method
   res$transform <- transform
+  res$mse_type <- mse_type
 
   if (transform == "log") {
     # Back-transformation exp(mu~ + g1/2): conditional-mean correction under the
@@ -239,6 +246,7 @@ eblup_fh <- function(
   cols_order <- c("domain", "y", "eblup", "vardir", "random_effect", "mse", "rse", "eblup_log", "mse_log",
                   "eblup_unbenchmarked")
   res$df_eblup <- res$df_eblup[, intersect(cols_order, names(res$df_eblup))]
+  if (mse_type == "none") res$df_eblup <- .drop_mse(res$df_eblup)
 
   if (!is.null(sb_info)) {
     res$self_benchmark <- TRUE
@@ -261,7 +269,7 @@ eblup_fh <- function(
   class(res) <- "fastsae"
 
   if (!res$convergence) {
-    cli::cli_alert_danger("After {res$n_iter} iterations, there is no convergence.")
+    .warn_no_convergence(res$n_iter)
     return(res)
   }
 

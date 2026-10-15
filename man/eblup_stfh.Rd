@@ -18,8 +18,7 @@ eblup_stfh(
   rho1_start = 0.5,
   sigma22_start = NULL,
   rho2_start = 0.5,
-  compute_mse = FALSE,
-  mse_type = c("analytical", "bootstrap"),
+  mse_type = c("analytical", "bootstrap", "none"),
   B = 100,
   n_threads = 1,
   seed = -1,
@@ -27,7 +26,8 @@ eblup_stfh(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
-  print_result = TRUE
+  print_result = TRUE,
+  compute_mse = lifecycle::deprecated()
 )
 }
 \arguments{
@@ -78,18 +78,17 @@ becomes indefinite) it falls back to constrained REML (variances \eqn{\ge 0},
 \eqn{|\rho| \le 0.999}) with step halving. When a variance is estimated at 0, its
 autocorrelation is not identified and its standard error is reported as \code{NA}.}
 
-\item{compute_mse}{logical, if \code{TRUE} computes MSE. Default \code{FALSE}.}
-
-\item{mse_type}{character, method for MSE estimation: \code{"analytical"} (fast
-Prasad-Rao type estimator g1 + g2 + 2 g3 - g4, default when \code{compute_mse = TRUE}; g3 uses
+\item{mse_type}{character, method for MSE estimation: \code{"analytical"} (default; fast
+Prasad-Rao type estimator g1 + g2 + 2 g3 - g4; g3 uses
 the exact derivative of the EBLUP, \eqn{\Psi P V_a P y}, and the REML information at the
 final estimates; correlations estimated on the boundary \eqn{|\rho| \ge 0.999} are
 treated as fixed, so they do not enter \eqn{g_3}/\eqn{g_4}) or \code{"bootstrap"}
 (parametric bootstrap in which the variance components are re-estimated by REML in every
-replicate, as in Marhuenda et al., 2013).}
+replicate, as in Marhuenda et al., 2013) or \code{"none"} (no MSE; \code{mse} and
+\code{rse} are \code{NA}).}
 
 \item{B}{number of bootstrap replicates for MSE computation. Only used when
-\code{compute_mse = TRUE} and \code{mse_type = "bootstrap"}. Default \code{100}.}
+\code{mse_type = "bootstrap"}. Default \code{100}.}
 
 \item{n_threads}{number of threads for parallel bootstrap MSE computation.
 Use \code{0} for all available cores. Default \code{1}.}
@@ -111,6 +110,11 @@ benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggreg
 grouping / stratum column in \code{data} (e.g. time period / year) for group-specific self-benchmarking.}
 
 \item{print_result}{print the estimated coefficients or not. Default \code{TRUE}.}
+
+\item{compute_mse}{Deprecated (fastsae 1.0.0); use \code{mse_type}.
+\code{compute_mse = FALSE} is \code{mse_type = "none"}; \code{compute_mse = TRUE}
+is \code{mse_type = "bootstrap"} when \code{B} is given and \code{"analytical"}
+otherwise.}
 }
 \value{
 A list with the same structure as \code{seblup_area()}, with additional
@@ -129,11 +133,11 @@ with different covariates.}
 \item{\code{df_eblup}}{data frame with domain, time, y, eblup, vardir, mse, rse,
 random_effect_u1, random_effect_u2 and \code{sampled} (\code{FALSE} for the cells
 predicted without a direct estimate).}
-When \code{compute_mse = FALSE}, mse and rse are \code{NA}.
+When \code{mse_type = "none"}, mse and rse are \code{NA}.
 \item{\code{model}}{model type ("ST" or "S").}
 \item{\code{convergence}}{logical, whether the algorithm converged.}
 \item{\code{n_iter}}{number of iterations.}
-\item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE and mse_type = "bootstrap").}
+\item{\code{B}}{number of bootstrap replicates (only when mse_type = "bootstrap").}
 }
 }
 \description{
@@ -206,7 +210,6 @@ m2 <- eblup_stfh(
   time = ~year,
   W = mys_proxmat,
   model = "ST",
-  compute_mse = TRUE,
   mse_type = "analytical"
 )
 head(m2$df_eblup[!m2$df_eblup$sampled, ])

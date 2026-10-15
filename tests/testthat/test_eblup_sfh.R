@@ -346,10 +346,10 @@ test_that("eblup_sfh validation and edge cases", {
   expect_output(eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mysnona, W = mys_proxmat_nona, print_result = TRUE))
 
   # Bootstrap MSE with unsampled domains
-  fit_pb_unsampled <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, mse_method = "pbmse", B = 5, print_result = FALSE)
+  fit_pb_unsampled <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, mse_type = "pbmse", B = 5, print_result = FALSE)
   expect_s3_class(fit_pb_unsampled, "fastsae")
 
-  fit_npb_unsampled <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, mse_method = "npbmse", B = 5, print_result = FALSE)
+  fit_npb_unsampled <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, mse_type = "npbmse", B = 5, print_result = FALSE)
   expect_s3_class(fit_npb_unsampled, "fastsae")
 
   # Direct nrow(mf) != length(vardir) check in eblup_sfh
@@ -401,7 +401,7 @@ test_that("SFH bootstrap validity does not depend on the scale of y", {
     vardir = sim$vardir * k^2
   )
   fit_s <- suppressWarnings(eblup_sfh(y ~ x1 + x2 + x3, vardir = "vardir", data = d, W = sim$W,
-                                      mse_method = "pbmse", B = 10, seed = 1,
+                                      mse_type = "pbmse", B = 10, seed = 1,
                                       print_result = FALSE))
   expect_true(all(is.finite(fit_s$df_eblup$mse_pb)))
   expect_gt(max(fit_s$df_eblup$mse_pb), 1e6)

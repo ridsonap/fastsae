@@ -218,6 +218,12 @@
   if (length(extras) > 0) model_label <- paste0(model_label, " [", paste(extras, collapse = " + "), "]")
 
   rhat_max <- if (!is.null(fit_py$rhat_max)) as.numeric(fit_py$rhat_max) else NULL
+  if (!is.null(rhat_max) && !(rhat_max < 1.05)) {
+    cli::cli_warn(c(
+      "The MCMC chains have not converged (max split R-hat = {round(rhat_max, 3)} >= 1.05).",
+      "i" = "Increase {.arg warmup} and {.arg samples} in {.fn jax_engine}."
+    ))
+  }
 
   out <- list(
     df_hb = df_hb,

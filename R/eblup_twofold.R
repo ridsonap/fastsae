@@ -19,9 +19,10 @@
 #' @param subarea vector, column name or one-sided formula referencing the subarea identifier column
 #'   in \code{data}. If NULL, rows are numbered consecutively.
 #' @param method Fitting method can be chosen between 'REML' and 'ML'.
-#' @param mse MSE estimation method: 'analytical' (Prasad-Rao g1+g2+2*g3, fast; ML adds the bias correction) or
-#'   'bootstrap' (parametric bootstrap, slower but robust).
-#' @param B number of parametric bootstrap replicates (only used if mse = 'bootstrap').
+#' @param mse_type MSE estimator: 'analytical' (default; Prasad-Rao g1+g2+2*g3, fast; ML adds
+#'   the bias correction), 'bootstrap' (parametric bootstrap, slower but robust) or 'none'
+#'   (no MSE; \code{mse} and \code{rse} are \code{NA}).
+#' @param B number of parametric bootstrap replicates (only used if mse_type = 'bootstrap').
 #' @param seed integer seed for bootstrap resampling (NULL = no seed set).
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
@@ -86,7 +87,7 @@ eblup_twofold <- function(
   subarea = NULL,
   data,
   method = c("REML", "ML"),
-  mse = c("analytical", "bootstrap"),
+  mse_type = c("analytical", "bootstrap", "none"),
   B = 200,
   seed = NULL,
   maxiter = 100,
@@ -98,7 +99,7 @@ eblup_twofold <- function(
   print_result = TRUE
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
-  mse <- match.arg(mse, choices = c("analytical", "bootstrap"))
+  mse_type <- match.arg(mse_type, choices = c("analytical", "bootstrap", "none"))
   if (is.null(domain)) {
     cli::cli_abort("`domain` (area identifier) must be supplied for the two-fold model.")
   }
@@ -142,8 +143,12 @@ eblup_twofold <- function(
   if (anyNA(X)) {
     cli::cli_abort("Auxiliary variables contain NA values.")
   }
+  .check_area_inputs(X, y, vardir, unit = "subarea")
 
   area_idx <- as.integer(factor(domain)) - 1L
+  if (length(unique(area_idx[!is.na(y)])) < 2) {
+    cli::cli_abort("At least 2 areas with sampled subareas are needed to estimate the area variance.")
+  }
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -153,7 +158,7 @@ eblup_twofold <- function(
     vardirall = vardir,
     area = area_idx,
     method = method,
-    mse_type = mse,
+    mse_type = if (mse_type == "none") "analytical" else mse_type,
     B = as.integer(B),
     maxiter = maxiter,
     precision = precision
@@ -164,6 +169,7 @@ eblup_twofold <- function(
   res$formula <- formula
   res$model <- "TWOFOLD"
   res$method <- method
+  res$mse_type <- mse_type
 
   # Add domain/subarea identifiers as first columns in df_eblup
   res$df_eblup$domain <- domain
@@ -174,6 +180,7 @@ eblup_twofold <- function(
 
   # A negative second-order MSE estimate (possible with the ML bias correction) is not a
   # usable MSE: report NA rather than a NaN RSE
+  if (mse_type == "none") res$df_eblup <- .drop_mse(res$df_eblup)
   neg_mse <- which(res$df_eblup$mse < 0)
   if (length(neg_mse) > 0) {
     cli::cli_warn(c(
@@ -205,7 +212,7 @@ eblup_twofold <- function(
   class(res) <- "fastsae"
 
   if (!res$convergence) {
-    cli::cli_alert_danger("After {res$n_iter} iterations, there is no convergence.")
+    .warn_no_convergence(res$n_iter)
     return(res)
   }
 

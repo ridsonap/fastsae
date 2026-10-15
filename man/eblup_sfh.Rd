@@ -10,7 +10,7 @@ eblup_sfh(
   domain = NULL,
   data,
   method = c("REML", "ML"),
-  mse_method = c("analytical", "pbmse", "npbmse"),
+  mse_type = c("analytical", "pbmse", "npbmse", "none"),
   W = NULL,
   B = 100,
   n_threads = 1,
@@ -21,7 +21,8 @@ eblup_sfh(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
-  print_result = TRUE
+  print_result = TRUE,
+  mse_method = lifecycle::deprecated()
 )
 }
 \arguments{
@@ -36,11 +37,11 @@ in \code{data}. If NULL, the domains are numbered consecutively.}
 
 \item{method}{Fitting method can be chosen between 'ML' and 'REML'.}
 
-\item{mse_method}{a character string determining the estimation method of the MSE.
-Methods that can be chosen: "analytical", "pbmse", or "npbmse".
+\item{mse_type}{MSE estimator: "analytical" (default), "pbmse" (parametric bootstrap),
+"npbmse" (nonparametric bootstrap) or "none" (no MSE; \code{mse} and \code{rse} are \code{NA}).
 When there are unsampled domains, "pbmse"/"npbmse" bootstrap MSE is only defined for the
 sampled domains; unsampled domains automatically get a full-spatial synthetic (kriging)
-prediction and analytical MSE merged into the result regardless of \code{mse_method}.}
+prediction and analytical MSE merged into the result.}
 
 \item{W}{A square matrix with dimension equal to the TOTAL number of domains in \code{data}
 (including any unsampled domains where the response is \code{NA}). It should contain the
@@ -49,7 +50,7 @@ from 0 to 1. Rows and columns must be ordered consistently with the domain ident
 \code{data}. Do NOT pre-subset \code{W} to sampled domains only -- unsampled domains' spatial MSE/
 prediction relies on their relation (in \code{W}) to sampled neighbors.}
 
-\item{B}{Number of bootstrap replications when mse_method = "pbmse" or "npbmse".}
+\item{B}{Number of bootstrap replications when mse_type = "pbmse" or "npbmse".}
 
 \item{n_threads}{Number of threads used in parallel computation (default 1).
 Values less than or equal to 0 use all available cores.}
@@ -76,6 +77,8 @@ benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggreg
 grouping / stratum column in \code{data} (e.g. province) for group-specific self-benchmarking.}
 
 \item{print_result}{print coefficient or not, default value is TRUE.}
+
+\item{mse_method}{Deprecated (fastsae 1.0.0); use \code{mse_type}.}
 }
 \value{
 The function returns a list with the following objects:

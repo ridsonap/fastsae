@@ -18,7 +18,7 @@ fit_case <- function(z, y = z$d$y_gaussian, ...) {
   d <- z$d
   d$y_gaussian <- y
   eblup_stfh(y_gaussian ~ x1 + x2, data = d, vardir = ~vardir, domain = ~area, time = ~year,
-             W = z$W, compute_mse = TRUE, print_result = FALSE, ...)
+             W = z$W, print_result = FALSE, ...)
 }
 
 test_that("predictions, beta, g1 and g2 of every cell match the dense BLUP", {
@@ -90,7 +90,7 @@ test_that("results follow the input row order", {
   o <- order(z$d$year, match(z$d$area, unique(z$d$area)))      # time-major input
   d2 <- z$d[o, ]
   m2 <- eblup_stfh(y_gaussian ~ x1 + x2, data = d2, vardir = ~vardir, domain = ~area,
-                   time = ~year, W = z$W, compute_mse = TRUE, print_result = FALSE)
+                   time = ~year, W = z$W, mse_type = "analytical", print_result = FALSE)
   expect_equal(m2$df_eblup$eblup, m$df_eblup$eblup[o])
   expect_equal(m2$df_eblup$mse, m$df_eblup$mse[o])
   expect_equal(m2$df_eblup$sampled, m$df_eblup$sampled[o])
@@ -112,7 +112,7 @@ test_that("the bootstrap MSE covers every cell and does not depend on the thread
 
 test_that("mys_panel is fitted with its unsampled domains", {
   m <- eblup_stfh(y ~ x1 + x2 + x3, data = mys_panel, vardir = ~vardir, domain = ~area,
-                  time = ~year, W = mys_proxmat, compute_mse = TRUE, print_result = FALSE)
+                  time = ~year, W = mys_proxmat, mse_type = "analytical", print_result = FALSE)
   df <- m$df_eblup
   expect_equal(nrow(df), nrow(mys_panel))
   expect_equal(sum(!df$sampled), sum(is.na(mys_panel$y)))

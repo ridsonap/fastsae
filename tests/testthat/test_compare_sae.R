@@ -147,9 +147,9 @@ test_that("compare_sae and autoplot label panel rows uniquely", {
   dat <- mys_panel[!is.na(mys_panel$y) & mys_panel$year >= 2024, ]
   W <- mys_proxmat[-c(21, 25), -c(21, 25)]
   m1 <- eblup_stfh(y ~ x1 + x2 + x3, data = dat, vardir = ~vardir, domain = ~area, time = ~year,
-                   W = W, model = "ST", compute_mse = TRUE, print_result = FALSE)
+                   W = W, model = "ST", mse_type = "analytical", print_result = FALSE)
   m2 <- eblup_stfh(y ~ x1 + x2 + x3, data = dat, vardir = ~vardir, domain = ~area, time = ~year,
-                   W = W, model = "S", compute_mse = TRUE, print_result = FALSE)
+                   W = W, model = "S", mse_type = "analytical", print_result = FALSE)
   cmp <- compare_sae(m1, m2)
   for (tp in c("difference", "mse", "rse", "comparison")) {
     expect_s3_class(ggplot2::ggplot_build(autoplot(cmp, type = tp)), "ggplot_built")

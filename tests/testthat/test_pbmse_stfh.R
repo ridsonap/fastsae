@@ -42,7 +42,7 @@ fit_nona <- eblup_stfh(
   time = ~year,
   W = mys_proxmat_nona,
   print_result = FALSE,
-  compute_mse = FALSE,
+  mse_type = "none",
   model = model_stfh
 )
 
@@ -54,14 +54,14 @@ fit <- eblup_stfh(
   time = ~year,
   W = mys_proxmat_nona,
   print_result = FALSE,
-  compute_mse = TRUE,
+  mse_type = "bootstrap",
   B = 50,
   seed = 1,
   model = model_stfh
 )
 
 # -----------------------------------------------------------------
-# Test: compute_mse = FALSE (default)
+# Test: mse_type = "none"
 # ------------------------------------------------------------------
 
 test_that("eblup_stfh without MSE returns NA for mse and rse", {
@@ -73,7 +73,7 @@ test_that("eblup_stfh without MSE returns NA for mse and rse", {
 })
 
 # -----------------------------------------------------------------
-# Test: compute_mse = TRUE basic structure
+# Test: mse_type = "bootstrap" basic structure
 # ------------------------------------------------------------------
 
 test_that("eblup_stfh with MSE returns valid structure", {
@@ -166,7 +166,7 @@ test_that("MSE pattern correlates with sae::pbmseSTFH", {
         data = mys_sub,
         vardir = ~vardir, domain = ~area, time = ~year,
         W = mys_proxmat_nona, model = "ST",
-        compute_mse = TRUE, B = nB, print_result = FALSE
+        mse_type = "bootstrap", B = nB, print_result = FALSE
       ),
       error = function(e) NULL
     )
@@ -207,16 +207,16 @@ test_that("MSE pattern correlates with sae::pbmseSTFH", {
 })
 
 # -----------------------------------------------------------------
-# Test: EBLUP estimates are unchanged when compute_mse = TRUE
+# Test: EBLUP estimates are unchanged by the bootstrap MSE
 # ------------------------------------------------------------------
 
-test_that("EBLUP estimates are unchanged when compute_mse = TRUE", {
+test_that("EBLUP estimates are unchanged by the bootstrap MSE", {
   fit_no_mse <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = FALSE
+    model = model_stfh, mse_type = "none"
   ))
 
   fit_with_mse <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = TRUE, B = 50, seed = 1
+    model = model_stfh, mse_type = "bootstrap", B = 50, seed = 1
   ))
 
   # EBLUP should be identical (MSE computation doesn't change estimates)
@@ -235,11 +235,11 @@ test_that("parallel computation gives same results as sequential", {
   skip_on_cran()
 
   fit_seq <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = TRUE, B = 20, n_threads = 1, seed = 1
+    model = model_stfh, mse_type = "bootstrap", B = 20, n_threads = 1, seed = 1
   ))
 
   fit_par <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = TRUE, B = 20, n_threads = 2, seed = 1
+    model = model_stfh, mse_type = "bootstrap", B = 20, n_threads = 2, seed = 1
   ))
 
   # EBLUP should be identical with same seed
@@ -263,7 +263,7 @@ test_that("parallel computation gives same results as sequential", {
 
 test_that("spatial-only model (model = 'S') computes MSE correctly", {
   fit <- do.call(eblup_stfh, c(list(formula_stfh), params_stfh,
-    model = "S", compute_mse = TRUE, B = 50, seed = 1
+    model = "S", mse_type = "bootstrap", B = 50, seed = 1
   ))
 
   expect_true("mse_pb" %in% names(fit$df_eblup))
@@ -279,11 +279,11 @@ test_that("larger B gives more stable MSE estimates", {
   skip_on_cran()
 
   fit_small_B <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = TRUE, B = 20, seed = 1
+    model = model_stfh, mse_type = "bootstrap", B = 20, seed = 1
   ))
 
   fit_large_B <- do.call(eblup_stfh, c(list(formula = formula_stfh), params_stfh,
-    model = model_stfh, compute_mse = TRUE, B = 200, seed = 1
+    model = model_stfh, mse_type = "bootstrap", B = 200, seed = 1
   ))
 
   # Both should have positive MSE

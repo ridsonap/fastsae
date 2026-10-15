@@ -11,6 +11,7 @@ eblup_fh(
   data,
   method = c("REML", "ML"),
   transform = c("none", "log"),
+  mse_type = c("analytical", "none"),
   maxiter = 100,
   precision = 1e-04,
   print_result = TRUE,
@@ -40,6 +41,10 @@ conditional-mean correction under the log-normal model (cf. Slud & Maiti, 2006);
 does not include the additional O(1/m) terms for the estimation of \eqn{\beta} and
 \eqn{\sigma^2_u}. The MSE on the original scale is the delta-method approximation
 \eqn{\hat\theta^2 \cdot mse_{log}}.}
+
+\item{mse_type}{MSE estimator: \code{"analytical"} (default; Prasad-Rao, with the
+Datta-Lahiri bias correction for ML, as in \code{sae::mseFH()}) or \code{"none"}
+(no MSE; \code{mse} and \code{rse} are \code{NA}).}
 
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm.}
 

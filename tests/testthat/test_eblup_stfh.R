@@ -328,7 +328,7 @@ test_that("eblup_stfh validation and edge cases", {
       time = ~year,
       W = mys_proxmat_nona,
       model = "ST",
-      compute_mse = TRUE,
+      mse_type = "bootstrap",
       B = 5,
       seed = 42,
       print_result = TRUE

@@ -149,7 +149,7 @@ $g_2^\ast=(x-\sigma_v^2\Xmat'V^{-1}\ones)'Q(x-\sigma_v^2\Xmat'V^{-1}\ones)$
 (baris 500-545). Nilai negatif dalam rentang $(-10^{-8},0)$ dipangkas ke $0$;
 lebih negatif dibiarkan sehingga RSE menjadi \code{NaN} (TFH-8).
 
-\paragraph{Bootstrap parametrik.} Dengan \code{mse = "bootstrap"} (default
+\paragraph{Bootstrap parametrik.} Dengan \code{mse\_type = "bootstrap"} (default
 $B=200$): semua gambaran dibuat lebih dulu secara sekuensial
 ($v^\ast\in\mathbb R^{m\times B}$, $u^\ast\in\mathbb R^{N\times B}$,
 $e^\ast\in\mathbb R^{N_s\times B}$; baris 552-555), lalu region
@@ -169,7 +169,7 @@ perbaikan bug).
 \caption{\texttt{eblup\_twofold} --- alur sebenarnya (\texttt{R/eblup\_twofold.R:76-197}, \texttt{src/eblup\_twofold.cpp:189-631})}
 \label{alg:tfh}
 \KwIn{formula, \code{vardir}, \code{domain} (wajib), \code{subarea},
-  \code{method}, \code{mse}, \code{B}, \code{seed}, \code{maxiter}, \code{precision}}
+  \code{method}, \code{mse\_type}, \code{B}, \code{seed}, \code{maxiter}, \code{precision}}
 \KwOut{\code{df\_eblup} (area $\times$ sub-area), \code{random\_effect\_var} = $(\sigma_v^2,\sigma_u^2)$, \code{goodness}}
 \code{domain} $\leftarrow$ wajib (96-99);\quad
   \code{subarea} $\leftarrow$ \code{seq\_len(nrow(data))} bila \code{NULL} (100-104)\;
@@ -193,7 +193,7 @@ $\sigma_v^2\leftarrow\sigma_u^2\leftarrow0.5\,\mathrm{median}(\psi)$ (197-198)\;
 }
 pass final pada varian final: $\betah,Q,\mathcal I^{-1}$, loglik ML/REML (245-298)\;
 $\hat\theta\leftarrow$ \eqref{eq:tf-pred}, termasuk cabang tak-sampel (356-395)\;
-\uIf{\code{mse} $=$ analytical}{$g_1,g_2,g_3\leftarrow$ \eqref{eq:tf-g1}--\eqref{eq:tf-g3};
+\uIf{\code{mse\_type} $=$ analytical}{$g_1,g_2,g_3\leftarrow$ \eqref{eq:tf-g1}--\eqref{eq:tf-g3};
   $\mathrm{MSE}\leftarrow$ \eqref{eq:tf-mse} per baris tersampel (396-480);
   cabang tak-sampel (482-546)}
 \uElse{$v^\ast,u^\ast,e^\ast\leftarrow$ bangkit sekuensial (552-555)\;
@@ -210,7 +210,7 @@ random\_effect\_subarea, mse, rse}) (597-631)\;
 \begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_twofold} (\texttt{R/eblup\_twofold.R:76-93}).}]
 eblup_twofold(formula, vardir, domain = NULL, subarea = NULL, data,
               method = c("REML", "ML"),
-              mse = c("analytical", "bootstrap"),
+              mse_type = c("analytical", "bootstrap", "none"),
               B = 200, seed = NULL, maxiter = 100,
               precision = 1e-4, self_benchmark = FALSE,
               benchmark_weight = NULL, benchmark_target = NULL,
@@ -220,8 +220,8 @@ eblup_twofold(formula, vardir, domain = NULL, subarea = NULL, data,
 \begin{itemize}
   \item \code{domain} --- wajib (bila \code{NULL} fungsi berhenti);
         \code{subarea} --- opsional, default penomoran unit.
-  \item \code{mse} --- \code{"analytical"} (default) atau \code{"bootstrap"}
-        ($B$ default 200).
+  \item \code{mse\_type} --- \code{"analytical"} (default), \code{"bootstrap"}
+        ($B$ default 200), atau \code{"none"} (\code{mse = NA}).
   \item \code{seed} --- dipanggil pada semua jalur, bukan hanya bootstrap
         (TFH-7).
 \end{itemize}
@@ -241,7 +241,7 @@ m1$random_effect_var        # sigma2_v (area), sigma2_u (subarea)
 
 m2 <- eblup_twofold(y ~ x1 + x2, data = your_data, vardir = "vardir",
                     domain = "area", subarea = "kec",
-                    mse = "bootstrap", B = 100, seed = 42)
+                    mse_type = "bootstrap", B = 100, seed = 42)
 \end{lstlisting}
 
 \subsection{Referensi kunci}\label{sec:twofold-ref}

@@ -255,7 +255,7 @@ test_that(".mse_matrix supports SFH (with unsampled domains) and STFH", {
   d <- mys_panel |> filter(!is.na(y), year >= 2024)
   W <- mys_proxmat[-c(21, 25), -c(21, 25)]
   fit_t <- eblup_stfh(y ~ x1 + x2, data = d, vardir = ~vardir, domain = ~area, time = ~year,
-                      W = W, compute_mse = TRUE, print_result = FALSE)
+                      W = W, mse_type = "analytical", print_result = FALSE)
   Mt <- fastsae:::.mse_matrix(fit_t)
   expect_equal(diag(Mt), fit_t$df_eblup$mse)
   expect_equal(Mt, t(Mt))

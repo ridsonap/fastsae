@@ -11,8 +11,13 @@
 #' @param popsize_var A character string for population size variable.
 #' @param method Fitting method: "REML" (default) or "ML".
 #' @param popnmean_xpop Population mean of auxiliary variables per domain.
-#' @param B Number of bootstrap replicates for MSE (if compute_mse = TRUE).
-#' @param compute_mse If TRUE, compute bootstrap MSE.
+#' @param B Number of bootstrap replicates for MSE (if mse_type = "bootstrap").
+#' @param mse_type MSE estimator: \code{"bootstrap"} (default; parametric bootstrap of
+#'   Gonzalez-Manteiga et al. (2008), as in \code{sae::pbmseBHF()}) or \code{"none"} (no MSE;
+#'   \code{mse} and \code{rse} are \code{NA}).
+#' @param compute_mse Deprecated (fastsae 1.0.0); use \code{mse_type}.
+#'   \code{compute_mse = TRUE} is \code{mse_type = "bootstrap"} and \code{FALSE} is
+#'   \code{"none"}.
 #' @param n_threads Number of OpenMP threads for the bootstrap MSE. Results depend on
 #'   \code{seed} only, not on the number of threads.
 #' @param seed Random seed for reproducibility.
@@ -68,12 +73,19 @@ eblup_bhf <- function(
   method = c("REML", "ML"),
   popnmean_xpop = NULL,
   B = 100,
-  compute_mse = FALSE,
+  mse_type = c("bootstrap", "none"),
   n_threads = 1,
   seed = -1,
-  print_result = TRUE
+  print_result = TRUE,
+  compute_mse = lifecycle::deprecated()
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
+  if (lifecycle::is_present(compute_mse)) {
+    lifecycle::deprecate_warn("1.0.0", "eblup_bhf(compute_mse)", "eblup_bhf(mse_type)")
+    mse_type <- if (isTRUE(compute_mse)) "bootstrap" else "none"
+  }
+  mse_type <- match.arg(mse_type, choices = c("bootstrap", "none"))
+  compute_mse <- mse_type == "bootstrap"
 
   # --- data preparation ---
   formuladata <- stats::model.frame(formula, na.action = stats::na.omit, unit_data)
@@ -208,12 +220,15 @@ eblup_bhf <- function(
     formula = formula,
     model = "BHF",
     level = "unit",
+    mse_type = mse_type,
     convergence = fit$convergence,
     data = unit_data,
     call = match.call()
   )
 
   class(out) <- c("fastsae", "fastsae_unit")
+
+  if (!isTRUE(fit$convergence)) .warn_no_convergence(NULL)
 
   if (print_result) {
     print(out)
@@ -226,11 +241,12 @@ eblup_bhf <- function(
 #' @noRd
 .bhf_fit <- function(Xs, ys, dom_int, n_dom, method) {
   n <- nrow(Xs)
-  if (qr(Xs)$rank < ncol(Xs)) {
-    cli::cli_abort("The fixed-effects design matrix is rank deficient; remove collinear covariates.")
-  }
+  .check_design(Xs, "sampled units")
   if (length(unique(dom_int)) >= n || n <= ncol(Xs)) {
     cli::cli_abort("The number of sampled units must exceed both the number of sampled domains and the number of coefficients.")
+  }
+  if (length(unique(dom_int)) < 2) {
+    cli::cli_abort("At least 2 sampled domains are needed to estimate the domain variance.")
   }
   .bhf_fit_cpp(Xs, as.numeric(ys), as.integer(dom_int), as.integer(n_dom), method == "REML")
 }

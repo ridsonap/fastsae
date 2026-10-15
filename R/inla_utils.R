@@ -382,7 +382,8 @@
     st_interaction = st_interaction,
     level = "area",
     model = model_label,
-    convergence = TRUE,
+    convergence = .inla_convergence(fit),
+    inla_mode_status = fit$mode$mode.status,
     fit = fit,
     call = call
   )
@@ -528,4 +529,22 @@
     loglog = exp(-exp(-eta)),
     log = exp(eta)
   )
+}
+
+#' Convergence of an INLA fit
+#'
+#' INLA returns a fit, not an error, when the search for the posterior mode of
+#' the hyperparameters fails: it then reports \code{ok = FALSE} or a non-zero
+#' \code{mode$mode.status}. A failure is reported as a warning.
+#' @noRd
+.inla_convergence <- function(fit) {
+  status <- fit$mode$mode.status
+  ok <- !isFALSE(fit$ok) && (is.null(status) || isTRUE(status == 0))
+  if (!ok) {
+    cli::cli_warn(c(
+      "INLA did not locate the posterior mode of the hyperparameters reliably{if (!is.null(status)) paste0(' (mode status ', status, ')') else ''}.",
+      "i" = "The estimates are returned but are not reliable; try a more informative prior, rescaled covariates or {.code inla_engine(strategy = \"laplace\")}."
+    ))
+  }
+  ok
 }

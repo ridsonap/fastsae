@@ -112,8 +112,9 @@ skornya di sana tidak positif. Konsekuensi terhadap objek keluaran:
 \subsection{Estimasi MSE}\label{sec:bhf-mse}
 
 MSE \emph{hanya} bootstrap parametrik \citep{gonzalez2008bootstrap} dan
-hanya bila \code{compute\_mse = TRUE} (default \code{FALSE} $\to$
-\code{mse = rse = NA}). Persiapan ada di R (\code{.pbmse\_unit},
+dihitung secara default (\code{mse\_type = "bootstrap"}); \code{mse\_type = "none"}
+memberi \code{mse = rse = NA}. Argumen \code{compute\_mse} dari 0.1.0 masih
+diterima dengan peringatan \emph{deprecation}. Persiapan ada di R (\code{.pbmse\_unit},
 \code{R/eblup\_bhf.R:248-325}); replikat dijalankan di C++
 (\code{.pbmse\_bhf\_cpp}) dan diparalelkan dengan OpenMP sebanyak
 \code{n\_threads}. Tiap replikat:
@@ -152,7 +153,7 @@ $\abs{\hat\theta}<\texttt{.Machine\$double.eps}\to\texttt{NA}$
 \caption{\texttt{eblup\_bhf} --- alur sebenarnya (\texttt{R/eblup\_bhf.R:62-325}, \texttt{src/eblup\_bhf\_core.cpp}, \texttt{src/eblup\_unit.cpp})}
 \label{alg:bhf}
 \KwIn{formula, \code{unit\_data}, \code{Xpop}, \code{domain\_var},
-  \code{popsize\_var}, \code{method}, \code{compute\_mse}, \code{B}, \code{n\_threads}, \code{seed}}
+  \code{popsize\_var}, \code{method}, \code{mse\_type}, \code{B}, \code{n\_threads}, \code{seed}}
 \KwOut{\code{df\_eblup} (domain, eblup, samp\_size, mse, rse), \code{estcoef}, \code{fit}}
 \code{mf} $\leftarrow$ \texttt{model.frame(formula, na.action = na.omit)}; \code{dom} dipotong mengikuti baris ter-omit (79-83)\;
 $y_s,\Xmat_s\leftarrow$ respons dan \texttt{model.matrix} (87-88)\;
@@ -162,7 +163,7 @@ $\betah,\hat u_d,\hat\sigma_u^2,\hat\sigma_e^2\leftarrow$ \eqref{eq:bhf-lmer} (9
 \texttt{meanxpop} $\leftarrow$ \code{model.matrix} atas \code{Xpop}, atau argumen \code{popnmean\_xpop} (103-115)\;
 $\hat\theta\leftarrow$ \texttt{.eblup\_bhf\_cpp(selectdom, dom, Xs, meanxpop, ys, popnsize, betah, upred)} (121-130)\;
 \If{ukuran \code{meanxpop}/\code{popnsize} tidak cocok dengan \code{selectdom}}{\textbf{gagal} (C++, \code{src/eblup\_unit.cpp:23-31})}\;
-\If{\code{compute\_mse}}{$\mathrm{MSE}\leftarrow$ \texttt{.pbmse\_unit(...)} (145-169)}
+\If{\code{mse\_type} = bootstrap}{$\mathrm{MSE}\leftarrow$ \texttt{.pbmse\_unit(...)} (145-169)}
 \uElse{\texttt{mse = rse = NA}}\;
 perakitan \code{df\_eblup}, \code{estcoef}, kelas \code{c("fastsae","fastsae\_unit")} (171-216)\;
 \caption*{}
@@ -188,8 +189,9 @@ $\mathrm{MSE}\leftarrow$ akumulasi$/B_{\text{valid}}$;\quad
 \begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_bhf} (\texttt{R/eblup\_bhf.R:62-75}).}]
 eblup_bhf(formula, unit_data, Xpop, domain_var, popsize_var,
           method = c("REML", "ML"), popnmean_xpop = NULL,
-          B = 100, compute_mse = FALSE, n_threads = 1,
-          seed = -1, print_result = TRUE)
+          B = 100, mse_type = c("bootstrap", "none"),
+          n_threads = 1, seed = -1, print_result = TRUE,
+          compute_mse)  # compute_mse: deprecated
 \end{lstlisting}
 
 \begin{itemize}
@@ -202,8 +204,9 @@ eblup_bhf(formula, unit_data, Xpop, domain_var, popsize_var,
         (opsional).
   \item \code{n\_threads} --- jumlah thread OpenMP untuk bootstrap MSE
         (BHF-1).
-  \item \code{compute\_mse} --- \code{FALSE} (default): kolom \code{mse},
-        \code{rse} diisi \code{NA}.
+  \item \code{mse\_type} --- \code{"bootstrap"} (default) atau \code{"none"}
+        (kolom \code{mse}, \code{rse} diisi \code{NA}). \code{compute\_mse}
+        sudah \emph{deprecated}.
 \end{itemize}
 
 Objek keluaran: \code{list} berkelas \code{c("fastsae", "fastsae\_unit")} berisi

@@ -13,10 +13,11 @@ eblup_bhf(
   method = c("REML", "ML"),
   popnmean_xpop = NULL,
   B = 100,
-  compute_mse = FALSE,
+  mse_type = c("bootstrap", "none"),
   n_threads = 1,
   seed = -1,
-  print_result = TRUE
+  print_result = TRUE,
+  compute_mse = lifecycle::deprecated()
 )
 }
 \arguments{
@@ -34,9 +35,11 @@ eblup_bhf(
 
 \item{popnmean_xpop}{Population mean of auxiliary variables per domain.}
 
-\item{B}{Number of bootstrap replicates for MSE (if compute_mse = TRUE).}
+\item{B}{Number of bootstrap replicates for MSE (if mse_type = "bootstrap").}
 
-\item{compute_mse}{If TRUE, compute bootstrap MSE.}
+\item{mse_type}{MSE estimator: \code{"bootstrap"} (default; parametric bootstrap of
+Gonzalez-Manteiga et al. (2008), as in \code{sae::pbmseBHF()}) or \code{"none"} (no MSE;
+\code{mse} and \code{rse} are \code{NA}).}
 
 \item{n_threads}{Number of OpenMP threads for the bootstrap MSE. Results depend on
 \code{seed} only, not on the number of threads.}
@@ -44,6 +47,10 @@ eblup_bhf(
 \item{seed}{Random seed for reproducibility.}
 
 \item{print_result}{Print results (default TRUE).}
+
+\item{compute_mse}{Deprecated (fastsae 1.0.0); use \code{mse_type}.
+\code{compute_mse = TRUE} is \code{mse_type = "bootstrap"} and \code{FALSE} is
+\code{"none"}.}
 }
 \value{
 List containing EBLUP estimates, fit, and optionally MSE. The

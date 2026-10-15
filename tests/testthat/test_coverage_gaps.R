@@ -330,7 +330,7 @@ test_that("eblup_bhf warns on domains with no sample units", {
 })
 
 # ── eblup_bhf.R L231,247 (pbmse bootstrap: na.action path + intercept prepend)
-test_that("eblup_bhf bootstrap mse runs with compute_mse=TRUE", {
+test_that("eblup_bhf bootstrap mse runs", {
   skip_on_cran()
   skip_if_not_installed("sae")
   data(cornsoybean, package = "sae")
@@ -347,7 +347,7 @@ test_that("eblup_bhf bootstrap mse runs with compute_mse=TRUE", {
   fit <- eblup_bhf(CornHec ~ CornPix + SoyBeansPix,
                    domain_var = "CountyIndex", unit_data = df,
                    Xpop = Xpop, popsize_var = "PopnSegments",
-                   compute_mse = TRUE, B = 5, print_result = FALSE)
+                   mse_type = "bootstrap", B = 5, print_result = FALSE)
   expect_true(all(fit$df_eblup$mse > 0))
 })
 
@@ -373,7 +373,7 @@ test_that("eblup_bhf bootstrap covers full-enumeration branch (rd==0)", {
   fit <- eblup_bhf(CornHec ~ CornPix + SoyBeansPix,
                    domain_var = "CountyIndex", unit_data = df,
                    Xpop = Xpop2, popsize_var = "PopnSegments",
-                   compute_mse = TRUE, B = 5, print_result = FALSE)
+                   mse_type = "bootstrap", B = 5, print_result = FALSE)
   expect_s3_class(fit, "fastsae")
 })
 

@@ -80,8 +80,8 @@ For unsampled areas, prediction borrows strength from both the regression synthe
 
 In addition to analytical Prasad-Rao style MSE, `eblup_sfh` supports multi-threaded OpenMP bootstrap MSE estimation:
 
-- **Parametric Bootstrap (`mse_method = "pbmse"`)**
-- **Non-Parametric Bootstrap (`mse_method = "npbmse"`)**
+- **Parametric Bootstrap (`mse_type = "pbmse"`)**
+- **Non-Parametric Bootstrap (`mse_type = "npbmse"`)**
 
 ```{r sfh_pbmse}
 fit_sfh_pb <- eblup_sfh(
@@ -89,7 +89,7 @@ fit_sfh_pb <- eblup_sfh(
   vardir = ~vardir,
   data = mys,
   W = mys_proxmat,
-  mse_method = "pbmse",
+  mse_type = "pbmse",
   B = 50,
   n_threads = 2,
   seed = 123,
@@ -133,7 +133,7 @@ fit_stfh <- eblup_stfh(
   time = ~year,
   W = mys_proxmat,
   model = "ST",
-  compute_mse = TRUE,
+  mse_type = "analytical",
   print_result = FALSE
 )
 

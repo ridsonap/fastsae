@@ -245,7 +245,7 @@ test_that("eblup_bhf bootstrap MSE computation works", {
     domain_var = "CountyIndex",
     popsize_var = "PopnSegments",
     method = "REML",
-    compute_mse = TRUE,
+    mse_type = "bootstrap",
     B = 5,
     seed = 123,
     print_result = TRUE
@@ -277,7 +277,7 @@ test_that("eblup_bhf handles unsampled domains, full enumeration, and NA in unit
       Xpop = Xpop_extra,
       domain_var = "CountyIndex",
       popsize_var = "PopnSegments",
-      compute_mse = TRUE,
+      mse_type = "bootstrap",
       B = 2,
       seed = 42,
       print_result = FALSE
@@ -388,6 +388,6 @@ test_that("bootstrap MSE matches a reference refit-based bootstrap and is thread
 
 test_that("compiled BHF fit rejects unidentifiable designs", {
   x <- rnorm(20)
-  expect_error(fastsae:::.bhf_fit(cbind(1, x, 2 * x), rnorm(20), rep(0:3, 5), 4, "REML"), "rank deficient")
+  expect_error(fastsae:::.bhf_fit(cbind(1, x, 2 * x), rnorm(20), rep(0:3, 5), 4, "REML"), "linearly dependent")
   expect_error(fastsae:::.bhf_fit(cbind(1, x), rnorm(20), 0:19, 20, "REML"), "must exceed")
 })

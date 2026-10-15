@@ -219,7 +219,7 @@ spatial_test <- function(
         data = data,
         W = W_mat,
         method = "ML",
-        mse_method = "analytical",
+        mse_type = "analytical",
         print_result = FALSE
       )
 

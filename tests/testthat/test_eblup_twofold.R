@@ -115,9 +115,9 @@ test_that("eblup_twofold bootstrap MSE matches analytical MSE", {
     rnorm(nrow(dat), sd = 0.7) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
   fit_a <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, mse = "analytical", print_result = FALSE)
+                         data = dat, mse_type = "analytical", print_result = FALSE)
   fit_b <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, mse = "bootstrap", B = 100, seed = 123,
+                         data = dat, mse_type = "bootstrap", B = 100, seed = 123,
                          print_result = FALSE)
 
   # EBLUP identical regardless of MSE method

@@ -26,8 +26,8 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     hanya bila sah; batas atas tidak dipetakan), SFH-5 (fallback terkendala bila
     $\sigma^2<0$), SFH-7 (MSE orde kedua penuh untuk area tak-sampel), SFH-8
     (fit, bootstrap, dan kriging memakai SAR pada semua domain).
-  - STFH-2 (kini ada MSE analitik, `mse_type = "analytical"`; tetap hanya bila
-    `compute_mse = TRUE`), STFH-3 (bootstrap mengestimasi ulang $\theta$),
+  - STFH-2 (kini ada MSE analitik, `mse_type = "analytical"`, default sejak
+    1.0.0), STFH-3 (bootstrap mengestimasi ulang $\theta$),
     STFH-5 (replikat gagal diganti sampai $B$ valid, maks. $5B$ percobaan).
   - HB-13 (argumen `inla_engine()` digabung dengan `modifyList`), HB-14/HB-15
     (jalur `lme4` dihapus), HB-7 (`prior_rho` didahulukan atas `prior_phi`).
@@ -68,6 +68,22 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     - STFH-8: `param_invalid` mengembalikan `convergence = FALSE`; nama
       `loglike` menjadi `loglikelihood`.
     - SFH-6: dokumentasi `estcoef` kini menyebut `zvalue`.
+  - Audit lanjutan pra-rilis 1.0.0 (15 Okt 2026):
+    - `convergence` HB-INLA tidak lagi selalu `TRUE`: dibaca dari `fit$ok` dan
+      `fit$mode$mode.status` (warning bila gagal); JAX memberi warning bila
+      R-hat >= 1.05.
+    - Gagal konvergen FH/SFH/STFH/two-fold/BHF kini warning (sebelumnya hanya
+      pesan konsol, atau senyap untuk BHF).
+    - Validasi masukan bersama (`.check_area_inputs`, `.check_design`,
+      `.check_proxmat`): `vardir` NA/tak-hingga/≤ 0 di area tersampel,
+      kovariat bergantung linier (dulu solusi aproksimasi sistem singular),
+      jumlah area tersampel ≤ p (dulu MSE semua `NA`), satu area/domain saja
+      (two-fold, BHF), dan `W` SFH/STFH dengan entri negatif (error) atau
+      baris nol/tidak berjumlah 1 (warning; `sae` mensyaratkan baris
+      berjumlah 1).
+    - API MSE seragam: `mse_type` di semua EBLUP dengan pilihan `"none"`.
+      `mse_method` (SFH) dan `compute_mse` (STFH, BHF) *deprecated*; default
+      menghitung MSE (STFH analitik, BHF bootstrap).
 - **Bukan kesalahan (disengaja, kini didokumentasikan):**
   - SFH-1: karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik $y'PDPy$ sama dengan
     kuadratik skor ML terprofil.

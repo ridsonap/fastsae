@@ -443,7 +443,7 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
   if (!"mse" %in% names(df) || all(is.na(df$mse))) {
     cli::cli_abort(c(
       "MSE estimates are not available in this object.",
-      "i" = "Fit the model with MSE computation enabled (e.g. compute_mse = TRUE)."
+      "i" = "Fit the model with an MSE estimator (an {.arg mse_type} other than \"none\")."
     ))
   }
 

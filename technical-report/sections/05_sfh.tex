@@ -161,7 +161,7 @@ bila \code{method = "ML"}. Untuk domain tersampel rumus ini mereproduksi
 $g_1+g_2+2g_3-g_4$ sampai $o(m^{-1})$.
 
 \paragraph{Varian bootstrap.} Dua pilihan tambahan lewat
-\code{mse\_method}; keduanya memakai data penuh dan $W$ penuh, sehingga fit,
+\code{mse\_type} (sebelum 1.0.0: \code{mse\_method}, kini \emph{deprecated}); keduanya memakai data penuh dan $W$ penuh, sehingga fit,
 replikat, dan kriging memakai model yang sama:
 \begin{itemize}
   \item \code{"pbmse"}: bootstrap parametrik \eqref{eq:pbmse} --- replikat
@@ -192,15 +192,15 @@ tak-tersampel; \code{mse}/\code{rse} mereka berasal dari kriging analitik
 \caption{\texttt{eblup\_sfh} --- alur sebenarnya (\texttt{R/eblup\_sfh.R:131-293}, \texttt{src/eblup\_sfh\_core.cpp:393-818}, \texttt{src/sar\_engine.h})}
 \label{alg:sfh}
 \KwIn{formula, \code{vardir}, \code{data}, $W$, \code{method},
-  \code{mse\_method}, \code{B}, \code{n\_threads}, \code{seed}}
+  \code{mse\_type}, \code{B}, \code{n\_threads}, \code{seed}}
 \KwOut{\code{df\_eblup} (+ kolom bootstrap bila ada), \code{rho},
   \code{estvarcomp}, \code{goodness}}
 \tcp*{\emph{Lapis R}}
-\code{method}, \code{mse\_method} $\leftarrow$ \texttt{match.arg} (150-151)\;
+\code{method}, \code{mse\_type} $\leftarrow$ \texttt{match.arg} (150-151)\;
 \code{y} $\leftarrow$ respons (\code{na.pass}); \code{NA} pada kovariat atau $\psi_s\le0$ $\to$ gagal (159-197)\;
 \If{\code{W} kosong}{\code{data} \code{sf}: \texttt{create\_weights(queen, "W")}; selain itu gagal (199-206)}
 \textbf{gagal} bila $W$ bukan $D\times D$ (208-214)\;
-\uIf{\code{mse\_method} $\in$ \{pbmse, npbmse\}}{
+\uIf{\code{mse\_type} $\in$ \{pbmse, npbmse\}}{
   \texttt{.seblup\_pbmse}/\texttt{.seblup\_npbmse} pada data dan $W$ penuh (220-237)
 }
 \uElse{\texttt{.seblup\_core($\Xmat,y,\psi,W$, method, maxiter, precision)} (239-247)}\;
@@ -233,20 +233,21 @@ $\mathrm{RSE}\leftarrow100\sqrt{\mathrm{MSE}}/\abs{\hat\theta}$; susun keluaran 
 \begin{lstlisting}[language=R,caption={Signature \texttt{eblup\_sfh} (\texttt{R/eblup\_sfh.R:131-149}).}]
 eblup_sfh(formula, vardir, domain = NULL, data,
           method = c("REML", "ML"),
-          mse_method = c("analytical", "pbmse", "npbmse"),
+          mse_type = c("analytical", "pbmse", "npbmse", "none"),
           W = NULL, B = 100, n_threads = 1, seed = -1,
           maxiter = 100, precision = 1e-4,
           self_benchmark = FALSE, benchmark_weight = NULL,
           benchmark_target = NULL, benchmark_group = NULL,
-          print_result = TRUE)
+          print_result = TRUE, mse_method)  # mse_method: deprecated
 \end{lstlisting}
 
 \begin{itemize}
   \item \code{W} --- matriks tetangga $D\times D$ pada semua domain
-        (row-standar/sesuai skala yang diinginkan pengguna); wajib kecuali
+        (baris berjumlah 1, seperti di \pkg{sae}; baris nol atau baris yang
+        tidak berjumlah 1 diberi peringatan); wajib kecuali
         \code{data} berkelas \code{sf}.
-  \item \code{mse\_method} --- \code{"analytical"} (default), \code{"pbmse"},
-        \code{"npbmse"}.
+  \item \code{mse\_type} --- \code{"analytical"} (default), \code{"pbmse"},
+        \code{"npbmse"}, atau \code{"none"} (\code{mse = NA}).
   \item \code{B} --- jumlah replikat bootstrap (default 100);
         \code{n\_threads} --- $>0$ memakai \texttt{omp\_set\_num\_threads},
         $\le0$ memakai semua core; \code{seed = -1} tidak menyetel ulang
@@ -273,7 +274,7 @@ m1$rho                       # autoregressive spatial parameter
 m1$estvarcomp                # sigma2_u and rho with std.error
 
 m2 <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = ~vardir,
-                W = mys_proxmat, mse_method = "pbmse", B = 50)
+                W = mys_proxmat, mse_type = "pbmse", B = 50)
 \end{lstlisting}
 
 \subsection{Referensi kunci}\label{sec:sfh-ref}

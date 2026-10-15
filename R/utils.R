@@ -301,3 +301,102 @@ utils::globalVariables(c("density", ".data"))
   if (anyDuplicated(lab) && !is.null(df$time)) lab <- paste(lab, df$time, sep = ":")
   make.unique(lab, sep = "_")
 }
+
+# ---- Input checks shared by the EBLUP models ---------------------------------
+
+#' Check the fixed-effects design of the sampled rows
+#'
+#' More sampled rows than coefficients and a full-rank design are needed for
+#' beta and the variance components; otherwise the compiled code gave an
+#' approximate solution of a singular system or MSEs that were all NA.
+#' @noRd
+.check_design <- function(Xs, what = "sampled areas") {
+  n <- nrow(Xs)
+  p <- ncol(Xs)
+  if (n <= p) {
+    cli::cli_abort(c(
+      "Too few {what} to fit the model: {n} for {p} regression coefficient{?s}.",
+      "i" = "At least {p + 1} are needed."
+    ))
+  }
+  qx <- qr(Xs)
+  if (qx$rank < p) {
+    alias <- colnames(Xs)[qx$pivot[seq.int(qx$rank + 1L, p)]]
+    cli::cli_abort(c(
+      "The auxiliary variables are linearly dependent in the {what} (rank {qx$rank} of {p}).",
+      "i" = "Remove or recombine {.val {alias}} (for example a constant covariate next to the intercept)."
+    ))
+  }
+  invisible(TRUE)
+}
+
+#' Check vardir and the design of an area-level model before fitting
+#'
+#' Rows with a non-NA response are sampled and need a finite, strictly positive
+#' sampling variance (a missing one gave an obscure error in compiled code).
+#' @noRd
+.check_area_inputs <- function(X, y, vardir, unit = "area") {
+  sampled <- !is.na(y)
+  if (!any(sampled)) {
+    cli::cli_abort("The response is {.code NA} in every {unit}: there is nothing to fit.")
+  }
+  bad <- which(sampled & !(is.finite(vardir) & vardir > 0))
+  if (length(bad) > 0) {
+    cli::cli_abort(c(
+      "{.arg vardir} must be finite and strictly positive for every sampled {unit}.",
+      "x" = "It is missing, infinite or not positive in {length(bad)} row{?s}: {.val {utils::head(bad, 10)}}."
+    ))
+  }
+  .check_design(X[sampled, , drop = FALSE], paste0("sampled ", unit, "s"))
+}
+
+#' Check the spatial weight matrix of the SAR models (SFH, STFH)
+#'
+#' The SAR effect (I - rho W)^{-1} with rho in (-1, 1) assumes a non-negative,
+#' row-standardised W: sae::eblupSFH and sae::eblupSTFH require entries in
+#' [0, 1] with rows adding up to 1. Rows that do not sum to 1 and zero rows
+#' (domains without neighbours) are accepted with a warning.
+#' @noRd
+.check_proxmat <- function(W, labels = NULL) {
+  if (anyNA(W) || any(!is.finite(W))) {
+    cli::cli_abort("{.arg W} contains missing or infinite values.")
+  }
+  if (any(W < 0)) {
+    cli::cli_abort("{.arg W} must have non-negative entries.")
+  }
+  rs <- rowSums(W)
+  iso <- rs == 0
+  if (any(iso)) {
+    lab <- if (is.null(labels)) which(iso) else labels[iso]
+    cli::cli_warn(c(
+      "{sum(iso)} domain{?s} {?has/have} no neighbours in {.arg W} (a zero row): {.val {utils::head(lab, 10)}}.",
+      "i" = "Their random effect is not spatially correlated. Connect them with {.code create_weights(island_fallback = TRUE)} if they should be."
+    ))
+  }
+  if (any(abs(rs[!iso] - 1) > 1e-6)) {
+    cli::cli_warn(c(
+      "{.arg W} is not row-standardised: some rows do not sum to 1.",
+      "i" = "The SAR model with rho in (-1, 1) assumes rows summing to 1; use {.code W / rowSums(W)} or {.code create_weights(style = \"W\")}."
+    ))
+  }
+  invisible(TRUE)
+}
+
+#' Warn that the iterative fit of an EBLUP model has not converged
+#'
+#' A warning (not only a console message) so that it can be caught and is not
+#' lost when models are fitted in a loop.
+#' @noRd
+.warn_no_convergence <- function(n_iter, call = rlang::caller_env()) {
+  cli::cli_warn(c(
+    "After {n_iter %||% 'the maximum number of'} iteration{?s}, the fit has not converged.",
+    "i" = "The estimates are returned but are not reliable; increase {.arg maxiter} or check the model."
+  ), call = call)
+}
+
+#' Remove the MSE of a result table (mse_type = "none")
+#' @noRd
+.drop_mse <- function(df) {
+  for (nm in intersect(c("mse", "rse", "mse_log"), names(df))) df[[nm]] <- NA_real_
+  df
+}

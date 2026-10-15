@@ -15,7 +15,6 @@ test_that("eblup_stfh computes fast analytical MSE", {
     time = ~year,
     W = mys_proxmat[-c(21, 25), -c(21, 25)],
     model = "ST",
-    compute_mse = TRUE,
     mse_type = "analytical",
     print_result = FALSE
   )
@@ -57,7 +56,6 @@ test_that("eblup_stfh analytical MSE works for Spatial-only model S", {
     time = ~year,
     W = mys_proxmat[-c(21, 25), -c(21, 25)],
     model = "S",
-    compute_mse = TRUE,
     mse_type = "analytical",
     print_result = FALSE
   )
@@ -131,9 +129,9 @@ test_that("STFH bootstrap MSE (theta re-estimated) is consistent with the analyt
   skip_on_cran()
   sim <- .sim_st_panel()
   fit_a <- eblup_stfh(y ~ x1, data = sim$data, vardir = ~psi, domain = ~dom, time = ~tim,
-                      W = sim$W, model = "ST", compute_mse = TRUE, print_result = FALSE)
+                      W = sim$W, model = "ST", mse_type = "analytical", print_result = FALSE)
   fit_b <- eblup_stfh(y ~ x1, data = sim$data, vardir = ~psi, domain = ~dom, time = ~tim,
-                      W = sim$W, model = "ST", compute_mse = TRUE, mse_type = "bootstrap",
+                      W = sim$W, model = "ST", mse_type = "bootstrap",
                       B = 200, seed = 1, print_result = FALSE)
   skip_if_not(isTRUE(fit_a$convergence) && isTRUE(fit_b$convergence))
   a <- fit_a$df_eblup$mse

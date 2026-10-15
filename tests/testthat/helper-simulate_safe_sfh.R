@@ -29,7 +29,7 @@
 # Sudah divalidasi manual: 100 replikasi fit inti (tanpa bootstrap) -> 0
 # yang mentok batas rho=+-1, 0 gagal konvergen (rho estimasi berkisar
 # ~0.5-0.7, median ~0.62, dekat rho_true=0.6). 8 replikasi dengan bootstrap
-# penuh (B=50, mse_method="npbmse" & "pbmse") -> 0 error/crash.
+# penuh (B=50, mse_type="npbmse" & "pbmse") -> 0 error/crash.
 
 # W dari kontiguitas rook (atas/bawah/kiri/kanan) pada grid persegi.
 make_grid_W <- function(nrow_grid, ncol_grid) {

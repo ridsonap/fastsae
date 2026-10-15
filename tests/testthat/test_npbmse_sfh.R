@@ -71,7 +71,7 @@ for (s in seq_len(nsim)) {
         method = "REML",
         data = dat_s,
         W = W,
-        mse_method = "npbmse",
+        mse_type = "npbmse",
         print_result = FALSE,
         B = B
       )

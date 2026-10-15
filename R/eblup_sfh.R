@@ -20,12 +20,13 @@
 #' from 0 to 1. Rows and columns must be ordered consistently with the domain identifiers in
 #' `data`. Do NOT pre-subset `W` to sampled domains only -- unsampled domains' spatial MSE/
 #' prediction relies on their relation (in `W`) to sampled neighbors.
-#' @param mse_method a character string determining the estimation method of the MSE.
-#'   Methods that can be chosen: "analytical", "pbmse", or "npbmse".
+#' @param mse_type MSE estimator: "analytical" (default), "pbmse" (parametric bootstrap),
+#'   "npbmse" (nonparametric bootstrap) or "none" (no MSE; `mse` and `rse` are `NA`).
 #' When there are unsampled domains, "pbmse"/"npbmse" bootstrap MSE is only defined for the
 #' sampled domains; unsampled domains automatically get a full-spatial synthetic (kriging)
-#' prediction and analytical MSE merged into the result regardless of `mse_method`.
-#' @param B Number of bootstrap replications when mse_method = "pbmse" or "npbmse".
+#' prediction and analytical MSE merged into the result.
+#' @param mse_method Deprecated (fastsae 1.0.0); use `mse_type`.
+#' @param B Number of bootstrap replications when mse_type = "pbmse" or "npbmse".
 #' @param n_threads Number of threads used in parallel computation (default 1).
 #'   Values less than or equal to 0 use all available cores.
 #' @param seed Integer seed for bootstrap resampling.
@@ -139,7 +140,7 @@ eblup_sfh <- function(
   domain = NULL,
   data,
   method = c("REML", "ML"),
-  mse_method = c("analytical", "pbmse", "npbmse"),
+  mse_type = c("analytical", "pbmse", "npbmse", "none"),
   W = NULL,
   B = 100,
   n_threads = 1,
@@ -150,10 +151,15 @@ eblup_sfh <- function(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
-  print_result = TRUE
+  print_result = TRUE,
+  mse_method = lifecycle::deprecated()
 ) {
   method <- match.arg(toupper(method), choices = c("REML", "ML"))
-  mse_method <- match.arg(tolower(mse_method), choices = c("analytical", "pbmse", "npbmse"))
+  if (lifecycle::is_present(mse_method)) {
+    lifecycle::deprecate_warn("1.0.0", "eblup_sfh(mse_method)", "eblup_sfh(mse_type)")
+    mse_type <- mse_method
+  }
+  mse_type <- match.arg(tolower(mse_type), choices = c("analytical", "pbmse", "npbmse", "none"))
   if (is.null(domain)) {
     domain <- 1:nrow(data)
   } else {
@@ -195,11 +201,7 @@ eblup_sfh <- function(
     cli::cli_abort("Auxiliary variables contain NA values.")
   }
 
-  # Validasi vardir untuk area tersampel saja (y tidak NA)
-  y_valid <- !is.na(y)
-  if (any(vardir[y_valid] <= 0, na.rm = TRUE)) {
-    cli::cli_abort("vardir must be strictly positive for sampled areas.")
-  }
+  .check_area_inputs(X, y, vardir)
 
   if (is.null(W)) {
     if (inherits(data, "sf")) {
@@ -217,15 +219,16 @@ eblup_sfh <- function(
       "i" = "Got a {nrow(W)}x{ncol(W)} matrix. Do not pre-subset `W` to sampled domains only."
     ))
   }
+  .check_proxmat(W, domain)
 
 
   idx_s <- !is.na(y)
   has_unsampled <- any(!idx_s)
 
-  if (mse_method %in% c("pbmse", "npbmse")) {
+  if (mse_type %in% c("pbmse", "npbmse")) {
     if (has_unsampled) {
       cli::cli_alert_info(
-        "{sum(!idx_s)} unsampled domain(s) detected. Bootstrap MSE ({mse_method}) is computed for the {sum(idx_s)} sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead."
+        "{sum(!idx_s)} unsampled domain(s) detected. Bootstrap MSE ({mse_type}) is computed for the {sum(idx_s)} sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead."
       )
     }
 
@@ -234,7 +237,7 @@ eblup_sfh <- function(
     # prediksi kriging area tak-tersampel memakai model yang sama. Kolom
     # bootstrap (mse_pb/mse_pbbc atau mse_npb/mse_npbbc) bernilai NA untuk
     # area tak-tersampel; mse/rse mereka berasal dari kriging analitis.
-    boot_fun <- if (mse_method == "pbmse") .seblup_pbmse else .seblup_npbmse
+    boot_fun <- if (mse_type == "pbmse") .seblup_pbmse else .seblup_npbmse
     res <- boot_fun(
       Xall = X, yall = y, vardirall = vardir, method = method, W = W,
       maxiter = maxiter, precision = precision, B = B,
@@ -256,6 +259,8 @@ eblup_sfh <- function(
   row.names(res$estcoef) <- colnames(X)
   res$formula <- formula
   res$model <- "SFH"
+  res$mse_type <- mse_type
+  if (mse_type == "none") res$df_eblup <- .drop_mse(res$df_eblup)
 
   # Tambahkan domain identifier ke df_eblup sebagai kolom pertama
   res$df_eblup$domain <- domain
@@ -287,7 +292,7 @@ eblup_sfh <- function(
   class(res) <- "fastsae"
 
   if (!res$convergence) {
-    cli::cli_alert_danger("After {res$n_iter} iterations, there is no convergence.")
+    .warn_no_convergence(res$n_iter)
     return(res)
   }
 

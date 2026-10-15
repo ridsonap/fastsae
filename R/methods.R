@@ -31,6 +31,8 @@
 .convergence_detail <- function(x) {
   if (!is.null(x$rhat_max)) {
     sprintf("max R-hat = %.3f", x$rhat_max)
+  } else if (!is.null(x$inla_mode_status)) {
+    paste("INLA mode status", x$inla_mode_status)
   } else {
     paste("in", x$n_iter %||% "-", "iterations")
   }
@@ -58,7 +60,7 @@ print.fastsae <- function(x, ...) {
     if (isTRUE(x$convergence)) {
       cli::cli_alert_success("Convergence: Yes ({conv_detail})")
     } else {
-      if (is.null(x$rhat_max)) {
+      if (is.null(x$rhat_max) && is.null(x$inla_mode_status)) {
         cli::cli_alert_danger("Convergence: No")
       } else {
         cli::cli_alert_danger("Convergence: No ({conv_detail})")
@@ -211,7 +213,7 @@ print.summary.fastsae <- function(x, ...) {
     if (isTRUE(x$convergence)) {
       cli::cli_alert_success("Convergence: Yes ({conv_detail})")
     } else {
-      if (is.null(x$rhat_max)) {
+      if (is.null(x$rhat_max) && is.null(x$inla_mode_status)) {
         cli::cli_alert_danger("Convergence: No")
       } else {
         cli::cli_alert_danger("Convergence: No ({conv_detail})")

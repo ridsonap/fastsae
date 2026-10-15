@@ -58,16 +58,20 @@
 #'   becomes indefinite) it falls back to constrained REML (variances \eqn{\ge 0},
 #'   \eqn{|\rho| \le 0.999}) with step halving. When a variance is estimated at 0, its
 #'   autocorrelation is not identified and its standard error is reported as \code{NA}.
-#' @param compute_mse logical, if \code{TRUE} computes MSE. Default \code{FALSE}.
-#' @param mse_type character, method for MSE estimation: \code{"analytical"} (fast
-#'   Prasad-Rao type estimator g1 + g2 + 2 g3 - g4, default when \code{compute_mse = TRUE}; g3 uses
+#' @param mse_type character, method for MSE estimation: \code{"analytical"} (default; fast
+#'   Prasad-Rao type estimator g1 + g2 + 2 g3 - g4; g3 uses
 #'   the exact derivative of the EBLUP, \eqn{\Psi P V_a P y}, and the REML information at the
 #'   final estimates; correlations estimated on the boundary \eqn{|\rho| \ge 0.999} are
 #'   treated as fixed, so they do not enter \eqn{g_3}/\eqn{g_4}) or \code{"bootstrap"}
 #'   (parametric bootstrap in which the variance components are re-estimated by REML in every
-#'   replicate, as in Marhuenda et al., 2013).
+#'   replicate, as in Marhuenda et al., 2013) or \code{"none"} (no MSE; \code{mse} and
+#'   \code{rse} are \code{NA}).
+#' @param compute_mse Deprecated (fastsae 1.0.0); use \code{mse_type}.
+#'   \code{compute_mse = FALSE} is \code{mse_type = "none"}; \code{compute_mse = TRUE}
+#'   is \code{mse_type = "bootstrap"} when \code{B} is given and \code{"analytical"}
+#'   otherwise.
 #' @param B number of bootstrap replicates for MSE computation. Only used when
-#'   \code{compute_mse = TRUE} and \code{mse_type = "bootstrap"}. Default \code{100}.
+#'   \code{mse_type = "bootstrap"}. Default \code{100}.
 #' @param n_threads number of threads for parallel bootstrap MSE computation.
 #'   Use \code{0} for all available cores. Default \code{1}.
 #' @param seed random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.
@@ -99,11 +103,11 @@
 #'     \item{\code{df_eblup}}{data frame with domain, time, y, eblup, vardir, mse, rse,
 #'       random_effect_u1, random_effect_u2 and \code{sampled} (\code{FALSE} for the cells
 #'       predicted without a direct estimate).}
-#'       When \code{compute_mse = FALSE}, mse and rse are \code{NA}.
+#'       When \code{mse_type = "none"}, mse and rse are \code{NA}.
 #'     \item{\code{model}}{model type ("ST" or "S").}
 #'     \item{\code{convergence}}{logical, whether the algorithm converged.}
 #'     \item{\code{n_iter}}{number of iterations.}
-#'     \item{\code{B}}{number of bootstrap replicates (only when compute_mse = TRUE and mse_type = "bootstrap").}
+#'     \item{\code{B}}{number of bootstrap replicates (only when mse_type = "bootstrap").}
 #'   }
 #'
 #' @details
@@ -169,7 +173,6 @@
 #'   time = ~year,
 #'   W = mys_proxmat,
 #'   model = "ST",
-#'   compute_mse = TRUE,
 #'   mse_type = "analytical"
 #' )
 #' head(m2$df_eblup[!m2$df_eblup$sampled, ])
@@ -189,8 +192,7 @@ eblup_stfh <- function(
   rho1_start = 0.5,
   sigma22_start = NULL,
   rho2_start = 0.5,
-  compute_mse = FALSE,
-  mse_type = c("analytical", "bootstrap"),
+  mse_type = c("analytical", "bootstrap", "none"),
   B = 100,
   n_threads = 1,
   seed = -1,
@@ -198,18 +200,20 @@ eblup_stfh <- function(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
-  print_result = TRUE
+  print_result = TRUE,
+  compute_mse = lifecycle::deprecated()
 ) {
   model <- match.arg(model, choices = c("ST", "S"))
-  if (missing(mse_type)) {
-    if (!missing(B)) {
-      mse_type <- "bootstrap"
-    } else {
-      mse_type <- "analytical"
+  if (lifecycle::is_present(compute_mse)) {
+    lifecycle::deprecate_warn("1.0.0", "eblup_stfh(compute_mse)", "eblup_stfh(mse_type)")
+    # fastsae 0.1.0: compute_mse = TRUE with B gave the bootstrap MSE
+    if (!isTRUE(compute_mse)) {
+      mse_type <- "none"
+    } else if (missing(mse_type)) {
+      mse_type <- if (!missing(B)) "bootstrap" else "analytical"
     }
-  } else {
-    mse_type <- match.arg(mse_type, choices = c("analytical", "bootstrap"))
   }
+  mse_type <- match.arg(mse_type, choices = c("analytical", "bootstrap", "none"))
 
   # ---- model frame & matrix design ----
   # Rows with NA in the response are cells without a direct estimate: they are
@@ -285,9 +289,7 @@ eblup_stfh <- function(
     cli::cli_abort("Length of 'vardir' must equal number of observations in data ({nrow(mf)} vs {length(vardir)}).")
   }
 
-  if (anyNA(vardir[sampled]) || any(vardir[sampled] <= 0)) {
-    cli::cli_abort("vardir must be available and strictly positive in every sampled cell.")
-  }
+  .check_area_inputs(X, y, vardir, unit = "cell")
 
   # domain & time
   n_domain <- length(unique(domain))
@@ -327,6 +329,7 @@ eblup_stfh <- function(
       )
     )
   }
+  .check_proxmat(W, unique(domain))
 
   # check sigma and rho
   if (!is.null(sigma21_start) && sigma21_start < 0) {
@@ -406,14 +409,12 @@ eblup_stfh <- function(
 
   # Convergence check
   if (!isTRUE(res$convergence)) {
-    cli::cli_alert_danger(
-      "After {res$n_iter} iteration(s), there is no convergence."
-    )
+    .warn_no_convergence(res$n_iter)
     return(.restore_order(res))
   }
 
   # ---- compute MSE if requested ----
-  if (compute_mse) {
+  if (mse_type != "none") {
     if (mse_type == "analytical") {
       res$df_eblup$mse <- as.numeric(res$mse_analytical)
       res$df_eblup$rse <- as.numeric(res$rse_analytical)
@@ -453,6 +454,7 @@ eblup_stfh <- function(
     res$df_eblup$mse_pb <- NA_real_
     res$df_eblup$mse <- NA_real_
     res$df_eblup$rse <- NA_real_
+    res$mse_type <- "none"
     res$B <- NA_integer_
   }
 
