@@ -363,7 +363,7 @@ pkgdown \emph{hb\_area() Engines} memuat versi interaktif perbandingan ini.
 \subsection{Kontradiksi klaim dokumentasi terhadap data}\label{sec:kontradiksi}
 
 Aturan laporan: data menang. Temuan berikut berasal dari perbandingan langsung
-klaim \code{README.Rmd}/\code{vignettes/benchmarks.Rmd}/\code{paper/article.tex}
+klaim \code{README.Rmd}/\code{vignettes/benchmarks.Rmd}/\code{jssjournal/article.tex}
 dengan isi \code{inst/extdata} (perhitungan lengkap:
 \code{\_notes/bench\_methodology.md} bagian 6 dan 8), sebagaimana ditemukan
 pada 3 Okt 2026.
@@ -374,13 +374,13 @@ diperbaiki: tabel dan angka benchmark di \code{README.Rmd}, beranda situs
 \code{vignettes/hb-area-inla.Rmd} kini dihasilkan dari \code{inst/extdata}
 oleh \code{benchmarks/update\_benchmark\_docs.R}, memori dilabeli sebagai
 alokasi total (\code{mem\_alloc}), dan grafik ST hanya menampilkan $n$ yang
-ada di data. DOC-9 berlaku untuk artikel JSS lama (\code{paper/article.tex}),
+ada di data. DOC-9 berlaku untuk artikel JSS lama (\code{jssjournal/article.tex}),
 yang tidak lagi diperbarui. DOC-11 tinggal berlaku untuk baris pembanding.
 
 \begin{table}[htbp]
 \centering
 \caption{Klaim dokumentasi yang bertolak belakang dengan file data. Sumber:
-\texttt{README.Rmd}, \texttt{vignettes/benchmarks.Rmd}, \texttt{paper/article.tex}
+\texttt{README.Rmd}, \texttt{vignettes/benchmarks.Rmd}, \texttt{jssjournal/article.tex}
 vs \texttt{inst/extdata/*.rds} (butir DOC-1\,--\,DOC-11 di \texttt{DISCREPANCIES.md}).}
 \label{tab:kontradiksi}
 \small
@@ -403,7 +403,7 @@ DOC-7 & \code{vignettes/benchmarks.Rmd:39} emdi spasial ``8{,}69 s'' &
   nilai pada file berbeda (Tabel~\ref{tab:time-sfh}) \\
 DOC-8 & label ``\emph{Peak} Memory'' di README, vignette, dan artikel &
   nilai adalah rerata \code{mem\_alloc}, bukan puncak \\
-DOC-9 & \code{paper/article.tex:100,480} ``73$\times$ to 544$\times$'' &
+DOC-9 & \code{jssjournal/article.tex:100,480} ``73$\times$ to 544$\times$'' &
   ada nilai serendah $1{,}887\times$ (Tabel~\ref{tab:ratio}) \\
 DOC-10 & \code{vignettes/}\allowbreak{}\code{benchmarks.Rmd:407-414,}\allowbreak{}\code{634-639} kolom Spatial/ST
   $n\ge100$ & tidak ada data pendukung di \code{inst/extdata} \\

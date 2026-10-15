@@ -55,15 +55,15 @@ The numbers in the text and tables were last updated on 2026-10-14 from the same
 install.packages("rjtools")
 
 # Check and validate the submission
-rjtools::check_article("paper/rjournal/fastsae.Rmd")
+rjtools::check_article("rjournal/fastsae.Rmd")
 
 # Render HTML and PDF versions
-rmarkdown::render("paper/rjournal/fastsae.Rmd")
+rmarkdown::render("rjournal/fastsae.Rmd")
 ```
 
 ### Option B: Using the Traditional LaTeX Workflow
 ```bash
-cd paper/rjournal
+cd rjournal
 pdflatex RJwrapper.tex
 bibtex RJwrapper
 pdflatex RJwrapper.tex

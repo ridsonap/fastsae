@@ -27,7 +27,9 @@
 ^Rplots\.pdf$
 ^.*\.docx$
 ^benchmarks$
-^paper$
+^jssjournal$
+^rjournal$
+^technical-report$
 ^Ringkasan_.*$
 ^\~\$.*$
 

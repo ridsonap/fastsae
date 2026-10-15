@@ -2,7 +2,7 @@
 # Menghasilkan seluruh tabel benchmark laporan teknis fastsae
 # dari file sumber di inst/extdata/*.rds.
 #
-# Jalankan dari folder paper/:   Rscript scripts/01_tables.R
+# Jalankan dari folder technical-report/:   Rscript scripts/01_tables.R
 # Output: tables/*.tex
 #
 # ATURAN: tidak ada angka yang diketik manual; semua dihitung dari .rds.

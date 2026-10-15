@@ -12,7 +12,7 @@ library(fastsae)
 
 
 ## ----engines-data, include=FALSE----------------------------------------------
-eng <- readRDS("../../inst/extdata/hb_engine_benchmark.rds")
+eng <- readRDS("../inst/extdata/hb_engine_benchmark.rds")
 etm <- eng$timings
 eag <- eng$agreement
 et <- function(design, engine, n) etm$time_warm[etm$design == design & etm$engine == engine & etm$n == n][1]

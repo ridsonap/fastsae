@@ -1,9 +1,9 @@
 # DISCREPANCIES — perbedaan implementasi vs rumus/dokumentasi publik
 
-Laporan teknis `paper/`. Setiap butir ditelusuri ke kode; nomor baris mengacu pada
+Laporan teknis `technical-report/`. Setiap butir ditelusuri ke kode; nomor baris mengacu pada
 repo `main` (commit `0252055`). Butir yang ditandai **TIDAK PASTI** tidak dapat
 dipastikan dari repo (tidak ada rujukan di dalam repo) dan ditulis apa adanya.
-Kode pendukung lengkap: `paper/_notes/*.md`.
+Kode pendukung lengkap: `technical-report/_notes/*.md`.
 
 Pembacaan: **kode adalah sumber kebenaran**; laporan selalu menggambarkan apa yang
 dilakukan kode, lalu memberi *implementation note* yang menunjuk ke butir di sini.
@@ -222,7 +222,7 @@ Semua butir ini **terverifikasi lewat eksperimen kecil `INLA::inla()`** oleh cat
 ## H. Dokumentasi vs data benchmark (README, vignette, artikel)
 
 Angka dipercaya dari `inst/extdata/*.rds`; klaim dokumentasi yang bertolak belakang dicatat di sini.
-Perhitungan: `paper/_notes/bench_methodology.md` §6, §8.
+Perhitungan: `technical-report/_notes/bench_methodology.md` §6, §8.
 
 | ID | Klaim | Data | Status |
 |---|---|---|---|
@@ -233,8 +233,8 @@ Perhitungan: `paper/_notes/bench_methodology.md` §6, §8.
 | DOC-5 | `README.Rmd:34-35` — "roughly 50 to 6,000 times faster" | rentang teramati 2,639× … 12343,39× | **BERLAWANAN** di kedua ujung |
 | DOC-6 | `README.Rmd:87` — "10–100× speedups" | 1,887× … 544,5762×; pada Bayesian `hbsae` justru lebih cepat (rasio 0,0162–0,2127) | **BERLAWANAN** |
 | DOC-7 | `vignettes/benchmarks.Rmd:39` — emdi spasial "8,69 s" | 9,186901320597 s | **BERLAWANAN** |
-| DOC-8 | Label "**Peak** Memory" (`README.Rmd:124`, `vignettes/benchmarks.Rmd:41-43`, `paper/article.tex:284`) | nilai yang dilaporkan = **mean** `bench::mark()$mem_alloc`, bukan puncak per-n | **SALAH LABEL** |
-| DOC-9 | `paper/article.tex:100,480` — "73× to 544×" | nilai serendah 1,887× | di luar rentang teramati |
+| DOC-8 | Label "**Peak** Memory" (`README.Rmd:124`, `vignettes/benchmarks.Rmd:41-43`, `jssjournal/article.tex:284`) | nilai yang dilaporkan = **mean** `bench::mark()$mem_alloc`, bukan puncak per-n | **SALAH LABEL** |
+| DOC-9 | `jssjournal/article.tex:100,480` — "73× to 544×" | nilai serendah 1,887× | di luar rentang teramati |
 | DOC-10 | `vignettes/benchmarks.Rmd:407-414,634-639` — kolom Spatial/ST untuk $n\ge100$ | tidak ada data pendukung di `inst/extdata` | **TIDAK DIDUKUNG DATA** |
 | DOC-11 | Reproduksibilitas | 4 file (`eblup_benchmark.rds`, `seblup_benchmark.rds`, `steblup_benchmark.rds`, `beta_estimates_n1000.rds`) **tidak punya skrip pembuat** di repo; `main.R:158-160` membacanya dari `inst/exdata/` (salah ketik) yang tidak ada | hasil tidak dapat direproduksi dari repo |
 

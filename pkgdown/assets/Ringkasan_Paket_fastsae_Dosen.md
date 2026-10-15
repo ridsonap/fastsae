@@ -188,6 +188,6 @@ ada target jurnal alternatif yang lebih diutamakan oleh Bapak/Ibu Dosen.
 ------------------------------------------------------------------------
 
 **Lampiran yang Tersedia:** 1. Naskah lengkap draf artikel jurnal:
-`paper/article.pdf` (17 halaman). 2. Dokumentasi fungsi paket dan
+`jssjournal/article.pdf` (17 halaman). 2. Dokumentasi fungsi paket dan
 vignettes: Direktori `man/` dan `vignettes/`. 3. Skrip reproduktibilitas
 benchmark simulasi: Direktori `benchmarks/`.

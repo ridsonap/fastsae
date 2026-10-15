@@ -1,7 +1,7 @@
 #!/bin/sh
 # scripts/00_build.sh -- membangun laporan teknis fastsae
 #
-# Pemakaian (dari folder paper/):
+# Pemakaian (dari folder technical-report/):
 #   sh scripts/00_build.sh          # hanya membangun PDF dari sumber yang ada
 #   sh scripts/00_build.sh --all    # regenerasi tabel & figur dulu, lalu membangun
 #

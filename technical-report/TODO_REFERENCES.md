@@ -42,7 +42,7 @@ dikonfirmasi lewat `api.crossref.org/works/<doi>` dan halaman penerbit).
 
 Blok `@references` di `R/*.R` tidak memuat satu pun DOI/URL (hanya URL repo INLA di
 `R/inla_utils.R:12`). Semua DOI di `references.bib` berasal dari verifikasi eksternal,
-bukan dari kode. Sumber roxygen per fungsi dicatat di `paper/_notes/notes_*.md`.
+bukan dari kode. Sumber roxygen per fungsi dicatat di `technical-report/_notes/notes_*.md`.
 
 ## 4. Entri terverifikasi dengan metadata yang tidak lengkap
 

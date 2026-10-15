@@ -15,7 +15,7 @@ usethis::use_citation()
 #
 # 1. Pastikan tanggal submisi pada berkas fastsae.Rmd:3 sesuai dengan tanggal pengiriman (date: 'YYYY-MM-DD').
 # 2. Masuk ke direktori artikel di R console dan buat arsip ZIP submisi:
-#   setwd("paper/rjournal")
+#   setwd("rjournal")
 # rjtools::zip_paper(".")
 #
 # 3. Lakukan submisi melalui fungsi pembantu resmi:

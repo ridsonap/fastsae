@@ -1,5 +1,5 @@
 # latexmk konfigurasi untuk laporan teknis fastsae
-# Pakai:  latexmk          (dari direktori paper/)
+# Pakai:  latexmk          (dari direktori technical-report/)
 #         latexmk -C       (bersihkan)
 
 # 1. Bangun PDF dengan pdflatex
@@ -21,7 +21,7 @@ $bibtex = 'bibtex %O %B';
 $clean_ext = 'bbl blg run.xml fdb_latexmk synctex.gz';
 
 # 7. Tidak memakai direktori keluaran: semua \input{} relatif terhadap
-#    paper/ (sections/, tables/, figures/) sehingga harus tetap satu tingkat.
+#    technical-report/ (sections/, tables/, figures/) sehingga harus tetap satu tingkat.
 $out_dir = '';
 
 # 8. Nama keluaran sesuai spesifikasi laporan: setelah build sukses,

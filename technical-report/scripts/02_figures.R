@@ -2,7 +2,7 @@
 # Menghasilkan seluruh figur benchmark laporan teknis fastsae
 # dari file sumber di inst/extdata/*.rds.
 #
-# Jalankan dari folder paper/:   Rscript scripts/02_figures.R
+# Jalankan dari folder technical-report/:   Rscript scripts/02_figures.R
 # Output: figures/*.pdf
 # Versi bahasa Inggris untuk artikel R Journal:
 #   Rscript scripts/02_figures.R --lang=en --out=rjournal/figures

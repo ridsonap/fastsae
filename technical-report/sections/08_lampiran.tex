@@ -283,11 +283,11 @@ Kelas hasil & --- & \code{"fastsae"}, \code{"fastsae\_hb"}, \code{"fastsae\_benc
 Seluruh tabel dan gambar di bagian~\ref{sec:benchmark} dihasilkan ulang
 dari data mentah di \code{inst/extdata} oleh dua skrip; tidak ada angka
 benchmark yang diketik manual.
-\begin{lstlisting}[language=R,caption={Perintah regenerasi (dikerjakan dari direktori \texttt{paper/}).}]
-# 1. tabel (.tex berisi lingkungan float lengkap) -> paper/tables/
+\begin{lstlisting}[language=R,caption={Perintah regenerasi (dikerjakan dari direktori \texttt{technical-report/}).}]
+# 1. tabel (.tex berisi lingkungan float lengkap) -> technical-report/tables/
 Rscript scripts/01_tables.R
 
-# 2. gambar log-scale -> paper/figures/
+# 2. gambar log-scale -> technical-report/figures/
 Rscript scripts/02_figures.R
 
 # 3. laporan
