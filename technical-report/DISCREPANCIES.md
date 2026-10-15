@@ -84,6 +84,20 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     - API MSE seragam: `mse_type` di semua EBLUP dengan pilihan `"none"`.
       `mse_method` (SFH) dan `compute_mse` (STFH, BHF) *deprecated*; default
       menghitung MSE (STFH analitik, BHF bootstrap).
+  - Audit pra-rilis ke-3 (16 Okt 2026):
+    - Kovariat NA di model HB: INLA menganggapnya 0, sehingga estimasi area
+      itu salah tanpa pesan (`hb_unit` dengan satu NA di `Xpop`: 14,8 vs
+      123,0). Kini error (`.check_covariates_na`, `.check_xpop_na`) di
+      `hb_area`, `hb_twofold`, `hb_unit`; `eblup_bhf` memberi pesan jelas
+      (dulu error internal jumlah baris `meanxpop`).
+    - `hb_twofold` mengganti `vardir` NA/0/negatif di sub-area tersampel
+      dengan 1; `hb_area` gagal dengan error INLA. Kini error `.check_vardir`.
+      `hb_area` juga memakai `.check_design` (kolinear ditolak).
+    - `domain` ganda: warning di `eblup_fh`, `eblup_sfh`, `hb_area` tanpa
+      `time` (`.check_unique_domain`).
+    - `seed` tetap tidak lagi mengubah aliran RNG sesi (`.with_seed`); nilai
+      MSE bootstrap tidak berubah. Default `eblup_twofold` diseragamkan ke
+      `B = 100, seed = -1`.
 - **Bukan kesalahan (disengaja, kini didokumentasikan):**
   - SFH-1: karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik $y'PDPy$ sama dengan
     kuadratik skor ML terprofil.

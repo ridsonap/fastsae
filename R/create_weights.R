@@ -51,13 +51,13 @@
 #' computational singularities.
 #'
 #' @examples
-#' \dontrun{
-#' if (requireNamespace("sf", quietly = TRUE)) {
-#'   # Assuming 'data_kab' is an sf polygon object:
-#'   W_queen <- create_weights(data_kab, method = "queen", style = "W")
-#'   W_knn   <- create_weights(data_kab, method = "knn", k = 5, style = "W")
-#'   W_bin   <- create_weights(data_kab, method = "queen", style = "B")
-#' }
+#' if (requireNamespace("sf", quietly = TRUE) && requireNamespace("spdep", quietly = TRUE)) {
+#'   # North Carolina counties, an sf polygon data set shipped with 'sf'
+#'   nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+#'   W_queen <- create_weights(nc, method = "queen", style = "W")
+#'   W_knn   <- create_weights(nc, method = "knn", k = 5, style = "W")
+#'   W_bin   <- create_weights(nc, method = "queen", style = "B")
+#'   W_queen
 #' }
 #'
 #' # Create spatial weights from 2D coordinates

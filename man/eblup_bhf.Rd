@@ -44,7 +44,8 @@ Gonzalez-Manteiga et al. (2008), as in \code{sae::pbmseBHF()}) or \code{"none"} 
 \item{n_threads}{Number of OpenMP threads for the bootstrap MSE. Results depend on
 \code{seed} only, not on the number of threads.}
 
-\item{seed}{Random seed for reproducibility.}
+\item{seed}{Random seed for reproducibility; \code{-1} (default) sets no seed. A fixed seed
+does not change the random number stream of the session.}
 
 \item{print_result}{Print results (default TRUE).}
 

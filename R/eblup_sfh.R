@@ -29,7 +29,8 @@
 #' @param B Number of bootstrap replications when mse_type = "pbmse" or "npbmse".
 #' @param n_threads Number of threads used in parallel computation (default 1).
 #'   Values less than or equal to 0 use all available cores.
-#' @param seed Integer seed for bootstrap resampling.
+#' @param seed Integer seed for bootstrap resampling; \code{-1} (default) sets no seed. A fixed
+#'   seed does not change the random number stream of the session.
 #'   A value of -1 leaves the current R RNG state unchanged.
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm. Default is 100 iterations.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm. Default value is 0.0001.
@@ -164,6 +165,7 @@ eblup_sfh <- function(
     domain <- 1:nrow(data)
   } else {
     domain <- .get_variable(data, domain)
+    .check_unique_domain(domain)
   }
 
   # model frame & validasi
@@ -196,10 +198,7 @@ eblup_sfh <- function(
 
   X <- stats::model.matrix(attr(mf, "terms"), mf)
 
-  # Check auxiliary variables for NA values
-  if (anyNA(X)) {
-    cli::cli_abort("Auxiliary variables contain NA values.")
-  }
+  .check_covariates_na(X, "area")
 
   .check_area_inputs(X, y, vardir)
 
@@ -238,11 +237,11 @@ eblup_sfh <- function(
     # bootstrap (mse_pb/mse_pbbc atau mse_npb/mse_npbbc) bernilai NA untuk
     # area tak-tersampel; mse/rse mereka berasal dari kriging analitis.
     boot_fun <- if (mse_type == "pbmse") .seblup_pbmse else .seblup_npbmse
-    res <- boot_fun(
+    res <- .with_seed(seed, boot_fun(
       Xall = X, yall = y, vardirall = vardir, method = method, W = W,
       maxiter = maxiter, precision = precision, B = B,
       n_threads = n_threads, seed = seed
-    )
+    ))
   } else {
     res <- .seblup_core(
       Xall = X,

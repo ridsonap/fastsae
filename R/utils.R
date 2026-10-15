@@ -330,6 +330,35 @@ utils::globalVariables(c("density", ".data"))
   invisible(TRUE)
 }
 
+#' Check that the design matrix has no missing values
+#'
+#' Every row is predicted, so a missing covariate is an error in sampled and
+#' unsampled rows alike. INLA would otherwise treat it as 0.
+#' @noRd
+.check_covariates_na <- function(X, unit = "row") {
+  bad <- which(!stats::complete.cases(X))
+  if (length(bad) > 0) {
+    cli::cli_abort(c(
+      "Auxiliary variables contain NA values.",
+      "x" = "Missing in {length(bad)} {unit}{?s}: {.val {utils::head(bad, 10)}}."
+    ))
+  }
+  invisible(TRUE)
+}
+
+#' Check sampling variances of the sampled rows
+#' @noRd
+.check_vardir <- function(y, vardir, unit = "area") {
+  bad <- which(!is.na(y) & !(is.finite(vardir) & vardir > 0))
+  if (length(bad) > 0) {
+    cli::cli_abort(c(
+      "{.arg vardir} must be finite and strictly positive for every sampled {unit}.",
+      "x" = "It is missing, infinite or not positive in {length(bad)} row{?s}: {.val {utils::head(bad, 10)}}."
+    ))
+  }
+  invisible(TRUE)
+}
+
 #' Check vardir and the design of an area-level model before fitting
 #'
 #' Rows with a non-NA response are sampled and need a finite, strictly positive
@@ -340,14 +369,69 @@ utils::globalVariables(c("density", ".data"))
   if (!any(sampled)) {
     cli::cli_abort("The response is {.code NA} in every {unit}: there is nothing to fit.")
   }
-  bad <- which(sampled & !(is.finite(vardir) & vardir > 0))
-  if (length(bad) > 0) {
+  .check_vardir(y, vardir, unit)
+  .check_design(X[sampled, , drop = FALSE], paste0("sampled ", unit, "s"))
+}
+
+#' Population means of the auxiliary variables, one row per domain
+#'
+#' Rows with a missing mean are kept (model.matrix() would drop them and
+#' misalign the domains) and rejected by .check_xpop_na().
+#' @noRd
+.pop_means <- function(formula_noy, Xpop) {
+  stats::model.matrix(formula_noy, stats::model.frame(formula_noy, Xpop, na.action = stats::na.pass))
+}
+
+#' Check the population means of the unit-level models for missing values
+#' @noRd
+.check_xpop_na <- function(meanxpop, domains) {
+  bad <- !stats::complete.cases(meanxpop)
+  if (any(bad)) {
     cli::cli_abort(c(
-      "{.arg vardir} must be finite and strictly positive for every sampled {unit}.",
-      "x" = "It is missing, infinite or not positive in {length(bad)} row{?s}: {.val {utils::head(bad, 10)}}."
+      "The population means of the auxiliary variables in {.arg Xpop} contain NA values.",
+      "x" = "Missing for {sum(bad)} domain{?s}: {.val {utils::head(domains[bad], 10)}}."
     ))
   }
-  .check_design(X[sampled, , drop = FALSE], paste0("sampled ", unit, "s"))
+  invisible(TRUE)
+}
+
+#' Warn about duplicated domain identifiers in an area-level model
+#'
+#' Each row is one area. Duplicated identifiers make the results ambiguous to
+#' join or map by domain; in the HB models the rows also share one area effect.
+#' @noRd
+.check_unique_domain <- function(domain, shared_effect = FALSE) {
+  dup <- unique(domain[duplicated(domain)])
+  if (length(dup) == 0) return(invisible(TRUE))
+  cli::cli_warn(c(
+    "{.arg domain} has {length(dup)} duplicated value{?s}: {.val {utils::head(dup, 10)}}.",
+    "i" = if (shared_effect) {
+      "Rows with the same domain share one area random effect; give each area one row, or set {.arg time} for panel data."
+    } else {
+      "Each row is fitted as a separate area; the domain column only labels the results."
+    }
+  ))
+  invisible(FALSE)
+}
+
+#' Evaluate code with a fixed seed, then restore the random number stream
+#'
+#' A negative or NULL seed leaves the stream as it is (no seed set).
+#' @noRd
+.with_seed <- function(seed, code) {
+  if (is.null(seed) || seed < 0) return(code)
+  old <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  }
+  on.exit({
+    if (is.null(old)) {
+      rm(".Random.seed", envir = globalenv())
+    } else {
+      assign(".Random.seed", old, envir = globalenv())
+    }
+  })
+  set.seed(seed)
+  code
 }
 
 #' Check the spatial weight matrix of the SAR models (SFH, STFH)

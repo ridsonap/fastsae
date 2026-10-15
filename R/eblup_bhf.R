@@ -20,7 +20,8 @@
 #'   \code{"none"}.
 #' @param n_threads Number of OpenMP threads for the bootstrap MSE. Results depend on
 #'   \code{seed} only, not on the number of threads.
-#' @param seed Random seed for reproducibility.
+#' @param seed Random seed for reproducibility; \code{-1} (default) sets no seed. A fixed seed
+#'   does not change the random number stream of the session.
 #' @param print_result Print results (default TRUE).
 #'
 #' @details
@@ -114,7 +115,7 @@ eblup_bhf <- function(
 
   if (is.null(popnmean_xpop)) {
     formula_noy <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
-    meanxpop <- stats::model.matrix(formula_noy, Xpop)
+    meanxpop <- .pop_means(formula_noy, Xpop)
   } else {
     meanxpop <- as.matrix(popnmean_xpop)
     if (ncol(meanxpop) == ncol(Xs) - 1 && "(Intercept)" %in% colnames(Xs)) {
@@ -125,6 +126,7 @@ eblup_bhf <- function(
   if (ncol(meanxpop) != ncol(Xs)) {
     cli::cli_abort("Number of columns in auxiliary population means ({ncol(meanxpop)}) must match design matrix ({ncol(Xs)}).")
   }
+  .check_xpop_na(meanxpop, .get_variable(Xpop, domain_var))
 
   sigma2_u <- fit$sigma2_u
   sigma2_e <- fit$sigma2_e
@@ -159,7 +161,7 @@ eblup_bhf <- function(
       cli::cli_alert_info("Computing bootstrap MSE with B = {B} replicates...")
     }
 
-    mse_result <- .pbmse_unit(
+    mse_result <- .with_seed(seed, .pbmse_unit(
       formula = formula,
       unit_data = unit_data,
       Xpop = Xpop,
@@ -170,7 +172,7 @@ eblup_bhf <- function(
       B = B,
       n_threads = n_threads,
       seed = seed
-    )
+    ))
 
     mse_df <- data.frame(
       domain = selectdom,
@@ -298,7 +300,7 @@ eblup_bhf <- function(
   # popnmean_xpop), so that the bootstrap targets the same estimator.
   if (is.null(meanxpop)) {
     formula_noy <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
-    meanxpop <- stats::model.matrix(formula_noy, Xpop)
+    meanxpop <- .pop_means(formula_noy, Xpop)
     if (ncol(meanxpop) == ncol(Xs) - 1 && "(Intercept)" %in% colnames(Xs)) {
       meanxpop <- cbind(`(Intercept)` = 1, meanxpop)
     }

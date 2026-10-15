@@ -55,7 +55,8 @@ prediction relies on their relation (in \code{W}) to sampled neighbors.}
 \item{n_threads}{Number of threads used in parallel computation (default 1).
 Values less than or equal to 0 use all available cores.}
 
-\item{seed}{Integer seed for bootstrap resampling.
+\item{seed}{Integer seed for bootstrap resampling; \code{-1} (default) sets no seed. A fixed
+seed does not change the random number stream of the session.
 A value of -1 leaves the current R RNG state unchanged.}
 
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm. Default is 100 iterations.}

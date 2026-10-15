@@ -93,7 +93,8 @@ replicate, as in Marhuenda et al., 2013) or \code{"none"} (no MSE; \code{mse} an
 \item{n_threads}{number of threads for parallel bootstrap MSE computation.
 Use \code{0} for all available cores. Default \code{1}.}
 
-\item{seed}{random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.}
+\item{seed}{random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}. A fixed
+seed does not change the random number stream of the session.}
 
 \item{self_benchmark}{Logical. If \code{TRUE}, fits a self-benchmarking model via the
 augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),

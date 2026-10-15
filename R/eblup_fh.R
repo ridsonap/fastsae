@@ -129,6 +129,7 @@ eblup_fh <- function(
     domain <- 1:nrow(data)
   } else {
     domain <- .get_variable(data, domain)
+    .check_unique_domain(domain)
   }
 
   # model frame & validasi
@@ -184,10 +185,7 @@ eblup_fh <- function(
 
   X <- stats::model.matrix(attr(mf, "terms"), mf)
 
-  # Check auxiliary variables for NA values
-  if (anyNA(X)) {
-    cli::cli_abort("Auxiliary variables contain NA values.")
-  }
+  .check_covariates_na(X, "area")
   .check_area_inputs(X, y, vardir)
 
   res <- .eblup_core(

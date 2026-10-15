@@ -213,14 +213,18 @@ hb_twofold <- function(
   trials_vec <- if (!is.null(trials)) .get_variable(data, trials) else NULL
   exposure_vec <- if (!is.null(exposure)) .get_variable(data, exposure) else NULL
 
+  # INLA treats a missing covariate as 0, so every subarea needs complete covariates
+  .check_covariates_na(stats::model.matrix(attr(mf, "terms"), mf), "subarea")
+
   # 3. Likelihood Validation
   if (family == "gaussian") {
     if (is.null(vardir_vec)) {
       cli::cli_abort("Direct sampling variance {.arg vardir} must be provided for {.code family = 'gaussian'}.")
     }
+    .check_vardir(y, vardir_vec, "subarea")
     # Scale for Gaussian: 1 / vardir
     scale_vec <- 1 / as.numeric(vardir_vec)
-    # Handle NA or non-positive vardir for non-sampled rows
+    # Unsampled subareas (y = NA) do not enter the likelihood
     scale_vec[is.na(scale_vec) | is.infinite(scale_vec) | scale_vec <= 0] <- 1
   } else if (family == "binomial") {
     if (is.null(trials_vec)) {

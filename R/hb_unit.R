@@ -227,13 +227,14 @@ hb_unit <- function(
   # Matrix of population means
   if (is.null(popnmean_xpop)) {
     formula_noy <- stats::reformulate(term_labels)
-    meanxpop <- stats::model.matrix(formula_noy, data = Xpop_domain)
+    meanxpop <- .pop_means(formula_noy, Xpop_domain)
   } else {
     meanxpop <- as.matrix(popnmean_xpop)
     if (ncol(meanxpop) == length(term_labels)) {
       meanxpop <- cbind(`(Intercept)` = 1, meanxpop)
     }
   }
+  .check_xpop_na(meanxpop, all_domains)
 
   # 5. Spatial matrix preparation
   adj_graph <- NULL

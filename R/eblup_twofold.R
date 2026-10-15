@@ -23,7 +23,8 @@
 #'   the bias correction), 'bootstrap' (parametric bootstrap, slower but robust) or 'none'
 #'   (no MSE; \code{mse} and \code{rse} are \code{NA}).
 #' @param B number of parametric bootstrap replicates (only used if mse_type = 'bootstrap').
-#' @param seed integer seed for bootstrap resampling (NULL = no seed set).
+#' @param seed integer seed for the bootstrap; \code{-1} (default) or \code{NULL} sets no seed.
+#'   A fixed seed does not change the random number stream of the session.
 #' @param maxiter maximum number of iterations allowed in the Fisher-scoring algorithm.
 #' @param precision convergence tolerance limit for the Fisher-scoring algorithm.
 #' @param self_benchmark Logical. If \code{TRUE}, fits a self-benchmarking model via the
@@ -88,8 +89,8 @@ eblup_twofold <- function(
   data,
   method = c("REML", "ML"),
   mse_type = c("analytical", "bootstrap", "none"),
-  B = 200,
-  seed = NULL,
+  B = 100,
+  seed = -1,
   maxiter = 100,
   precision = 1e-4,
   self_benchmark = FALSE,
@@ -139,10 +140,7 @@ eblup_twofold <- function(
 
   X <- stats::model.matrix(attr(mf, "terms"), mf)
 
-  # Check auxiliary variables for NA values
-  if (anyNA(X)) {
-    cli::cli_abort("Auxiliary variables contain NA values.")
-  }
+  .check_covariates_na(X, "subarea")
   .check_area_inputs(X, y, vardir, unit = "subarea")
 
   area_idx <- as.integer(factor(domain)) - 1L
@@ -150,9 +148,7 @@ eblup_twofold <- function(
     cli::cli_abort("At least 2 areas with sampled subareas are needed to estimate the area variance.")
   }
 
-  if (!is.null(seed)) set.seed(seed)
-
-  res <- .eblup_twofold_core(
+  res <- .with_seed(seed, .eblup_twofold_core(
     Xall = X,
     yall = y,
     vardirall = vardir,
@@ -162,7 +158,7 @@ eblup_twofold <- function(
     B = as.integer(B),
     maxiter = maxiter,
     precision = precision
-  )
+  ))
 
   # attach metadata
   row.names(res$estcoef) <- colnames(X)

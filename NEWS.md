@@ -96,7 +96,21 @@
     sampled areas in `eblup_twofold()` and `eblup_bhf()`;
   * `W` of `eblup_sfh()` and `eblup_stfh()` must be non-negative; a zero row (a domain without
     neighbours) or rows that do not sum to 1 give a warning, since the SAR model with
-    `rho` in (-1, 1) assumes a row-standardised `W`, as 'sae' requires.
+    `rho` in (-1, 1) assumes a row-standardised `W`, as 'sae' requires;
+  * the same checks now cover the HB models. A missing covariate is an error in `hb_area()`,
+    `hb_twofold()` and in the `Xpop` means of `hb_unit()`: INLA treats it as 0, so the estimate
+    of that area was wrong without any message. `hb_twofold()` replaced a missing, zero or
+    negative `vardir` of a sampled subarea by 1, and `hb_area()` stopped with an INLA error on a
+    missing one; both now stop with the message of the EBLUP functions. `hb_area()` also rejects
+    linearly dependent covariates;
+  * a missing population mean in `eblup_bhf()` names the domain (it gave an internal error on
+    the number of rows);
+  * duplicated `domain` values give a warning in `eblup_fh()`, `eblup_sfh()` and `hb_area()`
+    without `time` (in `hb_area()` such rows share one area effect).
+* A fixed `seed` of `eblup_sfh()`, `eblup_stfh()`, `eblup_bhf()` and `eblup_twofold()` no longer
+  changes the random number stream of the session; the bootstrap MSEs are unchanged.
+* `eblup_twofold()` uses `B = 100` and `seed = -1` (no seed) by default, as the other EBLUP
+  functions (it used `B = 200` and `seed = NULL`; `NULL` still means no seed).
 
 ### Fixes before the 1.0.0 release
 * `hb_area(st_interaction = "type2" / "type3" / "type4")` now fit with INLA. They always failed

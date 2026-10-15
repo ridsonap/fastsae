@@ -74,7 +74,8 @@
 #'   \code{mse_type = "bootstrap"}. Default \code{100}.
 #' @param n_threads number of threads for parallel bootstrap MSE computation.
 #'   Use \code{0} for all available cores. Default \code{1}.
-#' @param seed random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}.
+#' @param seed random seed for bootstrap. Use \code{-1} for no seed. Default \code{-1}. A fixed
+#'   seed does not change the random number stream of the session.
 #' @param self_benchmark Logical. If \code{TRUE}, fits a self-benchmarking model via the
 #'   augmented model approach (Wang, Fuller, and Qu, 2008; Rao and Molina, 2015, Sec 10.5.1),
 #'   ensuring that the weighted aggregate of small area estimates automatically matches the direct
@@ -427,7 +428,7 @@ eblup_stfh <- function(
       }
 
       # Call C++ PBMSE function
-      pbmse_res <- .pbmse_stfh(
+      pbmse_res <- .with_seed(seed, .pbmse_stfh(
         Xall = X,
         yall = y,
         vardirall = vardir,
@@ -440,7 +441,7 @@ eblup_stfh <- function(
         B = as.integer(B),
         n_threads = as.integer(n_threads),
         seed = as.integer(seed)
-      )
+      ))
 
       # Update df_eblup with MSE
       res$df_eblup$mse_pb <- as.numeric(pbmse_res$mse_pb)

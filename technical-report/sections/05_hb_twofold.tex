@@ -112,7 +112,7 @@ jatuh ke $\pm1.96\,\mathrm{sd}$ (HB-18). Bila \code{compute\_area = FALSE},
 \texttt{.check\_inla\_installed()} (172);\quad \code{match.arg} (174-175)\;
 \code{domain} wajib;\quad \code{subarea} $\leftarrow$ \code{1..n} bila \code{NULL} (186-203)\;
 $y,\texttt{terms}\leftarrow$ \texttt{model.frame(na.pass)} (206-207)\;
-Gaussian: \code{vardir} wajib, \code{scale\_vec} $=1/\psi$ (baris NA/$\le0/\infty
+Gaussian: \code{vardir} wajib dan harus berhingga $>0$ di sub-area tersampel (\code{.check\_vardir}; sebelumnya diam-diam diganti 1), \code{scale\_vec} $=1/\psi$ (baris tak-tersampel NA/$\le0/\infty
   \to1$) (216-224);\quad Binomial: \code{trials} wajib (225-229)\;
 $W\leftarrow$ \texttt{.convert\_spatial\_weights} (234-238)\;
 formula $\leftarrow$ \eqref{eq:hbtwofold-model} (250-266)\;

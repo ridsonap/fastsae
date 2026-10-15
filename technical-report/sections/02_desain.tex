@@ -248,7 +248,9 @@ Dua detail penting:
 \begin{itemize}
   \item \textbf{RNG dibangkitkan sebelum pragma} karena generator \pkg{R} tidak
         aman thread. Konsekuensinya hasil bootstrap \emph{reproducible
-        terlepas dari jumlah thread}, selama \code{seed} diberikan.
+        terlepas dari jumlah thread}, selama \code{seed} diberikan. Panggilan
+        di sisi R dibungkus \code{.with\_seed()}, sehingga seed tetap tidak
+        mengubah aliran RNG sesi pengguna.
   \item \textbf{Jumlah thread} diatur lewat argumen \code{n\_threads}
         (SFH/STFH/BHF) atau \code{OMP\_NUM\_THREADS} (two-fold, yang tidak
         punya argumen itu).

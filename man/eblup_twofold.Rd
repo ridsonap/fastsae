@@ -12,8 +12,8 @@ eblup_twofold(
   data,
   method = c("REML", "ML"),
   mse_type = c("analytical", "bootstrap", "none"),
-  B = 200,
-  seed = NULL,
+  B = 100,
+  seed = -1,
   maxiter = 100,
   precision = 1e-04,
   self_benchmark = FALSE,
@@ -44,7 +44,8 @@ the bias correction), 'bootstrap' (parametric bootstrap, slower but robust) or '
 
 \item{B}{number of parametric bootstrap replicates (only used if mse_type = 'bootstrap').}
 
-\item{seed}{integer seed for bootstrap resampling (NULL = no seed set).}
+\item{seed}{integer seed for the bootstrap; \code{-1} (default) or \code{NULL} sets no seed.
+A fixed seed does not change the random number stream of the session.}
 
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm.}
 

@@ -173,3 +173,110 @@ test_that("the arguments of fastsae 0.1.0 still work, with a deprecation warning
   )
   expect_identical(u$mse_type, "none")
 })
+
+# ---- Hierarchical Bayes inputs ------------------------------------------------
+# INLA treats a missing covariate as 0 and the twofold model replaced a missing
+# vardir by 1, so these inputs gave wrong estimates without any message.
+
+test_that("missing covariates are an error in the HB models", {
+  skip_if_not_installed("INLA")
+  d <- mys
+  d$x1[which(is.na(d$y))[1]] <- NA
+  expect_error(hb_area(y ~ x1, data = d, vardir = "vardir", print_result = FALSE),
+               "Auxiliary variables contain NA")
+  dat <- twofold_data()
+  dat$x1[2] <- NA
+  expect_error(hb_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat,
+                          print_result = FALSE),
+               "Auxiliary variables contain NA")
+  b <- bhf_data()
+  b$pop$CornPix[1] <- NA
+  expect_error(hb_unit(CornHec ~ CornPix + SoyBeansPix, unit_data = b$units, Xpop = b$pop,
+                       domain_var = "CountyIndex", popsize_var = "PopnSegments",
+                       print_result = FALSE),
+               "Xpop")
+})
+
+test_that("a missing population mean is a clear error in eblup_bhf", {
+  b <- bhf_data()
+  b$pop$CornPix[1] <- NA
+  expect_error(eblup_bhf(CornHec ~ CornPix + SoyBeansPix, unit_data = b$units, Xpop = b$pop,
+                         domain_var = "CountyIndex", popsize_var = "PopnSegments",
+                         mse_type = "none", print_result = FALSE),
+               "Xpop")
+})
+
+test_that("an invalid vardir of a sampled area is an error in the HB models", {
+  skip_if_not_installed("INLA")
+  d <- mys
+  d$vardir[sampled_rows[2]] <- NA
+  expect_error(hb_area(y ~ x1, data = d, vardir = "vardir", print_result = FALSE),
+               "finite and strictly positive")
+  dat <- twofold_data()
+  for (v in list(NA, 0, -0.5)) {
+    bad <- dat
+    bad$vardir[2] <- v
+    expect_error(hb_twofold(y ~ x1, vardir = "vardir", domain = "area", data = bad,
+                            print_result = FALSE),
+                 "finite and strictly positive")
+  }
+})
+
+test_that("linearly dependent covariates are rejected in hb_area", {
+  skip_if_not_installed("INLA")
+  d <- mys
+  d$k <- 2
+  expect_error(hb_area(y ~ x1 + k, data = d, vardir = "vardir", print_result = FALSE),
+               "linearly dependent")
+})
+
+# ---- Domain identifiers -------------------------------------------------------
+
+test_that("duplicated domain identifiers give a warning", {
+  d <- mys
+  d$dom <- rep(seq_len(nrow(d) / 2), each = 2)
+  expect_warning(eblup_fh(y ~ x1, vardir = "vardir", domain = "dom", data = d, print_result = FALSE),
+                 "duplicated")
+  expect_warning(eblup_sfh(y ~ x1, vardir = "vardir", domain = "dom", data = d, W = mys_proxmat,
+                           print_result = FALSE),
+                 "duplicated")
+  skip_if_not_installed("INLA")
+  expect_warning(hb_area(y ~ x1, data = d, domain = "dom", vardir = "vardir", print_result = FALSE),
+                 "duplicated")
+})
+
+# ---- Seeds --------------------------------------------------------------------
+
+test_that("the seed argument does not change the random number stream of the session", {
+  check_rng <- function(fit_call) {
+    set.seed(11)
+    before <- stats::runif(3)
+    set.seed(11)
+    fit_call()
+    expect_identical(stats::runif(3), before)
+  }
+  check_rng(function() eblup_sfh(y ~ x1, vardir = "vardir", data = mys, W = mys_proxmat,
+                                 mse_type = "pbmse", B = 3, seed = 5, print_result = FALSE))
+  check_rng(function() eblup_stfh(y ~ x1, data = mys_panel, vardir = ~vardir, domain = ~area,
+                                  time = ~year, W = mys_proxmat, mse_type = "bootstrap", B = 2,
+                                  seed = 5, print_result = FALSE))
+  tf <- twofold_data()
+  check_rng(function() eblup_twofold(y ~ x1, vardir = "vardir", domain = "area",
+                                     data = tf, mse_type = "bootstrap", B = 3,
+                                     seed = 5, print_result = FALSE))
+  b <- bhf_data()
+  check_rng(function() eblup_bhf(CornHec ~ CornPix + SoyBeansPix, unit_data = b$units,
+                                 Xpop = b$pop, domain_var = "CountyIndex",
+                                 popsize_var = "PopnSegments", B = 3, seed = 5,
+                                 print_result = FALSE))
+  # a fixed seed still gives the same bootstrap MSE
+  f <- function() eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", data = tf,
+                                mse_type = "bootstrap", B = 3, seed = 5, print_result = FALSE)
+  expect_identical(f()$df_eblup$mse, f()$df_eblup$mse)
+})
+
+test_that("eblup_twofold uses the bootstrap defaults of the other EBLUP functions", {
+  fm <- formals(eblup_twofold)
+  expect_identical(fm$B, formals(eblup_sfh)$B)
+  expect_identical(fm$seed, formals(eblup_sfh)$seed)
+})

@@ -150,7 +150,7 @@ $g_2^\ast=(x-\sigma_v^2\Xmat'V^{-1}\ones)'Q(x-\sigma_v^2\Xmat'V^{-1}\ones)$
 lebih negatif dibiarkan sehingga RSE menjadi \code{NaN} (TFH-8).
 
 \paragraph{Bootstrap parametrik.} Dengan \code{mse\_type = "bootstrap"} (default
-$B=200$): semua gambaran dibuat lebih dulu secara sekuensial
+$B=100$, sama dengan fungsi EBLUP lain): semua gambaran dibuat lebih dulu secara sekuensial
 ($v^\ast\in\mathbb R^{m\times B}$, $u^\ast\in\mathbb R^{N\times B}$,
 $e^\ast\in\mathbb R^{N_s\times B}$; baris 552-555), lalu region
 \texttt{\#pragma omp parallel for schedule(static)} (baris 558) berjalan per
@@ -175,7 +175,7 @@ perbaikan bug).
   \code{subarea} $\leftarrow$ \code{seq\_len(nrow(data))} bila \code{NULL} (100-104)\;
 \If{\code{self\_benchmark}}{augmentasi model (116-131)}
 \code{area\_idx} $\leftarrow$ \texttt{as.integer(factor(domain)) - 1L} \tcp*{0-based (140)}
-\If{\code{seed} tidak \code{NULL}}{\texttt{set.seed(seed)} (142)}\;
+\If{\code{seed} $\ge 0$}{\texttt{set.seed(seed)} lewat \texttt{.with\_seed()}; aliran RNG sesi dipulihkan sesudahnya}\;
 $\ldots\leftarrow$ \texttt{.eblup\_twofold\_core($\Xmat,y,\psi$, area, method, mse\_type, B, maxiter, precision)} (144-154)\;
 \caption*{}
 \KwData{}
@@ -211,7 +211,7 @@ random\_effect\_subarea, mse, rse}) (597-631)\;
 eblup_twofold(formula, vardir, domain = NULL, subarea = NULL, data,
               method = c("REML", "ML"),
               mse_type = c("analytical", "bootstrap", "none"),
-              B = 200, seed = NULL, maxiter = 100,
+              B = 100, seed = -1, maxiter = 100,
               precision = 1e-4, self_benchmark = FALSE,
               benchmark_weight = NULL, benchmark_target = NULL,
               benchmark_group = NULL, print_result = TRUE)
@@ -221,9 +221,10 @@ eblup_twofold(formula, vardir, domain = NULL, subarea = NULL, data,
   \item \code{domain} --- wajib (bila \code{NULL} fungsi berhenti);
         \code{subarea} --- opsional, default penomoran unit.
   \item \code{mse\_type} --- \code{"analytical"} (default), \code{"bootstrap"}
-        ($B$ default 200), atau \code{"none"} (\code{mse = NA}).
-  \item \code{seed} --- dipanggil pada semua jalur, bukan hanya bootstrap
-        (TFH-7).
+        ($B$ default 100), atau \code{"none"} (\code{mse = NA}).
+  \item \code{seed} --- default \code{-1} (tanpa seed; \code{NULL} juga
+        diterima). Seed tetap dipasang lewat \code{.with\_seed()} pada semua
+        jalur (TFH-7), lalu aliran RNG sesi dipulihkan.
 \end{itemize}
 
 Objek keluaran: \code{"fastsae"} berisi \code{random\_effect\_var} bernama

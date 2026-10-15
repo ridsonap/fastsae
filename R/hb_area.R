@@ -317,6 +317,7 @@ hb_area <- function(
     }
   } else {
     domain_vec <- .get_variable(data, domain)
+    if (is.null(time)) .check_unique_domain(domain_vec, shared_effect = TRUE)
   }
 
   unique_domains <- unique(domain_vec)
@@ -368,6 +369,17 @@ hb_area <- function(
     if (any(y_non_na <= 0, na.rm = TRUE)) {
       cli::cli_abort("For {.code family = 'gamma'}, response {.arg y} must be strictly positive (> 0).")
     }
+  }
+
+  # INLA treats a missing covariate as 0, so every row needs complete
+  # covariates; the design of the sampled rows must identify beta.
+  X_fixed <- stats::model.matrix(attr(mf, "terms"), mf)
+  .check_covariates_na(X_fixed, "row")
+  if (any(!is.na(y))) {
+    .check_design(X_fixed[!is.na(y), , drop = FALSE], "sampled observations")
+  }
+  if (!is.null(vardir_vec) && family %in% c("gaussian", "beta", "gamma")) {
+    .check_vardir(y, vardir_vec, if (is.null(time_vec)) "area" else "observation")
   }
 
   # 3. Spatial weights handling
