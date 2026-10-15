@@ -101,8 +101,7 @@ R implementation – especially for a large number of domains/time periods.</p>
 <span>  rho1_start <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  sigma22_start <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  rho2_start <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span>  compute_mse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  mse_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"bootstrap"</span><span class="op">)</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  n_threads <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  seed <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,</span>
@@ -110,7 +109,8 @@ R implementation – especially for a large number of domains/time periods.</p>
 <span>  benchmark_weight <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  benchmark_target <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  benchmark_group <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  print_result <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  print_result <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  compute_mse <span class="op">=</span> <span class="fu">lifecycle</span><span class="fu">::</span><span class="fu"><a href="https://lifecycle.r-lib.org/reference/deprecated.html" class="external-link">deprecated</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -185,23 +185,20 @@ becomes indefinite) it falls back to constrained REML (variances \(\ge 0\),
 autocorrelation is not identified and its standard error is reported as <code>NA</code>.</p></dd>
 
 
-<dt id="arg-compute-mse">compute_mse<a class="anchor" aria-label="anchor" href="#arg-compute-mse"></a></dt>
-<dd><p>logical, if <code>TRUE</code> computes MSE. Default <code>FALSE</code>.</p></dd>
-
-
 <dt id="arg-mse-type">mse_type<a class="anchor" aria-label="anchor" href="#arg-mse-type"></a></dt>
-<dd><p>character, method for MSE estimation: <code>"analytical"</code> (fast
-Prasad-Rao type estimator g1 + g2 + 2 g3 - g4, default when <code>compute_mse = TRUE</code>; g3 uses
+<dd><p>character, method for MSE estimation: <code>"analytical"</code> (default; fast
+Prasad-Rao type estimator g1 + g2 + 2 g3 - g4; g3 uses
 the exact derivative of the EBLUP, \(\Psi P V_a P y\), and the REML information at the
 final estimates; correlations estimated on the boundary \(|\rho| \ge 0.999\) are
 treated as fixed, so they do not enter \(g_3\)/\(g_4\)) or <code>"bootstrap"</code>
 (parametric bootstrap in which the variance components are re-estimated by REML in every
-replicate, as in Marhuenda et al., 2013).</p></dd>
+replicate, as in Marhuenda et al., 2013) or <code>"none"</code> (no MSE; <code>mse</code> and
+<code>rse</code> are <code>NA</code>).</p></dd>
 
 
 <dt id="arg-b">B<a class="anchor" aria-label="anchor" href="#arg-b"></a></dt>
 <dd><p>number of bootstrap replicates for MSE computation. Only used when
-<code>compute_mse = TRUE</code> and <code>mse_type = "bootstrap"</code>. Default <code>100</code>.</p></dd>
+<code>mse_type = "bootstrap"</code>. Default <code>100</code>.</p></dd>
 
 
 <dt id="arg-n-threads">n_threads<a class="anchor" aria-label="anchor" href="#arg-n-threads"></a></dt>
@@ -238,6 +235,13 @@ grouping / stratum column in <code>data</code> (e.g. time period / year) for gro
 <dt id="arg-print-result">print_result<a class="anchor" aria-label="anchor" href="#arg-print-result"></a></dt>
 <dd><p>print the estimated coefficients or not. Default <code>TRUE</code>.</p></dd>
 
+
+<dt id="arg-compute-mse">compute_mse<a class="anchor" aria-label="anchor" href="#arg-compute-mse"></a></dt>
+<dd><p>Deprecated (fastsae 1.0.0); use <code>mse_type</code>.
+<code>compute_mse = FALSE</code> is <code>mse_type = "none"</code>; <code>compute_mse = TRUE</code>
+is <code>mse_type = "bootstrap"</code> when <code>B</code> is given and <code>"analytical"</code>
+otherwise.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -263,7 +267,7 @@ with different covariates.</p></dd>
 random_effect_u1, random_effect_u2 and <code>sampled</code> (<code>FALSE</code> for the cells
 predicted without a direct estimate).</p></dd>
 
-When compute_mse = FALSE, mse and rse are NA.
+When mse_type = "none", mse and rse are NA.
 <dt><code>model</code></dt>
 <dd><p>model type ("ST" or "S").</p></dd>
 
@@ -274,7 +278,7 @@ When compute_mse = FALSE, mse and rse are NA.
 <dd><p>number of iterations.</p></dd>
 
 <dt><code>B</code></dt>
-<dd><p>number of bootstrap replicates (only when compute_mse = TRUE and mse_type = "bootstrap").</p></dd>
+<dd><p>number of bootstrap replicates (only when mse_type = "bootstrap").</p></dd>
 
 
 </dl></div>
@@ -365,20 +369,20 @@ areas in Italy. International Statistical Review. <a href="https://doi.org/10.11
 <span class="r-out co"><span class="r-pr">#&gt;</span> x3          0.0170470 0.0277773 0.6137011 0.5394</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   domain time        y    eblup    vardir mse rse mse_pb random_effect_u1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 2016 8.260507 8.299456 0.6618838  NA  NA     NA        3.0458267</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 2016 7.483862 7.659152 0.8374691  NA  NA     NA        2.8049129</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 2016 5.553658 5.516526 0.8822257  NA  NA     NA        0.8956749</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 2016 3.426513 3.974640 0.6581716  NA  NA     NA       -1.5328766</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 2016 6.457152 6.250714 1.2788021  NA  NA     NA        0.0755370</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 2016 3.608120 4.034304 0.3878004  NA  NA     NA       -1.1911829</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   random_effect_u2 sampled</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1                0    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2                0    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3                0    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4                0    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5                0    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain time        y    eblup    vardir        mse      rse mse_pb</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 2016 8.260507 8.299456 0.6618838 0.07410726 3.280052     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 2016 7.483862 7.659152 0.8374691 0.08414180 3.787261     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 2016 5.553658 5.516526 0.8822257 0.08890317 5.404965     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 2016 3.426513 3.974640 0.6581716 0.07343003 6.817718     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 2016 6.457152 6.250714 1.2788021 0.12494337 5.654927     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 2016 3.608120 4.034304 0.3878004 0.05506711 5.816711     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   random_effect_u1 random_effect_u2 sampled</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1        3.0458267                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        2.8049129                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3        0.8956749                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4       -1.5328766                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        0.0755370                0    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6       -1.1911829                0    TRUE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 456 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
@@ -391,7 +395,6 @@ areas in Italy. International Statistical Review. <a href="https://doi.org/10.11
 <span class="r-in"><span>  time <span class="op">=</span> <span class="op">~</span><span class="va">year</span>,</span></span>
 <span class="r-in"><span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span></span>
 <span class="r-in"><span>  model <span class="op">=</span> <span class="st">"ST"</span>,</span></span>
-<span class="r-in"><span>  compute_mse <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  mse_type <span class="op">=</span> <span class="st">"analytical"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Predicting 22 cells without a direct estimate: 2 unsampled domains (spatial borrowing) and 0 missing periods of sampled domains.</span>
@@ -399,8 +402,8 @@ areas in Italy. International Statistical Review. <a href="https://doi.org/10.11
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> TRUE, mse_type = "analytical")</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> "analytical")</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 6 iterations)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span>

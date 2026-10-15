@@ -85,7 +85,7 @@ with an area random effect \(v_i\) and a subarea random effect \(u_{ij}\).</p>
 <span>  subarea <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">data</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REML"</span>, <span class="st">"ML"</span><span class="op">)</span>,</span>
-<span>  mse <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"bootstrap"</span><span class="op">)</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">200</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
@@ -128,13 +128,14 @@ in <code>data</code>. If NULL, rows are numbered consecutively.</p></dd>
 <dd><p>Fitting method can be chosen between 'REML' and 'ML'.</p></dd>
 
 
-<dt id="arg-mse">mse<a class="anchor" aria-label="anchor" href="#arg-mse"></a></dt>
-<dd><p>MSE estimation method: 'analytical' (Prasad-Rao g1+g2+2*g3, fast; ML adds the bias correction) or
-'bootstrap' (parametric bootstrap, slower but robust).</p></dd>
+<dt id="arg-mse-type">mse_type<a class="anchor" aria-label="anchor" href="#arg-mse-type"></a></dt>
+<dd><p>MSE estimator: 'analytical' (default; Prasad-Rao g1+g2+2*g3, fast; ML adds
+the bias correction), 'bootstrap' (parametric bootstrap, slower but robust) or 'none'
+(no MSE; <code>mse</code> and <code>rse</code> are <code>NA</code>).</p></dd>
 
 
 <dt id="arg-b">B<a class="anchor" aria-label="anchor" href="#arg-b"></a></dt>
-<dd><p>number of parametric bootstrap replicates (only used if mse = 'bootstrap').</p></dd>
+<dd><p>number of parametric bootstrap replicates (only used if mse_type = 'bootstrap').</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>

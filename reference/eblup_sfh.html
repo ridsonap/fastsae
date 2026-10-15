@@ -78,7 +78,7 @@
 <span>  domain <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">data</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REML"</span>, <span class="st">"ML"</span><span class="op">)</span>,</span>
-<span>  mse_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"pbmse"</span>, <span class="st">"npbmse"</span><span class="op">)</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"pbmse"</span>, <span class="st">"npbmse"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  W <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  n_threads <span class="op">=</span> <span class="fl">1</span>,</span>
@@ -89,7 +89,8 @@
 <span>  benchmark_weight <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  benchmark_target <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  benchmark_group <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  print_result <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  print_result <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  mse_method <span class="op">=</span> <span class="fu">lifecycle</span><span class="fu">::</span><span class="fu"><a href="https://lifecycle.r-lib.org/reference/deprecated.html" class="external-link">deprecated</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -118,12 +119,12 @@ in <code>data</code>. If NULL, the domains are numbered consecutively.</p></dd>
 <dd><p>Fitting method can be chosen between 'ML' and 'REML'.</p></dd>
 
 
-<dt id="arg-mse-method">mse_method<a class="anchor" aria-label="anchor" href="#arg-mse-method"></a></dt>
-<dd><p>a character string determining the estimation method of the MSE.
-Methods that can be chosen: "analytical", "pbmse", or "npbmse".
+<dt id="arg-mse-type">mse_type<a class="anchor" aria-label="anchor" href="#arg-mse-type"></a></dt>
+<dd><p>MSE estimator: "analytical" (default), "pbmse" (parametric bootstrap),
+"npbmse" (nonparametric bootstrap) or "none" (no MSE; <code>mse</code> and <code>rse</code> are <code>NA</code>).
 When there are unsampled domains, "pbmse"/"npbmse" bootstrap MSE is only defined for the
 sampled domains; unsampled domains automatically get a full-spatial synthetic (kriging)
-prediction and analytical MSE merged into the result regardless of <code>mse_method</code>.</p></dd>
+prediction and analytical MSE merged into the result.</p></dd>
 
 
 <dt id="arg-w">W<a class="anchor" aria-label="anchor" href="#arg-w"></a></dt>
@@ -136,7 +137,7 @@ prediction relies on their relation (in <code>W</code>) to sampled neighbors.</p
 
 
 <dt id="arg-b">B<a class="anchor" aria-label="anchor" href="#arg-b"></a></dt>
-<dd><p>Number of bootstrap replications when mse_method = "pbmse" or "npbmse".</p></dd>
+<dd><p>Number of bootstrap replications when mse_type = "pbmse" or "npbmse".</p></dd>
 
 
 <dt id="arg-n-threads">n_threads<a class="anchor" aria-label="anchor" href="#arg-n-threads"></a></dt>
@@ -181,6 +182,10 @@ grouping / stratum column in <code>data</code> (e.g. province) for group-specifi
 
 <dt id="arg-print-result">print_result<a class="anchor" aria-label="anchor" href="#arg-print-result"></a></dt>
 <dd><p>print coefficient or not, default value is TRUE.</p></dd>
+
+
+<dt id="arg-mse-method">mse_method<a class="anchor" aria-label="anchor" href="#arg-mse-method"></a></dt>
+<dd><p>Deprecated (fastsae 1.0.0); use <code>mse_type</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -299,12 +304,14 @@ a dense <code>W</code> (e.g. inverse-distance weights) uses dense factorisations
 <span class="r-in"><span>  B <span class="op">=</span> <span class="fl">50</span>,</span></span>
 <span class="r-in"><span>  W <span class="op">=</span> <span class="va">mys_proxmat</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The `mse_method` argument of `eblup_sfh()` is deprecated as of fastsae 1.0.0.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Please use the `mse_type` argument instead.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> 10 unsampled domain(s) detected. Bootstrap MSE (pbmse) is computed for the 32 sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, mse_method</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> = "pbmse", W = mys_proxmat, B = 50)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, W =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> mys_proxmat, B = 50, mse_method = "pbmse")</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 9 iterations)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatial Fay-Herriot (Area-level SAR)</span>
@@ -328,12 +335,12 @@ a dense <code>W</code> (e.g. inverse-distance weights) uses dense factorisations
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 1.2788021 6.344684   0.002549394 0.7994159 14.092123</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 0.3878004 4.094482  -0.683202000 0.3422232 14.287484</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      mse_pb  mse_pbbc</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.3731986 0.5732823</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.6002193 0.6787076</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.4744233 0.7493375</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.4001204 0.5693914</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 0.7692070 0.8829821</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.3054537 0.3742460</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.5405116 0.5744616</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.5987238 0.6867511</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.9775708 0.7331372</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.3867045 0.5667482</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 0.8533609 0.9009502</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.3236686 0.3674486</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>

@@ -129,8 +129,8 @@ $`(I - \hat{\rho}_1 W)^{-1}`$.
 In addition to analytical Prasad-Rao style MSE, `eblup_sfh` supports
 multi-threaded OpenMP bootstrap MSE estimation:
 
-- **Parametric Bootstrap (`mse_method = "pbmse"`)**
-- **Non-Parametric Bootstrap (`mse_method = "npbmse"`)**
+- **Parametric Bootstrap (`mse_type = "pbmse"`)**
+- **Non-Parametric Bootstrap (`mse_type = "npbmse"`)**
 
 ``` r
 
@@ -139,7 +139,7 @@ fit_sfh_pb <- eblup_sfh(
   vardir = ~vardir,
   data = mys,
   W = mys_proxmat,
-  mse_method = "pbmse",
+  mse_type = "pbmse",
   B = 50,
   n_threads = 2,
   seed = 123,
@@ -153,7 +153,7 @@ head(fit_sfh_pb$df_eblup[, c("domain", "y", "eblup", "mse", "mse_pb", "mse_pbbc"
 #> 2      2 7.599650 6.369903 0.6092215 0.6103917 0.6867114
 #> 3      3 5.514137 4.996497 0.6504225 0.8841162 0.7758816
 #> 4      4 3.869326 4.343987 0.5213006 0.5271967 0.5896981
-#> 5      5 6.305063 6.344684 0.7994159 0.7407657 0.9094689
+#> 5      5 6.305063 6.344684 0.7994159 0.7407658 0.9094689
 #> 6      6 3.926807 4.094482 0.3422232 0.4123618 0.4430582
 ```
 
@@ -203,7 +203,7 @@ fit_stfh <- eblup_stfh(
   time = ~year,
   W = mys_proxmat,
   model = "ST",
-  compute_mse = TRUE,
+  mse_type = "analytical",
   print_result = FALSE
 )
 
@@ -212,8 +212,8 @@ summary(fit_stfh)
 #> ── Summary of fastsae Fit ──────────────────────────────────────────────────────
 #> Call :
 #> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,
-#> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =
-#> TRUE, print_result = FALSE)
+#> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =
+#> "analytical", print_result = FALSE)
 #> 
 #> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
@@ -313,6 +313,9 @@ different models using
 fit_fh <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(mys), print_result = FALSE)
 W_clean <- mys_proxmat[!is.na(mys$y), !is.na(mys$y)]
 fit_sfh_clean <- eblup_sfh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(mys), W = W_clean, print_result = FALSE)
+#> Warning: `W` is not row-standardised: some rows do not sum to 1.
+#> ℹ The SAR model with rho in (-1, 1) assumes rows summing to 1; use `W /
+#>   rowSums(W)` or `create_weights(style = "W")`.
 
 autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "comparison")
 ```

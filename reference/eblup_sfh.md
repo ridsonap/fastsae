@@ -13,7 +13,7 @@ eblup_sfh(
   domain = NULL,
   data,
   method = c("REML", "ML"),
-  mse_method = c("analytical", "pbmse", "npbmse"),
+  mse_type = c("analytical", "pbmse", "npbmse", "none"),
   W = NULL,
   B = 100,
   n_threads = 1,
@@ -24,7 +24,8 @@ eblup_sfh(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
-  print_result = TRUE
+  print_result = TRUE,
+  mse_method = lifecycle::deprecated()
 )
 ```
 
@@ -54,14 +55,14 @@ eblup_sfh(
 
   Fitting method can be chosen between 'ML' and 'REML'.
 
-- mse_method:
+- mse_type:
 
-  a character string determining the estimation method of the MSE.
-  Methods that can be chosen: "analytical", "pbmse", or "npbmse". When
-  there are unsampled domains, "pbmse"/"npbmse" bootstrap MSE is only
-  defined for the sampled domains; unsampled domains automatically get a
-  full-spatial synthetic (kriging) prediction and analytical MSE merged
-  into the result regardless of `mse_method`.
+  MSE estimator: "analytical" (default), "pbmse" (parametric bootstrap),
+  "npbmse" (nonparametric bootstrap) or "none" (no MSE; `mse` and `rse`
+  are `NA`). When there are unsampled domains, "pbmse"/"npbmse"
+  bootstrap MSE is only defined for the sampled domains; unsampled
+  domains automatically get a full-spatial synthetic (kriging)
+  prediction and analytical MSE merged into the result.
 
 - W:
 
@@ -76,8 +77,7 @@ eblup_sfh(
 
 - B:
 
-  Number of bootstrap replications when mse_method = "pbmse" or
-  "npbmse".
+  Number of bootstrap replications when mse_type = "pbmse" or "npbmse".
 
 - n_threads:
 
@@ -128,6 +128,10 @@ eblup_sfh(
 - print_result:
 
   print coefficient or not, default value is TRUE.
+
+- mse_method:
+
+  Deprecated (fastsae 1.0.0); use `mse_type`.
 
 ## Value
 
@@ -279,12 +283,14 @@ m2 <- eblup_sfh(
   B = 50,
   W = mys_proxmat
 )
+#> Warning: The `mse_method` argument of `eblup_sfh()` is deprecated as of fastsae 1.0.0.
+#> ℹ Please use the `mse_type` argument instead.
 #> ℹ 10 unsampled domain(s) detected. Bootstrap MSE (pbmse) is computed for the 32 sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead.
 #> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
-#> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, mse_method
-#> = "pbmse", W = mys_proxmat, B = 50)
+#> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, W =
+#> mys_proxmat, B = 50, mse_method = "pbmse")
 #> 
 #> ✔ Convergence: Yes (in 9 iterations)
 #> Model: Spatial Fay-Herriot (Area-level SAR)
@@ -308,12 +314,12 @@ m2 <- eblup_sfh(
 #> 5      5 6.305063 1.2788021 6.344684   0.002549394 0.7994159 14.092123
 #> 6      6 3.926807 0.3878004 4.094482  -0.683202000 0.3422232 14.287484
 #>      mse_pb  mse_pbbc
-#> 1 0.3731986 0.5732823
-#> 2 0.6002193 0.6787076
-#> 3 0.4744233 0.7493375
-#> 4 0.4001204 0.5693914
-#> 5 0.7692070 0.8829821
-#> 6 0.3054537 0.3742460
+#> 1 0.5405116 0.5744616
+#> 2 0.5987238 0.6867511
+#> 3 0.9775708 0.7331372
+#> 4 0.3867045 0.5667482
+#> 5 0.8533609 0.9009502
+#> 6 0.3236686 0.3674486
 #> ... and 36 more rows.
 #> 
 ```

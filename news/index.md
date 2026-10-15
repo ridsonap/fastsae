@@ -125,6 +125,68 @@
 - The examples now use the full `mys_panel` and `mys_proxmat` (domains
   21 and 25 are unsampled).
 
+#### MSE argument, convergence and input checks
+
+- All EBLUP functions choose the MSE with `mse_type`, which includes
+  `"none"` (no MSE; `mse` and `rse` are `NA`):
+  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)
+  (`"analytical"`, `"none"`),
+  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+  (`"analytical"`, `"pbmse"`, `"npbmse"`, `"none"`),
+  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  and
+  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  (`"analytical"`, `"bootstrap"`, `"none"`) and
+  [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+  (`"bootstrap"`, `"none"`). The chosen value is returned in `mse_type`.
+  - `eblup_sfh(mse_method = )` and `compute_mse =` of
+    [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+    and
+    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+    are deprecated and still work with a warning (`compute_mse = FALSE`
+    is `mse_type = "none"`).
+  - The MSE is now computed by default:
+    [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+    gives the analytical MSE and
+    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+    the bootstrap MSE (both gave none before). Use `mse_type = "none"`
+    for the previous output.
+- Convergence is reported as a warning that can be caught. Before,
+  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
+  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
+  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  and
+  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  only printed a message and
+  [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+  said nothing. INLA fits of
+  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  and
+  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  now read `convergence` from the INLA mode search (`ok`,
+  `mode$mode.status`; it was always `TRUE`), and
+  `hb_area(engine = "jax")` warns when the largest split R-hat is 1.05
+  or more.
+- Inputs are checked before fitting, with a clear message:
+  - `vardir` must be finite and positive in every sampled area (a
+    missing value gave an error from the compiled code);
+  - linearly dependent covariates stop the fit and name the aliased
+    column (the compiled code used an approximate solution of a singular
+    system);
+  - there must be more sampled areas than coefficients (all MSEs were
+    `NA`), and at least two sampled areas in
+    [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+    and
+    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md);
+  - `W` of
+    [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    and
+    [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+    must be non-negative; a zero row (a domain without neighbours) or
+    rows that do not sum to 1 give a warning, since the SAR model with
+    `rho` in (-1, 1) assumes a row-standardised `W`, as ‘sae’ requires.
+
 #### Fixes before the 1.0.0 release
 
 - `hb_area(st_interaction = "type2" / "type3" / "type4")` now fit with

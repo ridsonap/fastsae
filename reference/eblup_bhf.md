@@ -16,10 +16,11 @@ eblup_bhf(
   method = c("REML", "ML"),
   popnmean_xpop = NULL,
   B = 100,
-  compute_mse = FALSE,
+  mse_type = c("bootstrap", "none"),
   n_threads = 1,
   seed = -1,
-  print_result = TRUE
+  print_result = TRUE,
+  compute_mse = lifecycle::deprecated()
 )
 ```
 
@@ -55,11 +56,14 @@ eblup_bhf(
 
 - B:
 
-  Number of bootstrap replicates for MSE (if compute_mse = TRUE).
+  Number of bootstrap replicates for MSE (if mse_type = "bootstrap").
 
-- compute_mse:
+- mse_type:
 
-  If TRUE, compute bootstrap MSE.
+  MSE estimator: `"bootstrap"` (default; parametric bootstrap of
+  Gonzalez-Manteiga et al. (2008), as in
+  [`sae::pbmseBHF()`](https://rdrr.io/pkg/sae/man/pbmseBHF.html)) or
+  `"none"` (no MSE; `mse` and `rse` are `NA`).
 
 - n_threads:
 
@@ -73,6 +77,11 @@ eblup_bhf(
 - print_result:
 
   Print results (default TRUE).
+
+- compute_mse:
+
+  Deprecated (fastsae 1.0.0); use `mse_type`. `compute_mse = TRUE` is
+  `mse_type = "bootstrap"` and `FALSE` is `"none"`.
 
 ## Value
 
@@ -130,6 +139,7 @@ res <- eblup_bhf(
   domain_var = "CountyIndex",
   popsize_var = "PopnSegments"
 )
+#> ℹ Computing bootstrap MSE with B = 100 replicates...
 #> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
@@ -148,13 +158,13 @@ res <- eblup_bhf(
 #> SoyBeansPix -0.030364  0.067576 -0.449327 0.6532
 #> 
 #> EBLUP Estimates (First 6 domains):
-#>   domain    eblup samp_size mse rse
-#> 1      1 122.5825         1  NA  NA
-#> 2      2 123.5274         1  NA  NA
-#> 3      3 113.0343         1  NA  NA
-#> 4      4 114.9901         2  NA  NA
-#> 5      5 137.2660         3  NA  NA
-#> 6      6 108.9807         3  NA  NA
+#>   domain    eblup samp_size      mse      rse
+#> 1      1 122.5825         1 64.29390 6.541184
+#> 2      2 123.5274         1 61.19039 6.332544
+#> 3      3 113.0343         1 87.53427 8.277114
+#> 4      4 114.9901         2 64.10314 6.962726
+#> 5      5 137.2660         3 77.81487 6.426408
+#> 6      6 108.9807         3 59.14858 7.057040
 #> ... and 6 more rows.
 #> 
 ```

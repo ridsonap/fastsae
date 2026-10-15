@@ -79,6 +79,7 @@
 <span>  <span class="va">data</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REML"</span>, <span class="st">"ML"</span><span class="op">)</span>,</span>
 <span>  transform <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"log"</span><span class="op">)</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  precision <span class="op">=</span> <span class="fl">1e-04</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -123,6 +124,12 @@ conditional-mean correction under the log-normal model (cf. Slud &amp; Maiti, 20
 does not include the additional O(1/m) terms for the estimation of \(\beta\) and
 \(\sigma^2_u\). The MSE on the original scale is the delta-method approximation
 \(\hat\theta^2 \cdot mse_{log}\).</p></dd>
+
+
+<dt id="arg-mse-type">mse_type<a class="anchor" aria-label="anchor" href="#arg-mse-type"></a></dt>
+<dd><p>MSE estimator: <code>"analytical"</code> (default; Prasad-Rao, with the
+Datta-Lahiri bias correction for ML, as in <code><a href="https://rdrr.io/pkg/sae/man/mseFH.html" class="external-link">sae::mseFH()</a></code>) or <code>"none"</code>
+(no MSE; <code>mse</code> and <code>rse</code> are <code>NA</code>).</p></dd>
 
 
 <dt id="arg-maxiter">maxiter<a class="anchor" aria-label="anchor" href="#arg-maxiter"></a></dt>

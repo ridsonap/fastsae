@@ -83,8 +83,9 @@ head(df_pop)
 
 We fit the model using
 [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md).
-To estimate domain-level Mean Squared Error (MSE), set
-`compute_mse = TRUE`:
+The domain-level Mean Squared Error (MSE) is estimated by parametric
+bootstrap (`mse_type = "bootstrap"`, the default; `mse_type = "none"`
+skips it):
 
 ``` r
 
@@ -95,7 +96,7 @@ fit_bhf <- eblup_bhf(
   domain_var = "County",
   popsize_var = "PopnSegments",
   method = "REML",
-  compute_mse = TRUE,
+  mse_type = "bootstrap",
   B = 50,
   seed = 123,
   print_result = FALSE
@@ -107,7 +108,7 @@ summary(fit_bhf)
 #> Call :
 #> eblup_bhf(formula = CornHec ~ CornPix + SoyBeansPix, unit_data = cornsoybean,
 #> Xpop = df_pop, domain_var = "County", popsize_var = "PopnSegments", method =
-#> "REML", B = 50, compute_mse = TRUE, seed = 123, print_result = FALSE)
+#> "REML", B = 50, mse_type = "bootstrap", seed = 123, print_result = FALSE)
 #> 
 #> ✔ Convergence: Yes (in - iterations)
 #> Model: Battese-Harter-Fuller (Unit-level)

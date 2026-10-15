@@ -196,9 +196,10 @@ crop hectares per segment in 12 Iowa counties:</p>
 <div class="section level3">
 <h3 id="fit-bhf-model-with-bootstrap-mse">2. Fit BHF Model with Bootstrap MSE<a class="anchor" aria-label="anchor" href="#fit-bhf-model-with-bootstrap-mse"></a>
 </h3>
-<p>We fit the model using <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code>. To estimate
-domain-level Mean Squared Error (MSE), set
-<code>compute_mse = TRUE</code>:</p>
+<p>We fit the model using <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code>. The domain-level
+Mean Squared Error (MSE) is estimated by parametric bootstrap
+(<code>mse_type = "bootstrap"</code>, the default;
+<code>mse_type = "none"</code> skips it):</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_bhf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_bhf.html">eblup_bhf</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">CornHec</span> <span class="op">~</span> <span class="va">CornPix</span> <span class="op">+</span> <span class="va">SoyBeansPix</span>,</span>
@@ -207,7 +208,7 @@ domain-level Mean Squared Error (MSE), set
 <span>  domain_var <span class="op">=</span> <span class="st">"County"</span>,</span>
 <span>  popsize_var <span class="op">=</span> <span class="st">"PopnSegments"</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"REML"</span>,</span>
-<span>  compute_mse <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="st">"bootstrap"</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  seed <span class="op">=</span> <span class="fl">123</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -219,7 +220,7 @@ domain-level Mean Squared Error (MSE), set
 <span><span class="co">#&gt; Call :</span></span>
 <span><span class="co">#&gt; eblup_bhf(formula = CornHec ~ CornPix + SoyBeansPix, unit_data = cornsoybean,</span></span>
 <span><span class="co">#&gt; Xpop = df_pop, domain_var = "County", popsize_var = "PopnSegments", method =</span></span>
-<span><span class="co">#&gt; "REML", B = 50, compute_mse = TRUE, seed = 123, print_result = FALSE)</span></span>
+<span><span class="co">#&gt; "REML", B = 50, mse_type = "bootstrap", seed = 123, print_result = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in - iterations)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model</span>: Battese-Harter-Fuller (Unit-level)</span></span>

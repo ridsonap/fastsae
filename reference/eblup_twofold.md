@@ -15,7 +15,7 @@ eblup_twofold(
   subarea = NULL,
   data,
   method = c("REML", "ML"),
-  mse = c("analytical", "bootstrap"),
+  mse_type = c("analytical", "bootstrap", "none"),
   B = 200,
   seed = NULL,
   maxiter = 100,
@@ -59,15 +59,15 @@ eblup_twofold(
 
   Fitting method can be chosen between 'REML' and 'ML'.
 
-- mse:
+- mse_type:
 
-  MSE estimation method: 'analytical' (Prasad-Rao g1+g2+2\*g3, fast; ML
-  adds the bias correction) or 'bootstrap' (parametric bootstrap, slower
-  but robust).
+  MSE estimator: 'analytical' (default; Prasad-Rao g1+g2+2\*g3, fast; ML
+  adds the bias correction), 'bootstrap' (parametric bootstrap, slower
+  but robust) or 'none' (no MSE; `mse` and `rse` are `NA`).
 
 - B:
 
-  number of parametric bootstrap replicates (only used if mse =
+  number of parametric bootstrap replicates (only used if mse_type =
   'bootstrap').
 
 - seed:

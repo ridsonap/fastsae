@@ -87,10 +87,11 @@ proposed by Battese, Harter, and Fuller (1988), which combines survey data
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REML"</span>, <span class="st">"ML"</span><span class="op">)</span>,</span>
 <span>  popnmean_xpop <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  compute_mse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  n_threads <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  seed <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,</span>
-<span>  print_result <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  print_result <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  compute_mse <span class="op">=</span> <span class="fu">lifecycle</span><span class="fu">::</span><span class="fu"><a href="https://lifecycle.r-lib.org/reference/deprecated.html" class="external-link">deprecated</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -127,11 +128,13 @@ proposed by Battese, Harter, and Fuller (1988), which combines survey data
 
 
 <dt id="arg-b">B<a class="anchor" aria-label="anchor" href="#arg-b"></a></dt>
-<dd><p>Number of bootstrap replicates for MSE (if compute_mse = TRUE).</p></dd>
+<dd><p>Number of bootstrap replicates for MSE (if mse_type = "bootstrap").</p></dd>
 
 
-<dt id="arg-compute-mse">compute_mse<a class="anchor" aria-label="anchor" href="#arg-compute-mse"></a></dt>
-<dd><p>If TRUE, compute bootstrap MSE.</p></dd>
+<dt id="arg-mse-type">mse_type<a class="anchor" aria-label="anchor" href="#arg-mse-type"></a></dt>
+<dd><p>MSE estimator: <code>"bootstrap"</code> (default; parametric bootstrap of
+Gonzalez-Manteiga et al. (2008), as in <code><a href="https://rdrr.io/pkg/sae/man/pbmseBHF.html" class="external-link">sae::pbmseBHF()</a></code>) or <code>"none"</code> (no MSE;
+<code>mse</code> and <code>rse</code> are <code>NA</code>).</p></dd>
 
 
 <dt id="arg-n-threads">n_threads<a class="anchor" aria-label="anchor" href="#arg-n-threads"></a></dt>
@@ -145,6 +148,12 @@ proposed by Battese, Harter, and Fuller (1988), which combines survey data
 
 <dt id="arg-print-result">print_result<a class="anchor" aria-label="anchor" href="#arg-print-result"></a></dt>
 <dd><p>Print results (default TRUE).</p></dd>
+
+
+<dt id="arg-compute-mse">compute_mse<a class="anchor" aria-label="anchor" href="#arg-compute-mse"></a></dt>
+<dd><p>Deprecated (fastsae 1.0.0); use <code>mse_type</code>.
+<code>compute_mse = TRUE</code> is <code>mse_type = "bootstrap"</code> and <code>FALSE</code> is
+<code>"none"</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -199,6 +208,7 @@ model for prediction of county crop areas using survey and satellite data.
 <span class="r-in"><span>  domain_var <span class="op">=</span> <span class="st">"CountyIndex"</span>,</span></span>
 <span class="r-in"><span>  popsize_var <span class="op">=</span> <span class="st">"PopnSegments"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Computing bootstrap MSE with B = 100 replicates...</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
@@ -217,13 +227,13 @@ model for prediction of county crop areas using survey and satellite data.
 <span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix -0.030364  0.067576 -0.449327 0.6532</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   domain    eblup samp_size mse rse</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 122.5825         1  NA  NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 123.5274         1  NA  NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 113.0343         1  NA  NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 114.9901         2  NA  NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 137.2660         3  NA  NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 108.9807         3  NA  NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain    eblup samp_size      mse      rse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 122.5825         1 64.29390 6.541184</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 123.5274         1 61.19039 6.332544</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 113.0343         1 87.53427 8.277114</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 114.9901         2 64.10314 6.962726</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 137.2660         3 77.81487 6.426408</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 108.9807         3 59.14858 7.057040</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 6 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>

@@ -97,6 +97,23 @@
 <li>The examples now use the full <code>mys_panel</code> and <code>mys_proxmat</code> (domains 21 and 25 are unsampled).</li>
 </ul></div>
 <div class="section level4">
+<h4 id="mse-argument-convergence-and-input-checks-1-0-0">MSE argument, convergence and input checks<a class="anchor" aria-label="anchor" href="#mse-argument-convergence-and-input-checks-1-0-0"></a></h4>
+<ul><li>All EBLUP functions choose the MSE with <code>mse_type</code>, which includes <code>"none"</code> (no MSE; <code>mse</code> and <code>rse</code> are <code>NA</code>): <code><a href="../reference/eblup_fh.html">eblup_fh()</a></code> (<code>"analytical"</code>, <code>"none"</code>), <code><a href="../reference/eblup_sfh.html">eblup_sfh()</a></code> (<code>"analytical"</code>, <code>"pbmse"</code>, <code>"npbmse"</code>, <code>"none"</code>), <code><a href="../reference/eblup_stfh.html">eblup_stfh()</a></code> and <code><a href="../reference/eblup_twofold.html">eblup_twofold()</a></code> (<code>"analytical"</code>, <code>"bootstrap"</code>, <code>"none"</code>) and <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code> (<code>"bootstrap"</code>, <code>"none"</code>). The chosen value is returned in <code>mse_type</code>.
+<ul><li>
+<code>eblup_sfh(mse_method = )</code> and <code>compute_mse =</code> of <code><a href="../reference/eblup_stfh.html">eblup_stfh()</a></code> and <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code> are deprecated and still work with a warning (<code>compute_mse = FALSE</code> is <code>mse_type = "none"</code>).</li>
+<li>The MSE is now computed by default: <code><a href="../reference/eblup_stfh.html">eblup_stfh()</a></code> gives the analytical MSE and <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code> the bootstrap MSE (both gave none before). Use <code>mse_type = "none"</code> for the previous output.</li>
+</ul></li>
+<li>Convergence is reported as a warning that can be caught. Before, <code><a href="../reference/eblup_fh.html">eblup_fh()</a></code>, <code><a href="../reference/eblup_sfh.html">eblup_sfh()</a></code>, <code><a href="../reference/eblup_stfh.html">eblup_stfh()</a></code> and <code><a href="../reference/eblup_twofold.html">eblup_twofold()</a></code> only printed a message and <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code> said nothing. INLA fits of <code><a href="../reference/hb_area.html">hb_area()</a></code>, <code><a href="../reference/hb_unit.html">hb_unit()</a></code> and <code><a href="../reference/hb_twofold.html">hb_twofold()</a></code> now read <code>convergence</code> from the INLA mode search (<code>ok</code>, <code>mode$mode.status</code>; it was always <code>TRUE</code>), and <code>hb_area(engine = "jax")</code> warns when the largest split R-hat is 1.05 or more.</li>
+<li>Inputs are checked before fitting, with a clear message:
+<ul><li>
+<code>vardir</code> must be finite and positive in every sampled area (a missing value gave an error from the compiled code);</li>
+<li>linearly dependent covariates stop the fit and name the aliased column (the compiled code used an approximate solution of a singular system);</li>
+<li>there must be more sampled areas than coefficients (all MSEs were <code>NA</code>), and at least two sampled areas in <code><a href="../reference/eblup_twofold.html">eblup_twofold()</a></code> and <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code>;</li>
+<li>
+<code>W</code> of <code><a href="../reference/eblup_sfh.html">eblup_sfh()</a></code> and <code><a href="../reference/eblup_stfh.html">eblup_stfh()</a></code> must be non-negative; a zero row (a domain without neighbours) or rows that do not sum to 1 give a warning, since the SAR model with <code>rho</code> in (-1, 1) assumes a row-standardised <code>W</code>, as ‘sae’ requires.</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
 <h4 id="fixes-before-the-release-1-0-0">Fixes before the 1.0.0 release<a class="anchor" aria-label="anchor" href="#fixes-before-the-release-1-0-0"></a></h4>
 <ul><li>
 <code>hb_area(st_interaction = "type2" / "type3" / "type4")</code> now fit with INLA. They always failed before (the interaction reused the index of a main effect, which INLA rejects), and with <code>spatial = "none"</code> the type III/IV interaction was silently dropped. The interaction is now a separate term on copied indices: one <code>temporal</code> process per domain (type II), or an ICAR field per period (type III) or evolving with <code>temporal</code> (type IV). Types III and IV need a structured <code>spatial</code> effect and stop with a clear message otherwise.</li>

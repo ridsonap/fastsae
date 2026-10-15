@@ -14,6 +14,7 @@ eblup_fh(
   data,
   method = c("REML", "ML"),
   transform = c("none", "log"),
+  mse_type = c("analytical", "none"),
   maxiter = 100,
   precision = 1e-04,
   print_result = TRUE,
@@ -60,6 +61,13 @@ eblup_fh(
   O(1/m) terms for the estimation of \\\beta\\ and \\\sigma^2_u\\. The
   MSE on the original scale is the delta-method approximation
   \\\hat\theta^2 \cdot mse\_{log}\\.
+
+- mse_type:
+
+  MSE estimator: `"analytical"` (default; Prasad-Rao, with the
+  Datta-Lahiri bias correction for ML, as in
+  [`sae::mseFH()`](https://rdrr.io/pkg/sae/man/mseFH.html)) or `"none"`
+  (no MSE; `mse` and `rse` are `NA`).
 
 - maxiter:
 

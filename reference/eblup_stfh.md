@@ -25,8 +25,7 @@ eblup_stfh(
   rho1_start = 0.5,
   sigma22_start = NULL,
   rho2_start = 0.5,
-  compute_mse = FALSE,
-  mse_type = c("analytical", "bootstrap"),
+  mse_type = c("analytical", "bootstrap", "none"),
   B = 100,
   n_threads = 1,
   seed = -1,
@@ -34,7 +33,8 @@ eblup_stfh(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
-  print_result = TRUE
+  print_result = TRUE,
+  compute_mse = lifecycle::deprecated()
 )
 ```
 
@@ -111,25 +111,22 @@ eblup_stfh(
   When a variance is estimated at 0, its autocorrelation is not
   identified and its standard error is reported as `NA`.
 
-- compute_mse:
-
-  logical, if `TRUE` computes MSE. Default `FALSE`.
-
 - mse_type:
 
-  character, method for MSE estimation: `"analytical"` (fast Prasad-Rao
-  type estimator g1 + g2 + 2 g3 - g4, default when `compute_mse = TRUE`;
-  g3 uses the exact derivative of the EBLUP, \\\Psi P V_a P y\\, and the
-  REML information at the final estimates; correlations estimated on the
-  boundary \\\|\rho\| \ge 0.999\\ are treated as fixed, so they do not
-  enter \\g_3\\/\\g_4\\) or `"bootstrap"` (parametric bootstrap in which
-  the variance components are re-estimated by REML in every replicate,
-  as in Marhuenda et al., 2013).
+  character, method for MSE estimation: `"analytical"` (default; fast
+  Prasad-Rao type estimator g1 + g2 + 2 g3 - g4; g3 uses the exact
+  derivative of the EBLUP, \\\Psi P V_a P y\\, and the REML information
+  at the final estimates; correlations estimated on the boundary
+  \\\|\rho\| \ge 0.999\\ are treated as fixed, so they do not enter
+  \\g_3\\/\\g_4\\) or `"bootstrap"` (parametric bootstrap in which the
+  variance components are re-estimated by REML in every replicate, as in
+  Marhuenda et al., 2013) or `"none"` (no MSE; `mse` and `rse` are
+  `NA`).
 
 - B:
 
   number of bootstrap replicates for MSE computation. Only used when
-  `compute_mse = TRUE` and `mse_type = "bootstrap"`. Default `100`.
+  `mse_type = "bootstrap"`. Default `100`.
 
 - n_threads:
 
@@ -169,6 +166,12 @@ eblup_stfh(
 - print_result:
 
   print the estimated coefficients or not. Default `TRUE`.
+
+- compute_mse:
+
+  Deprecated (fastsae 1.0.0); use `mse_type`. `compute_mse = FALSE` is
+  `mse_type = "none"`; `compute_mse = TRUE` is `mse_type = "bootstrap"`
+  when `B` is given and `"analytical"` otherwise.
 
 ## Value
 
@@ -216,8 +219,7 @@ A list with the same structure as `seblup_area()`, with additional
 
 - `B`:
 
-  number of bootstrap replicates (only when compute_mse = TRUE and
-  mse_type = "bootstrap").
+  number of bootstrap replicates (only when mse_type = "bootstrap").
 
 ## Details
 
@@ -320,20 +322,20 @@ m1 <- eblup_stfh(
 #> x3          0.0170470 0.0277773 0.6137011 0.5394
 #> 
 #> EBLUP Estimates (First 6 domains):
-#>   domain time        y    eblup    vardir mse rse mse_pb random_effect_u1
-#> 1      1 2016 8.260507 8.299456 0.6618838  NA  NA     NA        3.0458267
-#> 2      2 2016 7.483862 7.659152 0.8374691  NA  NA     NA        2.8049129
-#> 3      3 2016 5.553658 5.516526 0.8822257  NA  NA     NA        0.8956749
-#> 4      4 2016 3.426513 3.974640 0.6581716  NA  NA     NA       -1.5328766
-#> 5      5 2016 6.457152 6.250714 1.2788021  NA  NA     NA        0.0755370
-#> 6      6 2016 3.608120 4.034304 0.3878004  NA  NA     NA       -1.1911829
-#>   random_effect_u2 sampled
-#> 1                0    TRUE
-#> 2                0    TRUE
-#> 3                0    TRUE
-#> 4                0    TRUE
-#> 5                0    TRUE
-#> 6                0    TRUE
+#>   domain time        y    eblup    vardir        mse      rse mse_pb
+#> 1      1 2016 8.260507 8.299456 0.6618838 0.07410726 3.280052     NA
+#> 2      2 2016 7.483862 7.659152 0.8374691 0.08414180 3.787261     NA
+#> 3      3 2016 5.553658 5.516526 0.8822257 0.08890317 5.404965     NA
+#> 4      4 2016 3.426513 3.974640 0.6581716 0.07343003 6.817718     NA
+#> 5      5 2016 6.457152 6.250714 1.2788021 0.12494337 5.654927     NA
+#> 6      6 2016 3.608120 4.034304 0.3878004 0.05506711 5.816711     NA
+#>   random_effect_u1 random_effect_u2 sampled
+#> 1        3.0458267                0    TRUE
+#> 2        2.8049129                0    TRUE
+#> 3        0.8956749                0    TRUE
+#> 4       -1.5328766                0    TRUE
+#> 5        0.0755370                0    TRUE
+#> 6       -1.1911829                0    TRUE
 #> ... and 456 more rows.
 #> 
 
@@ -346,7 +348,6 @@ m2 <- eblup_stfh(
   time = ~year,
   W = mys_proxmat,
   model = "ST",
-  compute_mse = TRUE,
   mse_type = "analytical"
 )
 #> ℹ Predicting 22 cells without a direct estimate: 2 unsampled domains (spatial borrowing) and 0 missing periods of sampled domains.
@@ -354,8 +355,8 @@ m2 <- eblup_stfh(
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
 #> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,
-#> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =
-#> TRUE, mse_type = "analytical")
+#> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =
+#> "analytical")
 #> 
 #> ✔ Convergence: Yes (in 6 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)

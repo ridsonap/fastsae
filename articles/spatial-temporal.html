@@ -238,9 +238,9 @@ and spatial proximity to neighboring sampled areas through
 estimation:</p>
 <ul>
 <li><strong>Parametric Bootstrap
-(<code>mse_method = "pbmse"</code>)</strong></li>
+(<code>mse_type = "pbmse"</code>)</strong></li>
 <li><strong>Non-Parametric Bootstrap
-(<code>mse_method = "npbmse"</code>)</strong></li>
+(<code>mse_type = "npbmse"</code>)</strong></li>
 </ul>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_sfh_pb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_sfh.html">eblup_sfh</a></span><span class="op">(</span></span>
@@ -248,7 +248,7 @@ estimation:</p>
 <span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">mys</span>,</span>
 <span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
-<span>  mse_method <span class="op">=</span> <span class="st">"pbmse"</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="st">"pbmse"</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  n_threads <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  seed <span class="op">=</span> <span class="fl">123</span>,</span>
@@ -262,7 +262,7 @@ estimation:</p>
 <span><span class="co">#&gt; 2      2 7.599650 6.369903 0.6092215 0.6103917 0.6867114</span></span>
 <span><span class="co">#&gt; 3      3 5.514137 4.996497 0.6504225 0.8841162 0.7758816</span></span>
 <span><span class="co">#&gt; 4      4 3.869326 4.343987 0.5213006 0.5271967 0.5896981</span></span>
-<span><span class="co">#&gt; 5      5 6.305063 6.344684 0.7994159 0.7407657 0.9094689</span></span>
+<span><span class="co">#&gt; 5      5 6.305063 6.344684 0.7994159 0.7407658 0.9094689</span></span>
 <span><span class="co">#&gt; 6      6 3.926807 4.094482 0.3422232 0.4123618 0.4430582</span></span></code></pre></div>
 <hr>
 </div>
@@ -323,7 +323,7 @@ on all periods.</p>
 <span>  time <span class="op">=</span> <span class="op">~</span><span class="va">year</span>,</span>
 <span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
 <span>  model <span class="op">=</span> <span class="st">"ST"</span>,</span>
-<span>  compute_mse <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  mse_type <span class="op">=</span> <span class="st">"analytical"</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -332,8 +332,8 @@ on all periods.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Summary of fastsae Fit</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────────</span></span></span>
 <span><span class="co">#&gt; Call :</span></span>
 <span><span class="co">#&gt; eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,</span></span>
-<span><span class="co">#&gt; domain = ~area, time = ~year, W = mys_proxmat, model = "ST", compute_mse =</span></span>
-<span><span class="co">#&gt; TRUE, print_result = FALSE)</span></span>
+<span><span class="co">#&gt; domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =</span></span>
+<span><span class="co">#&gt; "analytical", print_result = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 6 iterations)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span></span>
@@ -441,6 +441,9 @@ different models using <code><a href="https://ggplot2.tidyverse.org/reference/au
 <span><span class="va">fit_fh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">mys</span><span class="op">)</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">W_clean</span> <span class="op">&lt;-</span> <span class="va">mys_proxmat</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys</span><span class="op">$</span><span class="va">y</span><span class="op">)</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys</span><span class="op">$</span><span class="va">y</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">fit_sfh_clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_sfh.html">eblup_sfh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">mys</span><span class="op">)</span>, W <span class="op">=</span> <span class="va">W_clean</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: `W` is not row-standardised: some rows do not sum to 1.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> The SAR model with rho in (-1, 1) assumes rows summing to 1; use `W /</span></span>
+<span><span class="co">#&gt;   rowSums(W)` or `create_weights(style = "W")`.</span></span>
 <span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Standard FH"</span> <span class="op">=</span> <span class="va">fit_fh</span>, <span class="st">"Spatial FH"</span> <span class="op">=</span> <span class="va">fit_sfh_clean</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"comparison"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="spatial-temporal_files/figure-html/compare_models-1.png" class="r-plt" alt="" width="672"></p>
