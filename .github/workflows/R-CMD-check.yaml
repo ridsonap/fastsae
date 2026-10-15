@@ -121,10 +121,14 @@ jobs:
             any::writexl
             any::openxlsx
           needs: check
-          cache-version: 3
+          # Own cache key: the shared ubuntu/release prefix can restore the
+          # full-matrix library, which has INLA installed
+          cache-version: cran-like-1
 
       - name: Confirm INLA is absent
-        run: Rscript -e 'stopifnot(!requireNamespace("INLA", quietly = TRUE))'
+        run: |
+          Rscript -e 'if (requireNamespace("INLA", quietly = TRUE)) remove.packages("INLA")'
+          Rscript -e 'stopifnot(!requireNamespace("INLA", quietly = TRUE))'
 
       - uses: r-lib/actions/check-r-package@v2
         with:
