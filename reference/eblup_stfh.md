@@ -177,7 +177,11 @@ A list with the same structure as `seblup_area()`, with additional
 
 - `estcoef`:
 
-  data frame with beta, std.error, tvalue, pvalue.
+  data frame with `beta`, `std.error`, `tvalue`, `pvalue`, as in
+  [`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html), plus
+  `stderr_beta` and `zvalue` (copies, for the column names of the other
+  fastsae models). The p-values use the normal distribution, so `tvalue`
+  is a z-statistic.
 
 - `estvarcomp`:
 
@@ -185,7 +189,13 @@ A list with the same structure as `seblup_area()`, with additional
 
 - `goodness`:
 
-  vector with loglike, AIC, BIC.
+  named vector: `loglikelihood`, the full Gaussian log-likelihood at the
+  REML estimates (as `loglike` in
+  [`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html)),
+  `AIC` and `BIC` computed from it, and `loglikelihood_reml`, the
+  restricted log-likelihood that REML maximises. The full log-likelihood
+  is used for AIC and BIC because the restricted one depends on the
+  covariates.
 
 - `df_eblup`:
 
@@ -211,6 +221,15 @@ A list with the same structure as `seblup_area()`, with additional
   mse_type = "bootstrap").
 
 ## Details
+
+**Estimation method.** The variance components are estimated by REML
+only, as in Marhuenda, Molina and Morales (2013) and
+[`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html), which
+derive the Fisher-scoring algorithm, the analytical MSE and the
+bootstrap for REML; there is no `method` argument. The standard errors
+of the variance components are those of
+[`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html): the
+inverse REML information of the last Fisher-scoring iteration.
 
 **Unsampled domains and missing periods.** Cells whose response is `NA`
 (a domain without a sample in some period, or in every period) are not

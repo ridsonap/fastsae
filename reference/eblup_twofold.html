@@ -179,10 +179,17 @@ for group-specific self-benchmarking.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>The function returns a list with the following objects:
-<code>estcoef</code> a data frame with the estimated model coefficients,
+<code>estcoef</code> a data frame with the estimated model coefficients (<code>beta</code>), their
+standard errors (<code>std.error</code>, repeated as <code>stderr_beta</code> for compatibility
+with fastsae 0.1.0), z-statistics (<code>zvalue</code>) and normal p-values (<code>pvalue</code>),
 <code>random_effect_var</code> named vector with the estimated area (<code>sigma2_v</code>) and
 subarea (<code>sigma2_u</code>) variances (paper notation),
-<code>goodness</code> vector containing several goodness-of-fit measures,
+<code>goodness</code> named vector: <code>loglikelihood</code> (the full Gaussian log-likelihood at the
+estimates), <code>AIC</code> and <code>BIC</code> computed from it and, for <code>method = "REML"</code>,
+<code>loglikelihood_reml</code> (the restricted log-likelihood that REML maximises). AIC and
+BIC use the full log-likelihood for ML and REML fits alike, following the convention of
+<span class="pkg">sae</span> for the Fay-Herriot models: the restricted likelihood depends on the covariates,
+so only the full one compares models with different covariates.; BIC uses the number of sampled subareas,
 <code>df_eblup</code> a data frame that contains domain, subarea, y, eblup, vardir,
 random_effect_area, random_effect_subarea, mse, and rse. <br></p>
     </div>

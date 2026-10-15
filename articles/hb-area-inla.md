@@ -167,8 +167,20 @@ time random effects.
 - **`"separable"`** (matching classical `eblup_stfh`): Spatial random
   field evolving dynamically across time with AR(1) temporal
   correlation.
-- **`"type1"` to `"type4"`**: Full Knorr-Held (2000) classifications of
-  space-time interactions.
+- **`"type1"` to `"type4"`**: Knorr-Held (2000) interactions
+  $`\delta_{dt}`$ added to the main effects,
+  $`\eta_{dt} = x_{dt}^\top \beta + s_d + \gamma_t + \delta_{dt}`$:
+  - `"type1"`: $`\delta_{dt}`$ independent (unstructured space
+    $`\times`$ unstructured time);
+  - `"type2"`: an independent `temporal` process for each domain
+    (unstructured space $`\times`$ structured time);
+  - `"type3"`: an independent ICAR field for each period (structured
+    space $`\times`$ unstructured time);
+  - `"type4"`: an ICAR field evolving with the `temporal` structure
+    (structured space $`\times`$ structured time).
+
+  `"type3"` and `"type4"` need a structured `spatial` effect (`"bym2"`,
+  `"bym"`, `"besag"` or `"leroux"`).
 
 ------------------------------------------------------------------------
 
@@ -238,30 +250,30 @@ summary(fit_beta_st)
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00
-#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8081e-10  2.7947e-01
+#> x            4.0613e-01  6.4372e-02  6.3090e+00  2.8082e-10  2.7947e-01
 #>             ci_upper
 #> (Intercept)  -2.2218
 #> x             0.5321
 #> 
 #> Hyperparameters:
-#>                                  mean        sd 0.025quant  0.5quant 0.975quant
-#> Precision for ..domain_id..  18.22298  6.626407   8.634536  17.10217    34.3500
-#> Precision for ..time_id..   172.31369 78.437291  72.151660 155.45015   373.0574
+#>                                  mean       sd 0.025quant 0.5quant 0.975quant
+#> Precision for ..domain_id..  18.22302  6.62648   8.634476  17.1022   34.35021
+#> Precision for ..time_id..   172.31353 78.43665  72.153036 155.4500  373.05611
 #>                                  mode
-#> Precision for ..domain_id..  15.06364
-#> Precision for ..time_id..   127.08288
+#> Precision for ..domain_id..  15.06365
+#> Precision for ..time_id..   127.08259
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -976.34166 
+#>                                            -976.34163 
 #>                                                    pD 
-#>                                              56.02356 
+#>                                              56.02367 
 #>                                                  WAIC 
-#>                                            -984.78968 
+#>                                            -984.78971 
 #>                                                 pWAIC 
-#>                                              38.70808 
+#>                                              38.70812 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                             439.32544 
+#>                                             439.32543 
 #> 
 #> HB Summary Statistics:
 #>        hb           linear_pred           sd                mse           
@@ -289,19 +301,19 @@ standard errors, and 95% Credible Intervals:
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 #>                domain time      y         hb          sd       rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554647 0.006127588 11.031461 0.04408736
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225897 0.006131554  7.453964 0.07068305
-#> 3               IMOLA 2014 0.1033 0.09343255 0.010214705 10.932705 0.07511424
-#> 4         PIANURA EST 2014 0.0633 0.06509829 0.006294776  9.669650 0.05342028
-#> 5       PIANURA OVEST 2014 0.0625 0.07112656 0.007870648 11.065695 0.05671276
-#> 6      PORRETTA TERME 2014 0.1276 0.09608729 0.012916437 13.442399 0.07314332
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554646 0.006127601 11.031488 0.04408732
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131560  7.453972 0.07068302
+#> 3               IMOLA 2014 0.1033 0.09343259 0.010214721 10.932717 0.07511426
+#> 4         PIANURA EST 2014 0.0633 0.06509829 0.006294786  9.669664 0.05342026
+#> 5       PIANURA OVEST 2014 0.0625 0.07112656 0.007870656 11.065705 0.05671274
+#> 6      PORRETTA TERME 2014 0.1276 0.09608726 0.012916450 13.442416 0.07314330
 #>     ci_upper
-#> 1 0.06810571
-#> 2 0.09473235
-#> 3 0.11517426
-#> 4 0.07814088
-#> 5 0.08759938
-#> 6 0.12376139
+#> 1 0.06810572
+#> 2 0.09473234
+#> 3 0.11517435
+#> 4 0.07814090
+#> 5 0.08759939
+#> 6 0.12376142
 ```
 
 ------------------------------------------------------------------------
@@ -402,30 +414,30 @@ summary(fit_pois)
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01
-#> x1           3.8369e-01  4.9804e-02  7.7040e+00  1.3189e-14  2.8563e-01
-#> x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4866e-19 -3.6363e-01
+#> x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3184e-14  2.8563e-01
+#> x2          -2.9735e-01  3.3473e-02 -8.8834e+00  6.4835e-19 -3.6363e-01
 #>             ci_upper
 #> (Intercept)   0.4120
 #> x1            0.4820
 #> x2           -0.2317
 #> 
 #> Hyperparameters:
-#>                                   mean       sd 0.025quant   0.5quant
-#> Precision for ..domain_id.. 17.0201636 4.670486 9.50761822 16.4616044
-#> Phi for ..domain_id..        0.4755949 0.261108 0.05379416  0.4645568
-#>                             0.975quant      mode
-#> Precision for ..domain_id.. 27.7458994 15.438991
-#> Phi for ..domain_id..        0.9366777  0.229566
+#>                                   mean        sd 0.025quant   0.5quant
+#> Precision for ..domain_id.. 17.0200973 4.6704019  9.5074954 16.4616097
+#> Phi for ..domain_id..        0.4755942 0.2611224  0.0537863  0.4645507
+#>                             0.975quant       mode
+#> Precision for ..domain_id.. 27.7454450 15.4391777
+#> Phi for ..domain_id..        0.9366983  0.2294664
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                             317.61485 
+#>                                             317.61486 
 #>                                                    pD 
-#>                                              31.75465 
+#>                                              31.75463 
 #>                                                  WAIC 
-#>                                             309.63788 
+#>                                             309.63794 
 #>                                                 pWAIC 
-#>                                              17.13687 
+#>                                              17.13689 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
 #>                                            -169.74606 
 #> 
@@ -434,9 +446,9 @@ summary(fit_pois)
 #>  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  
 #>  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  
 #>  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  
-#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665243  
+#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665235  
 #>  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  
-#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683091  
+#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5683018  
 #>       rse        
 #>  Min.   : 2.790  
 #>  1st Qu.: 5.156  

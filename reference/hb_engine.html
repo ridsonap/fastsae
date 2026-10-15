@@ -131,7 +131,10 @@ Laplace approximation, highest accuracy), <code>"simplified.laplace"</code>
 <dt id="arg-link">link<a class="anchor" aria-label="anchor" href="#arg-link"></a></dt>
 <dd><p>Link function for the likelihood (<code><a href="hb_area.html">hb_area()</a></code> only).
 <code>NULL</code> (default) uses the canonical link of the family: identity for
-gaussian, logit for binomial and beta, log for poisson, nbinomial and gamma.</p></dd>
+gaussian, logit for binomial and beta, log for poisson, nbinomial and gamma.
+Binomial and beta also accept <code>"probit"</code>, <code>"cloglog"</code> and
+<code>"loglog"</code>. The estimates (<code>hb</code>) are on the response scale for
+any link.</p></dd>
 
 
 <dt id="arg-scale-model">scale_model<a class="anchor" aria-label="anchor" href="#arg-scale-model"></a></dt>
@@ -144,7 +147,13 @@ rw1, rw2) to a generalized variance of 1. Default <code>TRUE</code>.</p></dd>
 effect. <code>NULL</code> (default): the PC prior
 <code>list(prior = "pc.prec", param = c(1, 0.01))</code> in <code><a href="hb_area.html">hb_area()</a></code> and
 <code><a href="hb_twofold.html">hb_twofold()</a></code>, <code>list(prior = "loggamma", param = c(0.01, 0.01))</code>
-in <code><a href="hb_unit.html">hb_unit()</a></code>.</p></dd>
+in <code><a href="hb_unit.html">hb_unit()</a></code>. The PC prior puts probability 0.01 on a standard
+deviation above 1, which suits area-level responses such as proportions,
+rates and log scales; unit-level responses are often on a raw scale (e.g.
+hectares), where it would over-shrink the area effects, hence the vague
+log-gamma prior. For an area-level response with a large scale, set
+<code>prior_prec = list(prior = "pc.prec", param = c(U, 0.01))</code> with
+<code>U</code> a plausible upper value of the area standard deviation.</p></dd>
 
 
 <dt id="arg-prior-phi">prior_phi<a class="anchor" aria-label="anchor" href="#arg-prior-phi"></a></dt>

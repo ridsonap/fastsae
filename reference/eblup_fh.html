@@ -166,9 +166,16 @@ grouping / stratum column in <code>data</code> (e.g. province) for group-specifi
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>The function returns a list with the following objects:
-<code>estcoef</code> a data frame with the estimated model coefficients,
+<code>estcoef</code> a data frame with the estimated model coefficients (<code>beta</code>), their
+standard errors (<code>std.error</code>, repeated as <code>stderr_beta</code> for compatibility
+with fastsae 0.1.0), z-statistics (<code>zvalue</code>) and normal p-values (<code>pvalue</code>),
 <code>random_effect_var</code> estimated random effect variance,
-<code>goodness</code> vector containing several goodness-of-fit measures,
+<code>goodness</code> named vector: <code>loglikelihood</code> (the full Gaussian log-likelihood at the
+estimates), <code>AIC</code> and <code>BIC</code> computed from it and, for <code>method = "REML"</code>,
+<code>loglikelihood_reml</code> (the restricted log-likelihood that REML maximises). AIC and
+BIC use the full log-likelihood for ML and REML fits alike, as <span class="pkg">sae</span> does and as in
+Marhuenda, Morales and Pardo (2014): the restricted likelihood depends on the covariates,
+so only the full one compares models with different covariates.,
 <code>df_eblup</code> a data frame that contains y, eblup, random_effect, vardir, mse, and rse. <br></p><ul><li><p><code>y</code> variable response <br></p></li>
 <li><p><code>eblup</code> estimated results for each area <br></p></li>
 <li><p><code>random_effect</code> random effect for each area <br></p></li>
@@ -186,7 +193,8 @@ When the response variable contains NA it will be estimated with synthetic estim
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
 
 <ol><li><p>Rao, J. N., &amp; Molina, I. (2015). Small area estimation. John Wiley &amp; Sons.</p></li>
-</ol><ol><li><p>Rao, J. N. K., &amp; Molina, I. (2015). Small area estimation. John Wiley &amp; Sons.</p></li>
+</ol><ol><li><p>Marhuenda, Y., Morales, D., &amp; Pardo, M. C. (2014). Information criteria for Fay-Herriot model selection. <em>Computational Statistics &amp; Data Analysis</em>, 70, 268-280.</p></li>
+<li><p>Rao, J. N. K., &amp; Molina, I. (2015). Small area estimation. John Wiley &amp; Sons.</p></li>
 <li><p>Slud, E. V., &amp; Maiti, T. (2006). Small-area estimation via Fay-Herriot models with logit and log transformations. <em>Communications in Statistics - Theory and Methods</em>, 35(10), 1957-1971.</p></li>
 <li><p>Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
 <em>Survey Methodology</em>, 34(1), 29-36.</p></li>

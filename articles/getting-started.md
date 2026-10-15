@@ -119,8 +119,8 @@ summary(fit_fh)
 #> x3           0.0335344  0.0580013  0.5781663 0.5632
 #> 
 #> Goodness of Fit:
-#> loglikelihood           AIC           BIC 
-#>     -65.14251     140.28502     147.61370 
+#>      loglikelihood                AIC                BIC loglikelihood_reml 
+#>          -65.14251          140.28502          147.61370          -58.72337 
 #> 
 #> EBLUP Summary Statistics:
 #>       mse              rse        

@@ -106,10 +106,18 @@ eblup_fh(
 ## Value
 
 The function returns a list with the following objects: `estcoef` a data
-frame with the estimated model coefficients, `random_effect_var`
-estimated random effect variance, `goodness` vector containing several
-goodness-of-fit measures, `df_eblup` a data frame that contains y,
-eblup, random_effect, vardir, mse, and rse.  
+frame with the estimated model coefficients (`beta`), their standard
+errors (`std.error`, repeated as `stderr_beta` for compatibility with
+fastsae 0.1.0), z-statistics (`zvalue`) and normal p-values (`pvalue`),
+`random_effect_var` estimated random effect variance, `goodness` named
+vector: `loglikelihood` (the full Gaussian log-likelihood at the
+estimates), `AIC` and `BIC` computed from it and, for `method = "REML"`,
+`loglikelihood_reml` (the restricted log-likelihood that REML
+maximises). AIC and BIC use the full log-likelihood for ML and REML fits
+alike, as sae does and as in Marhuenda, Morales and Pardo (2014): the
+restricted likelihood depends on the covariates, so only the full one
+compares models with different covariates., `df_eblup` a data frame that
+contains y, eblup, random_effect, vardir, mse, and rse.  
 
 - `y` variable response  
 
@@ -140,15 +148,19 @@ variable contains NA it will be estimated with synthetic estimator.
 
 &nbsp;
 
-1.  Rao, J. N. K., & Molina, I. (2015). Small area estimation. John
+1.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
+    criteria for Fay-Herriot model selection. *Computational Statistics
+    & Data Analysis*, 70, 268-280.
+
+2.  Rao, J. N. K., & Molina, I. (2015). Small area estimation. John
     Wiley & Sons.
 
-2.  Slud, E. V., & Maiti, T. (2006). Small-area estimation via
+3.  Slud, E. V., & Maiti, T. (2006). Small-area estimation via
     Fay-Herriot models with logit and log transformations.
     *Communications in Statistics - Theory and Methods*, 35(10),
     1957-1971.
 
-3.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
+4.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
     under a restriction. *Survey Methodology*, 34(1), 29-36.
 
 ## Examples

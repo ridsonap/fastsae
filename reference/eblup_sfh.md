@@ -132,15 +132,21 @@ eblup_sfh(
 ## Value
 
 The function returns a list with the following objects: `estcoef` a data
-frame with the estimated model coefficients in the first column (beta),
-their asymptotic standard errors in the second column (std.error), the
-t-statistics in the third column (tvalue) and the p-values of the
-significance of each coefficient in last column (pvalue)  
+frame with the estimated model coefficients (`beta`), their asymptotic
+standard errors (`std.error`, repeated as `stderr_beta` for
+compatibility with fastsae 0.1.0), the z-statistics (`zvalue`) and the
+normal p-values (`pvalue`)  
 `random_effect_var` estimated random effect variance  
 `rho` estimated spatial autocorrelation parameter  
 `estvarcomp` a data frame with parameter, estimate, and std.error  
-`goodness` vector containing several goodness-of-fit measures:
-loglikelihood, AIC, and BIC  
+`goodness` named vector: `loglikelihood` (the full Gaussian
+log-likelihood at the estimates), `AIC` and `BIC` computed from it and,
+for `method = "REML"`, `loglikelihood_reml` (the restricted
+log-likelihood that REML maximises). AIC and BIC use the full
+log-likelihood for ML and REML fits alike, as sae does and as in
+Marhuenda, Morales and Pardo (2014): the restricted likelihood depends
+on the covariates, so only the full one compares models with different
+covariates.  
 `df_eblup` a data frame that contains the following columns:  
 
 - `y` variable response  
@@ -217,7 +223,11 @@ weights) uses dense factorisations.
 
 ## References
 
-1.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
+1.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
+    criteria for Fay-Herriot model selection. *Computational Statistics
+    & Data Analysis*, 70, 268-280.
+
+2.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
     Sons.
 
 ## Examples
@@ -300,12 +310,12 @@ m2 <- eblup_sfh(
 #> 5      5 6.305063 1.2788021 6.344684   0.002549394 0.7994159 14.092123
 #> 6      6 3.926807 0.3878004 4.094482  -0.683202000 0.3422232 14.287484
 #>      mse_pb  mse_pbbc
-#> 1 0.3254676 0.5823663
-#> 2 0.6913971 0.7077605
-#> 3 0.5291088 0.6988526
-#> 4 0.4689761 0.5624812
-#> 5 0.6694715 0.9148895
-#> 6 0.2339687 0.3809435
+#> 1 0.3731986 0.5732823
+#> 2 0.6002193 0.6787076
+#> 3 0.4744233 0.7493375
+#> 4 0.4001204 0.5693914
+#> 5 0.7692070 0.8829821
+#> 6 0.3054537 0.3742460
 #> ... and 36 more rows.
 #> 
 ```

@@ -57,7 +57,9 @@ print(x, ...)
   ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
   only). `NULL` (default) uses the canonical link of the family:
   identity for gaussian, logit for binomial and beta, log for poisson,
-  nbinomial and gamma.
+  nbinomial and gamma. Binomial and beta also accept `"probit"`,
+  `"cloglog"` and `"loglog"`. The estimates (`hb`) are on the response
+  scale for any link.
 
 - scale_model:
 
@@ -74,6 +76,13 @@ print(x, ...)
   [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md),
   `list(prior = "loggamma", param = c(0.01, 0.01))` in
   [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md).
+  The PC prior puts probability 0.01 on a standard deviation above 1,
+  which suits area-level responses such as proportions, rates and log
+  scales; unit-level responses are often on a raw scale (e.g. hectares),
+  where it would over-shrink the area effects, hence the vague log-gamma
+  prior. For an area-level response with a large scale, set
+  `prior_prec = list(prior = "pc.prec", param = c(U, 0.01))` with `U` a
+  plausible upper value of the area standard deviation.
 
 - prior_phi:
 

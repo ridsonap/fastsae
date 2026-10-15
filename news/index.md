@@ -125,6 +125,77 @@
 - The examples now use the full `mys_panel` and `mys_proxmat` (domains
   21 and 25 are unsampled).
 
+#### Fixes before the 1.0.0 release
+
+- `hb_area(st_interaction = "type2" / "type3" / "type4")` now fit with
+  INLA. They always failed before (the interaction reused the index of a
+  main effect, which INLA rejects), and with `spatial = "none"` the type
+  III/IV interaction was silently dropped. The interaction is now a
+  separate term on copied indices: one `temporal` process per domain
+  (type II), or an ICAR field per period (type III) or evolving with
+  `temporal` (type IV). Types III and IV need a structured `spatial`
+  effect and stop with a clear message otherwise.
+- `hb_area(spatial = "leroux", st_interaction = "separable")` fits
+  instead of crashing inside INLA: the grouped Leroux field uses INLA’s
+  `besagproper2`, the same model as `generic1`.
+- `inla_engine(link = )` is used. It was accepted but ignored; it now
+  sets the link of the likelihood (`"probit"`, `"cloglog"` and
+  `"loglog"` for binomial and beta), checked against the family. The
+  posterior draws for self-benchmarking and
+  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
+  use the matching inverse link, and the link is returned in `link`.
+- `hb_area(spatial = "bym")`: `random_effect_var` is the variance of the
+  spatial component (it was the iid one). Interaction terms no longer
+  feed `random_effect_var`, `rho` or `rho_time`, and with
+  `st_interaction = "separable"` the AR(1) group correlation is returned
+  in `rho_time`.
+- [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  objects have class `c("fastsae_hb_area", "fastsae_hb", "fastsae")`,
+  like
+  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  and
+  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+- The documentation of `inla_engine(prior_prec = )` explains the
+  different defaults: the PC prior `pc.prec(1, 0.01)` of
+  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  and
+  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  assumes an area standard deviation of order 1 (proportions, rates, log
+  scales), while
+  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  keeps the vague `loggamma(0.01, 0.01)` because unit-level responses
+  are often on a raw scale.
+- `goodness` of
+  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
+  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
+  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  and
+  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  follows one convention. `loglikelihood` is the full Gaussian
+  log-likelihood at the estimates, and `AIC`/`BIC` are computed from it
+  for ML and REML fits, as in ‘sae’ and Marhuenda, Morales and Pardo
+  (2014): the restricted likelihood depends on the covariates, so it
+  cannot compare models with different covariates. REML fits also report
+  `loglikelihood_reml`, the restricted log-likelihood.
+  - [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
+    `loglikelihood`, `AIC` and `BIC` of REML fits were based on the
+    restricted log-likelihood and now use the full one; `BIC` uses the
+    number of sampled subareas (it used the number of areas).
+  - [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md):
+    the element `loglike` is renamed `loglikelihood`, as in the other
+    models.
+- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
+  a negative second-order MSE estimate (possible with the ML bias
+  correction) is set to `NA` with a warning instead of giving a `NaN`
+  RSE.
+- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  reports `convergence = FALSE` when the fit ends at invalid variance
+  components (it reported `TRUE` with no estimates). The documentation
+  explains why the model is fitted by REML only (as in Marhuenda, Molina
+  and Morales 2013 and
+  [`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html)) and
+  that `tvalue` is a z-statistic.
+
 #### Statistical corrections (mathematical audit)
 
 - [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md):

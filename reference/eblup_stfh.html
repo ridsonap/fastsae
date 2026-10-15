@@ -243,13 +243,20 @@ grouping / stratum column in <code>data</code> (e.g. time period / year) for gro
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list with the same structure as <code>seblup_area()</code>, with additional
 <code>estvarcomp</code> for spatio-temporal variance/autocorrelation components:</p><dl><dt><code>estcoef</code></dt>
-<dd><p>data frame with beta, std.error, tvalue, pvalue.</p></dd>
+<dd><p>data frame with <code>beta</code>, <code>std.error</code>, <code>tvalue</code>,
+<code>pvalue</code>, as in <code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code>, plus <code>stderr_beta</code> and <code>zvalue</code>
+(copies, for the column names of the other fastsae models). The p-values use the
+normal distribution, so <code>tvalue</code> is a z-statistic.</p></dd>
 
 <dt><code>estvarcomp</code></dt>
 <dd><p>data frame with estimate, std.error for sigma21, rho1, sigma22, rho2.</p></dd>
 
 <dt><code>goodness</code></dt>
-<dd><p>vector with loglike, AIC, BIC.</p></dd>
+<dd><p>named vector: <code>loglikelihood</code>, the full Gaussian
+log-likelihood at the REML estimates (as <code>loglike</code> in <code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code>),
+<code>AIC</code> and <code>BIC</code> computed from it, and <code>loglikelihood_reml</code>, the
+restricted log-likelihood that REML maximises. The full log-likelihood is used for AIC
+and BIC because the restricted one depends on the covariates.</p></dd>
 
 <dt><code>df_eblup</code></dt>
 <dd><p>data frame with domain, time, y, eblup, vardir, mse, rse,
@@ -273,7 +280,13 @@ When compute_mse = FALSE, mse and rse are NA.
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><strong>Unsampled domains and missing periods.</strong> Cells whose response is <code>NA</code>
+    <p><strong>Estimation method.</strong> The variance components are estimated by REML only, as in
+Marhuenda, Molina and Morales (2013) and <code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code>, which derive the
+Fisher-scoring algorithm, the analytical MSE and the bootstrap for REML; there is no
+<code>method</code> argument. The standard errors of the variance components are those of
+<code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code>: the inverse REML information of the last Fisher-scoring
+iteration.</p>
+<p><strong>Unsampled domains and missing periods.</strong> Cells whose response is <code>NA</code>
 (a domain without a sample in some period, or in every period) are not dropped. The
 model is defined on the full \(D \times T\) grid: the SAR effect \(u_1\) lives on
 all \(D\) domains of <code>W</code> and the AR(1) effect \(u_2\) on all \(T\) periods.
