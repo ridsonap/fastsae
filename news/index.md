@@ -67,7 +67,11 @@
   to install and check the Python side. Nothing is installed or
   downloaded unless
   [`setup_numpyro_env()`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)
-  is called.
+  is called. The check looks only at an initialised Python,
+  `RETICULATE_PYTHON` / `RETICULATE_PYTHON_ENV` and the `r-numpyro-gpu`
+  environment, so it answers in about a second instead of searching the
+  whole system for Python installations (which took over 20 s on
+  Windows).
 - The frequentist lme4 GLMM route (`method = "laplace"` for non-spatial
   binomial and Poisson models) has been removed; such models are now
   fitted by INLA. ‘lme4’ moved to Suggests.
