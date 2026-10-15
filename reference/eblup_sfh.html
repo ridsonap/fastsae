@@ -190,11 +190,10 @@ grouping / stratum column in <code>data</code> (e.g. province) for group-specifi
 asymptotic standard errors (<code>std.error</code>, repeated as <code>stderr_beta</code> for
 compatibility with fastsae 0.1.0), the z-statistics (<code>zvalue</code>) and the normal
 p-values (<code>pvalue</code>) <br><code>random_effect_var</code> estimated random effect variance <br><code>rho</code> estimated spatial autocorrelation parameter <br><code>estvarcomp</code> a data frame with parameter, estimate, and std.error <br><code>goodness</code> named vector: <code>loglikelihood</code> (the full Gaussian log-likelihood at the
-estimates), <code>AIC</code> and <code>BIC</code> computed from it and, for <code>method = "REML"</code>,
-<code>loglikelihood_reml</code> (the restricted log-likelihood that REML maximises). AIC and
-BIC use the full log-likelihood for ML and REML fits alike, as <span class="pkg">sae</span> does and as in
-Marhuenda, Morales and Pardo (2014): the restricted likelihood depends on the covariates,
-so only the full one compares models with different covariates. <br><code>df_eblup</code> a data frame that contains the following columns: <br></p><ul><li><p><code>y</code> variable response <br></p></li>
+estimates, for ML and REML fits alike), <code>AIC</code> and <code>BIC</code> computed from it, as
+<span class="pkg">sae</span> does and as in Marhuenda, Morales and Pardo (2014). The restricted (REML)
+likelihood is not reported: it depends on the covariates through X, so it cannot
+compare models with different covariates. <br><code>df_eblup</code> a data frame that contains the following columns: <br></p><ul><li><p><code>y</code> variable response <br></p></li>
 <li><p><code>eblup</code> estimated results for each area <br></p></li>
 <li><p><code>random_effect</code> random effect for each area <br></p></li>
 <li><p><code>vardir</code> variance sampling from the direct estimator for each area <br></p></li>

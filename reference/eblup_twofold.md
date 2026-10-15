@@ -121,15 +121,13 @@ fastsae 0.1.0), z-statistics (`zvalue`) and normal p-values (`pvalue`),
 `random_effect_var` named vector with the estimated area (`sigma2_v`)
 and subarea (`sigma2_u`) variances (paper notation), `goodness` named
 vector: `loglikelihood` (the full Gaussian log-likelihood at the
-estimates), `AIC` and `BIC` computed from it and, for `method = "REML"`,
-`loglikelihood_reml` (the restricted log-likelihood that REML
-maximises). AIC and BIC use the full log-likelihood for ML and REML fits
-alike, following the convention of sae for the Fay-Herriot models: the
-restricted likelihood depends on the covariates, so only the full one
-compares models with different covariates.; BIC uses the number of
-sampled subareas, `df_eblup` a data frame that contains domain, subarea,
-y, eblup, vardir, random_effect_area, random_effect_subarea, mse, and
-rse.  
+estimates, for ML and REML fits alike), `AIC` and `BIC` computed from
+it, following the convention of sae for the Fay-Herriot models; BIC uses
+the number of sampled subareas. The restricted (REML) likelihood is not
+reported: it depends on the covariates through X, so it cannot compare
+models with different covariates., `df_eblup` a data frame that contains
+domain, subarea, y, eblup, vardir, random_effect_area,
+random_effect_subarea, mse, and rse.  
 
 ## Details
 

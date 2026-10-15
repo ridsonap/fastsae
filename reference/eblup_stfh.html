@@ -254,9 +254,9 @@ normal distribution, so <code>tvalue</code> is a z-statistic.</p></dd>
 <dt><code>goodness</code></dt>
 <dd><p>named vector: <code>loglikelihood</code>, the full Gaussian
 log-likelihood at the REML estimates (as <code>loglike</code> in <code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code>),
-<code>AIC</code> and <code>BIC</code> computed from it, and <code>loglikelihood_reml</code>, the
-restricted log-likelihood that REML maximises. The full log-likelihood is used for AIC
-and BIC because the restricted one depends on the covariates.</p></dd>
+and <code>AIC</code> and <code>BIC</code> computed from it. The restricted (REML) likelihood is
+not reported: it depends on the covariates through X, so it cannot compare models
+with different covariates.</p></dd>
 
 <dt><code>df_eblup</code></dt>
 <dd><p>data frame with domain, time, y, eblup, vardir, mse, rse,

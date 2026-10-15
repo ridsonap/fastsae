@@ -140,13 +140,11 @@ normal p-values (`pvalue`)
 `rho` estimated spatial autocorrelation parameter  
 `estvarcomp` a data frame with parameter, estimate, and std.error  
 `goodness` named vector: `loglikelihood` (the full Gaussian
-log-likelihood at the estimates), `AIC` and `BIC` computed from it and,
-for `method = "REML"`, `loglikelihood_reml` (the restricted
-log-likelihood that REML maximises). AIC and BIC use the full
-log-likelihood for ML and REML fits alike, as sae does and as in
-Marhuenda, Morales and Pardo (2014): the restricted likelihood depends
-on the covariates, so only the full one compares models with different
-covariates.  
+log-likelihood at the estimates, for ML and REML fits alike), `AIC` and
+`BIC` computed from it, as sae does and as in Marhuenda, Morales and
+Pardo (2014). The restricted (REML) likelihood is not reported: it
+depends on the covariates through X, so it cannot compare models with
+different covariates.  
 `df_eblup` a data frame that contains the following columns:  
 
 - `y` variable response  

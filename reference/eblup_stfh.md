@@ -191,11 +191,10 @@ A list with the same structure as `seblup_area()`, with additional
 
   named vector: `loglikelihood`, the full Gaussian log-likelihood at the
   REML estimates (as `loglike` in
-  [`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html)),
-  `AIC` and `BIC` computed from it, and `loglikelihood_reml`, the
-  restricted log-likelihood that REML maximises. The full log-likelihood
-  is used for AIC and BIC because the restricted one depends on the
-  covariates.
+  [`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html)), and
+  `AIC` and `BIC` computed from it. The restricted (REML) likelihood is
+  not reported: it depends on the covariates through X, so it cannot
+  compare models with different covariates.
 
 - `df_eblup`:
 

@@ -175,8 +175,8 @@
   log-likelihood at the estimates, and `AIC`/`BIC` are computed from it
   for ML and REML fits, as in ‘sae’ and Marhuenda, Morales and Pardo
   (2014): the restricted likelihood depends on the covariates, so it
-  cannot compare models with different covariates. REML fits also report
-  `loglikelihood_reml`, the restricted log-likelihood.
+  cannot compare models with different covariates and is not reported.
+  `goodness` always has these three elements.
   - [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
     `loglikelihood`, `AIC` and `BIC` of REML fits were based on the
     restricted log-likelihood and now use the full one; `BIC` uses the

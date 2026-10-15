@@ -111,13 +111,12 @@ errors (`std.error`, repeated as `stderr_beta` for compatibility with
 fastsae 0.1.0), z-statistics (`zvalue`) and normal p-values (`pvalue`),
 `random_effect_var` estimated random effect variance, `goodness` named
 vector: `loglikelihood` (the full Gaussian log-likelihood at the
-estimates), `AIC` and `BIC` computed from it and, for `method = "REML"`,
-`loglikelihood_reml` (the restricted log-likelihood that REML
-maximises). AIC and BIC use the full log-likelihood for ML and REML fits
-alike, as sae does and as in Marhuenda, Morales and Pardo (2014): the
-restricted likelihood depends on the covariates, so only the full one
-compares models with different covariates., `df_eblup` a data frame that
-contains y, eblup, random_effect, vardir, mse, and rse.  
+estimates, for ML and REML fits alike), `AIC` and `BIC` computed from
+it, as sae does and as in Marhuenda, Morales and Pardo (2014). The
+restricted (REML) likelihood is not reported: it depends on the
+covariates through X, so it cannot compare models with different
+covariates., `df_eblup` a data frame that contains y, eblup,
+random_effect, vardir, mse, and rse.  
 
 - `y` variable response  
 
