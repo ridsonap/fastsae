@@ -14,9 +14,15 @@ Logical indicating whether the environment is properly configured.
 }
 \description{
 Checks that \code{hb_area(engine = "jax")} can run: the package \pkg{reticulate}
-and a Python with the modules \code{jax} and \code{numpyro}. It looks for the
-\code{r-numpyro-gpu} virtualenv (see \code{\link{setup_numpyro_env}}) or any
-Python already configured for \pkg{reticulate}. The check never installs or
+and a Python with the modules \code{jax} and \code{numpyro}. It uses the Python
+already initialised in the session, otherwise the one named by the environment
+variables \code{RETICULATE_PYTHON} or \code{RETICULATE_PYTHON_ENV}, otherwise the
+\code{r-numpyro-gpu} environment created by \code{\link{setup_numpyro_env}} (virtualenv,
+or conda when \code{conda} is on the \code{PATH}). When none of these exists it returns
+\code{FALSE} at once, without searching the system for other Python installations
+(which can take tens of seconds on some platforms). To use another Python, set
+\code{RETICULATE_PYTHON}, or select it with \code{reticulate::use_python()} and initialise
+it (e.g. \code{reticulate::py_config()}) before the check. The check never installs or
 downloads anything: the managed ('uv') Python of \pkg{reticulate} is not
 provisioned unless the \code{RETICULATE_USE_MANAGED_VENV} environment variable is set.
 }

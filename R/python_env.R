@@ -1,9 +1,15 @@
 #' Check whether the NumPyro / JAX engine is available
 #'
 #' Checks that \code{hb_area(engine = "jax")} can run: the package \pkg{reticulate}
-#' and a Python with the modules \code{jax} and \code{numpyro}. It looks for the
-#' \code{r-numpyro-gpu} virtualenv (see \code{\link{setup_numpyro_env}}) or any
-#' Python already configured for \pkg{reticulate}. The check never installs or
+#' and a Python with the modules \code{jax} and \code{numpyro}. It uses the Python
+#' already initialised in the session, otherwise the one named by the environment
+#' variables \code{RETICULATE_PYTHON} or \code{RETICULATE_PYTHON_ENV}, otherwise the
+#' \code{r-numpyro-gpu} environment created by \code{\link{setup_numpyro_env}} (virtualenv,
+#' or conda when \code{conda} is on the \code{PATH}). When none of these exists it returns
+#' \code{FALSE} at once, without searching the system for other Python installations
+#' (which can take tens of seconds on some platforms). To use another Python, set
+#' \code{RETICULATE_PYTHON}, or select it with \code{reticulate::use_python()} and initialise
+#' it (e.g. \code{reticulate::py_config()}) before the check. The check never installs or
 #' downloads anything: the managed ('uv') Python of \pkg{reticulate} is not
 #' provisioned unless the \code{RETICULATE_USE_MANAGED_VENV} environment variable is set.
 #'
@@ -35,7 +41,21 @@ check_numpyro_available <- function(device = "auto") {
   }
 
   if (!reticulate::py_available()) {
-    try(reticulate::use_virtualenv("r-numpyro-gpu", required = FALSE), silent = TRUE)
+    # Only look where a Python for this engine can have been configured; a full
+    # discovery of the system's Pythons is slow (about 20 s on Windows) and is
+    # not needed to answer "is the engine set up?".
+    env_py <- nzchar(Sys.getenv("RETICULATE_PYTHON")) || nzchar(Sys.getenv("RETICULATE_PYTHON_ENV"))
+    has_venv <- isTRUE(tryCatch(reticulate::virtualenv_exists("r-numpyro-gpu"), error = function(e) FALSE))
+    has_conda <- !has_venv && nzchar(Sys.which("conda")) &&
+      isTRUE(tryCatch(reticulate::condaenv_exists("r-numpyro-gpu"), error = function(e) FALSE))
+    if (!env_py && !has_venv && !has_conda) return(FALSE)
+    if (!env_py) {
+      if (has_venv) {
+        try(reticulate::use_virtualenv("r-numpyro-gpu", required = FALSE), silent = TRUE)
+      } else {
+        try(reticulate::use_condaenv("r-numpyro-gpu", required = FALSE), silent = TRUE)
+      }
+    }
     # A check must not download anything: without this, reticulate (>= 1.41)
     # provisions a 'uv'-managed Python into the user cache when none is configured.
     if (is.na(Sys.getenv("RETICULATE_USE_MANAGED_VENV", unset = NA))) {

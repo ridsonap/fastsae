@@ -30,7 +30,10 @@
 'JAX' and 'NumPyro' through 'reticulate' (Suggests). Nothing is installed or
 downloaded unless the user calls `setup_numpyro_env()`; `check_numpyro_available()`
 only inspects the existing Python configuration (it disables the managed 'uv'
-environment of 'reticulate' during the check). The corresponding examples run only
+environment of 'reticulate' during the check). It no longer searches the system for
+Python installations when no Python is configured for 'reticulate': a previous
+win-builder run flagged its example at 23 s elapsed on Windows (0.5 s CPU), spent in
+that search; it now returns `FALSE` in about 1 s. The corresponding examples run only
 inside `if (check_numpyro_available())` and the tests are skipped on CRAN.
 
 ## Submission summary
@@ -40,4 +43,6 @@ This is an update from version 0.1.0 to 1.0.0.
 * Added Hierarchical Bayes Small Area Estimation models via INLA (`hb_area`, `hb_unit`, `hb_twofold`), with engine objects `inla_engine()` and `jax_engine()` (optional MCMC backend in Python).
 * Added Two-Fold subarea EBLUP models (`eblup_twofold`).
 * Added model benchmarking (`benchmark_sae`), diagnostics (`diagnose`), comparison (`compare_sae`), mapping (`map_sae`), and export (`export_sae`).
+* `eblup_stfh()` now predicts unsampled domains and missing periods (NA responses)
+  instead of requiring a complete panel.
 * Statistical corrections to the existing EBLUP models (see NEWS.md).
