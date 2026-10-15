@@ -86,8 +86,8 @@ with an area random effect \(v_i\) and a subarea random effect \(u_{ij}\).</p>
 <span>  <span class="va">data</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REML"</span>, <span class="st">"ML"</span><span class="op">)</span>,</span>
 <span>  mse_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analytical"</span>, <span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  B <span class="op">=</span> <span class="fl">200</span>,</span>
-<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  seed <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,</span>
 <span>  maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  precision <span class="op">=</span> <span class="fl">1e-04</span>,</span>
 <span>  self_benchmark <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -139,7 +139,8 @@ the bias correction), 'bootstrap' (parametric bootstrap, slower but robust) or '
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>integer seed for bootstrap resampling (NULL = no seed set).</p></dd>
+<dd><p>integer seed for the bootstrap; <code>-1</code> (default) or <code>NULL</code> sets no seed.
+A fixed seed does not change the random number stream of the session.</p></dd>
 
 
 <dt id="arg-maxiter">maxiter<a class="anchor" aria-label="anchor" href="#arg-maxiter"></a></dt>

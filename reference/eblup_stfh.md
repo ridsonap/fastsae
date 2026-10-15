@@ -135,7 +135,8 @@ eblup_stfh(
 
 - seed:
 
-  random seed for bootstrap. Use `-1` for no seed. Default `-1`.
+  random seed for bootstrap. Use `-1` for no seed. Default `-1`. A fixed
+  seed does not change the random number stream of the session.
 
 - self_benchmark:
 

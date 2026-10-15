@@ -72,7 +72,8 @@ eblup_bhf(
 
 - seed:
 
-  Random seed for reproducibility.
+  Random seed for reproducibility; `-1` (default) sets no seed. A fixed
+  seed does not change the random number stream of the session.
 
 - print_result:
 

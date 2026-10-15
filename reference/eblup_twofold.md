@@ -16,8 +16,8 @@ eblup_twofold(
   data,
   method = c("REML", "ML"),
   mse_type = c("analytical", "bootstrap", "none"),
-  B = 200,
-  seed = NULL,
+  B = 100,
+  seed = -1,
   maxiter = 100,
   precision = 1e-04,
   self_benchmark = FALSE,
@@ -72,7 +72,8 @@ eblup_twofold(
 
 - seed:
 
-  integer seed for bootstrap resampling (NULL = no seed set).
+  integer seed for the bootstrap; `-1` (default) or `NULL` sets no seed.
+  A fixed seed does not change the random number stream of the session.
 
 - maxiter:
 

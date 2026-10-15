@@ -86,8 +86,9 @@ eblup_sfh(
 
 - seed:
 
-  Integer seed for bootstrap resampling. A value of -1 leaves the
-  current R RNG state unchanged.
+  Integer seed for bootstrap resampling; `-1` (default) sets no seed. A
+  fixed seed does not change the random number stream of the session. A
+  value of -1 leaves the current R RNG state unchanged.
 
 - maxiter:
 

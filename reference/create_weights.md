@@ -116,14 +116,29 @@ connected spatial graph without computational singularities.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-if (requireNamespace("sf", quietly = TRUE)) {
-  # Assuming 'data_kab' is an sf polygon object:
-  W_queen <- create_weights(data_kab, method = "queen", style = "W")
-  W_knn   <- create_weights(data_kab, method = "knn", k = 5, style = "W")
-  W_bin   <- create_weights(data_kab, method = "queen", style = "B")
+if (requireNamespace("sf", quietly = TRUE) && requireNamespace("spdep", quietly = TRUE)) {
+  # North Carolina counties, an sf polygon data set shipped with 'sf'
+  nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+  W_queen <- create_weights(nc, method = "queen", style = "W")
+  W_knn   <- create_weights(nc, method = "knn", k = 5, style = "W")
+  W_bin   <- create_weights(nc, method = "queen", style = "B")
+  W_queen
 }
-} # }
+#> 
+#> ── Spatial Weights Matrix (fastsae) ────────────────────────────────────────────
+#> • Dimensions: 100 x 100 domains
+#> • Construction Method: QUEEN
+#> • Standardization Style: "W" (Row-standardized)
+#> • Sparsity: 95.1% zeros
+#> 
+#> Matrix preview (top-left 5x5):
+#>        1      2      3 4 5
+#> 1 0.0000 0.3333 0.0000 0 0
+#> 2 0.3333 0.0000 0.3333 0 0
+#> 3 0.0000 0.2000 0.0000 0 0
+#> 4 0.0000 0.0000 0.0000 0 0
+#> 5 0.0000 0.0000 0.0000 0 0
+#> ... and 95 more rows/columns.
 
 # Create spatial weights from 2D coordinates
 coords <- matrix(runif(40), ncol = 2)

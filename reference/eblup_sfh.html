@@ -146,7 +146,8 @@ Values less than or equal to 0 use all available cores.</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>Integer seed for bootstrap resampling.
+<dd><p>Integer seed for bootstrap resampling; <code>-1</code> (default) sets no seed. A fixed
+seed does not change the random number stream of the session.
 A value of -1 leaves the current R RNG state unchanged.</p></dd>
 
 

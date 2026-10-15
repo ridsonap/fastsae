@@ -185,7 +185,46 @@
     [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
     must be non-negative; a zero row (a domain without neighbours) or
     rows that do not sum to 1 give a warning, since the SAR model with
-    `rho` in (-1, 1) assumes a row-standardised `W`, as ‘sae’ requires.
+    `rho` in (-1, 1) assumes a row-standardised `W`, as ‘sae’ requires;
+  - the same checks now cover the HB models. A missing covariate is an
+    error in
+    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
+    [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+    and in the `Xpop` means of
+    [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md):
+    INLA treats it as 0, so the estimate of that area was wrong without
+    any message.
+    [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+    replaced a missing, zero or negative `vardir` of a sampled subarea
+    by 1, and
+    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    stopped with an INLA error on a missing one; both now stop with the
+    message of the EBLUP functions.
+    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    also rejects linearly dependent covariates;
+  - a missing population mean in
+    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+    names the domain (it gave an internal error on the number of rows);
+  - duplicated `domain` values give a warning in
+    [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
+    [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    and
+    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    without `time` (in
+    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    such rows share one area effect).
+- A fixed `seed` of
+  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
+  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md),
+  [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+  and
+  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  no longer changes the random number stream of the session; the
+  bootstrap MSEs are unchanged.
+- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  uses `B = 100` and `seed = -1` (no seed) by default, as the other
+  EBLUP functions (it used `B = 200` and `seed = NULL`; `NULL` still
+  means no seed).
 
 #### Fixes before the 1.0.0 release
 
