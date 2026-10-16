@@ -145,11 +145,15 @@ hb_area(
 
   - `"domain-specific"`: Domain-specific temporal random walk / AR(1)
     dynamics with shared variance parameter (directly corresponds to the
-    tipsae spatio-temporal model).
+    tipsae spatio-temporal model). Not available with
+    `temporal = "rw2"`: without a common trend, the linear trend of a
+    domain without direct estimates has a flat prior; use `"type2"`.
 
   - `"separable"`: Grouped dynamic spatial field evolving over time via
-    AR(1) / RW (corresponds to classical Spatio-Temporal Fay-Herriot
-    models, Marhuenda et al. 2013).
+    AR(1) (corresponds to classical Spatio-Temporal Fay-Herriot models,
+    Marhuenda et al. 2013). Only `temporal = "ar1"` or `"iid"`: with a
+    random walk in time every domain's level in the field has a flat
+    prior, as the field has no spatial main effect; use `"type4"`.
 
   - `"type1"`: Knorr-Held (2000) Type I interaction (unstructured space
     \\\times\\ unstructured time).
@@ -169,7 +173,15 @@ hb_area(
   The `"type*"` options add the interaction to the main spatial and
   temporal effects. `"type3"` and `"type4"` need a structured `spatial`
   effect (`"bym2"`, `"bym"`, `"besag"` or `"leroux"`); with INLA the
-  interaction is an ICAR (`"besag"`) field on the graph of `W`.
+  interaction is an ICAR (`"besag"`) field on the graph of `W`. With
+  `temporal = "rw1"` or `"rw2"`, the type IV interaction (and type II
+  with `"rw2"`) uses the scaled Kronecker structure with all the
+  identifiability constraints of Knorr-Held (2000): sums over the
+  domains are 0 in every period, and sums over the periods (and, for
+  `"rw2"`, linear trends) are 0 in every domain. INLA's default
+  constraints leave the latter out; with them alone, a domain without
+  direct estimates had a posterior SD of 36-58 (other domains about
+  0.4).
 
 - W:
 
@@ -350,24 +362,42 @@ of the PC priors of INLA, so its estimates differ slightly. For
 `family = "gamma"` it estimates a common shape and does not use
 `vardir`.
 
-With the `"inla"` engine, `family = "gaussian"` is fitted in INLA's
-`"classic"` mode (Rue, Martino and Chopin, 2009) and the other families
-in INLA's default `"compact"` mode (van Niekerk et al., 2023), which
-leaves the linear predictors out of the latent field and is designed for
-data-rich models. This was chosen against long Stan runs with the same
-model and priors (12 configurations, 18 paired comparisons: Gaussian,
-binomial, Poisson, beta and gamma; iid, Besag and BYM2 effects; RW1 in
-time). For Gaussian models the compact mode overstated the posterior SDs
-by up to 18% when the area variance was small relative to `vardir`,
-while the classic means were within 0.07 posterior SD of Stan and the
-SDs within 0.91-1.03 times Stan's, at the same speed. For the other
-families both modes matched Stan (compact: means within 0.16 posterior
-SD, SDs within 0.95-1.08 times), and the classic mode was much slower
-for many areas (beta, 2000 areas: 32 s against 1.3 s).
-`inla_engine(inla.mode = )` selects a mode. For Gaussian models with a
-small area variance, the classic summary of that variance
-(`random_effect_var`) was biased downwards, while the area estimates
-were accurate.
+With the `"inla"` engine, Gaussian models and the Leroux and SLM effects
+of any family are fitted in INLA's `"classic"` mode (Rue, Martino and
+Chopin, 2009); the other models use INLA's default `"compact"` mode (van
+Niekerk et al., 2023), which leaves the linear predictors out of the
+latent field and is designed for data-rich models. Gaussian models with
+a `"type1"` to `"type4"` interaction also use a grid over the
+hyperparameters (`int.strategy = "grid"`). These choices rest on
+comparisons with long Stan runs with the same model and priors
+(Gaussian, binomial, Poisson, beta, gamma and negative binomial; iid,
+Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held
+interactions):
+
+- Gaussian: compact overstated the posterior SDs by up to 18% when the
+  area variance was small relative to `vardir`; classic matched Stan
+  (means within 0.07 posterior SD, SDs within 0.91-1.03 times) at the
+  same speed. With an interaction both modes overstated the SDs by
+  6-13%; classic with the grid matched Stan (means within 0.04 SD, SDs
+  within 2%) and took 5-8 times longer.
+
+- Binomial, Poisson, beta and gamma with iid, Besag or BYM2 effects or
+  an interaction: compact matched Stan (means within 0.16 SD, SDs within
+  0.95-1.08 times), and classic was much slower for many areas (beta,
+  2000 areas: 32 s against 1.3 s).
+
+- Leroux and SLM: compact moved the Poisson posterior means by 0.12-0.15
+  SD; classic was within 0.03 SD.
+
+- Negative binomial: with one count per area the overdispersion and the
+  area effect are only weakly identified, and both modes were off (means
+  up to 0.64 SD); the model gives a warning.
+
+`inla_engine(inla.mode = , control.inla = )` overrides these settings.
+For Gaussian models with a small area variance, the classic summary of
+that variance (`random_effect_var`) was biased downwards, while the area
+estimates were accurate. The validation scripts are in the package
+repository (`benchmarks/validation`).
 
 ## References
 
@@ -403,7 +433,11 @@ were accurate.
     Laplace approximations. *Journal of the Royal Statistical Society:
     Series B*, 71(2), 319-392.
 
-9.  van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A
+9.  Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time
+    variation in disease risk. *Statistics in Medicine*, 19(17-18),
+    2555-2567.
+
+10. van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A
     new avenue for Bayesian inference with INLA. *Computational
     Statistics & Data Analysis*, 181, 107692.
 
@@ -453,14 +487,14 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 1.884566 
+#> Random effect variance (sigma2_u): 1.884569 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  3.0427e+00  6.9228e-01  4.3952e+00  1.1066e-05  1.6969e+00
-#> x1          -1.1730e-03  8.7917e-03 -1.3342e-01  8.9386e-01 -1.8740e-02
-#> x2           5.1638e-02  5.5506e-02  9.3033e-01  3.5220e-01 -5.6669e-02
-#> x3           3.7778e-02  5.2655e-02  7.1747e-01  4.7309e-01 -6.6888e-02
+#> x1          -1.1730e-03  8.7918e-03 -1.3343e-01  8.9386e-01 -1.8740e-02
+#> x2           5.1639e-02  5.5506e-02  9.3033e-01  3.5220e-01 -5.6669e-02
+#> x3           3.7778e-02  5.2655e-02  7.1746e-01  4.7309e-01 -6.6889e-02
 #>             ci_upper
 #> (Intercept)   4.4243
 #> x1            0.0159
@@ -469,19 +503,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.339900    7.339900 0.7461481 0.5567370 10.16564 5.898813
-#> 2      2 7.599650 6.498465    6.498465 0.8065384 0.6505041 12.41121 4.946474
-#> 3      3 5.514137 5.050324    5.050324 0.7981022 0.6369671 15.80299 3.500404
-#> 4      4 3.869326 4.304522    4.304522 0.7105254 0.5048464 16.50649 2.900284
-#> 5      5 6.305063 6.322252    6.322252 0.8809210 0.7760218 13.93366 4.591943
-#> 6      6 3.926807 4.085714    4.085714 0.5728371 0.3281424 14.02049 2.959796
+#> 1      1 8.359527 7.339909    7.339909 0.7461439 0.5567307 10.16557 5.898832
+#> 2      2 7.599650 6.498475    6.498475 0.8065348 0.6504984 12.41114 4.946490
+#> 3      3 5.514137 5.050329    5.050329 0.7981021 0.6369670 15.80297 3.500407
+#> 4      4 3.869326 4.304518    4.304518 0.7105258 0.5048469 16.50651 2.900281
+#> 5      5 6.305063 6.322252    6.322252 0.8809228 0.7760250 13.93369 4.591940
+#> 6      6 3.926807 4.085713    4.085713 0.5728376 0.3281429 14.02050 2.959794
 #>   ci_upper random_effect    vardir
-#> 1 8.823249    2.67457053 0.6618838
-#> 2 8.108174    2.29078022 0.8374691
-#> 3 6.632281    0.90453998 0.8822257
-#> 4 5.688281   -1.16017874 0.6581716
-#> 5 8.053107   -0.02602761 1.2788021
-#> 6 5.206918   -0.71974413 0.3878004
+#> 1 8.823253    2.67457946 0.6618838
+#> 2 8.108179    2.29078844 0.8374691
+#> 3 6.632285    0.90454246 0.8822257
+#> 4 5.688279   -1.16018344 0.6581716
+#> 5 8.053110   -0.02602784 1.2788021
+#> 6 5.206918   -0.71974715 0.3878004
 #> ... and 36 more rows.
 #> 
 #> 
@@ -494,14 +528,14 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Self-Benchmarking: Active (benchmarked posterior draws)
-#> Random effect variance (sigma2_u): 1.884562 
+#> Random effect variance (sigma2_u): 1.884568 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  3.0427e+00  6.9228e-01  4.3952e+00  1.1066e-05  1.6969e+00
-#> x1          -1.1730e-03  8.7917e-03 -1.3342e-01  8.9386e-01 -1.8740e-02
-#> x2           5.1638e-02  5.5505e-02  9.3033e-01  3.5220e-01 -5.6669e-02
-#> x3           3.7778e-02  5.2654e-02  7.1747e-01  4.7308e-01 -6.6888e-02
+#> x1          -1.1730e-03  8.7918e-03 -1.3343e-01  8.9386e-01 -1.8740e-02
+#> x2           5.1639e-02  5.5506e-02  9.3033e-01  3.5220e-01 -5.6669e-02
+#> x3           3.7778e-02  5.2655e-02  7.1747e-01  4.7309e-01 -6.6889e-02
 #>             ci_upper
 #> (Intercept)   4.4243
 #> x1            0.0159
@@ -510,19 +544,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.255598    7.339898 0.7880836 0.6210758 10.86173 5.764876
-#> 2      2 7.599650 6.426379    6.498463 0.8457955 0.7153701 13.16131 4.847616
-#> 3      3 5.514137 4.980598    5.050323 0.8240095 0.6789916 16.54439 3.371183
-#> 4      4 3.869326 4.227116    4.304522 0.7320934 0.5359608 17.31898 2.830491
-#> 5      5 6.305063 6.317179    6.322252 0.8578537 0.7359130 13.57970 4.649354
-#> 6      6 3.926807 4.040812    4.085715 0.6631751 0.4398012 16.41192 2.803645
+#> 1      1 8.359527 7.257491    7.339907 0.7911133 0.6258602 10.90064 5.700298
+#> 2      2 7.599650 6.426959    6.498472 0.8369472 0.7004806 13.02245 4.777972
+#> 3      3 5.514137 4.981751    5.050327 0.8289504 0.6871587 16.63974 3.412987
+#> 4      4 3.869326 4.224243    4.304519 0.7376872 0.5441823 17.46318 2.840288
+#> 5      5 6.305063 6.312432    6.322252 0.8562798 0.7332150 13.56497 4.633935
+#> 6      6 3.926807 4.040173    4.085714 0.6664195 0.4441149 16.49483 2.753150
 #>   ci_upper random_effect    vardir hb_unbenchmarked
-#> 1 8.789200    2.67456857 0.6618838         7.339898
-#> 2 8.120554    2.29077842 0.8374691         6.498463
-#> 3 6.624289    0.90453958 0.8822257         5.050323
-#> 4 5.636111   -1.16017757 0.6581716         4.304522
-#> 5 8.010850   -0.02602751 1.2788021         6.322252
-#> 6 5.329437   -0.71974339 0.3878004         4.085715
+#> 1 8.807541    2.67457724 0.6618838         7.339907
+#> 2 8.039692    2.29078641 0.8374691         6.498472
+#> 3 6.665403    0.90454186 0.8822257         5.050327
+#> 4 5.661090   -1.16018226 0.6581716         4.304519
+#> 5 7.981342   -0.02602778 1.2788021         6.322252
+#> 6 5.329243   -0.71974639 0.3878004         4.085714
 #> ... and 36 more rows.
 #> 
 #> 
@@ -535,37 +569,37 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (BYM2)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 1.937326 
-#> Spatial autocorrelation (rho): 0.1222 
-#> Spatial mixing fraction (phi): 0.1222 
+#> Random effect variance (sigma2_u): 1.936961 
+#> Spatial autocorrelation (rho): 0.1227 
+#> Spatial mixing fraction (phi): 0.1227 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.0276e+00  6.9092e-01  4.3819e+00  1.1763e-05  1.6837e+00
-#> x1          -5.9749e-04  8.8284e-03 -6.7678e-02  9.4604e-01 -1.8204e-02
-#> x2           4.7975e-02  5.5713e-02  8.6111e-01  3.8918e-01 -6.0883e-02
-#> x3           4.1070e-02  5.2819e-02  7.7757e-01  4.3682e-01 -6.3830e-02
+#> (Intercept)  3.0275e+00  6.9083e-01  4.3824e+00  1.1739e-05  1.6838e+00
+#> x1          -5.9690e-04  8.8271e-03 -6.7621e-02  9.4609e-01 -1.8201e-02
+#> x2           4.7972e-02  5.5706e-02  8.6116e-01  3.8915e-01 -6.0876e-02
+#> x3           4.1073e-02  5.2813e-02  7.7771e-01  4.3674e-01 -6.3813e-02
 #>             ci_upper
-#> (Intercept)   4.4056
+#> (Intercept)   4.4053
 #> x1            0.0166
 #> x2            0.1585
 #> x3            0.1441
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.297395    7.297395 0.7517587 0.5651412 10.30174 5.843556
-#> 2      2 7.599650 6.486258    6.486258 0.8085254 0.6537133 12.46520 4.929289
-#> 3      3 5.514137 5.022942    5.022942 0.7981787 0.6370892 15.89066 3.473593
-#> 4      4 3.869326 4.307508    4.307508 0.7084632 0.5019201 16.44717 2.907176
-#> 5      5 6.305063 6.284923    6.284923 0.8841460 0.7817142 14.06773 4.549448
-#> 6      6 3.926807 4.109167    4.109167 0.5751059 0.3307468 13.99568 2.978785
+#> 1      1 8.359527 7.297161    7.297161 0.7517255 0.5650913 10.30162 5.843402
+#> 2      2 7.599650 6.486000    6.486000 0.8085068 0.6536832 12.46541 4.929070
+#> 3      3 5.514137 5.022831    5.022831 0.7981358 0.6370207 15.89016 3.473568
+#> 4      4 3.869326 4.307601    4.307601 0.7084378 0.5018842 16.44623 2.907316
+#> 5      5 6.305063 6.284942    6.284942 0.8840873 0.7816104 14.06675 4.549563
+#> 6      6 3.926807 4.109186    4.109186 0.5750861 0.3307241 13.99513 2.978844
 #>   ci_upper random_effect    vardir
-#> 1 8.789962    2.61773054 0.6618838
-#> 2 8.098683    2.27885380 0.8374691
-#> 3 6.605581    0.91268653 0.8822257
-#> 4 5.687105   -1.12698306 0.6581716
-#> 5 8.023055   -0.05626295 1.2788021
-#> 6 5.234756   -0.66304247 0.3878004
+#> 1 8.789660     2.6175034 0.6618838
+#> 2 8.098376     2.2786226 0.8374691
+#> 3 6.605389     0.9126363 0.8822257
+#> 4 5.687145    -1.1268472 0.6581716
+#> 5 8.022947    -0.0562335 1.2788021
+#> 6 5.234739    -0.6629728 0.3878004
 #> ... and 36 more rows.
 #> 
 
