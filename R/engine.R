@@ -64,8 +64,9 @@
 #'   \code{hb_area()} (\code{NULL}: 1000) and for the area aggregates of
 #'   \code{hb_twofold()} (\code{NULL}: 200; \code{0} skips the sampling and
 #'   approximates the aggregate uncertainty from independent sub-area effects).
-#' @param seed Seed of \code{INLA::inla.posterior.sample()} for those draws.
-#'   \code{0L} (default) is INLA's own default.
+#' @param seed Seed of \code{INLA::inla.posterior.sample()} for those draws, also used
+#'   by \code{benchmark_sae()}. The default \code{1L} makes them reproducible (INLA
+#'   then samples on one thread); \code{0L} is INLA's own default, a random seed.
 #' @param ... Further arguments passed to \code{INLA::inla()}, such as
 #'   \code{control.compute} or \code{num.threads}.
 #'
@@ -100,7 +101,7 @@ inla_engine <- function(
   prior_rho_time = NULL,
   prior_prec_subarea = NULL,
   draws = NULL,
-  seed = 0L,
+  seed = 1L,
   ...
 ) {
   strategy <- match.arg(tolower(strategy), choices = c("laplace", "simplified.laplace", "gaussian"))

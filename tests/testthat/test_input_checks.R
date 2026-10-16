@@ -280,3 +280,39 @@ test_that("eblup_twofold uses the bootstrap defaults of the other EBLUP function
   expect_identical(fm$B, formals(eblup_sfh)$B)
   expect_identical(fm$seed, formals(eblup_sfh)$seed)
 })
+
+# ---- INLA reproducibility --------------------------------------------------------
+# hb_unit() with INLA's default "compact" mode returned different county means and
+# SDs on identical calls (cornsoybean); "classic" is deterministic and matches the
+# exact posterior. Posterior draws used seed 0 (random), so aggregates changed too.
+
+test_that("hb_unit() fits in INLA's classic mode and is reproducible", {
+  skip_if_not_installed("INLA")
+  b <- bhf_data()
+  fit <- function() hb_unit(CornHec ~ CornPix + SoyBeansPix, unit_data = b$units, Xpop = b$pop,
+                            domain_var = "CountyIndex", popsize_var = "PopnSegments",
+                            print_result = FALSE)
+  f1 <- fit()
+  expect_identical(f1$fit$.args$inla.mode, "classic")
+  for (i in 1:3) expect_identical(fit()$df_hb, f1$df_hb)
+  # the mode can still be chosen
+  f2 <- hb_unit(CornHec ~ CornPix + SoyBeansPix, unit_data = b$units, Xpop = b$pop,
+                domain_var = "CountyIndex", popsize_var = "PopnSegments",
+                engine = inla_engine(inla.mode = "compact"), print_result = FALSE)
+  expect_identical(f2$fit$.args$inla.mode, "compact")
+})
+
+test_that("posterior draws of the INLA engine use a fixed seed by default", {
+  expect_gt(inla_engine()$seed, 0)
+  skip_if_not_installed("INLA")
+  fit <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area", data = twofold_data(),
+                    print_result = FALSE)
+  draw <- function() .inla_draws(fit$fit, 5, fit$engine_spec$seed)[[3]]$latent
+  first <- draw()
+  set.seed(11)
+  before <- stats::runif(2)
+  set.seed(11)
+  # a seed given only to INLA::inla.posterior.sample() did not fix the draws
+  for (i in 1:3) expect_identical(draw(), first)
+  expect_identical(stats::runif(2), before)
+})

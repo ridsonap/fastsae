@@ -879,7 +879,8 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
   if (inherits(object, "fastsae_hb_area") && !is.null(object$fit) && inherits(object$fit, "inla") &&
       requireNamespace("INLA", quietly = TRUE)) {
     fam <- object$family %||% "gaussian"
-    smp <- tryCatch(INLA::inla.posterior.sample(n = n_draws, result = object$fit), error = function(e) NULL)
+    smp <- tryCatch(.inla_draws(object$fit, n_draws, object$engine_spec$seed %||% 1L),
+                    error = function(e) NULL)
     if (is.null(smp)) return(NULL)
     n <- nrow(df)
     rows <- grep("^Predictor:", rownames(smp[[1]]$latent))[seq_len(n)]

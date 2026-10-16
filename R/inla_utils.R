@@ -35,6 +35,19 @@
 }
 
 
+#' Posterior draws of an INLA fit with a reproducible seed
+#'
+#' INLA chooses the hyperparameter configurations of the draws with R's RNG,
+#' so a seed given only to INLA::inla.posterior.sample() does not make them
+#' reproducible: the seed is also set on the R side, and the session's random
+#' number stream is restored afterwards. seed = 0 is INLA's random seed.
+#' @noRd
+.inla_draws <- function(fit, n, seed = 1L) {
+  seed <- as.integer(seed)
+  .with_seed(if (seed > 0) seed else -1L,
+             INLA::inla.posterior.sample(n = n, result = fit, seed = seed))
+}
+
 #' Convert and validate spatial proximity / weight matrix for INLA models
 #'
 #' @param W Matrix, Matrix object, `spdep` `nb`, or `listw` object.
@@ -413,7 +426,7 @@
 #' @noRd
 .posterior_benchmark <- function(res, sb_info, family, n_draws = 1000, seed = 0L, link = NULL) {
   n <- nrow(res$df_hb)
-  smp <- INLA::inla.posterior.sample(n = n_draws, result = res$fit, seed = as.integer(seed))
+  smp <- .inla_draws(res$fit, n_draws, seed)
   rn <- rownames(smp[[1]]$latent)
   pred_rows <- grep("^Predictor:", rn)[seq_len(n)]
   eta <- vapply(smp, function(s) s$latent[pred_rows, 1], numeric(n))

@@ -42,7 +42,9 @@
 #'   object holding the approximation strategy, the priors (\code{prior_prec}, default
 #'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}, vague on any response scale;
 #'   \code{prior_phi} for BYM2),
-#'   \code{scale_model} and further \code{INLA::inla()} arguments.
+#'   \code{scale_model} and further \code{INLA::inla()} arguments. The model is fitted
+#'   in INLA's \code{"classic"} mode; \code{inla_engine(inla.mode = "compact")} selects
+#'   INLA's default mode.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec},
 #'   \code{prior_phi} and arguments of \code{INLA::inla()} are now given to
@@ -68,7 +70,12 @@
 #'     }
 #'   \item \code{estcoef}: Data frame of estimated regression coefficients (posterior mean, sd, z-value, p-value, credible intervals).
 #'   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
-#'   \item \code{random_effect_var}: Estimated domain random effect variance (\eqn{\sigma_u^2}).
+#'   \item \code{random_effect_var}: Posterior mean of the domain random effect variance
+#'     (\eqn{\sigma_u^2}). With few domains and the vague default prior its posterior is
+#'     very skewed and INLA's summary of it is not accurate (on \code{cornsoybean}, 12
+#'     counties: about 70 against an exact posterior mean of 41 and median of 7, while the
+#'     county means and SDs agree with the exact posterior). Do not read it as a REML
+#'     estimate; the domain estimates in \code{df_hb} are the reliable output.
 #'   \item \code{residual_var}: Estimated residual variance (\eqn{\sigma_e^2}, for Gaussian).
 #'   \item \code{phi}: Estimated spatial variance proportion (for BYM2).
 #'   \item \code{goodness}: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
@@ -318,6 +325,11 @@ hb_unit <- function(
     theta0 <- .hb_unit_reml_start(formuladata_s, term_labels, y_s, unit_dom_id, n_domains)
     if (!is.null(theta0)) inla_args$control.mode <- list(theta = theta0, restart = TRUE)
   }
+  # INLA's default "compact" mode gave different county means and SDs on
+  # identical calls (cornsoybean), with SDs 8-15% above the exact posterior
+  # (numerical integration over the two variances); "classic" is deterministic
+  # and matched it. inla_engine(inla.mode = ) overrides.
+  if ("inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
   # inla_engine(...) settings override; control.* lists are merged
   inla_args <- utils::modifyList(inla_args, engine$inla_args)
 

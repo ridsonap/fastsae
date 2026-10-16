@@ -534,7 +534,7 @@ hb_area <- function(
   benchmark_target = NULL,
   benchmark_group = NULL,
   benchmark_draws = 1000,
-  benchmark_seed = 0L,
+  benchmark_seed = 1L,
   call = NULL,
   ...
 ) {

@@ -45,8 +45,10 @@ navbar:
           href: articles/hb-area-inla.html
         - text: "Model Diagnostics & Calibration"
           href: articles/model-diagnostics.html
-        - text: "Unit-Level Estimation (BHF)"
+        - text: "Unit-Level Estimation (BHF and HB)"
           href: articles/unit-level-bhf.html
+        - text: "Sub-Area Level Two-Fold Models"
+          href: articles/twofold-subarea.html
         - text: "--------------------"
         - text: "Performance Benchmarks"
           href: articles/benchmarks.html

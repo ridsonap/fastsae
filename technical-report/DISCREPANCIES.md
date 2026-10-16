@@ -98,6 +98,17 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
     - `seed` tetap tidak lagi mengubah aliran RNG sesi (`.with_seed`); nilai
       MSE bootstrap tidak berubah. Default `eblup_twofold` diseragamkan ke
       `B = 100, seed = -1`.
+    - `hb_unit` dengan mode INLA default `compact` tidak reprodusibel
+      (panggilan identik memberi 2-3 mode berbeda; nilai awal REML sama).
+      Dibandingkan posterior eksak (integrasi numerik grid atas
+      $(\log\tau_e,\log\tau_u)$, posterior bersyarat Gaussian), `compact`
+      meleset sampai 2,0 pada rerata dan SD terlalu besar 8-15%; `classic`
+      selisih <= 0,31 dan rasio SD 0,995-1,014, serta deterministik. Kini
+      `hb_unit` memakai `inla.mode = "classic"`. `random_effect_var`
+      (E[sigma2_u]) tidak andal: eksak 40,9 (median 7,0), INLA ~70.
+    - `inla.posterior.sample(seed = )` saja tidak reprodusibel karena
+      konfigurasi hiperparameter dipilih dengan RNG R. Helper `.inla_draws`
+      memasang seed di R juga; default `inla_engine(seed = 1L)`.
 - **Bukan kesalahan (disengaja, kini didokumentasikan):**
   - SFH-1: karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik $y'PDPy$ sama dengan
     kuadratik skor ML terprofil.

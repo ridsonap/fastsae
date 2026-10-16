@@ -378,7 +378,7 @@ hb_twofold <- function(
     area_upper <- rep(NA_real_, n_domains)
 
     ps_ok <- tryCatch({
-      ps <- INLA::inla.posterior.sample(n = engine$draws, fit, seed = engine$seed)
+      ps <- .inla_draws(fit, engine$draws, engine$seed)
       pred_names <- paste0("Predictor:", seq_len(n_subareas))
       latent_rows <- rownames(ps[[1]]$latent)
       pred_indices <- match(pred_names, latent_rows)

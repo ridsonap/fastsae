@@ -14,13 +14,15 @@ knitr::opts_chunk$set(
   fig.width = 7,
   fig.height = 5
 )
+# INLA is not on CRAN: the hb_unit() chunks are shown but not run without it
+has_inla <- requireNamespace("INLA", quietly = TRUE)
 ```
 
 ## Overview
 
 Unlike area-level models that aggregate data prior to modeling, **unit-level models** operate directly on individual survey unit records (e.g., households, farms, or persons) while linking them to population auxiliary aggregates (e.g., census means or satellite imagery).
 
-The **fastsae** package implements the nested error regression model of Battese, Harter, and Fuller (1988) via `eblup_bhf()`, providing fast estimation and parallel parametric bootstrap MSE.
+The **fastsae** package implements the nested error regression model of Battese, Harter, and Fuller (1988) via `eblup_bhf()`, providing fast estimation and parallel parametric bootstrap MSE. `hb_unit()` fits the same model as a hierarchical Bayes model with INLA (see the last section).
 
 ---
 
@@ -108,7 +110,80 @@ autoplot(fit_bhf, type = "mse")
 autoplot(fit_bhf, type = "comparison")
 ```
 
+---
+
+## Hierarchical Bayes with `hb_unit()`
+
+`hb_unit()` fits the nested error model with INLA and returns posterior means, standard
+deviations and credible intervals of the county means. It needs the **INLA** package, which is
+not on CRAN (<https://www.r-inla.org/download/>); the chunks below are only run when INLA
+is installed. The arguments are those of `eblup_bhf()`:
+
+```{r fit_hb_unit, eval = has_inla}
+fit_hbu <- hb_unit(
+  CornHec ~ CornPix + SoyBeansPix,
+  unit_data = cornsoybean,
+  Xpop = df_pop,
+  domain_var = "County",
+  popsize_var = "PopnSegments",
+  print_result = FALSE
+)
+
+head(fit_hbu$df_hb[, c("domain", "samp_size", "hb", "sd", "ci_lower", "ci_upper")])
+```
+
+County by county, the posterior means are close to the EBLUP:
+
+```{r compare_hb_unit, eval = has_inla}
+data.frame(
+  County = fit_bhf$df_eblup$domain,
+  n = fit_bhf$df_eblup$samp_size,
+  eblup = round(fit_bhf$df_eblup$eblup, 1),
+  hb = round(fit_hbu$df_hb$hb, 1),
+  rmse_eblup = round(sqrt(fit_bhf$df_eblup$mse), 1),
+  sd_hb = round(fit_hbu$df_hb$sd, 1)
+)
+```
+
+The two sets of estimates differ by less than 5 hectares (about 4% of the county means), most
+in counties 5 and 11. The bootstrap root MSE and the posterior SD are different quantities:
+the SDs are mostly smaller here because much of the posterior mass of $\sigma_u^2$ lies near 0
+(its exact posterior median is about 7, against a REML estimate of 63), which shrinks the
+county means more strongly towards the regression.
+
+With 12 counties and the default vague log-gamma prior on the precision of the county effect,
+the posterior of $\sigma_u^2$ is very skewed, with much mass near 0, and INLA's summary of it
+(`random_effect_var`) is not accurate. Do not compare it with the REML estimate of
+`eblup_bhf()`. The county estimates in `df_hb` are reliable: `hb_unit()` fits in INLA's
+`"classic"` mode, which on these data matches the exact posterior (computed by numerical
+integration over the two variances) and gives the same result on every call.
+
+### Counties without a sample
+
+A domain that is in `Xpop` but has no rows in `unit_data` is predicted from the regression and
+its population means, in both functions. For example, without the sample of county 1:
+
+```{r unsampled_hb_unit, eval = has_inla}
+cs_without_1 <- cornsoybean[cornsoybean$County != 1, ]
+fit_hbu1 <- hb_unit(
+  CornHec ~ CornPix + SoyBeansPix,
+  unit_data = cs_without_1,
+  Xpop = df_pop,
+  domain_var = "County",
+  popsize_var = "PopnSegments",
+  print_result = FALSE
+)
+fit_hbu1$unsampled_domains
+fit_hbu1$df_hb[fit_hbu1$df_hb$domain == 1, c("domain", "samp_size", "hb", "sd")]
+```
+
+The population means in `Xpop` must be complete: a missing mean is an error, since the
+prediction of that county would be wrong. `hb_unit()` also fits binomial and Poisson responses
+(`family`) and a spatial county effect (`spatial = "bym2"` or `"besag"` with a proximity matrix
+`W`).
+
 ## References
 
 - Battese, G. E., Harter, R. M., & Fuller, W. A. (1988). An error-components model for prediction of county crop areas using survey and satellite data. *Journal of the American Statistical Association*, 83(401), 28–36.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.
+- Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian models by using integrated nested Laplace approximations. *Journal of the Royal Statistical Society: Series B*, 71(2), 319–392.

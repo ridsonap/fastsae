@@ -111,6 +111,18 @@
   changes the random number stream of the session; the bootstrap MSEs are unchanged.
 * `eblup_twofold()` uses `B = 100` and `seed = -1` (no seed) by default, as the other EBLUP
   functions (it used `B = 200` and `seed = NULL`; `NULL` still means no seed).
+* `hb_unit()` fits in INLA's `"classic"` mode. With INLA's default `"compact"` mode identical
+  calls returned different county means and SDs on `cornsoybean`, with SDs 8-15% above the exact
+  posterior (numerical integration over the two variances); the classic fit matches it and is
+  the same on every call. `inla_engine(inla.mode = "compact")` restores the INLA default. Its
+  `random_effect_var` is documented as unreliable with few domains and the vague prior.
+* Posterior draws of the INLA engine are reproducible: `inla_engine(seed = 1L)` is the new
+  default (it was `0L`, INLA's random seed), and the seed is also set on the R side, since INLA
+  draws the hyperparameter configurations with R's RNG; the session's random number stream is
+  restored. This affects the area aggregates of `hb_twofold()` (their SD changed by up to 9%
+  between identical calls), posterior self-benchmarking in `hb_area()` and `benchmark_sae()`.
+* New vignette "Sub-Area Level Estimation with Two-Fold Models" (`eblup_twofold()`,
+  `hb_twofold()`); the unit-level vignette covers `hb_unit()`.
 
 ### Fixes before the 1.0.0 release
 * `hb_area(st_interaction = "type2" / "type3" / "type4")` now fit with INLA. They always failed

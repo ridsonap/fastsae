@@ -1,0 +1,251 @@
+---
+title: "Sub-Area Level Estimation with Two-Fold Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Sub-Area Level Estimation with Two-Fold Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+# INLA is not on CRAN: the hb_twofold() chunks are shown but not run without it
+has_inla <- requireNamespace("INLA", quietly = TRUE)
+```
+
+## Overview
+
+Surveys are often designed for large areas (provinces, regions) but the estimates are needed
+for the sub-areas inside them (districts, municipalities). The sub-areas of one area share the
+area's characteristics, so their estimates should borrow strength not only from the regression
+on auxiliary variables, but also from the other sub-areas of the same area.
+
+The two-fold sub-area level model of Torabi and Rao (2014) does this with two nested random
+effects. **fastsae** fits it in two ways:
+
+| Function | Approach | Uncertainty | Area aggregates |
+| :--- | :--- | :--- | :--- |
+| `eblup_twofold()` | EBLUP, REML or ML | Analytical (Prasad-Rao type) or parametric bootstrap MSE | not computed |
+| `hb_twofold()` | Hierarchical Bayes with INLA | Posterior SD and credible intervals | `df_area`, weighted by `weight` |
+
+`hb_twofold()` also fits binomial and Poisson responses and a spatial (BYM2, Besag) area effect.
+
+---
+
+## Model
+
+For sub-area $j$ ($j = 1, \dots, N_i$) of area $i$ ($i = 1, \dots, m$), the direct estimator
+$y_{ij}$ with known sampling variance $\psi_{ij}$ follows
+
+$$y_{ij} = \theta_{ij} + e_{ij}, \qquad \theta_{ij} = x_{ij}^\top \beta + v_i + u_{ij},$$
+
+with $v_i \sim N(0, \sigma_v^2)$ the area effect, $u_{ij} \sim N(0, \sigma_u^2)$ the sub-area
+effect and $e_{ij} \sim N(0, \psi_{ij})$ the sampling error, all independent.
+
+Compared with the Fay-Herriot model, which treats every sub-area as unrelated, the area effect
+$v_i$ is estimated from all the sampled sub-areas of area $i$. This matters most for sub-areas
+that are not sampled: they get $x_{ij}^\top \hat\beta + \hat v_i$ instead of the synthetic
+$x_{ij}^\top \hat\beta$ alone. Only a sub-area of an area without any sample is predicted
+synthetically.
+
+The output follows the notation above: `random_effect_var` holds `sigma2_v` (area) and
+`sigma2_u` (sub-area), and `df_eblup` (or `df_hb`) holds `random_effect_area` and
+`random_effect_subarea`.
+
+---
+
+## Example with simulated data
+
+We simulate 30 areas with 3 to 6 sub-areas each, so that the true sub-area means $\theta_{ij}$
+are known. Fifteen sub-areas have no sample (their direct estimate is `NA`), and all the
+sub-areas of area `A30` are unsampled.
+
+```{r simulate}
+library(fastsae)
+
+set.seed(2024)
+m <- 30
+dat <- do.call(rbind, lapply(seq_len(m), function(i) {
+  ni <- sample(3:6, 1)
+  data.frame(
+    area = sprintf("A%02d", i),
+    subarea = sprintf("A%02d-%d", i, seq_len(ni)),
+    x1 = rnorm(ni, mean = 2),
+    pop = sample(200:2000, ni)
+  )
+}))
+v <- rnorm(m, sd = 1)
+names(v) <- unique(dat$area)
+dat$theta <- 10 + 2 * dat$x1 + v[dat$area] + rnorm(nrow(dat), sd = sqrt(0.5))
+dat$vardir <- runif(nrow(dat), 0.5, 2)
+dat$y <- dat$theta + rnorm(nrow(dat), sd = sqrt(dat$vardir))
+
+# Unsampled sub-areas: 15 at random, plus every sub-area of A30
+unsampled <- union(sample(which(dat$area != "A30"), 15), which(dat$area == "A30"))
+dat$y[unsampled] <- NA
+
+c(subareas = nrow(dat), sampled = sum(!is.na(dat$y)))
+head(dat)
+```
+
+Each row is one sub-area. Unsampled sub-areas stay in the data with `y = NA` and their
+covariates, so that they are predicted.
+
+### Fitting the EBLUP
+
+```{r fit_eblup}
+fit_tf <- eblup_twofold(
+  y ~ x1,
+  vardir = "vardir",
+  domain = "area",
+  subarea = "subarea",
+  data = dat,
+  print_result = FALSE
+)
+
+fit_tf$random_effect_var
+fit_tf$estcoef
+head(fit_tf$df_eblup)
+```
+
+The default `mse_type = "analytical"` gives the Prasad-Rao type MSE of the REML fit (for ML it
+adds the bias correction). Sub-area `A01-3` is not sampled: it still gets the area effect of
+`A01`, while its sub-area effect is 0.
+
+### How much does the area effect help?
+
+Because the data are simulated, we can compare each estimator with the true $\theta_{ij}$.
+The Fay-Herriot model, fitted with `eblup_fh()` on the same rows, ignores the areas.
+
+```{r compare_truth}
+fit_fh <- eblup_fh(y ~ x1, vardir = "vardir", data = dat, print_result = FALSE)
+
+sampled <- !is.na(dat$y)
+in_sampled_area <- !sampled & dat$area != "A30"
+emp_mse <- function(est, rows) mean((est[rows] - dat$theta[rows])^2)
+
+data.frame(
+  rows = c("sampled sub-areas", "unsampled sub-areas of sampled areas"),
+  direct = c(emp_mse(dat$y, sampled), NA),
+  fay_herriot = c(emp_mse(fit_fh$df_eblup$eblup, sampled),
+                  emp_mse(fit_fh$df_eblup$eblup, in_sampled_area)),
+  two_fold = c(emp_mse(fit_tf$df_eblup$eblup, sampled),
+               emp_mse(fit_tf$df_eblup$eblup, in_sampled_area))
+)
+```
+
+Both models improve on the direct estimates of the sampled sub-areas, and in this data set they
+are about equally accurate there: a sampled sub-area has its own direct estimate, so the area
+effect adds little. The difference is in the unsampled sub-areas of sampled areas. The
+Fay-Herriot model can only give them the synthetic estimate, while the two-fold model adds the
+estimated area effect and roughly halves the error. This is one simulated data set, not a
+simulation study: the gain depends on how large $\sigma_v^2$ is relative to $\sigma_u^2$.
+
+### Bootstrap MSE
+
+The parametric bootstrap refits the model on `B` data sets generated from the fitted model and
+predicts with the same estimator as the point estimate. `seed` makes it reproducible without
+changing the random number stream of the session.
+
+```{r bootstrap}
+fit_boot <- eblup_twofold(
+  y ~ x1,
+  vardir = "vardir",
+  domain = "area",
+  subarea = "subarea",
+  data = dat,
+  mse_type = "bootstrap",
+  B = 100,
+  seed = 1,
+  print_result = FALSE
+)
+
+summary(fit_boot$df_eblup$mse / fit_tf$df_eblup$mse)
+```
+
+The two MSE estimators agree on average; with `B = 100` single bootstrap values are still
+noisy. Use `mse_type = "none"` when only the point estimates are needed.
+
+### Diagnostics and plots
+
+The usual tools of the package work on the result:
+
+```{r diagnostics}
+autoplot(fit_tf, type = "comparison")
+diagnose(fit_tf)
+```
+
+---
+
+## Hierarchical Bayes with `hb_twofold()`
+
+`hb_twofold()` fits the same model with INLA. It needs the **INLA** package, which is not on
+CRAN; see <https://www.r-inla.org/download/>. The chunks below are only run when INLA is
+installed.
+
+The argument `weight` (here the population of each sub-area) aggregates the sub-area posteriors
+to area estimates, $\hat\theta_i = \sum_j w_{ij} \theta_{ij} / \sum_j w_{ij}$, with their
+posterior uncertainty in `df_area`.
+
+```{r fit_hb, eval = has_inla}
+fit_hb <- hb_twofold(
+  y ~ x1,
+  vardir = "vardir",
+  domain = "area",
+  subarea = "subarea",
+  weight = "pop",
+  data = dat,
+  print_result = FALSE
+)
+
+fit_hb$random_effect_var
+head(fit_hb$df_hb)
+head(fit_hb$df_area)
+```
+
+With the default vague priors the posterior means are very close to the EBLUP:
+
+```{r compare_hb, eval = has_inla}
+cor(fit_tf$df_eblup$eblup, fit_hb$df_hb$hb)
+compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
+```
+
+`compare_sae()` reports smaller posterior variances than EBLUP MSEs. The two are not the same
+quantity, and here the posterior mean of $\sigma_u^2$ is also smaller than the REML estimate
+(both are below the true value 0.5, which is hard to separate from sampling variances of 0.5 to
+2). A smaller reported uncertainty is therefore not evidence of a more accurate estimator. With
+simulated data, the error against the truth settles it:
+
+```{r truth_hb, eval = has_inla}
+c(eblup_two_fold = emp_mse(fit_tf$df_eblup$eblup, sampled | in_sampled_area),
+  hb_two_fold = emp_mse(fit_hb$df_hb$hb, sampled | in_sampled_area))
+```
+
+For counts or proportions, use `family = "poisson"` with `exposure` or `family = "binomial"`
+with `trials`; with `spatial = "bym2"` and a proximity matrix `W` between areas, the area
+effects are spatially correlated.
+
+---
+
+## Practical notes
+
+- Give one row per sub-area. The `domain` column identifies the area and is required.
+- `vardir` must be finite and positive for every sampled sub-area; unsampled sub-areas can have
+  `NA`. Covariates must be complete for all rows, sampled or not.
+- At least two areas need sampled sub-areas, otherwise $\sigma_v^2$ cannot be estimated.
+- `eblup_twofold()` has `self_benchmark = TRUE` for estimates that add up to a known total (see
+  `?eblup_twofold`).
+
+## References
+
+- Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a sub-area level model.
+  *Journal of Multivariate Analysis*, 127, 36–55.
+- Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.
+- Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
+  models by using integrated nested Laplace approximations. *Journal of the Royal Statistical
+  Society: Series B*, 71(2), 319–392.

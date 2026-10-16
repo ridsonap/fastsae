@@ -18,7 +18,7 @@ inla_engine(
   prior_rho_time = NULL,
   prior_prec_subarea = NULL,
   draws = NULL,
-  seed = 0L,
+  seed = 1L,
   ...
 )
 

@@ -76,8 +76,12 @@ Tingkat sub-area (baris 330-331):
 Tingkat area memakai sampling posterior (baris 371-406), bila
 \code{compute\_area = TRUE}:
 \begin{enumerate}[label=\arabic*.]
-  \item \code{ps $\leftarrow$ INLA::inla.posterior.sample(n = draws, fit, seed)}
-        dengan \code{inla\_engine(draws = )} default $200$;
+  \item \code{ps $\leftarrow$ .inla\_draws(fit, draws, seed)} dengan
+        \code{inla\_engine(draws = )} default $200$ dan \code{seed} default
+        $1$. Helper ini memasang seed juga di sisi R (INLA memilih konfigurasi
+        hiperparameter dengan RNG R, sehingga \code{seed} di
+        \code{inla.posterior.sample} saja tidak reprodusibel; dulu
+        \code{sd\_area} berubah sampai $9\%$) lalu memulihkan aliran RNG sesi;
   \item tarik baris \code{Predictor:1}..\code{Predictor:$n_{\text{subarea}}$}
         dari \code{rownames(ps[[1]]\$latent)};
   \item transformasi balik link manual (binomial $1/(1+e^{-x})$, Poisson
@@ -124,7 +128,7 @@ $\hat\theta_{ij},\mathrm{sd}_{ij},\mathrm{CI}\leftarrow$ (312-318);
 $w_{ij}\leftarrow$ \eqref{eq:hbtwofold-area} (353-365);\quad
   $\hat\theta^{\text{area}}_i\leftarrow$ (368)\;
 \If{\code{compute\_area}}{
-  \texttt{inla.posterior.sample}($n=$ \code{draws}, \code{seed}) (376-378)\;
+  \texttt{.inla\_draws}($n=$ \code{draws}, \code{seed}) \;
   transformasi balik link per gambar (385-390)\;
   agregasi berbobot per gambar; $\mathrm{sd}^{\text{area}},\mathrm{CI}\leftarrow$ kuantil (391-400)\;
   \textbf{fallback} \eqref{eq:hbtwofold-mse-area} bila sampling gagal (407-418)
