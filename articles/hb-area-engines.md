@@ -12,6 +12,14 @@ can be estimated by two engines:
   GPU (`device = "cuda"`) or on the GPU of Apple silicon
   (`device = "metal"`).
 
+The INLA times on this page were measured in INLA’s default `"compact"`
+mode. Since fastsae 1.0.0, Gaussian models are fitted in INLA’s
+`"classic"` mode, which is more accurate for them (see the Engines
+section of
+[`?hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md))
+and took about the same time in our checks; the other families still use
+the compact mode.
+
 This page compares the speed of both engines, on the CPU and on a GPU,
 and how closely their estimates agree. The comparison uses spatial
 area-level models. For the Beta model it also includes the

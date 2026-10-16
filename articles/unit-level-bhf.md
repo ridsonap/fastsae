@@ -200,12 +200,12 @@ fit_hbu <- hb_unit(
 
 head(fit_hbu$df_hb[, c("domain", "samp_size", "hb", "sd", "ci_lower", "ci_upper")])
 #>   domain samp_size       hb       sd  ci_lower ci_upper
-#> 1      1         1 121.9016 7.222533 107.74541 136.0577
-#> 2      2         1 123.0494 7.079345 109.17390 136.9249
-#> 3      3         1 113.9771 7.811679  98.66616 129.2879
-#> 4      4         2 115.6179 6.664442 102.55556 128.6802
-#> 5      5         3 134.4781 7.703210 119.37983 149.5764
-#> 6      6         3 107.6291 6.444246  94.99842 120.2599
+#> 1      1         1 121.3256 6.358679 108.86258 133.7886
+#> 2      2         1 122.6207 6.192291 110.48386 134.7576
+#> 3      3         1 114.9777 6.930166 101.39462 128.5609
+#> 4      4         2 116.1428 5.921748 104.53616 127.7494
+#> 5      5         3 132.7227 7.283982 118.44609 146.9993
+#> 6      6         3 106.7526 5.954208  95.08232 118.4228
 ```
 
 County by county, the posterior means are close to the EBLUP:
@@ -221,18 +221,18 @@ data.frame(
   sd_hb = round(fit_hbu$df_hb$sd, 1)
 )
 #>    County n eblup    hb rmse_eblup sd_hb
-#> 1       1 1 122.6 121.9        9.0   7.2
-#> 2       2 1 123.5 123.0        8.4   7.1
-#> 3       3 1 113.0 114.0        9.0   7.8
-#> 4       4 2 115.0 115.6        7.3   6.7
-#> 5       5 3 137.3 134.5        5.7   7.7
-#> 6       6 3 109.0 107.6        7.7   6.4
-#> 7       7 3 116.5 117.2        7.0   5.9
-#> 8       8 3 122.8 122.3        6.6   5.9
-#> 9       9 4 111.6 109.9        6.2   6.2
-#> 10     10 5 124.2 124.9        6.2   5.3
-#> 11     11 5 112.5 115.2        5.0   6.6
-#> 12     12 6 131.3 131.3        5.3   5.0
+#> 1       1 1 122.6 121.3        9.0   6.4
+#> 2       2 1 123.5 122.6        8.4   6.2
+#> 3       3 1 113.0 115.0        9.0   6.9
+#> 4       4 2 115.0 116.1        7.3   5.9
+#> 5       5 3 137.3 132.7        5.7   7.3
+#> 6       6 3 109.0 106.8        7.7   6.0
+#> 7       7 3 116.5 117.6        7.0   5.4
+#> 8       8 3 122.8 122.0        6.6   5.3
+#> 9       9 4 111.6 108.9        6.2   5.8
+#> 10     10 5 124.2 125.4        6.2   4.8
+#> 11     11 5 112.5 116.8        5.0   6.4
+#> 12     12 6 131.3 131.3        5.3   4.6
 ```
 
 The two sets of estimates differ by less than 5 hectares (about 4% of
@@ -251,7 +251,7 @@ The county estimates in `df_hb` are reliable:
 [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
 fits in INLA’s `"classic"` mode, which on these data matches the exact
 posterior (computed by numerical integration over the two variances) and
-gives the same result on every call.
+is stable from call to call.
 
 ### Counties without a sample
 
@@ -274,7 +274,7 @@ fit_hbu1$unsampled_domains
 #> [1] 1
 fit_hbu1$df_hb[fit_hbu1$df_hb$domain == 1, c("domain", "samp_size", "hb", "sd")]
 #>   domain samp_size       hb       sd
-#> 1      1         0 119.3636 7.545015
+#> 1      1         0 119.4646 9.263469
 ```
 
 The population means in `Xpop` must be complete: a missing mean is an
@@ -282,6 +282,11 @@ error, since the prediction of that county would be wrong.
 [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
 also fits binomial and Poisson responses (`family`) and a spatial county
 effect (`spatial = "bym2"` or `"besag"` with a proximity matrix `W`).
+For binomial and Poisson responses the county means are predicted at the
+mean covariates, which is biased for a nonlinear link (by -8% and -16%
+in a simulation; see
+[`?hb_unit`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)),
+and the function warns about it.
 
 ## References
 

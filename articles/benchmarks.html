@@ -514,10 +514,9 @@ years) with spatial polygon contiguity matrix
 from <strong><code>emilia_shp</code></strong>.</p>
 <table class="table">
 <colgroup>
-<col width="25%">
-<col width="25%">
-<col width="25%">
-<col width="25%">
+<col width="33%">
+<col width="33%">
+<col width="33%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Metric</th>
@@ -525,58 +524,53 @@ from <strong><code>emilia_shp</code></strong>.</p>
 <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Stan MCMC)</th>
 <th align="left">
 <code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> (INLA)</th>
-<th align="left">Advantage</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left"><strong>Model Specification</strong></td>
-<td align="left">Besag ICAR + Domain RW(1)</td>
+<td align="left"><strong>Model</strong></td>
+<td align="left">Beta, Besag ICAR + domain-specific RW(1)</td>
 <td align="left">
-<code>spatial = "besag"</code>,
-<code>temporal = "rw1"</code>,
-<code>st_interaction = "domain-specific"</code>
-</td>
-<td align="left"><strong>Exact structural equivalence</strong></td>
+<code>family = "beta"</code>,
+<code>spatial = "besag"</code>, <code>temporal = "rw1"</code>,
+<code>st_interaction = "domain-specific"</code>; same structure,
+different priors</td>
 </tr>
 <tr class="even">
-<td align="left"><strong>Computational Engine</strong></td>
-<td align="left">Hamiltonian Monte Carlo (NUTS Stan)</td>
-<td align="left">Integrated Nested Laplace Approximation</td>
-<td align="left">Analytical &amp; deterministic</td>
+<td align="left"><strong>Computation</strong></td>
+<td align="left">Hamiltonian Monte Carlo (NUTS)</td>
+<td align="left">Integrated nested Laplace approximation (INLA’s default
+<code>"compact"</code> mode for Beta)</td>
 </tr>
 <tr class="odd">
-<td align="left"><strong>Execution Time</strong></td>
-<td align="left">
-<strong>15.8 s</strong> (1 chain, 200 iter) / ~120 s (4
-chains)</td>
-<td align="left">
-<strong>1.93 s</strong>
-(<code>simplified.laplace</code>)</td>
-<td align="left"><strong>~9x to 50x+ faster</strong></td>
+<td align="left"><strong>Execution time</strong></td>
+<td align="left">120 s (4 chains x 2000 iterations in parallel; largest
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat R</annotation></semantics></math>
+1.07). One chain of 200 iterations takes about 10 s but has not
+converged
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat R</annotation></semantics></math>
+&gt; 2)</td>
+<td align="left">1.1 s</td>
 </tr>
 <tr class="even">
-<td align="left"><strong>Pearson Correlation
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>)</strong></td>
-<td align="left">Baseline</td>
-<td align="left"><strong>0.9893</strong></td>
-<td align="left"><strong>Near-identical point estimates</strong></td>
+<td align="left"><strong>Posterior means vs converged
+<code>tipsae</code></strong></td>
+<td align="left">Reference</td>
+<td align="left">
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.998</mn></mrow><annotation encoding="application/x-tex">r = 0.998</annotation></semantics></math>,
+mean absolute difference 0.0016 (largest 0.006)</td>
 </tr>
 <tr class="odd">
-<td align="left"><strong>Mean Absolute Error (MAE)</strong></td>
-<td align="left">Baseline</td>
-<td align="left"><strong>0.00304</strong></td>
-<td align="left"><strong>Negligible numerical error</strong></td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Convergence Overhead</strong></td>
-<td align="left">Requires
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>R</mi><mo accent="true">̂</mo></mover><mo>&lt;</mo><mn>1.05</mn></mrow><annotation encoding="application/x-tex">\hat{R} &lt; 1.05</annotation></semantics></math>
-checks, warmup, and tuning</td>
-<td align="left">None (closed-form Laplace expansions)</td>
-<td align="left">Instant convergence</td>
+<td align="left"><strong>Posterior SD vs
+<code>tipsae</code></strong></td>
+<td align="left">Reference</td>
+<td align="left">ratio 0.84 to 1.26 (the priors differ)</td>
 </tr>
 </tbody>
 </table>
+<p>Measured on 2026-10-16 on one machine (Apple silicon, R 4.6.1, INLA
+26.8.7, tipsae 1.0.3); times depend on the hardware. INLA needs no
+chains or warm-up, but its fit should still be checked
+(<code>convergence</code>, from INLA’s mode search).</p>
 <div class="section level3">
 <h3 id="interactive-beta-sae-benchmark-explorer-n-30-to-n-1000">Interactive Beta SAE Benchmark Explorer
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">n = 30</annotation></semantics></math>

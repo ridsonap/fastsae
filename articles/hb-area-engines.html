@@ -117,6 +117,12 @@ No-U-Turn sampler on <a href="https://jax.readthedocs.io" class="external-link">
 runs on the CPU, on an NVIDIA GPU (<code>device = "cuda"</code>) or on
 the GPU of Apple silicon (<code>device = "metal"</code>).</li>
 </ul>
+<p>The INLA times on this page were measured in INLA’s default
+<code>"compact"</code> mode. Since fastsae 1.0.0, Gaussian models are
+fitted in INLA’s <code>"classic"</code> mode, which is more accurate for
+them (see the Engines section of <code><a href="../reference/hb_area.html">?hb_area</a></code>) and took about
+the same time in our checks; the other families still use the compact
+mode.</p>
 <p>This page compares the speed of both engines, on the CPU and on a
 GPU, and how closely their estimates agree. The comparison uses spatial
 area-level models. For the Beta model it also includes the <a href="https://CRAN.R-project.org/package=tipsae" class="external-link">tipsae</a> package,

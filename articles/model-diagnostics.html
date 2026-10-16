@@ -360,7 +360,7 @@ Bayesian models fitted with <code><a href="../reference/hb_area.html">hb_area()<
 <span>  data <span class="op">=</span> <span class="va">sim_area</span>,</span>
 <span>  vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>
 <span>  spatial <span class="op">=</span> <span class="st">"bym2"</span>,</span>
-<span>  W <span class="op">=</span> <span class="va">mys_proxmat</span>,</span>
+<span>  W <span class="op">=</span> <span class="fu"><a href="../reference/create_weights.html">create_weights</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">sim_area</span><span class="op">$</span><span class="va">x_coord</span>, <span class="va">sim_area</span><span class="op">$</span><span class="va">y_coord</span><span class="op">)</span>, method <span class="op">=</span> <span class="st">"knn"</span>, k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -380,14 +380,14 @@ Bayesian models fitted with <code><a href="../reference/hb_area.html">hb_area()<
 <span><span class="co">#&gt; [1] 17.64954</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $mean_sae_rse</span></span>
-<span><span class="co">#&gt; [1] 106.2029</span></span>
+<span><span class="co">#&gt; [1] 68.85631</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $median_sae_rse</span></span>
-<span><span class="co">#&gt; [1] 18.65733</span></span>
+<span><span class="co">#&gt; [1] 18.67816</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $eff_ratio_summary</span></span>
 <span><span class="co">#&gt;      Min   Q1.25%   Median     Mean   Q3.75%      Max </span></span>
-<span><span class="co">#&gt; 1.137404 1.273204 1.319767 1.326788 1.411177 1.500941 </span></span>
+<span><span class="co">#&gt; 1.127815 1.272777 1.319572 1.328885 1.406514 1.521001 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $prop_gain</span></span>
 <span><span class="co">#&gt; [1] 100</span></span>

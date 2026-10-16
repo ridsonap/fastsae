@@ -260,7 +260,7 @@ fit_hb <- hb_area(
   data = sim_area,
   vardir = "vardir",
   spatial = "bym2",
-  W = mys_proxmat,
+  W = create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4),
   print_result = FALSE
 )
 
@@ -280,14 +280,14 @@ diag_hb$precision
 #> [1] 17.64954
 #> 
 #> $mean_sae_rse
-#> [1] 106.2029
+#> [1] 68.85631
 #> 
 #> $median_sae_rse
-#> [1] 18.65733
+#> [1] 18.67816
 #> 
 #> $eff_ratio_summary
 #>      Min   Q1.25%   Median     Mean   Q3.75%      Max 
-#> 1.137404 1.273204 1.319767 1.326788 1.411177 1.500941 
+#> 1.127815 1.272777 1.319572 1.328885 1.406514 1.521001 
 #> 
 #> $prop_gain
 #> [1] 100

@@ -21,10 +21,12 @@ spatial dependency and temporal autocorrelation.
 The **fastsae** package introduces
 [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
 a unified hierarchical Bayesian framework powered by **Integrated Nested
-Laplace Approximations (INLA)**. It provides fast, deterministic, and
-highly accurate analytical posterior approximations without the
-computational bottlenecks, convergence diagnostics, or chain-tuning
-associated with Markov Chain Monte Carlo (MCMC).
+Laplace Approximations (INLA)**. It provides fast deterministic
+approximations of the posterior marginals, without the chains, warm-up
+and tuning of Markov chain Monte Carlo (MCMC); against long Stan runs
+with the same model and priors its posterior means and SDs agreed
+closely (see the Engines section of
+[`?hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)).
 
 ------------------------------------------------------------------------
 
@@ -250,30 +252,30 @@ summary(fit_beta_st)
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00
-#> x            4.0612e-01  6.4372e-02  6.3090e+00  2.8086e-10  2.7947e-01
+#> x            4.0612e-01  6.4372e-02  6.3090e+00  2.8083e-10  2.7947e-01
 #>             ci_upper
 #> (Intercept)  -2.2218
 #> x             0.5321
 #> 
 #> Hyperparameters:
 #>                                  mean        sd 0.025quant  0.5quant 0.975quant
-#> Precision for ..domain_id..  18.22308  6.626526   8.634676  17.10219   34.35059
-#> Precision for ..time_id..   172.31315 78.436043  72.154366 155.44954  373.05481
+#> Precision for ..domain_id..  18.22295  6.626352   8.634658  17.10212   34.34991
+#> Precision for ..time_id..   172.31377 78.438307  72.151131 155.44985  373.06049
 #>                                  mode
-#> Precision for ..domain_id..  15.06352
-#> Precision for ..time_id..   127.08197
+#> Precision for ..domain_id..  15.06357
+#> Precision for ..time_id..   127.08208
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -976.34172 
+#>                                            -976.34170 
 #>                                                    pD 
-#>                                              56.02392 
+#>                                              56.02368 
 #>                                                  WAIC 
-#>                                            -984.78996 
+#>                                            -984.78982 
 #>                                                 pWAIC 
-#>                                              38.70817 
+#>                                              38.70809 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                             439.32542 
+#>                                             439.32543 
 #> 
 #> HB Summary Statistics:
 #>        hb           linear_pred           sd                mse           
@@ -301,19 +303,19 @@ standard errors, and 95% Credible Intervals:
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 #>                domain time      y         hb          sd       rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554637 0.006127616 11.031532 0.04408721
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225895 0.006131569  7.453985 0.07068300
-#> 3               IMOLA 2014 0.1033 0.09343261 0.010214751 10.932747 0.07511424
-#> 4         PIANURA EST 2014 0.0633 0.06509825 0.006294801  9.669692 0.05342020
-#> 5       PIANURA OVEST 2014 0.0625 0.07112652 0.007870676 11.065740 0.05671267
-#> 6      PORRETTA TERME 2014 0.1276 0.09608746 0.012916501 13.442441 0.07314341
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554642 0.006127582 11.031460 0.04408733
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225897 0.006131558  7.453969 0.07068304
+#> 3               IMOLA 2014 0.1033 0.09343255 0.010214719 10.932720 0.07511421
+#> 4         PIANURA EST 2014 0.0633 0.06509827 0.006294782  9.669661 0.05342026
+#> 5       PIANURA OVEST 2014 0.0625 0.07112654 0.007870658 11.065712 0.05671273
+#> 6      PORRETTA TERME 2014 0.1276 0.09608741 0.012916464 13.442411 0.07314336
 #>     ci_upper
 #> 1 0.06810566
 #> 2 0.09473235
-#> 3 0.11517444
-#> 4 0.07814090
-#> 5 0.08759940
-#> 6 0.12376172
+#> 3 0.11517429
+#> 4 0.07814088
+#> 5 0.08759939
+#> 6 0.12376152
 ```
 
 ------------------------------------------------------------------------
@@ -321,17 +323,24 @@ head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower",
 ## Comparison and Validation Against `tipsae` (Stan MCMC)
 
 In `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`,
-the model is estimated using Hamiltonian Monte Carlo (HMC) in Stan. In
-[`fastsae::hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-the identical structural model is estimated analytically via INLA.
+the model is estimated by Hamiltonian Monte Carlo (HMC) in Stan.
+[`fastsae::hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+fits a model with the same structure by INLA; the priors of the two
+packages differ.
 
-| Characteristic | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan MCMC) | [`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md) (INLA) | Advantage |
-|:---|:---|:---|:---|
-| **Model Specification** | Besag ICAR + Domain RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` | Exact structural match |
-| **Estimation Method** | MCMC (NUTS) | Integrated Nested Laplace Approximations | Deterministic, no burn-in needed |
-| **Execution Time** | ~15.8 s (1 chain, 200 iter) / ~120 s (4 chains) | **1.93 s** (`simplified.laplace`) | **~9x to 50x+ faster** |
-| **Pearson Correlation ($`r`$)** | Baseline | **0.9893** | Near-identical estimates |
-| **Mean Absolute Error (MAE)** | Baseline | **0.00304** | Negligible numerical discrepancy |
+| Characteristic | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan MCMC) | [`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md) (INLA) |
+|:---|:---|:---|
+| **Model** | Beta, Besag ICAR + domain-specific RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` |
+| **Estimation** | MCMC (NUTS) | Integrated nested Laplace approximation (INLA’s default `"compact"` mode for Beta) |
+| **Execution time** | 120 s (4 chains x 2000 iterations, largest $`\hat R`$ 1.07); one chain of 200 iterations (about 10 s) has not converged | 1.1 s |
+| **Posterior means vs converged `tipsae`** | Reference | $`r = 0.998`$, mean absolute difference 0.0016 |
+
+Measured on 2026-10-16 on one machine (Apple silicon); times depend on
+the hardware. The accuracy of
+[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+was also checked against Stan with identical models and priors; see the
+Engines section of
+[`?hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md).
 
 ### Interactive Scalability Explorer ($`n = 30`$ to $`n = 1,000`$)
 
@@ -391,7 +400,9 @@ population offsets:
 
 # Simulate 42-domain count data with known spatial structure
 data("sim_area", package = "fastsae")
-data("mys_proxmat", package = "fastsae")
+
+# The BYM2 model uses a neighbourhood graph: the 4 nearest centroids of each domain
+W_knn <- create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4)
 
 # Fit Poisson Spatial Model with population exposure offset
 fit_pois <- hb_area(
@@ -400,62 +411,62 @@ fit_pois <- hb_area(
   exposure = "exposure",
   family = "poisson",
   spatial = "bym2",
-  W = mys_proxmat,
+  W = W_knn,
   print_result = FALSE
 )
 
 summary(fit_pois)
 #> 
 #> Variance Components:
-#> sigma2_u: 0.063257 
-#> rho (spatial): 0.4756 
-#> phi (spatial fraction): 0.4756 
+#> sigma2_u: 0.06618 
+#> rho (spatial): 0.152 
+#> phi (spatial fraction): 0.152 
 #> 
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  1.4536e-01  1.3524e-01  1.0748e+00  2.8246e-01 -1.2125e-01
-#> x1           3.8369e-01  4.9803e-02  7.7040e+00  1.3182e-14  2.8563e-01
-#> x2          -2.9735e-01  3.3472e-02 -8.8834e+00  6.4825e-19 -3.6363e-01
+#> (Intercept)  1.4181e-01  1.3561e-01  1.0457e+00  2.9568e-01 -1.2539e-01
+#> x1           3.8631e-01  4.9074e-02  7.8719e+00  3.4936e-15  2.8964e-01
+#> x2          -2.9856e-01  3.2988e-02 -9.0507e+00  1.4207e-19 -3.6392e-01
 #>             ci_upper
-#> (Intercept)   0.4120
-#> x1            0.4820
-#> x2           -0.2317
+#> (Intercept)   0.4094
+#> x1            0.4831
+#> x2           -0.2339
 #> 
 #> Hyperparameters:
 #>                                   mean        sd 0.025quant   0.5quant
-#> Precision for ..domain_id.. 17.0200824 4.6703976 9.50743380 16.4616124
-#> Phi for ..domain_id..        0.4755953 0.2611292 0.05378114  0.4645509
-#>                             0.975quant       mode
-#> Precision for ..domain_id.. 27.7453648 15.4392285
-#> Phi for ..domain_id..        0.9367067  0.2294218
+#> Precision for ..domain_id.. 16.3138505 4.5696872 9.02117427 15.7490780
+#> Phi for ..domain_id..        0.1519645 0.1492471 0.00706552  0.1005784
+#>                             0.975quant        mode
+#> Precision for ..domain_id.. 26.8604738 14.70772394
+#> Phi for ..domain_id..        0.5678402  0.01687154
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                             317.61486 
+#>                                             317.75652 
 #>                                                    pD 
-#>                                              31.75462 
+#>                                              31.80731 
 #>                                                  WAIC 
-#>                                             309.63796 
+#>                                             309.86485 
 #>                                                 pWAIC 
-#>                                              17.13690 
+#>                                              17.22853 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                            -169.74606 
+#>                                            -185.30457 
 #> 
 #> HB Summary Statistics:
 #>        hb          linear_pred            sd               mse           
-#>  Min.   :0.3080   Min.   :-1.1892   Min.   :0.02948   Min.   :0.0008689  
-#>  1st Qu.:0.7659   1st Qu.:-0.2776   1st Qu.:0.05787   1st Qu.:0.0033496  
-#>  Median :1.3851   Median : 0.3240   Median :0.07672   Median :0.0058864  
-#>  Mean   :1.5312   Mean   : 0.2393   Mean   :0.16093   Mean   :0.0665233  
-#>  3rd Qu.:2.2717   3rd Qu.: 0.7917   3rd Qu.:0.12182   3rd Qu.:0.0148529  
-#>  Max.   :3.5986   Max.   : 1.2802   Max.   :0.75386   Max.   :0.5682996  
+#>  Min.   :0.3072   Min.   :-1.1919   Min.   :0.02957   Min.   :0.0008745  
+#>  1st Qu.:0.7646   1st Qu.:-0.2790   1st Qu.:0.05802   1st Qu.:0.0033665  
+#>  Median :1.3848   Median : 0.3238   Median :0.07676   Median :0.0058921  
+#>  Mean   :1.5290   Mean   : 0.2384   Mean   :0.16054   Mean   :0.0659979  
+#>  3rd Qu.:2.2984   3rd Qu.: 0.8022   3rd Qu.:0.12181   3rd Qu.:0.0148494  
+#>  Max.   :3.6013   Max.   : 1.2809   Max.   :0.74697   Max.   :0.5579673  
 #>       rse        
 #>  Min.   : 2.790  
-#>  1st Qu.: 5.156  
-#>  Median : 6.256  
-#>  Mean   :10.339  
-#>  3rd Qu.: 9.882  
-#>  Max.   :29.442
+#>  1st Qu.: 5.159  
+#>  Median : 6.259  
+#>  Mean   :10.346  
+#>  3rd Qu.: 9.880  
+#>  Max.   :29.445
 ```
 
 ------------------------------------------------------------------------
