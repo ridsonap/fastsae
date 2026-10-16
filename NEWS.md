@@ -111,25 +111,42 @@
   changes the random number stream of the session; the bootstrap MSEs are unchanged.
 * `eblup_twofold()` uses `B = 100` and `seed = -1` (no seed) by default, as the other EBLUP
   functions (it used `B = 200` and `seed = NULL`; `NULL` still means no seed).
-* Gaussian models of `hb_area()`, `hb_unit()` and `hb_twofold()` are fitted in INLA's `"classic"`
-  mode (Rue, Martino and Chopin, 2009); the other families keep INLA's default `"compact"` mode
-  (van Niekerk et al., 2023), which leaves the linear predictors out of the latent field and is
-  designed for data-rich models. The choice rests on comparisons with the exact posterior
-  (numerical integration over the variances) and with long Stan runs with the same model and
-  priors (`hb_area()`: 12 configurations, 18 paired comparisons):
+* Gaussian models of `hb_area()`, `hb_unit()` and `hb_twofold()`, and the Leroux and SLM effects
+  of `hb_area()` for any family, are fitted in INLA's `"classic"` mode (Rue, Martino and Chopin,
+  2009); the other models keep INLA's default `"compact"` mode (van Niekerk et al., 2023), which
+  leaves the linear predictors out of the latent field and is designed for data-rich models.
+  Gaussian models of `hb_area()` with a `"type1"` to `"type4"` interaction also integrate over a
+  grid of hyperparameters. The choices rest on comparisons with the exact posterior (numerical
+  integration over the variances) and with long Stan runs with the same model and priors (scripts
+  in `benchmarks/validation`):
   * Gaussian: the compact mode overstated the posterior SDs by up to 18% (`hb_area()`, when the
     area variance is small relative to `vardir`; it was accurate on `mys`), 8-15% (`hb_unit()`,
     `cornsoybean`) and 10% (`hb_twofold()`), and `hb_unit()` gave different county means on
     identical calls (up to 3 hectares and 13% in the SDs). In the classic mode the posterior means
     were within 0.07 posterior SD and the SDs within 0.91-1.03 times the reference, at the same
-    speed.
+    speed. With a space-time interaction both modes overstated the SDs by 6-13%; classic with the
+    grid matched Stan (means within 0.04 SD, SDs within 2%) and takes 5-8 times longer.
   * Binomial, Poisson, beta and gamma: both modes matched Stan (compact: means within 0.16
     posterior SD, SDs within 0.95-1.08 times), and the classic mode was much slower for many
     areas or units (beta with 2000 areas: 32 s against 1.3 s; `hb_unit()` binomial with 4000
-    units: 72 s against 2.6 s).
+    units: 72 s against 2.6 s). The exception is the Leroux and SLM effects, where compact moved
+    Poisson means by 0.12-0.15 SD (classic: within 0.03 SD).
   * With a small area variance, the classic summary of that variance (`random_effect_var`) is
     biased downwards while the area estimates are accurate; this is documented.
-    `inla_engine(inla.mode = )` selects a mode.
+    `inla_engine(inla.mode = , control.inla = )` overrides the settings.
+* `hb_area()` space-time interactions with a random walk in time are identified as in Knorr-Held
+  (2000). INLA's default constraints left one level (rw1) or one linear trend (rw2) per domain
+  with a flat prior: a domain without direct estimates had a posterior SD of 36-58 (other domains
+  about 0.4) in the type IV interaction (rw1, rw2) and the type II interaction (rw2). These
+  interactions are now a `generic0` term with the scaled Kronecker structure and all the
+  constraints (sums over domains per period and over periods per domain, and linear trends per
+  domain for rw2); they match Stan with the same constraints. The `"separable"` field with a
+  random walk in time, which has no spatial main effect to carry the domain levels, and the
+  `"domain-specific"` rw2, which has no common trend, now stop with an error suggesting
+  `temporal = "ar1"`, `"type4"` or `"type2"`.
+* `hb_area(family = "nbinomial")` warns that with one count per area the overdispersion and the
+  area effect are only weakly identified: INLA's posterior means were off by up to 0.6 posterior
+  SD against Stan in every mode. `"poisson"` or `engine = "jax"` (MCMC) is suggested.
 * CAR models (`spatial = "besag"`, `"bym"`, `"bym2"`, `"leroux"`) of `hb_area()`, `hb_unit()` and
   `hb_twofold()` use only the pattern `W > 0`. A dense `W` such as distance-decay weights becomes
   a (nearly) complete graph and an almost unstructured spatial effect; it now gives a warning.

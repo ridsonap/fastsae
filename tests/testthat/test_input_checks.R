@@ -415,3 +415,93 @@ test_that("a dense W for a CAR model gives a warning", {
   # the SAR (slm) model uses the weights themselves
   expect_no_warning(.convert_spatial_weights(mys_proxmat, n_domains = 42, spatial = "slm"))
 })
+
+# Knorr-Held (2000) interactions with a random walk in time are intrinsic in
+# the direction "one level (rw1) or one linear trend (rw2) per domain". INLA's
+# default constraints left those directions with a flat prior: a domain without
+# direct estimates got a posterior SD of 42-155 (others about 0.4).
+st_panel <- function() {
+  D <- 25; Tt <- 6
+  set.seed(1)
+  d <- expand.grid(area = 1:D, year = 1:Tt)
+  d$x1 <- rnorm(nrow(d)); d$vardir <- runif(nrow(d), 0.3, 1)
+  d$y <- 5 + d$x1 + rnorm(D, sd = 0.5)[d$area] + cumsum(rnorm(Tt, sd = 0.3))[d$year] +
+    rnorm(nrow(d), sd = 0.3) + rnorm(nrow(d), sd = sqrt(d$vardir))
+  d$y[d$area == 7] <- NA
+  list(d = d, W = sim_spatial_weights(D, type = "grid", seed = 1))
+}
+
+test_that("type IV and type II interactions are identified by Knorr-Held constraints", {
+  skip_if_not_installed("INLA")
+  p <- st_panel()
+  for (cfg in list(c("type4", "rw1"), c("type4", "rw2"), c("type2", "rw2"))) {
+    f <- suppressWarnings(hb_area(y ~ x1, data = p$d, vardir = "vardir", domain = "area", time = "year",
+                                  spatial = "besag", temporal = cfg[2], st_interaction = cfg[1],
+                                  W = p$W, print_result = FALSE))
+    sd7 <- mean(f$df_hb$sd[f$df_hb$domain == 7])
+    expect_lt(sd7, 3 * stats::median(f$df_hb$sd[f$df_hb$domain != 7]))
+  }
+})
+
+test_that("separable random walks and domain-specific rw2 are rejected", {
+  p <- st_panel()
+  for (tp in c("rw1", "rw2")) {
+    expect_error(hb_area(y ~ x1, data = p$d, vardir = "vardir", domain = "area", time = "year",
+                         spatial = "besag", temporal = tp, st_interaction = "separable", W = p$W,
+                         print_result = FALSE),
+                 "ar1")
+  }
+  expect_error(hb_area(y ~ x1, data = p$d, vardir = "vardir", domain = "area", time = "year",
+                       temporal = "rw2", st_interaction = "domain-specific", print_result = FALSE),
+               "type2")
+})
+
+test_that("the Knorr-Held constraints span the null space of the interaction", {
+  skip_if_not_installed("INLA")
+  W <- as.matrix(unclass(sim_spatial_weights(9, type = "grid", seed = 1)))
+  W[9, ] <- W[, 9] <- 0                                  # an island
+  for (cfg in list(c("type4", "rw1"), c("type4", "rw2"), c("type2", "rw2"))) {
+    g <- .st_generic0(cfg[1], cfg[2], domain_id = rep(1:9, 4), time_id = rep(1:4, each = 9),
+                      n_domains = 9, n_times = 4, graph = (W > 0) * 1)
+    A <- g$extraconstr$A
+    C <- as.matrix(g$Cmatrix)
+    # independent constraints, as many as the rank deficiency, and each null
+    # direction of the structure matrix is removed by them
+    expect_equal(qr(A)$rank, nrow(A))
+    expect_equal(nrow(A), g$rankdef)
+    expect_equal(ncol(C) - qr(C)$rank, g$rankdef)
+    expect_equal(qr(rbind(C, A))$rank, ncol(C))
+  }
+})
+
+# Against Stan: Leroux and SLM in compact mode moved Poisson posterior means by
+# 0.12-0.15 posterior SD (classic: <= 0.03); Gaussian models with a Knorr-Held
+# interaction overstated SDs by 6-13% in both modes, and only grid integration
+# matched Stan (<= 0.04 SD); the negative binomial model was off in every mode.
+test_that("hb_area() picks the INLA settings validated against Stan", {
+  skip_if_not_installed("INLA")
+  d <- sim_area
+  for (sp in c("leroux", "slm")) {
+    f <- suppressWarnings(hb_area(y_poisson ~ x1, data = d, exposure = "exposure", family = "poisson",
+                                  spatial = sp, W = if (sp == "slm") mys_proxmat else mys_knn,
+                                  print_result = FALSE))
+    expect_identical(f$fit$.args$inla.mode, "classic")
+  }
+  p <- st_panel()
+  g <- suppressWarnings(hb_area(y ~ x1, data = p$d, vardir = "vardir", domain = "area", time = "year",
+                                spatial = "besag", temporal = "rw1", st_interaction = "type2", W = p$W,
+                                print_result = FALSE))
+  expect_identical(g$fit$.args$control.inla$int.strategy, "grid")
+  expect_identical(g$fit$.args$inla.mode, "classic")
+  # without an interaction the default integration is kept
+  h <- suppressWarnings(hb_area(y ~ x1, data = p$d, vardir = "vardir", domain = "area", time = "year",
+                                spatial = "besag", temporal = "rw1", W = p$W, print_result = FALSE))
+  expect_false(identical(h$fit$.args$control.inla$int.strategy, "grid"))
+})
+
+test_that("the negative binomial model of hb_area() warns about its accuracy", {
+  skip_if_not_installed("INLA")
+  expect_warning(hb_area(y_nbinomial ~ x1, data = sim_area, exposure = "exposure", family = "nbinomial",
+                         print_result = FALSE),
+                 "weakly identified")
+})

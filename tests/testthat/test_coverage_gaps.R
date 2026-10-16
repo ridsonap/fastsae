@@ -442,7 +442,7 @@ test_that("hb_area generic1 with prior_rho and bym separable paths", {
   mys_t$domain <- rep(1:10, 2)
   W_sub <- create_weights(cbind(sim_area$x_coord, sim_area$y_coord)[1:10, ], method = "knn", k = 3, style = "B")
   fit_bym_sep <- hb_area(y ~ x1, data = mys_t, W = W_sub,
-                          spatial = "bym", temporal = "rw1", st_interaction = "separable",
+                          spatial = "bym", temporal = "ar1", st_interaction = "separable",
                           domain = "domain", time = "time")
   expect_s3_class(fit_bym_sep, "fastsae")
 })

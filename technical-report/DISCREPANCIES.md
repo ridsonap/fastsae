@@ -145,6 +145,16 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
       sehingga CAR = graf lengkap; dokumentasi lama menyebut "contiguous".
       Kini warning kepadatan > 50% di `.convert_spatial_weights`; contoh dan
       vignette memakai kNN (k = 4) dari centroid `sim_area`.
+    - Validasi lanjutan (benchmarks/validation): Leroux (= generic1 dengan
+      C = I - R, lambda_max = 1) dan SLM benar; compact meleset 0,12-0,21 SD,
+      classic <= 0,04 SD -> classic untuk Leroux/SLM semua family.
+      Interaksi Knorr-Held: INLA (group) tidak mengendalikan level/tren per
+      domain untuk tipe IV RW1/RW2 dan tipe II RW2 -> domain tanpa data SD
+      36-58. Kini generic0 Kronecker + semua kendala; separable+RW dan
+      domain-specific+RW2 error. Gaussian + interaksi: kedua mode SD 6-13%
+      terlalu besar; classic + grid akurat (<= 0,06 SD) -> default.
+      nbinomial: overdispersi vs efek area lemah teridentifikasi, semua mode
+      meleset 0,33-0,64 SD -> warning.
     - Terverifikasi tanpa perubahan: Moran's I `spatial_test` = `spdep`;
       kendala self-benchmark eksak (~1e-15).
 - **Bukan kesalahan (disengaja, kini didokumentasikan):**

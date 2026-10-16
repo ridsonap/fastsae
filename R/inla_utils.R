@@ -35,6 +35,107 @@
 }
 
 
+#' Knorr-Held space-time interaction with all identifiability constraints
+#'
+#' With a random walk in time the interaction is intrinsic in the direction "one
+#' level per domain" (rw1) and also "one linear trend per domain" (rw2). INLA's
+#' grouped models constrain only within each group, so those directions kept a
+#' flat prior and a domain without direct estimates had a posterior SD of 36 or
+#' more; extraconstr of a grouped model is also applied per group. The
+#' interaction is therefore a generic0 model on the full domain x time index
+#' with the scaled Kronecker structure of Knorr-Held (2000) and all constraints:
+#'   type4: R_t (x) R_s, element (t - 1) * D + d; sum_d delta_dt = 0 per time and
+#'          connected component of the graph, sum_t delta_dt = 0 (and
+#'          sum_t (t - mean(t)) delta_dt = 0 for rw2) per domain, one domain per
+#'          component dropped (those rows are implied by the others);
+#'   type2: I_D (x) R_t, element (d - 1) * T + t; per-domain sum (and trend).
+#' Each factor is scaled to a generalised variance of 1 as with scale.model:
+#' R_t with its random-walk constraints, R_s per connected component. A domain
+#' without neighbours gets a spatial factor of 1 (an iid term).
+#' @return NULL when the grouped INLA model is already identified, else a list
+#'   with Cmatrix, rankdef, extraconstr and the index of every observation.
+#' @noRd
+.st_generic0 <- function(st_interaction, temporal, domain_id, time_id, n_domains, n_times,
+                         graph = NULL, scale_model = TRUE) {
+  if (!temporal %in% c("rw1", "rw2")) return(NULL)
+  if (!(st_interaction == "type4" || (st_interaction == "type2" && temporal == "rw2"))) return(NULL)
+  D <- n_domains
+  Tt <- n_times
+  k_t <- if (temporal == "rw1") 1L else 2L
+  tc <- seq_len(Tt) - (Tt + 1) / 2
+  Dmat <- diff(diag(Tt), differences = k_t)
+  R_t <- crossprod(Dmat)
+  if (isTRUE(scale_model)) {
+    A_t <- if (k_t == 1L) matrix(1, 1, Tt) else rbind(rep(1, Tt), tc)
+    R_t <- as.matrix(INLA::inla.scale.model(R_t, constr = list(A = A_t, e = rep(0, nrow(A_t)))))
+  }
+  row_dt <- function(d, w) {
+    a <- numeric(D * Tt)
+    a[if (st_interaction == "type4") (seq_len(Tt) - 1) * D + d else (d - 1) * Tt + seq_len(Tt)] <- w
+    a
+  }
+  if (st_interaction == "type4") {
+    adj <- (as.matrix(graph) > 0) * 1
+    diag(adj) <- 0
+    R_s <- diag(rowSums(adj)) - adj
+    comp <- .graph_components(adj)
+    sizes <- table(comp)
+    multi <- as.integer(names(sizes)[sizes > 1])
+    for (k in unique(comp)) {
+      m <- which(comp == k)
+      if (length(m) == 1) {
+        R_s[m, m] <- 1                       # a domain without neighbours: iid term
+      } else if (isTRUE(scale_model)) {
+        R_s[m, m] <- as.matrix(INLA::inla.scale.model(R_s[m, m, drop = FALSE],
+                                                      constr = list(A = matrix(1, 1, length(m)), e = 0)))
+      }
+    }
+    Cmat <- kronecker(R_t, R_s)
+    rows_time <- unlist(lapply(seq_len(Tt), function(t) lapply(multi, function(k) {
+      a <- numeric(D * Tt)
+      a[(t - 1) * D + which(comp == k)] <- 1
+      a
+    })), recursive = FALSE)
+    doms <- setdiff(seq_len(D), vapply(multi, function(k) which(comp == k)[1], integer(1)))
+    rows_dom <- lapply(doms, row_dt, w = 1)
+    if (k_t == 2L) rows_dom <- c(rows_dom, lapply(doms, row_dt, w = tc))
+    rows <- c(rows_time, rows_dom)
+    rankdef <- k_t * D + Tt * length(multi) - k_t * length(multi)
+    index <- (time_id - 1L) * D + domain_id
+  } else {
+    Cmat <- kronecker(diag(D), R_t)
+    rows <- c(lapply(seq_len(D), row_dt, w = 1), lapply(seq_len(D), row_dt, w = tc))
+    rankdef <- 2L * D
+    index <- (domain_id - 1L) * Tt + time_id
+  }
+  A <- do.call(rbind, rows)
+  list(Cmatrix = Matrix::Matrix(Cmat, sparse = TRUE), rankdef = rankdef,
+       extraconstr = list(A = A, e = rep(0, nrow(A))), index = index)
+}
+
+#' Connected components of an adjacency matrix (breadth-first search)
+#' @noRd
+.graph_components <- function(adj) {
+  adj <- as.matrix(adj) > 0
+  n <- nrow(adj)
+  comp <- integer(n)
+  k <- 0L
+  for (i in seq_len(n)) {
+    if (comp[i] > 0) next
+    k <- k + 1L
+    queue <- i
+    comp[i] <- k
+    while (length(queue) > 0) {
+      v <- queue[1]
+      queue <- queue[-1]
+      nb <- which(adj[v, ] & comp == 0)
+      comp[nb] <- k
+      queue <- c(queue, nb)
+    }
+  }
+  comp
+}
+
 #' Posterior draws of an INLA fit with a reproducible seed
 #'
 #' INLA chooses the hyperparameter configurations of the draws with R's RNG,

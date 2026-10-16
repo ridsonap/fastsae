@@ -89,8 +89,13 @@ Options:
   \item \code{"none"}: Additive main spatial and temporal effects (default).
   \item \code{"domain-specific"}: Domain-specific temporal random walk / AR(1) dynamics with
     shared variance parameter (directly corresponds to the \pkg{tipsae} spatio-temporal model).
-  \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1) / RW
+    Not available with \code{temporal = "rw2"}: without a common trend, the linear trend of
+    a domain without direct estimates has a flat prior; use \code{"type2"}.
+  \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1)
     (corresponds to classical Spatio-Temporal Fay-Herriot models, Marhuenda et al. 2013).
+    Only \code{temporal = "ar1"} or \code{"iid"}: with a random walk in time every domain's
+    level in the field has a flat prior, as the field has no spatial main effect; use
+    \code{"type4"}.
   \item \code{"type1"}: Knorr-Held (2000) Type I interaction (unstructured space \eqn{\times} unstructured time).
   \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time):
     an independent \code{temporal} process for each domain.
@@ -102,7 +107,13 @@ Options:
 The \code{"type*"} options add the interaction to the main spatial and temporal
 effects. \code{"type3"} and \code{"type4"} need a structured \code{spatial} effect
 (\code{"bym2"}, \code{"bym"}, \code{"besag"} or \code{"leroux"}); with INLA the interaction
-is an ICAR (\code{"besag"}) field on the graph of \code{W}.}
+is an ICAR (\code{"besag"}) field on the graph of \code{W}. With \code{temporal = "rw1"} or
+\code{"rw2"}, the type IV interaction (and type II with \code{"rw2"}) uses the scaled
+Kronecker structure with all the identifiability constraints of Knorr-Held (2000): sums over
+the domains are 0 in every period, and sums over the periods (and, for \code{"rw2"}, linear
+trends) are 0 in every domain. INLA's default constraints leave the latter out; with them
+alone, a domain without direct estimates had a posterior SD of 36-58 (other domains about
+0.4).}
 
 \item{W}{Proximity or spatial adjacency matrix. Can be a square \code{matrix},
 \code{Matrix}, or \code{spdep} \code{nb} or \code{listw} object. Dimensions must
@@ -232,20 +243,33 @@ uniform spatial mixing / autocorrelation parameters) instead of the PC priors of
 estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
 not use \code{vardir}.
 
-With the \code{"inla"} engine, \code{family = "gaussian"} is fitted in INLA's
-\code{"classic"} mode (Rue, Martino and Chopin, 2009) and the other families in INLA's
-default \code{"compact"} mode (van Niekerk et al., 2023), which leaves the linear predictors
-out of the latent field and is designed for data-rich models. This was chosen against long
-Stan runs with the same model and priors (12 configurations, 18 paired comparisons: Gaussian,
-binomial, Poisson, beta and gamma; iid, Besag and BYM2 effects; RW1 in time). For Gaussian
-models the compact mode overstated the posterior SDs by up to 18\% when the area variance was
-small relative to \code{vardir}, while the classic means were within 0.07 posterior SD of Stan
-and the SDs within 0.91-1.03 times Stan's, at the same speed. For the other families both
-modes matched Stan (compact: means within 0.16 posterior SD, SDs within 0.95-1.08 times), and
-the classic mode was much slower for many areas (beta, 2000 areas: 32 s against 1.3 s).
-\code{inla_engine(inla.mode = )} selects a mode. For Gaussian models with a small area
-variance, the classic summary of that variance (\code{random_effect_var}) was biased
-downwards, while the area estimates were accurate.
+With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of any family are
+fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use
+INLA's default \code{"compact"} mode (van Niekerk et al., 2023), which leaves the linear
+predictors out of the latent field and is designed for data-rich models. Gaussian models with
+a \code{"type1"} to \code{"type4"} interaction also use a grid over the hyperparameters
+(\code{int.strategy = "grid"}). These choices rest on comparisons with long Stan runs with the
+same model and priors (Gaussian, binomial, Poisson, beta, gamma and negative binomial; iid,
+Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held interactions):
+\itemize{
+  \item Gaussian: compact overstated the posterior SDs by up to 18\% when the area variance was
+    small relative to \code{vardir}; classic matched Stan (means within 0.07 posterior SD, SDs
+    within 0.91-1.03 times) at the same speed. With an interaction both modes overstated the SDs
+    by 6-13\%; classic with the grid matched Stan (means within 0.04 SD, SDs within 2\%) and
+    took 5-8 times longer.
+  \item Binomial, Poisson, beta and gamma with iid, Besag or BYM2 effects or an interaction:
+    compact matched Stan (means within 0.16 SD, SDs within 0.95-1.08 times), and classic was
+    much slower for many areas (beta, 2000 areas: 32 s against 1.3 s).
+  \item Leroux and SLM: compact moved the Poisson posterior means by 0.12-0.15 SD; classic was
+    within 0.03 SD.
+  \item Negative binomial: with one count per area the overdispersion and the area effect are
+    only weakly identified, and both modes were off (means up to 0.64 SD); the model gives a
+    warning.
+}
+\code{inla_engine(inla.mode = , control.inla = )} overrides these settings. For Gaussian models
+with a small area variance, the classic summary of that variance (\code{random_effect_var}) was
+biased downwards, while the area estimates were accurate. The validation scripts are in the
+package repository (\code{benchmarks/validation}).
 }
 
 \examples{
@@ -312,6 +336,8 @@ if (check_numpyro_available()) {
     horseshoe and other shrinkage priors. \emph{Electronic Journal of Statistics}, 11(2), 5018-5051.
   \item Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
     models by using integrated nested Laplace approximations. \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
+  \item Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time variation in disease
+    risk. \emph{Statistics in Medicine}, 19(17-18), 2555-2567.
   \item van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A new avenue for Bayesian
     inference with INLA. \emph{Computational Statistics & Data Analysis}, 181, 107692.
 }

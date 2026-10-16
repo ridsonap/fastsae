@@ -526,7 +526,9 @@ test_that("hb_area handles ST interaction types", {
                      spatial = "besag", temporal = "rw1", st_interaction = tp, W = W_st, print_result = FALSE)
     sr <- fit_t$fit$summary.random
     expect_equal(nrow(sr[["..domain_id.."]]), D)
-    expect_equal(nrow(sr[["..domain_id2.."]]), D * T_per)
+    # type IV with a random walk is a generic0 term with the Knorr-Held constraints
+    int_term <- if (tp == "type4") "..st_id2.." else "..domain_id2.."
+    expect_equal(nrow(sr[[int_term]]), D * T_per)
     expect_equal(fit_t$random_effect_var,
                  1 / fit_t$fit$summary.hyperpar["Precision for ..domain_id..", "mean"], tolerance = 0.5)
     expect_true(all(is.finite(fit_t$df_hb$hb)))

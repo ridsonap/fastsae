@@ -35,20 +35,33 @@
 #' estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
 #' not use \code{vardir}.
 #'
-#' With the \code{"inla"} engine, \code{family = "gaussian"} is fitted in INLA's
-#' \code{"classic"} mode (Rue, Martino and Chopin, 2009) and the other families in INLA's
-#' default \code{"compact"} mode (van Niekerk et al., 2023), which leaves the linear predictors
-#' out of the latent field and is designed for data-rich models. This was chosen against long
-#' Stan runs with the same model and priors (12 configurations, 18 paired comparisons: Gaussian,
-#' binomial, Poisson, beta and gamma; iid, Besag and BYM2 effects; RW1 in time). For Gaussian
-#' models the compact mode overstated the posterior SDs by up to 18\% when the area variance was
-#' small relative to \code{vardir}, while the classic means were within 0.07 posterior SD of Stan
-#' and the SDs within 0.91-1.03 times Stan's, at the same speed. For the other families both
-#' modes matched Stan (compact: means within 0.16 posterior SD, SDs within 0.95-1.08 times), and
-#' the classic mode was much slower for many areas (beta, 2000 areas: 32 s against 1.3 s).
-#' \code{inla_engine(inla.mode = )} selects a mode. For Gaussian models with a small area
-#' variance, the classic summary of that variance (\code{random_effect_var}) was biased
-#' downwards, while the area estimates were accurate.
+#' With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of any family are
+#' fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use
+#' INLA's default \code{"compact"} mode (van Niekerk et al., 2023), which leaves the linear
+#' predictors out of the latent field and is designed for data-rich models. Gaussian models with
+#' a \code{"type1"} to \code{"type4"} interaction also use a grid over the hyperparameters
+#' (\code{int.strategy = "grid"}). These choices rest on comparisons with long Stan runs with the
+#' same model and priors (Gaussian, binomial, Poisson, beta, gamma and negative binomial; iid,
+#' Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held interactions):
+#' \itemize{
+#'   \item Gaussian: compact overstated the posterior SDs by up to 18\% when the area variance was
+#'     small relative to \code{vardir}; classic matched Stan (means within 0.07 posterior SD, SDs
+#'     within 0.91-1.03 times) at the same speed. With an interaction both modes overstated the SDs
+#'     by 6-13\%; classic with the grid matched Stan (means within 0.04 SD, SDs within 2\%) and
+#'     took 5-8 times longer.
+#'   \item Binomial, Poisson, beta and gamma with iid, Besag or BYM2 effects or an interaction:
+#'     compact matched Stan (means within 0.16 SD, SDs within 0.95-1.08 times), and classic was
+#'     much slower for many areas (beta, 2000 areas: 32 s against 1.3 s).
+#'   \item Leroux and SLM: compact moved the Poisson posterior means by 0.12-0.15 SD; classic was
+#'     within 0.03 SD.
+#'   \item Negative binomial: with one count per area the overdispersion and the area effect are
+#'     only weakly identified, and both modes were off (means up to 0.64 SD); the model gives a
+#'     warning.
+#' }
+#' \code{inla_engine(inla.mode = , control.inla = )} overrides these settings. For Gaussian models
+#' with a small area variance, the classic summary of that variance (\code{random_effect_var}) was
+#' biased downwards, while the area estimates were accurate. The validation scripts are in the
+#' package repository (\code{benchmarks/validation}).
 #'
 #' @param formula An object of class \code{formula} specifying the fixed-effects model
 #'   (e.g., \code{y ~ x1 + x2}).
@@ -119,8 +132,13 @@
 #'     \item \code{"none"}: Additive main spatial and temporal effects (default).
 #'     \item \code{"domain-specific"}: Domain-specific temporal random walk / AR(1) dynamics with
 #'       shared variance parameter (directly corresponds to the \pkg{tipsae} spatio-temporal model).
-#'     \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1) / RW
+#'       Not available with \code{temporal = "rw2"}: without a common trend, the linear trend of
+#'       a domain without direct estimates has a flat prior; use \code{"type2"}.
+#'     \item \code{"separable"}: Grouped dynamic spatial field evolving over time via AR(1)
 #'       (corresponds to classical Spatio-Temporal Fay-Herriot models, Marhuenda et al. 2013).
+#'       Only \code{temporal = "ar1"} or \code{"iid"}: with a random walk in time every domain's
+#'       level in the field has a flat prior, as the field has no spatial main effect; use
+#'       \code{"type4"}.
 #'     \item \code{"type1"}: Knorr-Held (2000) Type I interaction (unstructured space \eqn{\times} unstructured time).
 #'     \item \code{"type2"}: Knorr-Held Type II interaction (unstructured space \eqn{\times} structured time):
 #'       an independent \code{temporal} process for each domain.
@@ -132,7 +150,13 @@
 #'   The \code{"type*"} options add the interaction to the main spatial and temporal
 #'   effects. \code{"type3"} and \code{"type4"} need a structured \code{spatial} effect
 #'   (\code{"bym2"}, \code{"bym"}, \code{"besag"} or \code{"leroux"}); with INLA the interaction
-#'   is an ICAR (\code{"besag"}) field on the graph of \code{W}.
+#'   is an ICAR (\code{"besag"}) field on the graph of \code{W}. With \code{temporal = "rw1"} or
+#'   \code{"rw2"}, the type IV interaction (and type II with \code{"rw2"}) uses the scaled
+#'   Kronecker structure with all the identifiability constraints of Knorr-Held (2000): sums over
+#'   the domains are 0 in every period, and sums over the periods (and, for \code{"rw2"}, linear
+#'   trends) are 0 in every domain. INLA's default constraints leave the latter out; with them
+#'   alone, a domain without direct estimates had a posterior SD of 36-58 (other domains about
+#'   0.4).
 #' @param self_benchmark Logical. If \code{TRUE}, the weighted aggregate of the area
 #'   estimates is made to match the direct survey aggregate or \code{benchmark_target}; see
 #'   \code{benchmark_method}.
@@ -212,6 +236,8 @@
 #'     horseshoe and other shrinkage priors. \emph{Electronic Journal of Statistics}, 11(2), 5018-5051.
 #'   \item Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
 #'     models by using integrated nested Laplace approximations. \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
+#'   \item Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time variation in disease
+#'     risk. \emph{Statistics in Medicine}, 19(17-18), 2555-2567.
 #'   \item van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A new avenue for Bayesian
 #'     inference with INLA. \emph{Computational Statistics & Data Analysis}, 181, 107692.
 #' }
@@ -293,6 +319,24 @@ hb_area <- function(
   if (spatial == "leroux") spatial <- "generic1" # same model; INLA calls it generic1
   temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
   st_interaction <- match.arg(tolower(st_interaction), choices = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"))
+  # A random walk in time leaves one level (rw1) or one linear trend (rw2) per domain
+  # with a flat prior when nothing else carries it: the separable field has no
+  # spatial main effect, and the domain-specific rw2 no common trend. A domain
+  # without direct estimates then got a posterior SD of 40 or more.
+  if (st_interaction == "separable" && temporal %in% c("rw1", "rw2")) {
+    cli::cli_abort(c(
+      "{.code st_interaction = \"separable\"} cannot be combined with {.code temporal = \"{temporal}\"}.",
+      "x" = "A random walk in time gives every domain an unpenalised level in the separable field, which has no spatial main effect: domains without direct estimates cannot be predicted.",
+      "i" = "Use {.code temporal = \"ar1\"} (a stationary field) or {.code st_interaction = \"type4\"} (spatial and temporal main effects plus their interaction)."
+    ))
+  }
+  if (st_interaction == "domain-specific" && temporal == "rw2") {
+    cli::cli_abort(c(
+      "{.code st_interaction = \"domain-specific\"} cannot be combined with {.code temporal = \"rw2\"}.",
+      "x" = "An rw2 per domain has an unpenalised linear trend in every domain and there is no common trend: domains without direct estimates cannot be predicted.",
+      "i" = "Use {.code st_interaction = \"type2\"} (a common trend plus domain deviations) or {.code temporal = \"rw1\"}."
+    ))
+  }
   if (spatial == "slm" && st_interaction == "separable") {
     cli::cli_abort(c(
       "{.code spatial = \"slm\"} cannot be combined with {.code st_interaction = \"separable\"}.",
@@ -325,6 +369,16 @@ hb_area <- function(
       cli::cli_abort("Posterior self-benchmarking needs {.code inla_engine(draws = )} of at least 1.")
     }
     .check_inla_link(engine$link, family)
+    if (family == "nbinomial") {
+      # With one count per area the negative binomial overdispersion and the area
+      # effect both describe extra variation between areas; against Stan, INLA's
+      # posterior means were off by 0.33-0.64 SD and the SDs by 0.57-1.24 times,
+      # in both modes and with grid integration.
+      cli::cli_warn(c(
+        "With one count per area, the negative binomial overdispersion and the area random effect are only weakly identified, and INLA's approximation of this model can be inaccurate.",
+        "i" = "Against long MCMC runs the posterior means were off by up to 0.6 posterior SD. Consider {.code family = \"poisson\"} (the area effect already captures overdispersion between areas) or {.code engine = \"jax\"} (MCMC)."
+      ))
+    }
   }
 
   if (!is.data.frame(data)) {
@@ -770,7 +824,19 @@ hb_area <- function(
       rand_terms <- c(rand_terms, paste0(
         "f(..time_id.., model = '", temporal, "'", scale_model_time, ", hyper = hyper_time)"
       ))
-      if (st_interaction == "type2") {
+      # With a random walk in time, type IV (and type II with rw2) is a generic0
+      # term with all Knorr-Held (2000) constraints (see .st_generic0())
+      st_g0 <- .st_generic0(st_interaction, temporal, domain_id = domain_id, time_id = time_id,
+                            n_domains = n_domains, n_times = n_times, graph = W_obj$graph,
+                            scale_model = scale_model)
+      if (!is.null(st_g0)) {
+        inla_data$..st_id2.. <- st_g0$index
+        rand_terms <- c(rand_terms, paste0(
+          "f(..st_id2.., model = 'generic0', Cmatrix = st_g0$Cmatrix, rankdef = st_g0$rankdef, ",
+          "constr = FALSE, extraconstr = st_g0$extraconstr, hyper = ",
+          if (st_interaction == "type2") "hyper_time)" else "list(prec = prior_prec))"
+        ))
+      } else if (st_interaction == "type2") {
         # unstructured space x structured time: one temporal process per domain
         rand_terms <- c(rand_terms, paste0(
           "f(..time_id2.., model = '", temporal, "', group = ..domain_id.., control.group = list(model = 'iid')",
@@ -817,6 +883,13 @@ hb_area <- function(
 
   # INLA strategy control
   control_inla <- list(strategy = strategy)
+  # Gaussian models with a Knorr-Held interaction: INLA's default integration over
+  # the three precisions overstated posterior SDs by 6-13% against Stan (posterior
+  # means off by up to 0.33 SD) in both modes; a grid matched Stan (<= 0.04 SD,
+  # SDs within 2%), about 5-8 times slower. inla_engine(control.inla = ) overrides.
+  if (family == "gaussian" && st_interaction %in% c("type1", "type2", "type3", "type4")) {
+    control_inla <- c(control_inla, list(int.strategy = "grid", dz = 0.5, diff.logdens = 8))
+  }
 
   # Family specific settings
   inla_args <- list(
@@ -827,14 +900,16 @@ hb_area <- function(
     control.predictor = control_predictor,
     control.inla = control_inla
   )
-  # Gaussian models fit in INLA's "classic" mode. Against Stan, the default
-  # "compact" mode (van Niekerk et al., 2023) overstated the posterior SDs of
-  # Gaussian models by up to 18% when the area variance is small relative to
-  # vardir; classic matched Stan at the same speed. For the other families both
-  # modes matched Stan, and classic was much slower for many areas (beta,
-  # n = 2000: 32 s against 1.3 s), so they keep INLA's default.
-  # inla_engine(inla.mode = ) overrides.
-  if (family == "gaussian" && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
+  # Gaussian models, and the Leroux and SLM effects of any family, fit in INLA's
+  # "classic" mode. Against Stan, the default "compact" mode (van Niekerk et al.,
+  # 2023) overstated the posterior SDs of Gaussian models by up to 18% when the
+  # area variance is small relative to vardir, and moved the posterior means of
+  # Poisson Leroux and SLM models by 0.12-0.15 SD; classic matched Stan. For the
+  # other non-Gaussian models both modes matched Stan, and classic was much
+  # slower for many areas (beta, n = 2000: 32 s against 1.3 s), so they keep
+  # INLA's default. inla_engine(inla.mode = ) overrides.
+  use_classic <- family == "gaussian" || spatial %in% c("generic1", "slm")
+  if (use_classic && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
   # User settings (inla_engine(...)) override; control.* lists are merged
   inla_args <- utils::modifyList(inla_args, list(...))
 

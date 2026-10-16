@@ -253,8 +253,48 @@ $n=2000$ $32$ vs $1{,}3$ detik; binomial $n=2000$ $12$ vs $1{,}6$ detik), padaha
 karena itu \code{classic} hanya untuk Gaussian. Kelemahan \code{classic}: ringkasan $\sigma^2$ Gaussian
 (\code{random\_effect\_var}) bias ke bawah saat $\sigma^2$ kecil (misalnya $0{,}055$ vs
 Stan $0{,}118$), sedangkan \code{compact} mendekati Stan; estimasi area tetap akurat.
-Belum divalidasi: Leroux/\code{generic1}, SLM, interaksi ruang--waktu tipe I--IV, dan
-\code{nbinomial}.
+\paragraph{Leroux, SLM, nbinomial dan interaksi Knorr-Held.} Validasi lanjutan dengan cara yang
+sama (skrip \code{benchmarks/validation/run\_spatial.R} dan \code{run\_st.R}). Leroux: dengan
+$C = I - R$ berlaku $\lambda_{\max}(C) = 1$ sehingga \code{generic1} \pkg{INLA} adalah persis
+$Q = \tau((1-\beta)I + \beta R)$. SLM: $x = (I-\rho W)^{-1}(X\beta + \varepsilon)$ dengan
+$\rho^\ast \sim U(0,1)$ dan $\beta \sim N(0, 10^4)$. Interaksi: efek utama Besag dan RW
+ter-\emph{scale}; di Stan setiap efek intrinsik ditulis $B z$ dengan $z \sim N(0, I)$ dan
+$B = V_+\Lambda_+^{-1/2}$ (setara kendala keras yang merentang ruang nol). Grid $5\times5$,
+$T = 6$, 15 sel NA dan domain 7 tanpa data.
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+Konfigurasi & \code{compact} & default \code{hb\_area} & SD domain 7 \\
+ & $|\Delta\mu|/\mathrm{sd}$; rasio SD & $|\Delta\mu|/\mathrm{sd}$; rasio SD & (rasio) \\
+\midrule
+Leroux Gaussian (3)      & $\le0{,}21$; $1{,}01$--$1{,}21$ & $\le0{,}024$; $0{,}95$--$1{,}01$ & -- \\
+Leroux Poisson           & $0{,}15$; $0{,}98$--$1{,}09$ & $0{,}02$; $0{,}96$--$1{,}01$ & -- \\
+SLM Gaussian (2)         & $\le0{,}19$; $0{,}96$--$1{,}17$ & $\le0{,}037$; $0{,}94$--$1{,}00$ & -- \\
+SLM Poisson              & $0{,}12$; $0{,}91$--$1{,}09$ & $0{,}03$; $0{,}96$--$1{,}02$ & -- \\
+nbinomial iid / BYM2     & $0{,}39$--$0{,}61$; $0{,}57$--$1{,}21$ & sama (warning) & -- \\
+Gaussian tipe I--IV RW1  & $0{,}15$--$0{,}28$; $0{,}96$--$1{,}11$ & $\le0{,}057$; $0{,}96$--$1{,}03$ & $1{,}01$ \\
+Gaussian tipe II/IV RW2  & $0{,}28$--$0{,}31$; $1{,}00$--$1{,}10$ & $\le0{,}037$; $0{,}98$--$1{,}03$ & $1{,}00$--$1{,}01$ \\
+Poisson tipe I--IV RW1   & $0{,}06$--$0{,}10$; $0{,}99$--$1{,}06$ & sama & $1{,}00$--$1{,}01$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Default \code{hb\_area}: \code{classic} untuk Gaussian dan untuk Leroux/SLM semua family;
+Gaussian dengan interaksi tipe I--IV juga integrasi \code{grid} ($dz = 0{,}5$, waktu $3{,}5$--$9{,}2$
+vs $0{,}7$--$1{,}2$ detik). Tanpa \emph{grid}, kedua mode memberi SD $6$--$13\%$ terlalu besar pada
+Gaussian dengan interaksi. nbinomial: dengan satu cacah per area, overdispersi dan efek area
+lemah teridentifikasi; tidak ada mode atau \emph{grid} yang akurat, sehingga diberi warning.
+
+\paragraph{Kendala identifiabilitas interaksi.} \pkg{INLA} membangun interaksi dengan
+\code{group}; kendala bawaannya hanya di dalam tiap grup, dan \code{extraconstr} pada model
+\code{group} juga per grup. Untuk tipe IV (RW1/RW2) dan tipe II (RW2) arah ``satu level/tren per
+domain'' (ruang nol $R_t\otimes R_s$, dimensi $k_tD + Tk_s - k_tk_s$) tidak terkendala, sehingga
+domain tanpa data mendapat SD $36$--$58$ (domain lain $\approx0{,}4$). Kini interaksi itu
+\code{generic0} dengan $C = R_t^\ast\otimes R_s^\ast$ (tipe IV) atau $I\otimes R_t^\ast$ (tipe II),
+\code{rankdef} yang sesuai, dan semua kendala Knorr-Held (2000) eksplisit
+(\code{.st\_generic0}); kombinasi \code{separable} dengan RW dan \code{domain-specific} dengan
+RW2 dihentikan dengan error karena tidak punya efek utama yang menampung level/tren domain.
 
 \subsection{Pseudo-code}\label{sec:hbarea-algo}
 
