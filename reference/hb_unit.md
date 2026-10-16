@@ -104,6 +104,8 @@ hb_unit(
   default `list(prior = "loggamma", param = c(0.01, 0.01))`, vague on
   any response scale; `prior_phi` for BYM2), `scale_model` and further
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) arguments.
+  The model is fitted in INLA's `"classic"` mode;
+  `inla_engine(inla.mode = "compact")` selects INLA's default mode.
 
 - print_result:
 
@@ -157,8 +159,13 @@ containing:
 
 - `hyperpar`: Data frame of hyperparameter posterior estimates.
 
-- `random_effect_var`: Estimated domain random effect variance
-  (\\\sigma_u^2\\).
+- `random_effect_var`: Posterior mean of the domain random effect
+  variance (\\\sigma_u^2\\). With few domains and the vague default
+  prior its posterior is very skewed and INLA's summary of it is not
+  accurate (on `cornsoybean`, 12 counties: about 70 against an exact
+  posterior mean of 41 and median of 7, while the county means and SDs
+  agree with the exact posterior). Do not read it as a REML estimate;
+  the domain estimates in `df_hb` are the reliable output.
 
 - `residual_var`: Estimated residual variance (\\\sigma_e^2\\, for
   Gaussian).
@@ -237,41 +244,41 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-UNIT-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Method: INLA (laplace)
-#> Random effect variance (sigma2_u): 68.51854 
+#> Random effect variance (sigma2_u): 93.49345 
 #> Spatial mixing fraction (phi): NA 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  1.7715e+01  3.1223e+01  5.6736e-01  5.7047e-01 -4.3763e+01
-#> CornPix      3.6577e-01  6.5456e-02  5.5880e+00  2.2974e-08  2.3665e-01
-#> SoyBeansPix -2.8980e-02  6.8025e-02 -4.2602e-01  6.7009e-01 -1.6296e-01
+#> (Intercept)  1.7856e+01  3.1250e+01  5.7140e-01  5.6773e-01 -4.3696e+01
+#> CornPix      3.6528e-01  6.5483e-02  5.5783e+00  2.4283e-08  2.3610e-01
+#> SoyBeansPix -2.9037e-02  6.8097e-02 -4.2640e-01  6.6981e-01 -1.6320e-01
 #>             ci_upper
-#> (Intercept)  79.2674
-#> CornPix       0.4945
-#> SoyBeansPix   0.1051
+#> (Intercept)  79.4744
+#> CornPix       0.4942
+#> SoyBeansPix   0.1052
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred    vardir       sd      mse      rse
-#> 1      1 165.7600 122.1156    122.0357 293.05430 7.571344 57.32526 6.200145
-#> 2      2  96.3200 123.2143    123.2622 293.05430 7.411628 54.93222 6.015233
-#> 3      3  76.0800 113.5180    113.6127 293.05430 8.221330 67.59026 7.242313
-#> 4      4 150.8900 115.3940    115.2257 146.52715 6.916207 47.83392 5.993559
-#> 5      5 158.6233 134.9871    134.8607  97.68477 8.120569 65.94364 6.015810
-#> 6      6 102.5233 107.8915    107.9199  97.68477 6.657823 44.32661 6.170848
+#> 1      1 165.7600 121.9016    121.8215 295.39457 7.222533 52.16499 5.924889
+#> 2      2  96.3200 123.0494    123.0971 295.39457 7.079345 50.11712 5.753253
+#> 3      3  76.0800 113.9771    114.0725 295.39457 7.811679 61.02234 6.853730
+#> 4      4 150.8900 115.6179    115.4506 147.69729 6.664442 44.41479 5.764198
+#> 5      5 158.6233 134.4781    134.3490  98.46486 7.703210 59.33945 5.728226
+#> 6      6 102.5233 107.6291    107.6562  98.46486 6.444246 41.52830 5.987454
 #>    ci_lower ci_upper samp_size sample_mean random_effect pop_size
-#> 1 107.27577 136.9554         1    165.7600      1.957459      545
-#> 2 108.68752 137.7411         1     96.3200      1.358915      566
-#> 3  97.40421 129.6318         1     76.0800     -4.364284      394
-#> 4 101.83823 128.9498         2    150.8900     -2.335997      424
-#> 5 119.07080 150.9034         3    158.6233      6.560611      564
-#> 6  94.84221 120.9409         3    102.5233      3.362977      570
+#> 1 107.74541 136.0577         1    165.7600      1.666871      545
+#> 2 109.17390 136.9249         1     96.3200      1.155448      566
+#> 3  98.66616 129.2879         1     76.0800     -3.669746      394
+#> 4 102.55556 128.6802         2    150.8900     -2.017793      424
+#> 5 119.37983 149.5764         3    158.6233      5.812151      564
+#> 6  94.99842 120.2599         3    102.5233      2.978797      570
 #>   estimated_total
-#> 1        66553.00
-#> 2        69739.30
-#> 3        44726.10
-#> 4        48927.05
-#> 5        76132.73
-#> 6        61498.18
+#> 1        66436.36
+#> 2        69645.97
+#> 3        44906.96
+#> 4        49021.97
+#> 5        75845.66
+#> 6        61348.61
 #> ... and 6 more rows.
 #> 
 #> 
@@ -284,41 +291,41 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-UNIT-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Method: INLA (laplace)
-#> Random effect variance (sigma2_u): 68.51854 
+#> Random effect variance (sigma2_u): 93.49345 
 #> Spatial mixing fraction (phi): NA 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  1.7715e+01  3.1223e+01  5.6736e-01  5.7047e-01 -4.3763e+01
-#> CornPix      3.6577e-01  6.5456e-02  5.5880e+00  2.2974e-08  2.3665e-01
-#> SoyBeansPix -2.8980e-02  6.8025e-02 -4.2602e-01  6.7009e-01 -1.6296e-01
+#> (Intercept)  1.7856e+01  3.1250e+01  5.7140e-01  5.6773e-01 -4.3696e+01
+#> CornPix      3.6528e-01  6.5483e-02  5.5783e+00  2.4283e-08  2.3610e-01
+#> SoyBeansPix -2.9037e-02  6.8097e-02 -4.2640e-01  6.6981e-01 -1.6320e-01
 #>             ci_upper
-#> (Intercept)  79.2674
-#> CornPix       0.4945
-#> SoyBeansPix   0.1051
+#> (Intercept)  79.4744
+#> CornPix       0.4942
+#> SoyBeansPix   0.1052
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred    vardir       sd      mse      rse
-#> 1      1 165.7600 122.1156    122.0357 293.05430 7.571344 57.32526 6.200145
-#> 2      2  96.3200 123.2143    123.2622 293.05430 7.411628 54.93222 6.015233
-#> 3      3  76.0800 113.5180    113.6127 293.05430 8.221330 67.59026 7.242313
-#> 4      4 150.8900 115.3940    115.2257 146.52715 6.916207 47.83392 5.993559
-#> 5      5 158.6233 134.9871    134.8607  97.68477 8.120569 65.94364 6.015810
-#> 6      6 102.5233 107.8915    107.9199  97.68477 6.657823 44.32661 6.170848
+#> 1      1 165.7600 121.9016    121.8215 295.39457 7.222533 52.16499 5.924889
+#> 2      2  96.3200 123.0494    123.0971 295.39457 7.079345 50.11712 5.753253
+#> 3      3  76.0800 113.9771    114.0725 295.39457 7.811679 61.02234 6.853730
+#> 4      4 150.8900 115.6179    115.4506 147.69729 6.664442 44.41479 5.764198
+#> 5      5 158.6233 134.4781    134.3490  98.46486 7.703210 59.33945 5.728226
+#> 6      6 102.5233 107.6291    107.6562  98.46486 6.444246 41.52830 5.987454
 #>    ci_lower ci_upper samp_size sample_mean random_effect pop_size
-#> 1 107.27577 136.9554         1    165.7600      1.957459      545
-#> 2 108.68752 137.7411         1     96.3200      1.358915      566
-#> 3  97.40421 129.6318         1     76.0800     -4.364284      394
-#> 4 101.83823 128.9498         2    150.8900     -2.335997      424
-#> 5 119.07080 150.9034         3    158.6233      6.560611      564
-#> 6  94.84221 120.9409         3    102.5233      3.362977      570
+#> 1 107.74541 136.0577         1    165.7600      1.666871      545
+#> 2 109.17390 136.9249         1     96.3200      1.155448      566
+#> 3  98.66616 129.2879         1     76.0800     -3.669746      394
+#> 4 102.55556 128.6802         2    150.8900     -2.017793      424
+#> 5 119.37983 149.5764         3    158.6233      5.812151      564
+#> 6  94.99842 120.2599         3    102.5233      2.978797      570
 #>   estimated_total
-#> 1        66553.00
-#> 2        69739.30
-#> 3        44726.10
-#> 4        48927.05
-#> 5        76132.73
-#> 6        61498.18
+#> 1        66436.36
+#> 2        69645.97
+#> 3        44906.96
+#> 4        49021.97
+#> 5        75845.66
+#> 6        61348.61
 #> ... and 6 more rows.
 #> 
 # }

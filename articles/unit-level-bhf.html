@@ -55,7 +55,8 @@
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
-    <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
+    <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF and HB)</a></li>
+    <li><a class="dropdown-item" href="../articles/twofold-subarea.html">Sub-Area Level Two-Fold Models</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
@@ -116,7 +117,8 @@ imagery).</p>
 <p>The <strong>fastsae</strong> package implements the nested error
 regression model of Battese, Harter, and Fuller (1988) via
 <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code>, providing fast estimation and parallel
-parametric bootstrap MSE.</p>
+parametric bootstrap MSE. <code><a href="../reference/hb_unit.html">hb_unit()</a></code> fits the same model as
+a hierarchical Bayes model with INLA (see the last section).</p>
 <hr>
 </div>
 <div class="section level2">
@@ -273,6 +275,105 @@ be displayed with <code><a href="https://ggplot2.tidyverse.org/reference/autoplo
 <span><span class="co"># Plot EBLUP estimates with confidence intervals</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_bhf</span>, type <span class="op">=</span> <span class="st">"comparison"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="unit-level-bhf_files/figure-html/plot_bhf-2.png" class="r-plt" alt="" width="672"></p>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="hierarchical-bayes-with-hb_unit">Hierarchical Bayes with <code>hb_unit()</code><a class="anchor" aria-label="anchor" href="#hierarchical-bayes-with-hb_unit"></a>
+</h2>
+<p><code><a href="../reference/hb_unit.html">hb_unit()</a></code> fits the nested error model with INLA and
+returns posterior means, standard deviations and credible intervals of
+the county means. It needs the <strong>INLA</strong> package, which is
+not on CRAN (<a href="https://www.r-inla.org/download/" class="external-link uri">https://www.r-inla.org/download/</a>); the chunks below are
+only run when INLA is installed. The arguments are those of
+<code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code>:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_hbu</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_unit.html">hb_unit</a></span><span class="op">(</span></span>
+<span>  <span class="va">CornHec</span> <span class="op">~</span> <span class="va">CornPix</span> <span class="op">+</span> <span class="va">SoyBeansPix</span>,</span>
+<span>  unit_data <span class="op">=</span> <span class="va">cornsoybean</span>,</span>
+<span>  Xpop <span class="op">=</span> <span class="va">df_pop</span>,</span>
+<span>  domain_var <span class="op">=</span> <span class="st">"County"</span>,</span>
+<span>  popsize_var <span class="op">=</span> <span class="st">"PopnSegments"</span>,</span>
+<span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_hbu</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"samp_size"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   domain samp_size       hb       sd  ci_lower ci_upper</span></span>
+<span><span class="co">#&gt; 1      1         1 121.9016 7.222533 107.74541 136.0577</span></span>
+<span><span class="co">#&gt; 2      2         1 123.0494 7.079345 109.17390 136.9249</span></span>
+<span><span class="co">#&gt; 3      3         1 113.9771 7.811679  98.66616 129.2879</span></span>
+<span><span class="co">#&gt; 4      4         2 115.6179 6.664442 102.55556 128.6802</span></span>
+<span><span class="co">#&gt; 5      5         3 134.4781 7.703210 119.37983 149.5764</span></span>
+<span><span class="co">#&gt; 6      6         3 107.6291 6.444246  94.99842 120.2599</span></span></code></pre></div>
+<p>County by county, the posterior means are close to the EBLUP:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  County <span class="op">=</span> <span class="va">fit_bhf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">domain</span>,</span>
+<span>  n <span class="op">=</span> <span class="va">fit_bhf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">samp_size</span>,</span>
+<span>  eblup <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fit_bhf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  hb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fit_hbu</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  rmse_eblup <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">fit_bhf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">mse</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  sd_hb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fit_hbu</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">sd</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;    County n eblup    hb rmse_eblup sd_hb</span></span>
+<span><span class="co">#&gt; 1       1 1 122.6 121.9        9.0   7.2</span></span>
+<span><span class="co">#&gt; 2       2 1 123.5 123.0        8.4   7.1</span></span>
+<span><span class="co">#&gt; 3       3 1 113.0 114.0        9.0   7.8</span></span>
+<span><span class="co">#&gt; 4       4 2 115.0 115.6        7.3   6.7</span></span>
+<span><span class="co">#&gt; 5       5 3 137.3 134.5        5.7   7.7</span></span>
+<span><span class="co">#&gt; 6       6 3 109.0 107.6        7.7   6.4</span></span>
+<span><span class="co">#&gt; 7       7 3 116.5 117.2        7.0   5.9</span></span>
+<span><span class="co">#&gt; 8       8 3 122.8 122.3        6.6   5.9</span></span>
+<span><span class="co">#&gt; 9       9 4 111.6 109.9        6.2   6.2</span></span>
+<span><span class="co">#&gt; 10     10 5 124.2 124.9        6.2   5.3</span></span>
+<span><span class="co">#&gt; 11     11 5 112.5 115.2        5.0   6.6</span></span>
+<span><span class="co">#&gt; 12     12 6 131.3 131.3        5.3   5.0</span></span></code></pre></div>
+<p>The two sets of estimates differ by less than 5 hectares (about 4% of
+the county means), most in counties 5 and 11. The bootstrap root MSE and
+the posterior SD are different quantities: the SDs are mostly smaller
+here because much of the posterior mass of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><annotation encoding="application/x-tex">\sigma_u^2</annotation></semantics></math>
+lies near 0 (its exact posterior median is about 7, against a REML
+estimate of 63), which shrinks the county means more strongly towards
+the regression.</p>
+<p>With 12 counties and the default vague log-gamma prior on the
+precision of the county effect, the posterior of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><annotation encoding="application/x-tex">\sigma_u^2</annotation></semantics></math>
+is very skewed, with much mass near 0, and INLA’s summary of it
+(<code>random_effect_var</code>) is not accurate. Do not compare it with
+the REML estimate of <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code>. The county estimates in
+<code>df_hb</code> are reliable: <code><a href="../reference/hb_unit.html">hb_unit()</a></code> fits in INLA’s
+<code>"classic"</code> mode, which on these data matches the exact
+posterior (computed by numerical integration over the two variances) and
+gives the same result on every call.</p>
+<div class="section level3">
+<h3 id="counties-without-a-sample">Counties without a sample<a class="anchor" aria-label="anchor" href="#counties-without-a-sample"></a>
+</h3>
+<p>A domain that is in <code>Xpop</code> but has no rows in
+<code>unit_data</code> is predicted from the regression and its
+population means, in both functions. For example, without the sample of
+county 1:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cs_without_1</span> <span class="op">&lt;-</span> <span class="va">cornsoybean</span><span class="op">[</span><span class="va">cornsoybean</span><span class="op">$</span><span class="va">County</span> <span class="op">!=</span> <span class="fl">1</span>, <span class="op">]</span></span>
+<span><span class="va">fit_hbu1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_unit.html">hb_unit</a></span><span class="op">(</span></span>
+<span>  <span class="va">CornHec</span> <span class="op">~</span> <span class="va">CornPix</span> <span class="op">+</span> <span class="va">SoyBeansPix</span>,</span>
+<span>  unit_data <span class="op">=</span> <span class="va">cs_without_1</span>,</span>
+<span>  Xpop <span class="op">=</span> <span class="va">df_pop</span>,</span>
+<span>  domain_var <span class="op">=</span> <span class="st">"County"</span>,</span>
+<span>  popsize_var <span class="op">=</span> <span class="st">"PopnSegments"</span>,</span>
+<span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">fit_hbu1</span><span class="op">$</span><span class="va">unsampled_domains</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
+<span><span class="va">fit_hbu1</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span><span class="va">fit_hbu1</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">domain</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"samp_size"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   domain samp_size       hb       sd</span></span>
+<span><span class="co">#&gt; 1      1         0 119.3636 7.545015</span></span></code></pre></div>
+<p>The population means in <code>Xpop</code> must be complete: a missing
+mean is an error, since the prediction of that county would be wrong.
+<code><a href="../reference/hb_unit.html">hb_unit()</a></code> also fits binomial and Poisson responses
+(<code>family</code>) and a spatial county effect
+(<code>spatial = "bym2"</code> or <code>"besag"</code> with a proximity
+matrix <code>W</code>).</p>
 </div>
 </div>
 <div class="section level2">
@@ -285,6 +386,10 @@ and satellite data. <em>Journal of the American Statistical
 Association</em>, 83(401), 28–36.</li>
 <li>Rao, J. N. K., &amp; Molina, I. (2015). <em>Small Area
 Estimation</em> (2nd ed.). John Wiley &amp; Sons.</li>
+<li>Rue, H., Martino, S., &amp; Chopin, N. (2009). Approximate Bayesian
+inference for latent Gaussian models by using integrated nested Laplace
+approximations. <em>Journal of the Royal Statistical Society: Series
+B</em>, 71(2), 319–392.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -16,5 +16,7 @@
   Analysis](https://ridsonap.github.io/fastsae/articles/model-diagnostics.md):
 - [Spatial and Spatio-Temporal
   Models](https://ridsonap.github.io/fastsae/articles/spatial-temporal.md):
+- [Sub-Area Level Estimation with Two-Fold
+  Models](https://ridsonap.github.io/fastsae/articles/twofold-subarea.md):
 - [Unit-Level Estimation with
   Battese-Harter-Fuller](https://ridsonap.github.io/fastsae/articles/unit-level-bhf.md):

@@ -33,7 +33,8 @@
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
-    <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF)</a></li>
+    <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF and HB)</a></li>
+    <li><a class="dropdown-item" href="../articles/twofold-subarea.html">Sub-Area Level Two-Fold Models</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
@@ -118,6 +119,10 @@
 <li>A fixed <code>seed</code> of <code><a href="../reference/eblup_sfh.html">eblup_sfh()</a></code>, <code><a href="../reference/eblup_stfh.html">eblup_stfh()</a></code>, <code><a href="../reference/eblup_bhf.html">eblup_bhf()</a></code> and <code><a href="../reference/eblup_twofold.html">eblup_twofold()</a></code> no longer changes the random number stream of the session; the bootstrap MSEs are unchanged.</li>
 <li>
 <code><a href="../reference/eblup_twofold.html">eblup_twofold()</a></code> uses <code>B = 100</code> and <code>seed = -1</code> (no seed) by default, as the other EBLUP functions (it used <code>B = 200</code> and <code>seed = NULL</code>; <code>NULL</code> still means no seed).</li>
+<li>
+<code><a href="../reference/hb_unit.html">hb_unit()</a></code> fits in INLA’s <code>"classic"</code> mode. With INLA’s default <code>"compact"</code> mode identical calls returned different county means and SDs on <code>cornsoybean</code>, with SDs 8-15% above the exact posterior (numerical integration over the two variances); the classic fit matches it and is the same on every call. <code>inla_engine(inla.mode = "compact")</code> restores the INLA default. Its <code>random_effect_var</code> is documented as unreliable with few domains and the vague prior.</li>
+<li>Posterior draws of the INLA engine are reproducible: <code>inla_engine(seed = 1L)</code> is the new default (it was <code>0L</code>, INLA’s random seed), and the seed is also set on the R side, since INLA draws the hyperparameter configurations with R’s RNG; the session’s random number stream is restored. This affects the area aggregates of <code><a href="../reference/hb_twofold.html">hb_twofold()</a></code> (their SD changed by up to 9% between identical calls), posterior self-benchmarking in <code><a href="../reference/hb_area.html">hb_area()</a></code> and <code><a href="../reference/benchmark_sae.html">benchmark_sae()</a></code>.</li>
+<li>New vignette “Sub-Area Level Estimation with Two-Fold Models” (<code><a href="../reference/eblup_twofold.html">eblup_twofold()</a></code>, <code><a href="../reference/hb_twofold.html">hb_twofold()</a></code>); the unit-level vignette covers <code><a href="../reference/hb_unit.html">hb_unit()</a></code>.</li>
 </ul></div>
 <div class="section level4">
 <h4 id="fixes-before-the-release-1-0-0">Fixes before the 1.0.0 release<a class="anchor" aria-label="anchor" href="#fixes-before-the-release-1-0-0"></a></h4>

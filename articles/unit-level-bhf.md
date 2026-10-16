@@ -11,6 +11,9 @@ The **fastsae** package implements the nested error regression model of
 Battese, Harter, and Fuller (1988) via
 [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md),
 providing fast estimation and parallel parametric bootstrap MSE.
+[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+fits the same model as a hierarchical Bayes model with INLA (see the
+last section).
 
 ------------------------------------------------------------------------
 
@@ -172,6 +175,114 @@ autoplot(fit_bhf, type = "comparison")
 
 ![](unit-level-bhf_files/figure-html/plot_bhf-2.png)
 
+------------------------------------------------------------------------
+
+## Hierarchical Bayes with `hb_unit()`
+
+[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+fits the nested error model with INLA and returns posterior means,
+standard deviations and credible intervals of the county means. It needs
+the **INLA** package, which is not on CRAN
+(<https://www.r-inla.org/download/>); the chunks below are only run when
+INLA is installed. The arguments are those of
+[`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md):
+
+``` r
+
+fit_hbu <- hb_unit(
+  CornHec ~ CornPix + SoyBeansPix,
+  unit_data = cornsoybean,
+  Xpop = df_pop,
+  domain_var = "County",
+  popsize_var = "PopnSegments",
+  print_result = FALSE
+)
+
+head(fit_hbu$df_hb[, c("domain", "samp_size", "hb", "sd", "ci_lower", "ci_upper")])
+#>   domain samp_size       hb       sd  ci_lower ci_upper
+#> 1      1         1 121.9016 7.222533 107.74541 136.0577
+#> 2      2         1 123.0494 7.079345 109.17390 136.9249
+#> 3      3         1 113.9771 7.811679  98.66616 129.2879
+#> 4      4         2 115.6179 6.664442 102.55556 128.6802
+#> 5      5         3 134.4781 7.703210 119.37983 149.5764
+#> 6      6         3 107.6291 6.444246  94.99842 120.2599
+```
+
+County by county, the posterior means are close to the EBLUP:
+
+``` r
+
+data.frame(
+  County = fit_bhf$df_eblup$domain,
+  n = fit_bhf$df_eblup$samp_size,
+  eblup = round(fit_bhf$df_eblup$eblup, 1),
+  hb = round(fit_hbu$df_hb$hb, 1),
+  rmse_eblup = round(sqrt(fit_bhf$df_eblup$mse), 1),
+  sd_hb = round(fit_hbu$df_hb$sd, 1)
+)
+#>    County n eblup    hb rmse_eblup sd_hb
+#> 1       1 1 122.6 121.9        9.0   7.2
+#> 2       2 1 123.5 123.0        8.4   7.1
+#> 3       3 1 113.0 114.0        9.0   7.8
+#> 4       4 2 115.0 115.6        7.3   6.7
+#> 5       5 3 137.3 134.5        5.7   7.7
+#> 6       6 3 109.0 107.6        7.7   6.4
+#> 7       7 3 116.5 117.2        7.0   5.9
+#> 8       8 3 122.8 122.3        6.6   5.9
+#> 9       9 4 111.6 109.9        6.2   6.2
+#> 10     10 5 124.2 124.9        6.2   5.3
+#> 11     11 5 112.5 115.2        5.0   6.6
+#> 12     12 6 131.3 131.3        5.3   5.0
+```
+
+The two sets of estimates differ by less than 5 hectares (about 4% of
+the county means), most in counties 5 and 11. The bootstrap root MSE and
+the posterior SD are different quantities: the SDs are mostly smaller
+here because much of the posterior mass of $`\sigma_u^2`$ lies near 0
+(its exact posterior median is about 7, against a REML estimate of 63),
+which shrinks the county means more strongly towards the regression.
+
+With 12 counties and the default vague log-gamma prior on the precision
+of the county effect, the posterior of $`\sigma_u^2`$ is very skewed,
+with much mass near 0, and INLA’s summary of it (`random_effect_var`) is
+not accurate. Do not compare it with the REML estimate of
+[`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md).
+The county estimates in `df_hb` are reliable:
+[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+fits in INLA’s `"classic"` mode, which on these data matches the exact
+posterior (computed by numerical integration over the two variances) and
+gives the same result on every call.
+
+### Counties without a sample
+
+A domain that is in `Xpop` but has no rows in `unit_data` is predicted
+from the regression and its population means, in both functions. For
+example, without the sample of county 1:
+
+``` r
+
+cs_without_1 <- cornsoybean[cornsoybean$County != 1, ]
+fit_hbu1 <- hb_unit(
+  CornHec ~ CornPix + SoyBeansPix,
+  unit_data = cs_without_1,
+  Xpop = df_pop,
+  domain_var = "County",
+  popsize_var = "PopnSegments",
+  print_result = FALSE
+)
+fit_hbu1$unsampled_domains
+#> [1] 1
+fit_hbu1$df_hb[fit_hbu1$df_hb$domain == 1, c("domain", "samp_size", "hb", "sd")]
+#>   domain samp_size       hb       sd
+#> 1      1         0 119.3636 7.545015
+```
+
+The population means in `Xpop` must be complete: a missing mean is an
+error, since the prediction of that county would be wrong.
+[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+also fits binomial and Poisson responses (`family`) and a spatial county
+effect (`spatial = "bym2"` or `"besag"` with a proximity matrix `W`).
+
 ## References
 
 - Battese, G. E., Harter, R. M., & Fuller, W. A. (1988). An
@@ -180,3 +291,7 @@ autoplot(fit_bhf, type = "comparison")
   Association*, 83(401), 28–36.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
   John Wiley & Sons.
+- Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian
+  inference for latent Gaussian models by using integrated nested
+  Laplace approximations. *Journal of the Royal Statistical Society:
+  Series B*, 71(2), 319–392.
