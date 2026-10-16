@@ -39,8 +39,14 @@
 
 #' @title Example proximity matrix
 #' @description A 42 by 42 row-standardized spatial proximity matrix for the 42 areas in \code{mys}.
+#'   Every pair of areas has a positive weight, larger for areas whose centroids
+#'   (\code{sim_area$x_coord}, \code{sim_area$y_coord}) are close, so it suits the SAR
+#'   models (\code{\link{eblup_sfh}}, \code{\link{eblup_stfh}}, \code{hb_area(spatial = "slm")}).
+#'   The CAR models of \code{\link{hb_area}} use only the pattern \code{W > 0}, which for this
+#'   matrix is a complete graph; build a neighbourhood graph for them, for example
+#'   \code{create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4)}.
 #' @format A square numeric matrix with 42 rows and 42 columns with values between 0 and 1.
-#' @source Simulated based on contiguous administrative boundaries.
+#' @source Simulated proximity weights between the 42 areas.
 "mys_proxmat"
 
 

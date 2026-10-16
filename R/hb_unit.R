@@ -27,6 +27,8 @@
 #'     \item \code{"binomial"}: Binary / Bernoulli response (0 or 1, e.g. poverty indicator).
 #'     \item \code{"poisson"}: Count response (non-negative integer).
 #'   }
+#'   The domain means of \code{"binomial"} and \code{"poisson"} are approximate and biased; see
+#'   Details.
 #' @param spatial Character string specifying the spatial random effect structure across domains:
 #'   \itemize{
 #'     \item \code{"none"}: Non-spatial independent and identically distributed (IID) domain effects (default).
@@ -42,9 +44,10 @@
 #'   object holding the approximation strategy, the priors (\code{prior_prec}, default
 #'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}, vague on any response scale;
 #'   \code{prior_phi} for BYM2),
-#'   \code{scale_model} and further \code{INLA::inla()} arguments. The model is fitted
-#'   in INLA's \code{"classic"} mode; \code{inla_engine(inla.mode = "compact")} selects
-#'   INLA's default mode.
+#'   \code{scale_model} and further \code{INLA::inla()} arguments. The Gaussian model is
+#'   fitted in INLA's \code{"classic"} mode, the binomial and Poisson models in INLA's default
+#'   \code{"compact"} mode (for them classic was much slower: 72 s against 2.6 s for 4000
+#'   binary units); \code{inla_engine(inla.mode = )} selects a mode.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec},
 #'   \code{prior_phi} and arguments of \code{INLA::inla()} are now given to
@@ -87,8 +90,24 @@
 #'   \item \code{call}: Matched function call.
 #' }
 #'
+#' @details
+#' \strong{Non-Gaussian families.} The non-sampled part of a domain mean is predicted at the
+#' mean covariates of the non-sampled units, \eqn{g^{-1}(\bar x_{d,r}^\top\beta + u_d)}. For the
+#' identity link of \code{"gaussian"} this is the mean of \eqn{x_j^\top\beta + u_d} over the
+#' units. For the logit and log links of \code{"binomial"} and \code{"poisson"} it is not: the
+#' mean of \eqn{g^{-1}(x_j^\top\beta + u_d)} over the units differs from it whenever the
+#' covariates vary within the domain (for the log link it is larger by the factor
+#' \eqn{E[\exp((x_j - \bar x)^\top\beta)] > 1}). In a simulation with one normal covariate of
+#' within-domain variance 1, the domain means of the sampled domains were biased by -8\%
+#' (binomial, slope 1.2) and -16\% (Poisson, slope 0.6), and the 95\% credible intervals
+#' covered the true means in 90\% and 78\% of the cases. Unbiased estimation needs the covariates
+#' of every population unit, as in the empirical best predictor of Molina and Rao (2010); a
+#' unit-level \code{Xpop} is currently averaged per domain. A warning is given for these families.
+#'
 #' @references
 #' \enumerate{
+#'   \item Molina, I., & Rao, J. N. K. (2010). Small area estimation of poverty indicators.
+#'     \emph{Canadian Journal of Statistics}, 38(3), 369-385.
 #'   \item Battese, G. E., Harter, R. M., & Fuller, W. A. (1988). An error-components model
 #'     for prediction of county crop areas using survey and satellite data.
 #'     \emph{Journal of the American Statistical Association}, 83(401), 28-36.
@@ -162,6 +181,12 @@ hb_unit <- function(
 
   family <- match.arg(family)
   spatial <- match.arg(spatial)
+  if (family != "gaussian") {
+    cli::cli_warn(c(
+      "For {.code family = \"{family}\"} the domain means are predicted at the mean covariates of the non-sampled units, which is biased for a nonlinear link.",
+      "i" = "In a simulation the bias was -8% (binomial) to -16% (Poisson), with 78-90% coverage of the 95% intervals; see the Details of {.fn hb_unit}."
+    ))
+  }
 
   # 2. Input validation
   if (!inherits(formula, "formula")) {
@@ -327,9 +352,11 @@ hb_unit <- function(
   }
   # INLA's default "compact" mode gave different county means and SDs on
   # identical calls (cornsoybean), with SDs 8-15% above the exact posterior
-  # (numerical integration over the two variances); "classic" is deterministic
-  # and matched it. inla_engine(inla.mode = ) overrides.
-  if ("inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
+  # (numerical integration over the two variances); "classic" matched it and is
+  # far more stable (calls differ by < 0.1% in the means, < 2% in the SDs). inla_engine(inla.mode = ) overrides.
+  # Gaussian only: for binomial and Poisson units classic was much slower
+  # (binomial, 4000 units: 72 s against 2.6 s).
+  if (family == "gaussian" && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
   # inla_engine(...) settings override; control.* lists are merged
   inla_args <- utils::modifyList(inla_args, engine$inla_args)
 

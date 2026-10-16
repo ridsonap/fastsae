@@ -103,12 +103,50 @@ laporan teknis sudah diperbarui mengikuti kode. Status tiap butir:
       Dibandingkan posterior eksak (integrasi numerik grid atas
       $(\log\tau_e,\log\tau_u)$, posterior bersyarat Gaussian), `compact`
       meleset sampai 2,0 pada rerata dan SD terlalu besar 8-15%; `classic`
-      selisih <= 0,31 dan rasio SD 0,995-1,014, serta deterministik. Kini
+      selisih <= 0,31 dan rasio SD 0,995-1,014, serta jauh lebih stabil
+      (antar-konteks eksekusi rerata < 0,1%, SD < 2%; tidak bit-identik). Kini
       `hb_unit` memakai `inla.mode = "classic"`. `random_effect_var`
       (E[sigma2_u]) tidak andal: eksak 40,9 (median 7,0), INLA ~70.
     - `inla.posterior.sample(seed = )` saja tidak reprodusibel karena
       konfigurasi hiperparameter dipilih dengan RNG R. Helper `.inla_draws`
       memasang seed di R juga; default `inla_engine(seed = 1L)`.
+  - Audit ke-4 (16 Okt 2026), akurasi HB terhadap posterior eksak:
+    - `hb_twofold` (data simulasi vignette, grid 2D, prior PC): `compact`
+      meleset <= 0,096 dan SD 1-10% terlalu besar; `classic` <= 0,010 dan
+      rasio SD 0,984-0,998. Kini `classic`. Ringkasan sigma2_u classic 0,047
+      vs eksak 0,072 (didokumentasikan).
+    - `hb_area` FH (`mys`, grid 1D, PC prior): kedua mode akurat (selisih
+      <= 0,01, rasio SD 0,993-1,003, E[sigma2_u] 1,886 = eksak); tidak diubah.
+    - `hb_twofold(weight)` NA/negatif kini warning; `compare_sae` HB vs EBLUP
+      tidak lagi melabeli "more efficient".
+    - `hb_unit` binomial/Poisson memprediksi di rata-rata kovariat
+      (bias Jensen). Simulasi (D = 30, 20 replikasi, satu kovariat normal
+      dengan varians dalam domain 1): bias relatif domain tersampel -8%
+      (binomial) dan -16% (Poisson; teori exp(-beta^2/2) ~ -16,5%), coverage
+      CI 95% 90% dan 78%; agregasi atas kovariat unit menurunkan bias ke
+      -2% dan +0,3%. Keputusan pengguna: warning + dokumentasi, estimator
+      tidak diubah (EBP Molina & Rao 2010 butuh kovariat unit populasi).
+    - Uji Brown W `diagnose` = `emdi::compare` (W 4,5259 vs 4,5258, df 32);
+      p ~ 1 adalah sifat konservatif uji, sudah didokumentasikan.
+    - `hb_area` vs Stan (cmdstanr 2.39, 4 x 4000 draw, prior identik: PC
+      pada presisi = sigma ~ Exp(-log 0,01), ICAR ter-scale + sum-to-zero,
+      BYM2 Riebler dengan phi ~ U(0,1)); grid 7x7 (84 sisi), 12 area tak
+      tersampel. Gaussian (sigma2 kecil vs vardir, 9 data set):
+      compact SD 1,02-1,18x Stan dan rerata <= 0,25 SD; classic SD
+      0,91-1,02x dan rerata <= 0,07 SD. Non-Gaussian (binomial, Poisson,
+      beta, gamma; iid/BYM2/Besag): compact SD 0,96-1,06x, rerata <= 0,10 SD;
+      classic SD 0,96-1,02x, rerata <= 0,025 SD. RW1 `mys_panel`: keduanya
+      akurat. Gaussian: waktu sama (D <= 2025). Non-Gaussian: classic jauh
+      lebih lambat (beta n = 2000: 32 vs 1,3 s; hb_unit binomial 4000 unit:
+      72 vs 2,6 s), compact sudah akurat (rerata <= 0,16 SD, SD 0,95-1,08x).
+      Kini `classic` hanya untuk family Gaussian (hb_area, hb_unit, hb_twofold).
+      Ringkasan sigma2 Gaussian classic bias ke bawah saat sigma2 kecil.
+    - `mys_proxmat` padat (861/861 pasangan, bobot ~ exp(-jarak), r = 0,94)
+      sehingga CAR = graf lengkap; dokumentasi lama menyebut "contiguous".
+      Kini warning kepadatan > 50% di `.convert_spatial_weights`; contoh dan
+      vignette memakai kNN (k = 4) dari centroid `sim_area`.
+    - Terverifikasi tanpa perubahan: Moran's I `spatial_test` = `spdep`;
+      kendala self-benchmark eksak (~1e-15).
 - **Bukan kesalahan (disengaja, kini didokumentasikan):**
   - SFH-1: karena $Py=V^{-1}(y-X\hat\beta)$, kuadratik $y'PDPy$ sama dengan
     kuadratik skor ML terprofil.

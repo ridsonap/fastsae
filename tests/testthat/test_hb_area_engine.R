@@ -371,7 +371,7 @@ test_that("engine = 'jax' fits count, spatial, and temporal models end to end", 
   data("mys_proxmat", package = "fastsae")
 
   fit_bym2 <- suppressMessages(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", spatial = "bym2",
-                                       W = mys_proxmat, engine = jax_eng, print_result = FALSE))
+                                       W = mys_knn, engine = jax_eng, print_result = FALSE))
   expect_false(is.null(fit_bym2$phi))
   expect_true(all(is.finite(fit_bym2$df_hb$hb)))
 

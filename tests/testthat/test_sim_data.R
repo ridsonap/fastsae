@@ -156,7 +156,7 @@ test_that("built-in sim_area dataset loads and integrates with mys_proxmat", {
   # Test spatial fit with mys_proxmat
   fit_multi_spatial <- hb_area(y_poisson ~ x1 + x2, data = sim_area,
                                 exposure = "exposure", family = "poisson",
-                                spatial = "bym2", W = mys_proxmat)
+                                spatial = "bym2", W = mys_knn)
   expect_s3_class(fit_multi_spatial, "fastsae")
   expect_equal(nrow(fit_multi_spatial$df_hb), 42)
 })

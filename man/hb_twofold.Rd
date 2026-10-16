@@ -70,7 +70,10 @@ object holding the approximation strategy, the priors (\code{prior_prec} for the
 effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
 both by default \code{list(prior = "pc.prec", param = c(1, 0.01))}; \code{prior_phi} for
 BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
-(default 200) and their \code{seed}, and further \code{INLA::inla()} arguments.}
+(default 200) and their \code{seed}, and further \code{INLA::inla()} arguments. The
+Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
+in INLA's default \code{"compact"} mode, as in \code{\link{hb_area}};
+\code{inla_engine(inla.mode = )} selects a mode.}
 
 \item{compute_area}{Logical. If \code{TRUE} (default), computes aggregate primary area-level
 estimates and posterior standard errors via posterior sampling.}
@@ -115,7 +118,11 @@ An object of class \code{c("fastsae_hb_twofold", "fastsae_hb", "fastsae")} conta
   \item \code{df_subarea}: Alias pointing to \code{df_hb}.
   \item \code{estcoef}: Data frame of estimated regression coefficients (\eqn{\beta}, standard error, z-value, p-value, credible intervals).
   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
-  \item \code{random_effect_var}: Named vector with area (\code{sigma2_v}) and sub-area (\code{sigma2_u}) variances.
+  \item \code{random_effect_var}: Named vector with the posterior means of the area
+    (\code{sigma2_v}) and sub-area (\code{sigma2_u}) variances. When a variance is close to
+    0 its posterior is skewed and INLA's summary can be biased (on simulated data
+    \code{sigma2_u} was 0.047 against an exact posterior mean of 0.072); the sub-area and
+    area estimates are the reliable output.
   \item \code{phi}: Estimated spatial variance proportion (for BYM2).
   \item \code{goodness}: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
   \item \code{family}: Response family used.

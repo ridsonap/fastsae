@@ -144,6 +144,11 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
   mean_rse2 <- if (has_rse) mean(merged$rse_2, na.rm = TRUE) else NA_real_
   rse_gain  <- if (has_rse) mean_rse1 - mean_rse2 else NA_real_
 
+  # A posterior variance and a frequentist MSE are not the same quantity, so a
+  # smaller one is not evidence of a more efficient estimator
+  mixed <- xor(inherits(model1, "fastsae_hb"), inherits(model2, "fastsae_hb"))
+  lower_label <- if (mixed) "reports lower uncertainty" else "has lower MSE"
+
   metrics_df <- data.frame(
     Metric = c(
       "Matched Domains",
@@ -153,8 +158,12 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
       "Root Mean Squared Difference (RMSD)",
       paste0("Mean MSE Ratio (", names[1], " / ", names[2], ")"),
       paste0("Median MSE Ratio (", names[1], " / ", names[2], ")"),
-      paste0("Domains where ", names[2], " has lower MSE"),
-      paste0("Percentage of domains where ", names[2], " is more efficient (%)"),
+      paste0("Domains where ", names[2], " ", lower_label),
+      if (mixed) {
+        paste0("% of domains where ", names[2], " ", lower_label)
+      } else {
+        paste0("Percentage of domains where ", names[2], " is more efficient (%)")
+      },
       paste0("Mean RSE % (", names[1], ")"),
       paste0("Mean RSE % (", names[2], ")"),
       paste0("Average RSE Reduction (%)")
@@ -182,6 +191,7 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
       data = merged,
       names = names,
       thresholds = thresholds,
+      mixed_inference = mixed,
       model1 = model1,
       model2 = model2
     ),
@@ -200,6 +210,13 @@ print.fastsae_comparison <- function(x, ...) {
 
   cat("\nKey Concordance & Efficiency Metrics:\n")
   print(x$metrics, row.names = FALSE)
+  if (isTRUE(x$mixed_inference)) {
+    cat("\n")
+    cli::cli_alert_info(paste(
+      "One model is Hierarchical Bayes: its posterior variance and the frequentist MSE of the",
+      "other are not the same quantity, so a smaller value does not show a more accurate estimator."
+    ))
+  }
 
   cat("\n")
   invisible(x)

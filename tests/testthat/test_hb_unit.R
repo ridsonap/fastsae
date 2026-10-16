@@ -164,7 +164,7 @@ test_that("hb_unit works for Binomial (logistic) and Poisson unit models", {
     N = rep(500, D)
   )
 
-  fit_bin <- hb_unit(
+  expect_warning(fit_bin <- hb_unit(
     formula = y ~ x1,
     unit_data = df_sample_bin,
     Xpop = Xpop_bin,
@@ -172,7 +172,7 @@ test_that("hb_unit works for Binomial (logistic) and Poisson unit models", {
     popsize_var = "N",
     family = "binomial",
     print_result = FALSE
-  )
+  ), "mean covariates")
 
   expect_s3_class(fit_bin, "fastsae_hb_unit")
   expect_equal(fit_bin$family, "binomial")
@@ -184,7 +184,7 @@ test_that("hb_unit works for Binomial (logistic) and Poisson unit models", {
   y_pois <- stats::rpois(D * n_per_d, lambda)
   df_sample_pois <- data.frame(y = y_pois, x1 = x1, domain = domain)
 
-  fit_pois <- hb_unit(
+  expect_warning(fit_pois <- hb_unit(
     formula = y ~ x1,
     unit_data = df_sample_pois,
     Xpop = Xpop_bin,
@@ -192,7 +192,7 @@ test_that("hb_unit works for Binomial (logistic) and Poisson unit models", {
     popsize_var = "N",
     family = "poisson",
     print_result = FALSE
-  )
+  ), "mean covariates")
 
   expect_s3_class(fit_pois, "fastsae_hb_unit")
   expect_equal(fit_pois$family, "poisson")
@@ -228,7 +228,7 @@ test_that("hb_unit works with spatial BYM2 structure", {
     domain_var = "area",
     popsize_var = "N",
     spatial = "bym2",
-    W = mys_proxmat,
+    W = mys_knn,
     print_result = FALSE
   )
 
@@ -387,7 +387,7 @@ test_that("hb_unit handles unit-level Xpop, besag spatial, and explicit popnmean
     domain_var = "area",
     popsize_var = "N",
     spatial = "besag",
-    W = mys_proxmat,
+    W = mys_knn,
     print_result = FALSE
   )
   expect_s3_class(fit_besag, "fastsae_hb_unit")
@@ -440,27 +440,27 @@ test_that("hb_unit handles INLA failure and vardir fallback paths", {
   # 2. Binomial family: direct_vardir from sample proportion (L403-404)
   df_bin <- df_cornsoybean
   df_bin$CornHec <- as.integer(df_bin$CornHec > 100)
-  fit_bin <- hb_unit(
+  expect_warning(fit_bin <- hb_unit(
     CornHec ~ CornPix,
     unit_data = df_bin,
     Xpop = df_pop,
     domain_var = "CountyIndex",
     family = "binomial",
     print_result = FALSE
-  )
+  ), "mean covariates")
   expect_s3_class(fit_bin, "fastsae")
 
   # 3. Poisson family: direct_vardir from sample mean (L405-406)
   df_pois <- df_cornsoybean
   df_pois$CornHec <- as.integer(round(abs(df_pois$CornHec) / 10))
-  fit_pois <- hb_unit(
+  expect_warning(fit_pois <- hb_unit(
     CornHec ~ CornPix,
     unit_data = df_pois,
     Xpop = df_pop,
     domain_var = "CountyIndex",
     family = "poisson",
     print_result = FALSE
-  )
+  ), "mean covariates")
   expect_s3_class(fit_pois, "fastsae")
 })
 

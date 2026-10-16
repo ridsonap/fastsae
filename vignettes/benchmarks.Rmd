@@ -323,14 +323,15 @@ To assess Bayesian small area estimation performance, `fastsae::hb_area()` was b
 
 The test used the official `tipsae` panel dataset: **`emilia`** (38 health districts in Emilia-Romagna over 5 years, $N = 190$ domains $\times$ years) with spatial polygon contiguity matrix $W$ from **`emilia_shp`**.
 
-| Metric | `tipsae::fit_sae` (Stan MCMC) | `fastsae::hb_area` (INLA) | Advantage |
-| :--- | :--- | :--- | :--- |
-| **Model Specification** | Besag ICAR + Domain RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` | **Exact structural equivalence** |
-| **Computational Engine** | Hamiltonian Monte Carlo (NUTS Stan) | Integrated Nested Laplace Approximation | Analytical & deterministic |
-| **Execution Time** | **15.8 s** (1 chain, 200 iter) / ~120 s (4 chains) | **1.93 s** (`simplified.laplace`) | **~9x to 50x+ faster** |
-| **Pearson Correlation ($r$)** | Baseline | **0.9893** | **Near-identical point estimates** |
-| **Mean Absolute Error (MAE)** | Baseline | **0.00304** | **Negligible numerical error** |
-| **Convergence Overhead** | Requires $\hat{R} < 1.05$ checks, warmup, and tuning | None (closed-form Laplace expansions) | Instant convergence |
+| Metric | `tipsae::fit_sae` (Stan MCMC) | `fastsae::hb_area` (INLA) |
+| :--- | :--- | :--- |
+| **Model** | Beta, Besag ICAR + domain-specific RW(1) | `family = "beta"`, `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"`; same structure, different priors |
+| **Computation** | Hamiltonian Monte Carlo (NUTS) | Integrated nested Laplace approximation (INLA's default `"compact"` mode for Beta) |
+| **Execution time** | 120 s (4 chains x 2000 iterations in parallel; largest $\hat R$ 1.07). One chain of 200 iterations takes about 10 s but has not converged ($\hat R$ > 2) | 1.1 s |
+| **Posterior means vs converged `tipsae`** | Reference | $r = 0.998$, mean absolute difference 0.0016 (largest 0.006) |
+| **Posterior SD vs `tipsae`** | Reference | ratio 0.84 to 1.26 (the priors differ) |
+
+Measured on 2026-10-16 on one machine (Apple silicon, R 4.6.1, INLA 26.8.7, tipsae 1.0.3); times depend on the hardware. INLA needs no chains or warm-up, but its fit should still be checked (`convergence`, from INLA's mode search).
 
 ### Interactive Beta SAE Benchmark Explorer ($n = 30$ to $n = 1,000$)
 

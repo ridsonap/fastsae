@@ -111,11 +111,42 @@
   changes the random number stream of the session; the bootstrap MSEs are unchanged.
 * `eblup_twofold()` uses `B = 100` and `seed = -1` (no seed) by default, as the other EBLUP
   functions (it used `B = 200` and `seed = NULL`; `NULL` still means no seed).
-* `hb_unit()` fits in INLA's `"classic"` mode. With INLA's default `"compact"` mode identical
-  calls returned different county means and SDs on `cornsoybean`, with SDs 8-15% above the exact
-  posterior (numerical integration over the two variances); the classic fit matches it and is
-  the same on every call. `inla_engine(inla.mode = "compact")` restores the INLA default. Its
-  `random_effect_var` is documented as unreliable with few domains and the vague prior.
+* Gaussian models of `hb_area()`, `hb_unit()` and `hb_twofold()` are fitted in INLA's `"classic"`
+  mode (Rue, Martino and Chopin, 2009); the other families keep INLA's default `"compact"` mode
+  (van Niekerk et al., 2023), which leaves the linear predictors out of the latent field and is
+  designed for data-rich models. The choice rests on comparisons with the exact posterior
+  (numerical integration over the variances) and with long Stan runs with the same model and
+  priors (`hb_area()`: 12 configurations, 18 paired comparisons):
+  * Gaussian: the compact mode overstated the posterior SDs by up to 18% (`hb_area()`, when the
+    area variance is small relative to `vardir`; it was accurate on `mys`), 8-15% (`hb_unit()`,
+    `cornsoybean`) and 10% (`hb_twofold()`), and `hb_unit()` gave different county means on
+    identical calls (up to 3 hectares and 13% in the SDs). In the classic mode the posterior means
+    were within 0.07 posterior SD and the SDs within 0.91-1.03 times the reference, at the same
+    speed.
+  * Binomial, Poisson, beta and gamma: both modes matched Stan (compact: means within 0.16
+    posterior SD, SDs within 0.95-1.08 times), and the classic mode was much slower for many
+    areas or units (beta with 2000 areas: 32 s against 1.3 s; `hb_unit()` binomial with 4000
+    units: 72 s against 2.6 s).
+  * With a small area variance, the classic summary of that variance (`random_effect_var`) is
+    biased downwards while the area estimates are accurate; this is documented.
+    `inla_engine(inla.mode = )` selects a mode.
+* CAR models (`spatial = "besag"`, `"bym"`, `"bym2"`, `"leroux"`) of `hb_area()`, `hb_unit()` and
+  `hb_twofold()` use only the pattern `W > 0`. A dense `W` such as distance-decay weights becomes
+  a (nearly) complete graph and an almost unstructured spatial effect; it now gives a warning.
+  `mys_proxmat` is such a matrix (all 861 pairs linked): its documentation said it was based on
+  contiguous boundaries, and the examples and vignettes now fit CAR models on a 4-nearest-
+  neighbour graph of the `sim_area` centroids. `mys_proxmat` remains suited to the SAR models.
+* `hb_unit(family = "binomial" / "poisson")` warns that the domain means are approximate. The
+  non-sampled part is predicted at the mean covariates, `inv_link(xbar' beta + u_d)`, which is
+  biased for the mean of `inv_link(x' beta + u_d)` over the units: in a simulation -8%
+  (binomial) and -16% (Poisson) for the sampled domains, with 90% and 78% coverage of the 95%
+  intervals. Unbiased estimation needs unit-level population covariates (Molina and Rao, 2010);
+  see `?hb_unit`. The Gaussian model is not affected.
+* `hb_twofold(weight = )` warns about missing or negative weights (they get weight 0 in
+  `df_area`, as before, but silently).
+* `compare_sae()` between a Hierarchical Bayes and an EBLUP model no longer calls the model with
+  the smaller posterior variance "more efficient": it reports which one has the lower reported
+  uncertainty and notes that a posterior variance and an MSE are not the same quantity.
 * Posterior draws of the INLA engine are reproducible: `inla_engine(seed = 1L)` is the new
   default (it was `0L`, INLA's random seed), and the seed is also set on the R side, since INLA
   draws the hyperparameter configurations with R's RNG; the session's random number stream is

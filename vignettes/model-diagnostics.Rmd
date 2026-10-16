@@ -140,7 +140,7 @@ fit_hb <- hb_area(
   data = sim_area,
   vardir = "vardir",
   spatial = "bym2",
-  W = mys_proxmat,
+  W = create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4),
   print_result = FALSE
 )
 

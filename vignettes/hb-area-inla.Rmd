@@ -28,7 +28,7 @@ Classical Small Area Estimation (SAE) models—such as the Fay-Herriot (1979) mo
 
 Furthermore, when data are collected across geographical areas and repeated over time (panel/longitudinal surveys), outcomes exhibit both spatial dependency and temporal autocorrelation.
 
-The **fastsae** package introduces `hb_area()`, a unified hierarchical Bayesian framework powered by **Integrated Nested Laplace Approximations (INLA)**. It provides fast, deterministic, and highly accurate analytical posterior approximations without the computational bottlenecks, convergence diagnostics, or chain-tuning associated with Markov Chain Monte Carlo (MCMC).
+The **fastsae** package introduces `hb_area()`, a unified hierarchical Bayesian framework powered by **Integrated Nested Laplace Approximations (INLA)**. It provides fast deterministic approximations of the posterior marginals, without the chains, warm-up and tuning of Markov chain Monte Carlo (MCMC); against long Stan runs with the same model and priors its posterior means and SDs agreed closely (see the Engines section of `?hb_area`).
 
 ---
 
@@ -202,15 +202,16 @@ head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower",
 
 ## Comparison and Validation Against `tipsae` (Stan MCMC)
 
-In `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`, the model is estimated using Hamiltonian Monte Carlo (HMC) in Stan. In `fastsae::hb_area()`, the identical structural model is estimated analytically via INLA.
+In `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`, the model is estimated by Hamiltonian Monte Carlo (HMC) in Stan. `fastsae::hb_area()` fits a model with the same structure by INLA; the priors of the two packages differ.
 
-| Characteristic | `tipsae::fit_sae` (Stan MCMC) | `fastsae::hb_area` (INLA) | Advantage |
-| :--- | :--- | :--- | :--- |
-| **Model Specification** | Besag ICAR + Domain RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` | Exact structural match |
-| **Estimation Method** | MCMC (NUTS) | Integrated Nested Laplace Approximations | Deterministic, no burn-in needed |
-| **Execution Time** | ~15.8 s (1 chain, 200 iter) / ~120 s (4 chains) | **1.93 s** (`simplified.laplace`) | **~9x to 50x+ faster** |
-| **Pearson Correlation ($r$)** | Baseline | **0.9893** | Near-identical estimates |
-| **Mean Absolute Error (MAE)** | Baseline | **0.00304** | Negligible numerical discrepancy |
+| Characteristic | `tipsae::fit_sae` (Stan MCMC) | `fastsae::hb_area` (INLA) |
+| :--- | :--- | :--- |
+| **Model** | Beta, Besag ICAR + domain-specific RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` |
+| **Estimation** | MCMC (NUTS) | Integrated nested Laplace approximation (INLA's default `"compact"` mode for Beta) |
+| **Execution time** | 120 s (4 chains x 2000 iterations, largest $\hat R$ 1.07); one chain of 200 iterations (about 10 s) has not converged | 1.1 s |
+| **Posterior means vs converged `tipsae`** | Reference | $r = 0.998$, mean absolute difference 0.0016 |
+
+Measured on 2026-10-16 on one machine (Apple silicon); times depend on the hardware. The accuracy of `hb_area()` was also checked against Stan with identical models and priors; see the Engines section of `?hb_area`.
 
 ### Interactive Scalability Explorer ($n = 30$ to $n = 1,000$)
 
@@ -523,7 +524,9 @@ For count data such as disease incidence or crime events, `hb_area()` seamlessly
 ```{r count_example, message = FALSE, warning = FALSE}
 # Simulate 42-domain count data with known spatial structure
 data("sim_area", package = "fastsae")
-data("mys_proxmat", package = "fastsae")
+
+# The BYM2 model uses a neighbourhood graph: the 4 nearest centroids of each domain
+W_knn <- create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4)
 
 # Fit Poisson Spatial Model with population exposure offset
 fit_pois <- hb_area(
@@ -532,7 +535,7 @@ fit_pois <- hb_area(
   exposure = "exposure",
   family = "poisson",
   spatial = "bym2",
-  W = mys_proxmat,
+  W = W_knn,
   print_result = FALSE
 )
 

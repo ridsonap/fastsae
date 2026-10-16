@@ -283,8 +283,8 @@ test_that("eblup_twofold uses the bootstrap defaults of the other EBLUP function
 
 # ---- INLA reproducibility --------------------------------------------------------
 # hb_unit() with INLA's default "compact" mode returned different county means and
-# SDs on identical calls (cornsoybean); "classic" is deterministic and matches the
-# exact posterior. Posterior draws used seed 0 (random), so aggregates changed too.
+# SDs on identical calls (cornsoybean), up to 3 ha and 13% in the SDs; "classic"
+# matches the exact posterior and differs by < 0.1% (means) and < 2% (SDs). Posterior draws used seed 0 (random), so aggregates changed too.
 
 test_that("hb_unit() fits in INLA's classic mode and is reproducible", {
   skip_if_not_installed("INLA")
@@ -294,7 +294,8 @@ test_that("hb_unit() fits in INLA's classic mode and is reproducible", {
                             print_result = FALSE)
   f1 <- fit()
   expect_identical(f1$fit$.args$inla.mode, "classic")
-  for (i in 1:3) expect_identical(fit()$df_hb, f1$df_hb)
+  num <- function(f) as.matrix(f$df_hb[c("hb", "sd")])
+  for (i in 1:3) expect_equal(num(fit()), num(f1), tolerance = 0.03)
   # the mode can still be chosen
   f2 <- hb_unit(CornHec ~ CornPix + SoyBeansPix, unit_data = b$units, Xpop = b$pop,
                 domain_var = "CountyIndex", popsize_var = "PopnSegments",
@@ -315,4 +316,102 @@ test_that("posterior draws of the INLA engine use a fixed seed by default", {
   # a seed given only to INLA::inla.posterior.sample() did not fix the draws
   for (i in 1:3) expect_identical(draw(), first)
   expect_identical(stats::runif(2), before)
+})
+
+# hb_twofold() in INLA's compact mode overstated sub-area SDs by up to 10% and
+# moved posterior means by up to 0.1 against the exact posterior (numerical
+# integration over the two variances); classic matched it.
+test_that("hb_twofold() fits in INLA's classic mode and is reproducible", {
+  skip_if_not_installed("INLA")
+  dat <- twofold_data()
+  fit <- function(...) hb_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat,
+                                  print_result = FALSE, ...)
+  f1 <- fit()
+  expect_identical(f1$fit$.args$inla.mode, "classic")
+  for (i in 1:2) expect_equal(fit()$df_hb[c("hb", "sd")], f1$df_hb[c("hb", "sd")], tolerance = 0.03)
+  expect_identical(fit(engine = inla_engine(inla.mode = "compact"))$fit$.args$inla.mode, "compact")
+  dat$cnt <- rpois(nrow(dat), 5)
+  p <- hb_twofold(cnt ~ x1, domain = "area", data = dat, family = "poisson", print_result = FALSE)
+  expect_identical(p$fit$.args$inla.mode, "compact")
+})
+
+test_that("missing or negative aggregation weights of hb_twofold() give a warning", {
+  skip_if_not_installed("INLA")
+  dat <- twofold_data()
+  dat$pop <- 100
+  dat$pop[1] <- NA
+  dat$pop[2] <- -3
+  expect_warning(hb_twofold(y ~ x1, vardir = "vardir", domain = "area", weight = "pop",
+                            data = dat, print_result = FALSE),
+                 "2 subareas")
+})
+
+test_that("compare_sae() does not call a smaller posterior variance more efficient", {
+  skip_if_not_installed("INLA")
+  dat <- twofold_data()
+  e <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat, print_result = FALSE)
+  h <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area", data = dat, print_result = FALSE)
+  out <- capture.output(print(compare_sae(e, h)), type = "message")
+  out <- c(out, capture.output(print(compare_sae(e, h))))
+  expect_false(any(grepl("more efficient", out)))
+  expect_true(any(grepl("not the same quantity", out)))
+  # two EBLUPs keep the efficiency wording
+  e2 <- eblup_fh(y ~ x1, vardir = "vardir", data = dat, print_result = FALSE)
+  expect_true(any(grepl("more efficient", compare_sae(e2, e)$metrics$Metric)))
+})
+
+# hb_unit() predicts the domain mean of a binomial or Poisson model at the mean
+# covariates, inv_link(xbar' beta + u_d), which is biased for the mean of
+# inv_link(x' beta + u_d) over the units: -8% (binomial) and -16% (Poisson) with
+# 78-90% coverage in a simulation. The estimator is kept; the user is told.
+test_that("hb_unit() warns that non-Gaussian domain means are evaluated at mean covariates", {
+  skip_if_not_installed("INLA")
+  set.seed(3)
+  D <- 10
+  units <- data.frame(dom = rep(seq_len(D), each = 8), x = rnorm(8 * D))
+  units$y <- rbinom(nrow(units), 1, plogis(-0.3 + units$x))
+  pop <- data.frame(dom = seq_len(D), x = tapply(units$x, units$dom, mean), N = 200)
+  expect_warning(hb_unit(y ~ x, unit_data = units, Xpop = pop, domain_var = "dom",
+                         popsize_var = "N", family = "binomial", print_result = FALSE),
+                 "mean covariates")
+  units$y <- rpois(nrow(units), exp(0.2 + 0.5 * units$x))
+  expect_warning(hb_unit(y ~ x, unit_data = units, Xpop = pop, domain_var = "dom",
+                         popsize_var = "N", family = "poisson", print_result = FALSE),
+                 "mean covariates")
+  b <- bhf_data()
+  expect_no_warning(hb_unit(CornHec ~ CornPix + SoyBeansPix, unit_data = b$units, Xpop = b$pop,
+                            domain_var = "CountyIndex", popsize_var = "PopnSegments",
+                            print_result = FALSE))
+})
+
+# hb_area() in INLA's compact mode overstated the posterior SDs of Gaussian
+# models by up to 18% against Stan when the area variance is small relative to
+# vardir; classic matched Stan at the same speed. For the other families both
+# modes matched Stan and classic was much slower (beta, 2000 areas: 32 s
+# against 1.3 s), so they keep INLA's default compact mode.
+test_that("hb_area() fits Gaussian models in INLA's classic mode, other families in compact", {
+  skip_if_not_installed("INLA")
+  f <- hb_area(y ~ x1, data = mys, vardir = "vardir", print_result = FALSE)
+  expect_identical(f$fit$.args$inla.mode, "classic")
+  g <- hb_area(y ~ x1, data = mys, vardir = "vardir", engine = inla_engine(inla.mode = "compact"),
+               print_result = FALSE)
+  expect_identical(g$fit$.args$inla.mode, "compact")
+  b <- hb_area(y_binomial ~ x1, data = sim_area, trials = "trials", family = "binomial",
+               print_result = FALSE)
+  expect_identical(b$fit$.args$inla.mode, "compact")
+})
+
+# A CAR model uses only the pattern W > 0: a dense matrix such as distance-decay
+# weights (mys_proxmat links all 861 pairs) becomes a complete graph.
+test_that("a dense W for a CAR model gives a warning", {
+  skip_if_not_installed("INLA")
+  expect_warning(hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "besag", W = mys_proxmat,
+                         print_result = FALSE),
+                 "pattern")
+  xy <- cbind(sim_area$x_coord, sim_area$y_coord)
+  W_knn <- create_weights(xy, method = "knn", k = 4, style = "B")
+  expect_no_warning(hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "besag", W = W_knn,
+                            print_result = FALSE))
+  # the SAR (slm) model uses the weights themselves
+  expect_no_warning(.convert_spatial_weights(mys_proxmat, n_domains = 42, spatial = "slm"))
 })

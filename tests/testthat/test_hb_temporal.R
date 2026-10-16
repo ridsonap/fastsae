@@ -8,6 +8,7 @@ test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   skip_if_not_installed("spdep")
   skip_if_not_installed("spam")
   skip_if_not_installed("rstantools")
+  skip_if_not_installed("rstan")
 
   data("emilia", package = "tipsae")
   data("emilia_shp", package = "tipsae")
@@ -31,10 +32,13 @@ test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
     domains_spatial_df = "NAME_DISTRICT",
     temporal_error = TRUE,
     temporal_variable = "year",
-    chains = 1,
-    iter = 200,
+    chains = 4,
+    iter = 2000,
+    cores = 4,
     seed = 42
   )
+  # The reference must have converged: one chain of 200 iterations gave R-hat > 2
+  expect_lt(max(rstan::summary(fit_tip$stanfit)$summary[, "Rhat"], na.rm = TRUE), 1.1)
   t1_tip <- Sys.time()
   time_tip <- as.numeric(difftime(t1_tip, t0_tip, units = "secs"))
   sum_tip <- summary(fit_tip)
@@ -79,9 +83,9 @@ test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   cor_val <- stats::cor(df_comp$inla_est, df_comp$HB_est)
   mae_val <- mean(abs(df_comp$inla_est - df_comp$HB_est))
 
-  # Benchmark expectations: high correlation (> 0.95), low MAE (< 0.015), INLA speedup (> 2x)
-  expect_gt(cor_val, 0.95)
-  expect_lt(mae_val, 0.015)
+  # Against the converged tipsae fit: r = 0.998 and MAE = 0.0016 (the priors differ)
+  expect_gt(cor_val, 0.99)
+  expect_lt(mae_val, 0.005)
   expect_gt(time_tip, time_inla)
 
   # Check hyperparameters
@@ -111,7 +115,7 @@ test_that("hb_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data"
     spatial = "bym2",
     temporal = "ar1",
     st_interaction = "none",
-    W = mys_proxmat,
+    W = mys_knn,
     print_result = FALSE
   )
 
@@ -137,7 +141,7 @@ test_that("hb_area works for Gaussian Spatio-Temporal Fay-Herriot on panel data"
     spatial = "besag",
     temporal = "ar1",
     st_interaction = "separable",
-    W = mys_proxmat,
+    W = mys_knn,
     print_result = FALSE
   )
   expect_s3_class(fit_sep, "fastsae_hb_area")

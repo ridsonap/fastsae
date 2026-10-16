@@ -58,6 +58,13 @@ Sama seperti dua fungsi Bayes lain: \pkg{INLA} dengan
 bila \code{compute\_area = TRUE} (karena butuh konfigurasi untuk posterior
 sampling), dan \code{num.threads = 1} (baris 269-285); argumen
 \code{inla\_engine(...)} digabung lewat \code{modifyList} (baris 298-299).
+Fit Gaussian memakai \code{inla.mode = "classic"} (binomial/Poisson tetap \code{compact}, seperti \code{hb\_area}): terhadap posterior eksak (integrasi
+numerik pada grid $(\log\tau_v,\log\tau_u)$, data simulasi vignette two-fold)
+mode default \code{"compact"} meleset sampai $0{,}096$ pada rerata sub-area dan
+SD-nya $1$--$10\%$ terlalu besar, sedangkan \code{classic} selisih $\le0{,}010$
+dengan rasio SD $0{,}984$--$0{,}998$. Ringkasan $\sigma_u^2$ \code{classic}
+($0{,}047$) lebih jauh dari nilai eksak ($0{,}072$) daripada \code{compact}
+($0{,}070$); estimasi sub-area dan area tetap output yang andal.
 Prior: \code{prior\_prec} (area) dan \code{prior\_prec\_subarea} keduanya
 \code{pc.prec(1, 0.01)}, \code{prior\_phi} \code{pc(0.5, 0.5)}
 (baris 155-171). Hyperparameter akhir: $\hat\sigma_v^2$ dan $\hat\sigma_u^2$
@@ -81,7 +88,8 @@ Tingkat area memakai sampling posterior (baris 371-406), bila
         $1$. Helper ini memasang seed juga di sisi R (INLA memilih konfigurasi
         hiperparameter dengan RNG R, sehingga \code{seed} di
         \code{inla.posterior.sample} saja tidak reprodusibel; dulu
-        \code{sd\_area} berubah sampai $9\%$) lalu memulihkan aliran RNG sesi;
+        \code{sd\_area} berubah sampai $9\%$) lalu memulihkan aliran RNG sesi.
+        Bobot NA/negatif diberi 0 dengan warning;
   \item tarik baris \code{Predictor:1}..\code{Predictor:$n_{\text{subarea}}$}
         dari \code{rownames(ps[[1]]\$latent)};
   \item transformasi balik link manual (binomial $1/(1+e^{-x})$, Poisson

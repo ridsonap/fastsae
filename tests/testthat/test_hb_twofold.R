@@ -267,7 +267,7 @@ test_that("hb_twofold handles besag spatial and subarea = NULL", {
     domain = "area",
     subarea = NULL,
     spatial = "besag",
-    W = mys_proxmat,
+    W = mys_knn,
     data = dat,
     print_result = FALSE
   )

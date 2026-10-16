@@ -103,9 +103,17 @@ Jenis interval juga berbeda: kuantil posterior bila tanpa
         tetap posterior $(\beta,u)$ Gaussian), mode \code{compact} meleset
         sampai $2{,}0$ pada rerata county dan SD-nya $8$--$15\%$ terlalu besar,
         sedangkan \code{classic} selisih $\le0{,}31$ dengan rasio SD
-        $0{,}995$--$1{,}014$ dan deterministik. Karena itu \code{inla.mode =
-        "classic"} dipasang (bila \code{INLA::inla} mengenal argumen itu);
+        $0{,}995$--$1{,}014$ dan jauh lebih stabil (antar-konteks eksekusi
+        rerata berbeda $<0{,}1\%$ dan SD $<2\%$, tidak bit-identik). Karena itu \code{inla.mode =
+        "classic"} dipasang untuk Gaussian (bila \code{INLA::inla} mengenal argumen itu);
+        binomial/Poisson tetap \code{compact} karena \code{classic} jauh lebih lambat
+        (binomial, 4000 unit: $72$ vs $2{,}6$ detik);
         \code{inla\_engine(inla.mode = "compact")} mengembalikan default INLA.
+        Untuk binomial/Poisson rerata domain diprediksi pada rata-rata
+        kovariat, $g^{-1}(\bar x_{d,r}^\top\beta+u_d)$, yang bias untuk link
+        nonlinier (Jensen): pada simulasi $-8\%$ (binomial) dan $-16\%$
+        (Poisson), coverage $90\%$ dan $78\%$. Fungsi memberi warning;
+        estimasi tak bias butuh kovariat unit populasi (EBP, Molina \& Rao 2010).
         Ringkasan $\sigma_u^2$ (\code{random\_effect\_var}) tetap tidak
         andal: posterior eksak sangat miring (rerata $40{,}9$, median $7{,}0$),
         INLA melaporkan $\approx70$.

@@ -107,7 +107,7 @@ test_that("hb_area self-benchmarking works with spatial BYM2 model", {
     vardir = "vardir",
     family = "gaussian",
     spatial = "bym2",
-    W = mys_proxmat,
+    W = mys_knn,
     self_benchmark = TRUE,
     benchmark_weight = "n",
     print_result = FALSE

@@ -432,7 +432,7 @@ test_that("hb_area generic1 with prior_rho and bym separable paths", {
   data(mys_proxmat, package = "fastsae")
 
   # L444: prior_rho passed to generic1 (hits hyper_generic1$beta <- prior_rho)
-  fit_g1 <- hb_area(y ~ x1, data = mys, W = mys_proxmat, spatial = "generic1",
+  fit_g1 <- hb_area(y ~ x1, data = mys, W = mys_knn, spatial = "generic1",
                     engine = inla_engine(prior_rho = list(prior = "normal", param = c(0, 1))))
   expect_s3_class(fit_g1, "fastsae")
 
@@ -440,7 +440,7 @@ test_that("hb_area generic1 with prior_rho and bym separable paths", {
   mys_t <- mys[seq_len(20), ]
   mys_t$time <- rep(1:2, each = 10)
   mys_t$domain <- rep(1:10, 2)
-  W_sub <- mys_proxmat[1:10, 1:10]
+  W_sub <- create_weights(cbind(sim_area$x_coord, sim_area$y_coord)[1:10, ], method = "knn", k = 3, style = "B")
   fit_bym_sep <- hb_area(y ~ x1, data = mys_t, W = W_sub,
                           spatial = "bym", temporal = "rw1", st_interaction = "separable",
                           domain = "domain", time = "time")
@@ -452,7 +452,7 @@ test_that("hb_area generic1 prior_phi fallback to beta hyper", {
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
   data(mys, package = "fastsae")
   data(mys_proxmat, package = "fastsae")
-  fit <- hb_area(y ~ x1, data = mys, W = mys_proxmat, spatial = "generic1",
+  fit <- hb_area(y ~ x1, data = mys, W = mys_knn, spatial = "generic1",
                  engine = inla_engine(prior_phi = list(prior = "normal", param = c(0, 1))))
   expect_s3_class(fit, "fastsae")
 })

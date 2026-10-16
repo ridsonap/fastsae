@@ -106,7 +106,12 @@ is an ICAR (\code{"besag"}) field on the graph of \code{W}.}
 
 \item{W}{Proximity or spatial adjacency matrix. Can be a square \code{matrix},
 \code{Matrix}, or \code{spdep} \code{nb} or \code{listw} object. Dimensions must
-match the total number of domains in \code{data}. Required when \code{spatial != "none"}.}
+match the total number of domains in \code{data}. Required when \code{spatial != "none"}.
+The CAR models (\code{"besag"}, \code{"bym"}, \code{"bym2"}, \code{"leroux"}) use only the
+neighbourhood pattern \code{W > 0}, not the weights: give a neighbourhood graph (for
+example \code{create_weights(method = "queen")} or \code{"knn"}). A dense matrix such as
+distance-decay weights becomes a nearly complete graph and gives a warning. \code{"slm"}
+uses the row-standardised weights.}
 
 \item{vardir}{Vector, column name, or formula specifying the sampling variances of the
 direct estimator (for \code{family = "gaussian"} or \code{family = "beta"}).}
@@ -167,7 +172,8 @@ An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containi
     95\% credible interval (\code{ci_lower}, \code{ci_upper}), and \code{random_effect}.
   \item \code{estcoef}: Data frame of estimated regression coefficients.
   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
-  \item \code{random_effect_var}: Estimated area random effect variance.
+  \item \code{random_effect_var}: Posterior mean of the area random effect variance (see
+    the Engines section on its accuracy when the variance is small).
   \item \code{random_effect_var_time}: Estimated temporal random effect variance (if temporal).
   \item \code{phi}: Estimated spatial variance proportion (for BYM2) or spatial autocorrelation.
   \item \code{rho_time}: Estimated temporal autocorrelation parameter (for AR1).
@@ -225,6 +231,21 @@ The \code{"jax"} engine uses weakly informative priors (half-normal standard dev
 uniform spatial mixing / autocorrelation parameters) instead of the PC priors of INLA, so its
 estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
 not use \code{vardir}.
+
+With the \code{"inla"} engine, \code{family = "gaussian"} is fitted in INLA's
+\code{"classic"} mode (Rue, Martino and Chopin, 2009) and the other families in INLA's
+default \code{"compact"} mode (van Niekerk et al., 2023), which leaves the linear predictors
+out of the latent field and is designed for data-rich models. This was chosen against long
+Stan runs with the same model and priors (12 configurations, 18 paired comparisons: Gaussian,
+binomial, Poisson, beta and gamma; iid, Besag and BYM2 effects; RW1 in time). For Gaussian
+models the compact mode overstated the posterior SDs by up to 18\% when the area variance was
+small relative to \code{vardir}, while the classic means were within 0.07 posterior SD of Stan
+and the SDs within 0.91-1.03 times Stan's, at the same speed. For the other families both
+modes matched Stan (compact: means within 0.16 posterior SD, SDs within 0.95-1.08 times), and
+the classic mode was much slower for many areas (beta, 2000 areas: 32 s against 1.3 s).
+\code{inla_engine(inla.mode = )} selects a mode. For Gaussian models with a small area
+variance, the classic summary of that variance (\code{random_effect_var}) was biased
+downwards, while the area estimates were accurate.
 }
 
 \examples{
@@ -249,14 +270,16 @@ if (requireNamespace("INLA", quietly = TRUE)) {
     benchmark_weight = "n"
   )
 
-  # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA, faster approximation
+  # 3. Spatial BYM2 Gaussian Fay-Herriot with INLA, faster approximation;
+  #    the CAR model needs a neighbourhood graph (4 nearest centroids)
+  W_knn <- create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4)
   m_bym2 <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
     vardir = "vardir",
     family = "gaussian",
     spatial = "bym2",
-    W = mys_proxmat,
+    W = W_knn,
     engine = inla_engine(strategy = "simplified.laplace")
   )
 }
@@ -289,5 +312,7 @@ if (check_numpyro_available()) {
     horseshoe and other shrinkage priors. \emph{Electronic Journal of Statistics}, 11(2), 5018-5051.
   \item Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
     models by using integrated nested Laplace approximations. \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
+  \item van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A new avenue for Bayesian
+    inference with INLA. \emph{Computational Statistics & Data Analysis}, 181, 107692.
 }
 }

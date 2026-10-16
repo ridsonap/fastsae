@@ -43,7 +43,9 @@ where \eqn{f_d = n_d / N_d}. If \code{NULL}, the superpopulation expectation
   \item \code{"gaussian"}: Continuous response (Battese-Harter-Fuller model, default).
   \item \code{"binomial"}: Binary / Bernoulli response (0 or 1, e.g. poverty indicator).
   \item \code{"poisson"}: Count response (non-negative integer).
-}}
+}
+The domain means of \code{"binomial"} and \code{"poisson"} are approximate and biased; see
+Details.}
 
 \item{spatial}{Character string specifying the spatial random effect structure across domains:
 \itemize{
@@ -63,9 +65,10 @@ If \code{NULL} (default), means are extracted directly from \code{Xpop}.}
 object holding the approximation strategy, the priors (\code{prior_prec}, default
 \code{list(prior = "loggamma", param = c(0.01, 0.01))}, vague on any response scale;
 \code{prior_phi} for BYM2),
-\code{scale_model} and further \code{INLA::inla()} arguments. The model is fitted
-in INLA's \code{"classic"} mode; \code{inla_engine(inla.mode = "compact")} selects
-INLA's default mode.}
+\code{scale_model} and further \code{INLA::inla()} arguments. The Gaussian model is
+fitted in INLA's \code{"classic"} mode, the binomial and Poisson models in INLA's default
+\code{"compact"} mode (for them classic was much slower: 72 s against 2.6 s for 4000
+binary units); \code{inla_engine(inla.mode = )} selects a mode.}
 
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 
@@ -119,6 +122,20 @@ Binomial (logistic regression for binary unit responses), and Poisson likelihood
 with optional spatial random effect structures (BYM2, Besag) and finite
 population adjustments.
 }
+\details{
+\strong{Non-Gaussian families.} The non-sampled part of a domain mean is predicted at the
+mean covariates of the non-sampled units, \eqn{g^{-1}(\bar x_{d,r}^\top\beta + u_d)}. For the
+identity link of \code{"gaussian"} this is the mean of \eqn{x_j^\top\beta + u_d} over the
+units. For the logit and log links of \code{"binomial"} and \code{"poisson"} it is not: the
+mean of \eqn{g^{-1}(x_j^\top\beta + u_d)} over the units differs from it whenever the
+covariates vary within the domain (for the log link it is larger by the factor
+\eqn{E[\exp((x_j - \bar x)^\top\beta)] > 1}). In a simulation with one normal covariate of
+within-domain variance 1, the domain means of the sampled domains were biased by -8\%
+(binomial, slope 1.2) and -16\% (Poisson, slope 0.6), and the 95\% credible intervals
+covered the true means in 90\% and 78\% of the cases. Unbiased estimation needs the covariates
+of every population unit, as in the empirical best predictor of Molina and Rao (2010); a
+unit-level \code{Xpop} is currently averaged per domain. A warning is given for these families.
+}
 \examples{
 \donttest{
 if (requireNamespace("INLA", quietly = TRUE)) {
@@ -149,6 +166,8 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 }
 \references{
 \enumerate{
+  \item Molina, I., & Rao, J. N. K. (2010). Small area estimation of poverty indicators.
+    \emph{Canadian Journal of Statistics}, 38(3), 369-385.
   \item Battese, G. E., Harter, R. M., & Fuller, W. A. (1988). An error-components model
     for prediction of county crop areas using survey and satellite data.
     \emph{Journal of the American Statistical Association}, 83(401), 28-36.

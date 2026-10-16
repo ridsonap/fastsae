@@ -45,7 +45,10 @@
 #'   effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
 #'   both by default \code{list(prior = "pc.prec", param = c(1, 0.01))}; \code{prior_phi} for
 #'   BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
-#'   (default 200) and their \code{seed}, and further \code{INLA::inla()} arguments.
+#'   (default 200) and their \code{seed}, and further \code{INLA::inla()} arguments. The
+#'   Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
+#'   in INLA's default \code{"compact"} mode, as in \code{\link{hb_area}};
+#'   \code{inla_engine(inla.mode = )} selects a mode.
 #' @param compute_area Logical. If \code{TRUE} (default), computes aggregate primary area-level
 #'   estimates and posterior standard errors via posterior sampling.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
@@ -86,7 +89,11 @@
 #'   \item \code{df_subarea}: Alias pointing to \code{df_hb}.
 #'   \item \code{estcoef}: Data frame of estimated regression coefficients (\eqn{\beta}, standard error, z-value, p-value, credible intervals).
 #'   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
-#'   \item \code{random_effect_var}: Named vector with area (\code{sigma2_v}) and sub-area (\code{sigma2_u}) variances.
+#'   \item \code{random_effect_var}: Named vector with the posterior means of the area
+#'     (\code{sigma2_v}) and sub-area (\code{sigma2_u}) variances. When a variance is close to
+#'     0 its posterior is skewed and INLA's summary can be biased (on simulated data
+#'     \code{sigma2_u} was 0.047 against an exact posterior mean of 0.072); the sub-area and
+#'     area estimates are the reliable output.
 #'   \item \code{phi}: Estimated spatial variance proportion (for BYM2).
 #'   \item \code{goodness}: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
 #'   \item \code{family}: Response family used.
@@ -300,6 +307,12 @@ hb_twofold <- function(
   }
 
   # inla_engine(...) settings override; control.* lists are merged
+  # INLA's default "compact" mode overstated sub-area SDs by up to 10% and moved
+  # posterior means by up to 0.1 against the exact posterior (numerical
+  # integration over the two variances, simulated data) and varied slightly
+  # between identical calls; "classic" matched it. inla_engine(inla.mode = ) overrides.
+  # Gaussian only, as in hb_area(): classic is much slower for non-Gaussian data.
+  if (family == "gaussian" && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
   inla_args <- utils::modifyList(inla_args, engine$inla_args)
 
   # 8. Fit INLA Model
@@ -354,6 +367,15 @@ hb_twofold <- function(
   # 10. Area-Level Aggregation
   df_area <- NULL
   if (compute_area) {
+    if (!is.null(weight_vec)) {
+      bad_w <- which(is.na(weight_vec) | weight_vec < 0)
+      if (length(bad_w) > 0) {
+        cli::cli_warn(c(
+          "{.arg weight} is missing or negative for {length(bad_w)} subarea{?s}: {.val {utils::head(subarea_vec[bad_w], 10)}}.",
+          "i" = "They get weight 0 in the area aggregates of {.code df_area}."
+        ))
+      }
+    }
     # Normalize weights per area
     norm_weight <- numeric(n_subareas)
     for (d in unique_domains) {
@@ -362,7 +384,7 @@ hb_twofold <- function(
         norm_weight[idx] <- 1 / length(idx)
       } else {
         w_sub <- weight_vec[idx]
-        w_sub[is.na(w_sub) | w_sub < 0] <- 0
+        w_sub[is.na(w_sub) | w_sub < 0] <- 0  # reported below
         sum_w <- sum(w_sub)
         norm_weight[idx] <- if (sum_w > 0) w_sub / sum_w else 1 / length(idx)
       }

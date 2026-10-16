@@ -156,7 +156,7 @@ the posterior of $\sigma_u^2$ is very skewed, with much mass near 0, and INLA's 
 (`random_effect_var`) is not accurate. Do not compare it with the REML estimate of
 `eblup_bhf()`. The county estimates in `df_hb` are reliable: `hb_unit()` fits in INLA's
 `"classic"` mode, which on these data matches the exact posterior (computed by numerical
-integration over the two variances) and gives the same result on every call.
+integration over the two variances) and is stable from call to call.
 
 ### Counties without a sample
 
@@ -180,7 +180,9 @@ fit_hbu1$df_hb[fit_hbu1$df_hb$domain == 1, c("domain", "samp_size", "hb", "sd")]
 The population means in `Xpop` must be complete: a missing mean is an error, since the
 prediction of that county would be wrong. `hb_unit()` also fits binomial and Poisson responses
 (`family`) and a spatial county effect (`spatial = "bym2"` or `"besag"` with a proximity matrix
-`W`).
+`W`). For binomial and Poisson responses the county means are predicted at the mean covariates,
+which is biased for a nonlinear link (by -8% and -16% in a simulation; see `?hb_unit`), and the
+function warns about it.
 
 ## References
 

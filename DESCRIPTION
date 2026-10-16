@@ -60,6 +60,7 @@ Suggests:
     sf,
     sn,
     tipsae,
+    rstan,
     rstantools,
     writexl,
     openxlsx,

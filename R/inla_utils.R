@@ -106,6 +106,18 @@
   adj_mat <- (W_mat > 0 | t(W_mat) > 0) * 1
   diag(adj_mat) <- 0
 
+  # CAR models (besag, bym, bym2, leroux/generic1) use only the pattern W > 0. A
+  # dense matrix such as distance-decay weights becomes a (nearly) complete
+  # graph, on which the "spatial" effect is almost exchangeable.
+  n_adj <- nrow(adj_mat)
+  density <- if (n_adj > 1) sum(adj_mat) / (n_adj * (n_adj - 1)) else 0
+  if (spatial != "slm" && n_adj >= 4 && density > 0.5) {
+    cli::cli_warn(c(
+      "{.arg W} links {round(100 * density)}% of all pairs of domains. The {.val {spatial}} model uses only the pattern {.code W > 0}, not the weights, so a dense matrix (e.g. distance-decay weights) gives an almost unstructured spatial effect.",
+      "i" = "Use a neighbourhood graph: {.code create_weights(method = \"queen\")} for polygons or {.code create_weights(coords, method = \"knn\")} for centroids."
+    ))
+  }
+
   # Check if disconnected components or isolated nodes exist
   degree <- rowSums(adj_mat)
   if (any(degree == 0)) {

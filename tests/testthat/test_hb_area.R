@@ -53,7 +53,7 @@ test_that("hb_area works with BYM2 and Besag spatial priors", {
     vardir = "vardir",
     family = "gaussian",
     spatial = "bym2",
-    W = mys_proxmat,
+    W = mys_knn,
     print_result = FALSE
   )
 
@@ -69,7 +69,7 @@ test_that("hb_area works with BYM2 and Besag spatial priors", {
   fit_spatial <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
-    W = mys_proxmat,
+    W = mys_knn,
     vardir = "vardir",
     family = "gaussian",
     spatial = "bym2",
@@ -82,7 +82,7 @@ test_that("hb_area works with BYM2 and Besag spatial priors", {
   fit_besag <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
-    W = mys_proxmat,
+    W = mys_knn,
     vardir = "vardir",
     family = "gaussian",
     spatial = "besag",
@@ -213,7 +213,7 @@ test_that("autoplot works dynamically with hb and eblup objects", {
   data("mys_proxmat", package = "fastsae")
 
   fit_hb0 <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", family = "gaussian", print_result = FALSE)
-  fit_hb_sp <- hb_area(y ~ x1 + x2 + x3, data = mys, W = mys_proxmat, vardir = "vardir", family = "gaussian", spatial = "bym2", print_result = FALSE)
+  fit_hb_sp <- hb_area(y ~ x1 + x2 + x3, data = mys, W = mys_knn, vardir = "vardir", family = "gaussian", spatial = "bym2", print_result = FALSE)
 
   # Check that eblup is not in df_hb (no redundancy)
   expect_false("eblup" %in% names(fit_hb0$df_hb))
@@ -300,7 +300,7 @@ test_that("hb_area works for Leroux CAR (spatial = generic1)", {
   fit_leroux <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
-    W = mys_proxmat,
+    W = mys_knn,
     vardir = "vardir",
     family = "gaussian",
     spatial = "generic1",
@@ -414,7 +414,7 @@ test_that("hb_area: full Laplace strategy (binomial & poisson) and deprecated me
       family = "binomial",
       trials = "n",
       spatial = "bym2",
-      W = mys_proxmat[1:D, 1:D],
+      W = mys_knn[1:D, 1:D],
       method = "laplace",
       print_result = FALSE
     ),
@@ -601,7 +601,7 @@ test_that("hb_area prior/spatial branches work", {
   data("mys_proxmat", package = "fastsae")
 
   # 3. spatial = "bym"
-  fit_bym <- hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "bym", W = mys_proxmat, print_result = FALSE)
+  fit_bym <- hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "bym", W = mys_knn, print_result = FALSE)
   expect_s3_class(fit_bym, "fastsae_hb_area")
 
   # 4. temporal = "ar1" with prior_rho_time and domain-specific st_interaction
@@ -627,7 +627,7 @@ test_that("hb_area prior/spatial branches work", {
     data = mys,
     vardir = "vardir",
     spatial = "generic1",
-    W = mys_proxmat,
+    W = mys_knn,
     engine = inla_engine(prior_rho = list(prior = "normal", param = c(0, 1))),
     print_result = FALSE
   )

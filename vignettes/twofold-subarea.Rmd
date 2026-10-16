@@ -219,7 +219,7 @@ compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 quantity, and here the posterior mean of $\sigma_u^2$ is also smaller than the REML estimate
 (both are below the true value 0.5, which is hard to separate from sampling variances of 0.5 to
 2). A smaller reported uncertainty is therefore not evidence of a more accurate estimator. With
-simulated data, the error against the truth settles it:
+simulated data, the error against the truth settles it; here the two are practically equal:
 
 ```{r truth_hb, eval = has_inla}
 c(eblup_two_fold = emp_mse(fit_tf$df_eblup$eblup, sampled | in_sampled_area),
@@ -227,8 +227,8 @@ c(eblup_two_fold = emp_mse(fit_tf$df_eblup$eblup, sampled | in_sampled_area),
 ```
 
 For counts or proportions, use `family = "poisson"` with `exposure` or `family = "binomial"`
-with `trials`; with `spatial = "bym2"` and a proximity matrix `W` between areas, the area
-effects are spatially correlated.
+with `trials`; with `spatial = "bym2"` and a neighbourhood graph `W` between areas (for
+example from `create_weights()`), the area effects are spatially correlated.
 
 ---
 

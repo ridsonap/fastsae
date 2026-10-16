@@ -59,7 +59,7 @@ test_that("diagnose works for hb_area and handles simulation truth", {
   data("mys_proxmat", package = "fastsae")
 
   fit_hb <- hb_area(y_gaussian ~ x1 + x2, data = sim_area,
-                      vardir = "vardir", spatial = "bym2", W = mys_proxmat,
+                      vardir = "vardir", spatial = "bym2", W = mys_knn,
                       print_result = FALSE)
 
   # Supply dummy ground truth for simulation verification
