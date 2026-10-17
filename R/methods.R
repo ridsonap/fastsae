@@ -51,7 +51,9 @@ print.fastsae <- function(x, ...) {
   if (!is.null(x$call)) {
     cli::cli_par()
     cli::cli_text("{.strong Call}:")
-    cli::cli_text(deparse(x$call))
+    # passed as a value: braces in the call (e.g. from do.call()) are not cli markup
+    call_text <- paste(deparse(x$call), collapse = " ")
+    cli::cli_text("{call_text}")
     cli::cli_end()
   }
 
@@ -202,7 +204,9 @@ print.summary.fastsae <- function(x, ...) {
   if (!is.null(x$call)) {
     cli::cli_par()
     cli::cli_text("Call :")
-    cli::cli_text(deparse(x$call))
+    # passed as a value: braces in the call (e.g. from do.call()) are not cli markup
+    call_text <- paste(deparse(x$call), collapse = " ")
+    cli::cli_text("{call_text}")
     cli::cli_end()
   }
 

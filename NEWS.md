@@ -31,9 +31,26 @@
   deviations instead of PC priors); a fit took 7-11 s against 11-31 s for INLA with the area
   aggregates. The result has the structure of the INLA engine plus `draws`, `rhat_max`, `device`
   and `elapsed_seconds`.
+* `hb_unit()` also takes `engine = jax_engine()` (or `"jax"`): the nested error model
+  (Gaussian, Bernoulli or Poisson units; iid, Besag or BYM2 domain effects) is sampled by
+  NumPyro NUTS from the sampled units, and the domain means, including the finite population
+  mean with `popsize_var`, are summarised from the MCMC draws. Checked against a Stan fit of the
+  same model and priors (30 domains; domain means within 0.04 posterior SD, SDs within 5%), and,
+  with their own priors, against `hbsae::fSAE(method = "HB")` (Gaussian; within 0.1 SD) and the
+  INLA engine (within 0.06 SD). On `cornsoybean` (12 counties) the priors matter: the county SDs
+  are 1.1-1.4 times INLA's and 0.8-1.0 times hbsae's.
+* The NumPyro backend returns the draws of the residual variance (`sigma2_e`) and can return the
+  draws of selected rows only (`draw_rows`).
+* `jax_engine()`: the WAIC of a Gaussian model with an unknown residual variance (`hb_area()`
+  without `vardir`, `hb_unit()`) used the posterior mean of the residual SD in every draw; it
+  now uses the SD of each draw (on `mys`: 129.3 instead of 135.9).
+* `hb_unit()` checks that the unit responses are 0 or 1 for `family = "binomial"` and non-negative
+  integers for `"poisson"`.
+* `print()` failed on a fit whose call holds braces, e.g. from `do.call()` with a function object:
+  the call was read as cli markup.
 * `jax_engine(robust = TRUE)` is documented as what it does: Student-t random effects (it was
   described as Student-t sampling errors for the Gaussian family).
-* `hb_unit()` and `hb_twofold()` take the same `engine = inla_engine(...)` (`hb_unit()` INLA only). In
+* `hb_unit()` and `hb_twofold()` take the same `engine = inla_engine(...)`. In
   `hb_twofold()`, `prior_prec_area` is now `inla_engine(prior_prec = )`, `n_samples` is
   `inla_engine(draws = )`, and the posterior draws for the area aggregates honour `seed`. Their
   results carry `engine` and `engine_spec` too.

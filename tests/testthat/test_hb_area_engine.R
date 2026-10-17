@@ -199,8 +199,8 @@ test_that("hb_unit() and hb_twofold() take inla_engine() with their own defaults
                               used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws"))
   expect_identical(eng$draws, 200L)
 
-  # INLA only (hb_twofold() also takes jax_engine(); see test_hb_twofold_engine.R)
-  expect_error(hb_unit(y ~ x, data.frame(), data.frame(), "d", engine = "jax"), "INLA only")
+  # hb_unit() and hb_twofold() also take jax_engine(); see test_hb_unit_engine.R and
+  # test_hb_twofold_engine.R
   expect_error(hb_unit(y ~ x, data.frame(), data.frame(), "d", engine = "laplace"), "removed")
 })
 
@@ -361,6 +361,27 @@ test_that("engine = 'jax' Fay-Herriot agrees with INLA", {
   expect_lt(median(abs(fit_jax$df_hb$hb / fit_inla$df_hb$hb - 1)), 0.05)
   expect_true(fit_jax$convergence)
   expect_equal(dim(fit_jax$draws), c(nrow(mys), 600))
+})
+
+test_that("engine = 'jax' WAIC of a Gaussian model uses the residual SD of each draw", {
+  skip_if_no_numpyro()
+  data("mys", package = "fastsae")
+  # one observation per area leaves the area and residual variances weakly identified (the
+  # chains may not mix), which does not matter for the WAIC identity checked here
+  fit <- suppressWarnings(suppressMessages(
+    hb_area(y ~ x1 + x2 + x3, data = mys, engine = jax_eng, print_result = FALSE)
+  ))
+  s2e <- as.numeric(fit$fit$sigma2_e_draws)
+  expect_length(s2e, 600)
+  expect_equal(fit$residual_var %||% mean(s2e), mean(s2e))
+  # lppd and p_WAIC from the pointwise log-likelihood, S x n (Gelman et al., 2014)
+  sd_e <- sqrt(s2e)
+  obs <- !is.na(mys$y)
+  ll <- stats::dnorm(matrix(mys$y[obs], 600, sum(obs), byrow = TRUE), t(fit$draws[obs, ]), sd_e, log = TRUE)
+  lppd <- sum(log(colMeans(exp(ll))))
+  p_waic <- sum(apply(ll, 2, stats::var))
+  # the backend works in single precision
+  expect_equal(unname(fit$goodness["WAIC"]), -2 * (lppd - p_waic), tolerance = 1e-4)
 })
 
 test_that("engine = 'jax' fits count, spatial, and temporal models end to end", {

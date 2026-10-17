@@ -158,6 +158,33 @@ the posterior of $\sigma_u^2$ is very skewed, with much mass near 0, and INLA's 
 `"classic"` mode, which on these data matches the exact posterior (computed by numerical
 integration over the two variances) and is stable from call to call.
 
+### MCMC with `engine = jax_engine()`
+
+`hb_unit(engine = jax_engine())` samples the same model with NumPyro's NUTS sampler instead of
+INLA (it needs Python with 'jax' and 'numpyro'; see `setup_numpyro_env()`), and summarises the
+county means from the MCMC draws:
+
+```{r hb_unit_jax, eval = FALSE}
+fit_hbu_jax <- hb_unit(
+  CornHec ~ CornPix + SoyBeansPix,
+  unit_data = cornsoybean,
+  Xpop = df_pop,
+  domain_var = "County",
+  popsize_var = "PopnSegments",
+  engine = jax_engine(chains = 4, samples = 2000),
+  print_result = FALSE
+)
+fit_hbu_jax$rhat_max
+```
+
+Its priors are half-normal on the standard deviations of the county effect and of the unit
+errors (on the standardised response scale). With 12 counties the prior of $\sigma_u^2$ shapes
+its posterior, so the county SDs differ between engines: on these data they are 1.1-1.4 times
+those of INLA, whose log-gamma prior puts more mass near $\sigma_u^2 = 0$, and 0.8-1.0 times
+those of `hbsae::fSAE(method = "HB")`, with its flat prior on the variance ratio. With more
+domains the data dominate: for 30 simulated domains the three agreed within 0.1 posterior SD,
+and a Stan fit with the same priors as the JAX engine agreed within Monte Carlo error.
+
 ### Counties without a sample
 
 A domain that is in `Xpop` but has no rows in `unit_data` is predicted from the regression and

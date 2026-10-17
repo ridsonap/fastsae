@@ -219,3 +219,18 @@ test_that("print and summary print handle non-standard coefficient columns and e
   )
   expect_output(print(sum_mod), "EBLUP Summary Statistics")
 })
+
+test_that("print() shows a call that contains braces", {
+  # do.call() with a function object puts the whole function, braces included,
+  # into the matched call; cli read them as glue expressions
+  fn <- function(x) {
+    a <- 1
+    b <- 2
+  }
+  fit <- structure(list(call = as.call(list(fn, quote(y ~ x1)))), class = "fastsae")
+  out <- paste(capture.output(print(fit), type = "message"), collapse = "\n")
+  expect_match(out, "Call", fixed = TRUE)
+  expect_match(out, "y ~ x1", fixed = TRUE)
+  sm <- structure(list(call = fit$call), class = "summary.fastsae")
+  expect_no_error(capture.output(print(sm), type = "message"))
+})

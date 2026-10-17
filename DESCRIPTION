@@ -48,6 +48,7 @@ Suggests:
     doParallel,
     dplyr,
     emdi,
+    hbsae,
     foreach,
     INLA,
     lme4,
@@ -95,6 +96,7 @@ Collate:
     hb_area_jax.R
     python_env.R
     hb_unit.R
+    hb_unit_jax.R
     hb_twofold.R
     hb_twofold_jax.R
     sim_spatial_weights.R

@@ -180,6 +180,7 @@ def fit_numpyro_hb(
     robust=False,
     twofold_weights=None,
     return_draws=False,
+    draw_rows=None,
     progress_bar=True
 ):
     jax, jnp, numpyro, dist, MCMC, NUTS, init_to_median, dev_str = init_jax_environment(device)
@@ -403,6 +404,7 @@ def fit_numpyro_hb(
             else:
                 sigma_e = numpyro.sample("sigma_e", dist.HalfNormal(1.0))
                 scale_obs = sigma_e
+                numpyro.deterministic("sigma2_e", sigma_e ** 2)
             numpyro.sample("y_obs", dist.Normal(mu[obs_idx], scale_obs), obs=y_obs)
 
         elif family == "binomial":
@@ -670,6 +672,8 @@ def fit_numpyro_hb(
         hyperparams["nu_degrees_of_freedom"] = float(np.mean(samples["nu_u"]))
     if "tau_horseshoe" in samples:
         hyperparams["tau_horseshoe"] = float(np.mean(samples["tau_horseshoe"]))
+    if "sigma2_e" in samples:
+        hyperparams["sigma2_e"] = float(np.mean(samples["sigma2_e"]))
     if "sigma2_subarea" in samples:
         hyperparams["sigma2_subarea"] = float(np.mean(samples["sigma2_subarea"]))
         if "sigma2_u" in hyperparams:
@@ -686,11 +690,18 @@ def fit_numpyro_hb(
     y_obs_val = y_np[obs_idx]
     
     if family == "gaussian":
-        sigma_val = np.sqrt(vardir_np[obs_idx]) if vardir_np is not None else float(np.mean(samples.get("sigma_e", 1.0)))
+        if vardir_np is not None:
+            sigma_val = np.sqrt(vardir_np[obs_idx])
+            sigma_hat = sigma_val
+        else:
+            # Unknown residual SD (unit-level models): per draw for WAIC and the mean deviance,
+            # its posterior mean for the plug-in deviance of DIC
+            sigma_val = np.asarray(samples["sigma_e"], dtype=np.float64)[:, None]
+            sigma_hat = float(np.mean(sigma_val))
         mu_post = hb_samples[:, obs_idx]
         ll = -0.5 * np.log(2.0 * np.pi * sigma_val**2) - 0.5 * ((y_obs_val - mu_post) / sigma_val)**2
         mu_mean = np.mean(mu_post, axis=0)
-        ll_mean = -0.5 * np.log(2.0 * np.pi * sigma_val**2) - 0.5 * ((y_obs_val - mu_mean) / sigma_val)**2
+        ll_mean = -0.5 * np.log(2.0 * np.pi * sigma_hat**2) - 0.5 * ((y_obs_val - mu_mean) / sigma_hat)**2
     elif family == "binomial":
         p_post = np.clip(hb_samples[:, obs_idx], 1e-6, 1.0 - 1e-6)
         n_val = trials_np[obs_idx]
@@ -793,5 +804,14 @@ def fit_numpyro_hb(
         "area_ci_upper": area_ci_upper,
         "shrinkage_weights": shrinkage_weights,
         "rhat_max": rhat_max,
-        "hb_draws": np.asarray(hb_samples, dtype=np.float64) if return_draws else None
+        "hb_draws": _draw_columns(hb_samples, draw_rows) if return_draws else None,
+        "sigma2_e_draws": np.asarray(samples["sigma2_e"], dtype=np.float64) if return_draws and "sigma2_e" in samples else None
     }
+
+
+def _draw_columns(hb_samples, draw_rows):
+    """Draws of all rows, or of the rows in draw_rows only (e.g. the D prediction rows of a
+    unit-level model, which leaves the many sampled units on the Python side)."""
+    if draw_rows is not None:
+        hb_samples = hb_samples[:, np.asarray(draw_rows, dtype=np.int64)]
+    return np.asarray(hb_samples, dtype=np.float64)

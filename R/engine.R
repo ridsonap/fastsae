@@ -22,7 +22,7 @@
 #' The fixed effects get a normal or a regularized horseshoe prior (Piironen
 #' and Vehtari 2017), and the variance components half-normal priors.
 #' \code{spatial = "slm"} and \code{temporal = "rw2"} are not available.
-#' \code{jax_engine()} is available for \code{hb_area()} and \code{hb_twofold()}.
+#' \code{jax_engine()} is available for \code{hb_area()}, \code{hb_unit()} and \code{hb_twofold()}.
 #'
 #' @param strategy INLA approximation strategy: \code{"laplace"} (default, full
 #'   Laplace approximation, highest accuracy), \code{"simplified.laplace"}

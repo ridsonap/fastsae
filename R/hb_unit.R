@@ -3,7 +3,8 @@
 #' @description
 #' Estimates small area parameters using unit-level Hierarchical Bayesian models
 #' (Battese-Harter-Fuller model and generalized linear mixed models)
-#' with Integrated Nested Laplace Approximations (\pkg{INLA}). Supports Gaussian,
+#' with Integrated Nested Laplace Approximations (\pkg{INLA}) or by full MCMC
+#' (\code{\link{jax_engine}()}, NumPyro NUTS). Supports Gaussian,
 #' Binomial (logistic regression for binary unit responses), and Poisson likelihoods,
 #' with optional spatial random effect structures (BYM2, Besag) and finite
 #' population adjustments.
@@ -41,7 +42,8 @@
 #' @param popnmean_xpop Optional matrix or data frame of auxiliary population means per domain.
 #'   If \code{NULL} (default), means are extracted directly from \code{Xpop}.
 #' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
-#'   object holding the approximation strategy, the priors (\code{prior_prec}, default
+#'   object, or \code{"jax"} or a \code{\link{jax_engine}()} object for MCMC (see the section
+#'   Engines). An \code{inla_engine()} holds the approximation strategy, the priors (\code{prior_prec}, default
 #'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}, vague on any response scale;
 #'   \code{prior_phi} for BYM2),
 #'   \code{scale_model} and further \code{INLA::inla()} arguments. The Gaussian model is
@@ -85,8 +87,12 @@
 #'   \item \code{family}: Response family used.
 #'   \item \code{spatial}: Spatial model type used.
 #'   \item \code{unsampled_domains}: Character vector of unsampled domain identifiers.
-#'   \item \code{fit}: Raw fitted INLA model object.
-#'   \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
+#'   \item \code{fit}: Raw fitted INLA model object (the NumPyro output for \code{jax_engine()}).
+#'   \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"} or \code{"jax"}) and its settings.
+#'   \item \code{draws}, \code{rhat_max}, \code{device}, \code{elapsed_seconds}: With
+#'     \code{jax_engine()}, the domains x draws matrix of the domain means (if
+#'     \code{keep_draws = TRUE}), the largest split R-hat (\code{convergence} is
+#'     \code{rhat_max < 1.05}), the device used and the sampling time.
 #'   \item \code{call}: Matched function call.
 #' }
 #'
@@ -103,6 +109,25 @@
 #' covered the true means in 90\% and 78\% of the cases. Unbiased estimation needs the covariates
 #' of every population unit, as in the empirical best predictor of Molina and Rao (2010); a
 #' unit-level \code{Xpop} is currently averaged per domain. A warning is given for these families.
+#'
+#' @section Engines:
+#' Both engines fit the same model from the sampled units and return the same structure. With
+#' \code{jax_engine()} the coefficients have normal priors (standard deviation 10, or 2.5 for
+#' \code{"binomial"}) and the standard deviations of the domain effect and, for
+#' \code{"gaussian"}, of the unit errors half-normal(1) priors, on the standardised response
+#' scale for \code{"gaussian"}; \code{inla_engine()} puts the vague log-gamma prior on the
+#' precisions. The domain means, SDs and 2.5\%/97.5\% quantiles are computed from the MCMC
+#' draws; with \code{popsize_var} each draw of the Gaussian domain mean includes the mean error of
+#' the non-sampled units, \eqn{N(0, \sigma_e^2 / (N_d - n_d))} for that draw of \eqn{\sigma_e^2}
+#' (the INLA engine adds its posterior mean to the variance and gives a normal interval).
+#'
+#' On simulated data (30 domains, three unsampled) a Stan fit of the same model and priors gave
+#' domain means within 0.04 posterior SD and SDs within 5\% for the Gaussian (also with BYM2),
+#' Bernoulli and Poisson models. With their own priors, \code{hbsae::fSAE(method = "HB")}
+#' (Gaussian, numerical integration over the variance ratio, flat priors) and the INLA engine
+#' gave domain means within 0.1 and 0.06 posterior SD. With few domains the prior of the domain
+#' variance matters: on \code{cornsoybean} (12 counties) the county SDs were 1.1-1.4 times those
+#' of INLA, whose log-gamma prior favours small variances, and 0.8-1.0 times those of hbsae.
 #'
 #' @references
 #' \enumerate{
@@ -169,7 +194,6 @@ hb_unit <- function(
     ),
     used = c("scale_model", "prior_prec", "prior_phi")
   )
-  .require_inla_engine(engine, "hb_unit")
   strategy <- engine$strategy
   scale_model <- engine$scale_model
   # referenced by name in the INLA formula
@@ -177,7 +201,7 @@ hb_unit <- function(
   prior_phi <- engine$prior_phi
 
   # 1. Dependency checks
-  .check_inla_installed()
+  if (engine$name == "inla") .check_inla_installed()
 
   family <- match.arg(family)
   spatial <- match.arg(spatial)
@@ -220,6 +244,12 @@ hb_unit <- function(
 
   y_s <- stats::model.response(formuladata_s)
   n_sample <- nrow(formuladata_s)
+  if (family == "binomial" && !all(y_s %in% c(0, 1))) {
+    cli::cli_abort("For {.code family = \"binomial\"} the unit responses must be 0 or 1.")
+  }
+  if (family == "poisson" && any(y_s < 0 | y_s %% 1 != 0)) {
+    cli::cli_abort("For {.code family = \"poisson\"} the unit responses must be non-negative integer counts.")
+  }
   term_labels <- attr(stats::terms(formula), "term.labels")
 
   if (length(term_labels) == 0) {
@@ -310,6 +340,24 @@ hb_unit <- function(
   df_p$..dom_id.. <- pred_dom_id
 
   combined_df <- rbind(df_s, df_p)
+
+  if (engine$name == "jax") {
+    cl <- match.call()
+    result <- .fit_jax_unit(
+      formula = formula, term_labels = term_labels, combined_df = combined_df,
+      n_sample = n_sample, y_s = y_s, dom_s = dom_s, all_domains = all_domains,
+      Xpop_domain = Xpop_domain, popsize_var = popsize_var, family = family,
+      spatial = spatial, adj_graph = adj_graph, unsampled_domains = unsampled_domains,
+      engine = engine, call = cl
+    )
+    if (print_result) {
+      print(result)
+      if (length(unsampled_domains) > 0) {
+        cli::cli_alert_info("{length(unsampled_domains)} domain(s) are unsampled (synthetic prediction applied).")
+      }
+    }
+    return(invisible(result))
+  }
 
   # 7. Construct INLA formula
   fixed_str <- paste(term_labels, collapse = " + ")
@@ -485,16 +533,7 @@ hb_unit <- function(
     }
   }
 
-  # Direct sampling variance for Gaussian unit level: sigma2_e / n_d
-  vardir_val <- if (!is.na(sigma2_e)) {
-    ifelse(samp_size > 0, sigma2_e / samp_size, NA_real_)
-  } else if (family == "binomial") {
-    ifelse(samp_size > 0 & !is.na(sample_mean_y), (sample_mean_y * (1 - sample_mean_y)) / samp_size, NA_real_)
-  } else if (family == "poisson") {
-    ifelse(samp_size > 0 & !is.na(sample_mean_y), sample_mean_y / samp_size, NA_real_)
-  } else {
-    rep(NA_real_, n_domains)
-  }
+  vardir_val <- .hb_unit_vardir(family, sigma2_e, samp_size, sample_mean_y)
 
   # 13. Build df_hb results table
   mse_val <- final_sd^2
@@ -569,6 +608,23 @@ hb_unit <- function(
   }
 
   return(invisible(result))
+}
+
+#' Sampling variance of the domain sample means
+#'
+#' sigma2_e / n_d for the Gaussian model, the binomial and Poisson variances of
+#' the sample mean otherwise; NA for unsampled domains.
+#' @noRd
+.hb_unit_vardir <- function(family, sigma2_e, samp_size, sample_mean_y) {
+  if (!is.na(sigma2_e)) {
+    ifelse(samp_size > 0, sigma2_e / samp_size, NA_real_)
+  } else if (family == "binomial") {
+    ifelse(samp_size > 0 & !is.na(sample_mean_y), (sample_mean_y * (1 - sample_mean_y)) / samp_size, NA_real_)
+  } else if (family == "poisson") {
+    ifelse(samp_size > 0 & !is.na(sample_mean_y), sample_mean_y / samp_size, NA_real_)
+  } else {
+    rep(NA_real_, length(samp_size))
+  }
 }
 
 #' INLA starting values for the Gaussian nested error model

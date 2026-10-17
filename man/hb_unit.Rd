@@ -62,7 +62,8 @@ match the total number of unique domains in \code{Xpop}. Required when \code{spa
 If \code{NULL} (default), means are extracted directly from \code{Xpop}.}
 
 \item{engine}{Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
-object holding the approximation strategy, the priors (\code{prior_prec}, default
+object, or \code{"jax"} or a \code{\link{jax_engine}()} object for MCMC (see the section
+Engines). An \code{inla_engine()} holds the approximation strategy, the priors (\code{prior_prec}, default
 \code{list(prior = "loggamma", param = c(0.01, 0.01))}, vague on any response scale;
 \code{prior_phi} for BYM2),
 \code{scale_model} and further \code{INLA::inla()} arguments. The Gaussian model is
@@ -109,15 +110,20 @@ An object of class \code{c("fastsae_hb_unit", "fastsae_hb", "fastsae")} containi
   \item \code{family}: Response family used.
   \item \code{spatial}: Spatial model type used.
   \item \code{unsampled_domains}: Character vector of unsampled domain identifiers.
-  \item \code{fit}: Raw fitted INLA model object.
-  \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
+  \item \code{fit}: Raw fitted INLA model object (the NumPyro output for \code{jax_engine()}).
+  \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"} or \code{"jax"}) and its settings.
+  \item \code{draws}, \code{rhat_max}, \code{device}, \code{elapsed_seconds}: With
+    \code{jax_engine()}, the domains x draws matrix of the domain means (if
+    \code{keep_draws = TRUE}), the largest split R-hat (\code{convergence} is
+    \code{rhat_max < 1.05}), the device used and the sampling time.
   \item \code{call}: Matched function call.
 }
 }
 \description{
 Estimates small area parameters using unit-level Hierarchical Bayesian models
 (Battese-Harter-Fuller model and generalized linear mixed models)
-with Integrated Nested Laplace Approximations (\pkg{INLA}). Supports Gaussian,
+with Integrated Nested Laplace Approximations (\pkg{INLA}) or by full MCMC
+(\code{\link{jax_engine}()}, NumPyro NUTS). Supports Gaussian,
 Binomial (logistic regression for binary unit responses), and Poisson likelihoods,
 with optional spatial random effect structures (BYM2, Besag) and finite
 population adjustments.
@@ -136,6 +142,27 @@ covered the true means in 90\% and 78\% of the cases. Unbiased estimation needs 
 of every population unit, as in the empirical best predictor of Molina and Rao (2010); a
 unit-level \code{Xpop} is currently averaged per domain. A warning is given for these families.
 }
+\section{Engines}{
+
+Both engines fit the same model from the sampled units and return the same structure. With
+\code{jax_engine()} the coefficients have normal priors (standard deviation 10, or 2.5 for
+\code{"binomial"}) and the standard deviations of the domain effect and, for
+\code{"gaussian"}, of the unit errors half-normal(1) priors, on the standardised response
+scale for \code{"gaussian"}; \code{inla_engine()} puts the vague log-gamma prior on the
+precisions. The domain means, SDs and 2.5\%/97.5\% quantiles are computed from the MCMC
+draws; with \code{popsize_var} each draw of the Gaussian domain mean includes the mean error of
+the non-sampled units, \eqn{N(0, \sigma_e^2 / (N_d - n_d))} for that draw of \eqn{\sigma_e^2}
+(the INLA engine adds its posterior mean to the variance and gives a normal interval).
+
+On simulated data (30 domains, three unsampled) a Stan fit of the same model and priors gave
+domain means within 0.04 posterior SD and SDs within 5\% for the Gaussian (also with BYM2),
+Bernoulli and Poisson models. With their own priors, \code{hbsae::fSAE(method = "HB")}
+(Gaussian, numerical integration over the variance ratio, flat priors) and the INLA engine
+gave domain means within 0.1 and 0.06 posterior SD. With few domains the prior of the domain
+variance matters: on \code{cornsoybean} (12 counties) the county SDs were 1.1-1.4 times those
+of INLA, whose log-gamma prior favours small variances, and 0.8-1.0 times those of hbsae.
+}
+
 \examples{
 \donttest{
 if (requireNamespace("INLA", quietly = TRUE)) {
