@@ -200,11 +200,11 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 1.888701 
+#> Random effect variance (sigma2_u): 1.8887 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  2.9984e+00  6.9061e-01  4.3416e+00  1.4144e-05  1.6577e+00
+#> (Intercept)  2.9984e+00  6.9061e-01  4.3416e+00  1.4143e-05  1.6577e+00
 #> x1          -3.6431e-03  8.0843e-03 -4.5064e-01  6.5225e-01 -1.9735e-02
 #> x2           8.6089e-02  2.7838e-02  3.0925e+00  1.9847e-03  3.1240e-02
 #>             ci_upper
@@ -214,19 +214,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.329038    7.329038 0.7461561 0.5567489 10.18082 5.887340
-#> 2      2 7.599650 6.507565    6.507565 0.8048435 0.6477731 12.36781 4.957587
+#> 1      1 8.359527 7.329040    7.329040 0.7461548 0.5567470 10.18080 5.887344
+#> 2      2 7.599650 6.507567    6.507567 0.8048425 0.6477714 12.36779 4.957590
 #> 3      3 5.514137 5.147678    5.147678 0.7838941 0.6144899 15.22811 3.622309
-#> 4      4 3.869326 4.366008    4.366008 0.7085443 0.5020350 16.22865 2.963607
-#> 5      5 6.305063 6.363118    6.363118 0.8800533 0.7744938 13.83053 4.632819
-#> 6      6 3.926807 4.148782    4.148782 0.5684739 0.3231625 13.70219 3.029360
+#> 4      4 3.869326 4.366007    4.366007 0.7085442 0.5020349 16.22865 2.963606
+#> 5      5 6.305063 6.363118    6.363118 0.8800536 0.7744943 13.83054 4.632818
+#> 6      6 3.926807 4.148781    4.148781 0.5684739 0.3231626 13.70219 3.029360
 #>   ci_upper random_effect    vardir
-#> 1 8.811889    2.71644428 0.6618838
-#> 2 8.112927    2.28397043 0.8374691
-#> 3 6.699329    0.72133140 0.8822257
-#> 4 5.743676   -1.32493943 0.6581716
-#> 5 8.090312   -0.08169565 1.2788021
-#> 6 5.259425   -0.99645263 0.3878004
+#> 1 8.811888     2.7164458 0.6618838
+#> 2 8.112927     2.2839718 0.8374691
+#> 3 6.699329     0.7213318 0.8822257
+#> 4 5.743676    -1.3249403 0.6581716
+#> 5 8.090312    -0.0816957 1.2788021
+#> 6 5.259425    -0.9964532 0.3878004
 #> ... and 36 more rows.
 #> 
 #> ── fastsae Small Area Estimation Diagnostic Report ─────────────────────────────
@@ -241,7 +241,7 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ── 2. Brown et al. (2001) Diagnostics ──
 #> 
 #> ✔ Goodness-of-Fit Statistic W: W = 7.39 (df = 32), p-value = 1 [Consistent with direct estimates]
-#> ℹ Bias regression (direct ~ model, descriptive): alpha = -0.8064 (SE 0.4412), beta = 1.1798 (SE 0.0801), R^2 = 0.879
+#> ℹ Bias regression (direct ~ model, descriptive): alpha = -0.8064 (SE 0.4411), beta = 1.1798 (SE 0.0801), R^2 = 0.879
 #> A slope above 1 is expected for shrinkage estimators; see ?diagnose.
 #> 
 #> ── 5. Bayesian Information Criteria & Predictive Diagnostics ──

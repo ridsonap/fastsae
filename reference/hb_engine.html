@@ -232,8 +232,9 @@ candidate covariates).</p></dd>
 
 
 <dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>
-<dd><p>Logical; Student-t sampling errors instead of normal
-(Gaussian family only). Default <code>FALSE</code>.</p></dd>
+<dd><p>Logical; Student-t instead of normal random effects (the
+area effects, and the sub-area effects of <code><a href="hb_twofold.html">hb_twofold()</a></code>), with the
+degrees of freedom estimated. Default <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-keep-draws">keep_draws<a class="anchor" aria-label="anchor" href="#arg-keep-draws"></a></dt>
@@ -276,7 +277,7 @@ JAX, Phan et al. 2019) on CPU, CUDA GPU or Apple Metal, through
 The fixed effects get a normal or a regularized horseshoe prior (Piironen
 and Vehtari 2017), and the variance components half-normal priors.
 <code>spatial = "slm"</code> and <code>temporal = "rw2"</code> are not available.
-<code>jax_engine()</code> is available for <code><a href="hb_area.html">hb_area()</a></code> only.</p>
+<code>jax_engine()</code> is available for <code><a href="hb_area.html">hb_area()</a></code> and <code><a href="hb_twofold.html">hb_twofold()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

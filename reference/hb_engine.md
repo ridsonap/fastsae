@@ -165,8 +165,10 @@ print(x, ...)
 
 - robust:
 
-  Logical; Student-t sampling errors instead of normal (Gaussian family
-  only). Default `FALSE`.
+  Logical; Student-t instead of normal random effects (the area effects,
+  and the sub-area effects of
+  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)),
+  with the degrees of freedom estimated. Default `FALSE`.
 
 - keep_draws:
 
@@ -211,7 +213,8 @@ The fixed effects get a normal or a regularized horseshoe prior
 priors. `spatial = "slm"` and `temporal = "rw2"` are not available.
 `jax_engine()` is available for
 [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
-only.
+and
+[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
 
 ## References
 

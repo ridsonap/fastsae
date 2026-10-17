@@ -356,6 +356,36 @@ neighbourhood graph `W` between areas (for example from
 [`create_weights()`](https://ridsonap.github.io/fastsae/reference/create_weights.md)),
 the area effects are spatially correlated.
 
+### MCMC with `engine = jax_engine()`
+
+The same model can be sampled by MCMC (NumPyro’s No-U-Turn sampler on
+JAX) instead of INLA. It needs Python with `jax` and `numpyro` (see
+[`?setup_numpyro_env`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)),
+so this chunk is not run here. The result has the same structure, plus
+the posterior draws in `draws` and the largest split R-hat in
+`rhat_max`; the area aggregates in `df_area` come from the MCMC draws.
+
+``` r
+
+fit_jax <- hb_twofold(
+  y ~ x1,
+  vardir = "vardir",
+  domain = "area",
+  subarea = "subarea",
+  weight = "pop",
+  data = dat,
+  engine = jax_engine(warmup = 1000, samples = 1000, chains = 4),
+  print_result = FALSE
+)
+fit_jax$rhat_max
+head(fit_jax$df_area)
+```
+
+The priors differ from those of INLA (half-normal standard deviations
+instead of PC priors), so the estimates differ slightly; on simulated
+data with 20 areas the area means of the two engines correlated above
+0.999.
+
 ------------------------------------------------------------------------
 
 ## Practical notes

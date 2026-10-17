@@ -2,7 +2,8 @@
 
 Estimates small area parameters under a two-fold sub-area level model
 (Torabi & Rao, 2014 Bayesian hierarchical framework) using Integrated
-Nested Laplace Approximations (INLA). The model accounts for nested
+Nested Laplace Approximations (INLA) or, with `engine = jax_engine()`,
+MCMC (NumPyro's No-U-Turn sampler on JAX). The model accounts for nested
 random effects at both the primary area level (\\v_i\\) and the nested
 sub-area level (\\u\_{ij}\\), supporting Gaussian, Binomial (logistic),
 and Poisson responses, with optional spatial correlation structures
@@ -114,9 +115,13 @@ hb_twofold(
 
   Estimation engine: `"inla"` (default) or an
   [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
-  object holding the approximation strategy, the priors (`prior_prec`
-  for the area effect \\\tau_v\\ and `prior_prec_subarea` for the
-  sub-area effect \\\tau_u\\, both by default
+  object, or `"jax"` or a
+  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  object.
+  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  holds the approximation strategy, the priors (`prior_prec` for the
+  area effect \\\tau_v\\ and `prior_prec_subarea` for the sub-area
+  effect \\\tau_u\\, both by default
   `list(prior = "pc.prec", param = c(1, 0.01))`; `prior_phi` for BYM2),
   `scale_model`, the number of posterior `draws` for the area aggregates
   (default 200) and their `seed`, and further
@@ -125,11 +130,15 @@ hb_twofold(
   and Poisson models in INLA's default `"compact"` mode, as in
   [`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md);
   `inla_engine(inla.mode = )` selects a mode.
+  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  samples the same model by MCMC (see the Engines section).
 
 - compute_area:
 
   Logical. If `TRUE` (default), computes aggregate primary area-level
-  estimates and posterior standard errors via posterior sampling.
+  estimates and posterior standard errors from joint posterior draws
+  (sampled from the INLA fit, or the MCMC draws with
+  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)).
 
 - print_result:
 
@@ -228,11 +237,38 @@ containing:
 
 - `level`: `"subarea"`.
 
-- `fit`: Raw fitted INLA model object.
+- `fit`: Raw fitted INLA model object, or the list returned by the
+  Python backend for the JAX engine.
 
-- `engine`, `engine_spec`: Engine name (`"inla"`) and its settings.
+- `engine`, `engine_spec`: Engine name (`"inla"` or `"jax"`) and its
+  settings.
+
+- `draws`, `rhat_max`, `device`, `elapsed_seconds`: With the JAX engine,
+  the posterior draws of the sub-area parameters (rows of `df_hb` by
+  draws, kept when `jax_engine(keep_draws = TRUE)`), the largest split
+  R-hat (`convergence` is `rhat_max < 1.05`), the JAX device and the
+  sampling time.
 
 - `call`: Matched function call.
+
+## Engines
+
+Both engines fit the same model and return the same structure. With
+[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+the area effect (iid, Besag or BYM2) and the iid sub-area effect have
+half-normal priors on their standard deviations (on the standardised
+response scale for `family = "gaussian"`) instead of the PC priors of
+[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+so the estimates differ slightly. On simulated data (20 areas, 56
+sub-areas; Gaussian, binomial, Poisson and Gaussian with BYM2) the area
+means of the two engines correlated above 0.999 and differed by a median
+of 0.02-0.07 posterior SD, with area SDs 0.85-1.14 times those of INLA.
+The posterior means of the variances were larger with MCMC (area
+variance 0.93 against 0.68 for the Gaussian model): their posteriors are
+skewed, and INLA's summary is biased downwards for small variances.
+`jax_engine(robust = TRUE)` gives Student-t area and sub-area effects
+and `prior_beta = "horseshoe"` a regularized horseshoe prior on the
+coefficients.
 
 ## References
 
