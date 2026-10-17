@@ -499,6 +499,37 @@ test_that("hb_area() picks the INLA settings validated against Stan", {
   expect_false(identical(h$fit$.args$control.inla$int.strategy, "grid"))
 })
 
+test_that("the hyperparameter grid is used only for the three-hyperparameter models validated against Stan", {
+  skip_if_not_installed("INLA")
+  set.seed(42)
+  d <- expand.grid(time = 1:2, domain = 1:6)
+  d$x <- rnorm(12)
+  d$y <- 5 + 0.5 * d$x + rnorm(12, 0, 0.2)
+  d$vardir <- 0.1
+  W <- sim_spatial_weights(6, type = "ring")
+  fit <- function(...) suppressWarnings(hb_area(y ~ x, data = d, domain = "domain", time = "time",
+                                                print_result = FALSE, ...))
+  # AR(1) adds a correlation to the temporal effect and to a type II/IV
+  # interaction: a grid over 4 or 5 hyperparameters took 30 s and 13 min here
+  cfgs <- list(list("none", "ar1", "type1", 4), list("none", "ar1", "type2", 5),
+               list("bym2", "rw1", "type3", 4), list("besag", "ar1", "type4", 5))
+  for (cfg in cfgs) {
+    sp <- cfg[[1]]
+    f <- fit(vardir = "vardir", spatial = sp, temporal = cfg[[2]], st_interaction = cfg[[3]],
+             W = if (sp != "none") W)
+    expect_equal(nrow(f$fit$summary.hyperpar), cfg[[4]])
+    expect_equal(.n_hyper_st(sp, cfg[[2]], cfg[[3]], vardir_known = TRUE), cfg[[4]])
+    expect_false(identical(f$fit$.args$control.inla$int.strategy, "grid"))
+  }
+  # the validated case keeps the grid; an estimated residual variance is a fourth
+  g <- fit(vardir = "vardir", spatial = "besag", temporal = "rw1", st_interaction = "type2", W = W)
+  expect_equal(nrow(g$fit$summary.hyperpar), 3)
+  expect_identical(g$fit$.args$control.inla$int.strategy, "grid")
+  h <- fit(spatial = "besag", temporal = "rw1", st_interaction = "type2", W = W)
+  expect_equal(nrow(h$fit$summary.hyperpar), .n_hyper_st("besag", "rw1", "type2", vardir_known = FALSE))
+  expect_false(identical(h$fit$.args$control.inla$int.strategy, "grid"))
+})
+
 test_that("the negative binomial model of hb_area() warns about its accuracy", {
   skip_if_not_installed("INLA")
   expect_warning(hb_area(y_nbinomial ~ x1, data = sim_area, exposure = "exposure", family = "nbinomial",

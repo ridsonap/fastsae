@@ -105,6 +105,25 @@ test_that("benchmark handles input errors gracefully", {
   expect_error(benchmark_sae(y_hat, target = 1.5, method = "logit"), "strictly in")
 })
 
+test_that("benchmark_sae rejects missing or non-finite targets and weights", {
+  y_hat <- c(0.2, 0.4, 0.6)
+  grp <- c("a", "a", "b")
+  expect_error(benchmark_sae(y_hat, target = NA_real_), "finite")
+  expect_error(benchmark_sae(y_hat, target = Inf), "finite")
+  expect_error(benchmark_sae(y_hat, target = c(a = 0.3, b = NA), group = grp), "finite")
+  expect_error(
+    benchmark_sae(y_hat, target = data.frame(group = c("a", "b"), target = c(0.3, NA)), group = grp),
+    "finite"
+  )
+  expect_error(benchmark_sae(y_hat, group = grp, national_target = NA_real_), "finite")
+  expect_error(benchmark_sae(y_hat, target = 0.4, weight = c(1, NA, 1)), "weight")
+
+  # A weighted mean of direct estimates that include unsampled domains is NA
+  dat <- as.data.frame(mys)
+  fh <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = dat, print_result = FALSE)
+  expect_error(benchmark_sae(fh, target = weighted.mean(dat$y, dat$n), weight = "n"), "finite")
+})
+
 test_that("benchmark print, summary, and autoplot methods work", {
   data(mys, package = "fastsae")
   fit_fh <- eblup_fh(y ~ x1, vardir = "vardir", data = mys)

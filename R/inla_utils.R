@@ -35,6 +35,22 @@
 }
 
 
+#' Number of hyperparameters of a Gaussian area model with a Knorr-Held interaction
+#'
+#' Mirrors the terms that hb_area() builds for st_interaction = "type1" to
+#' "type4": the area effect (iid without a spatial effect, one precision for
+#' besag, two for bym, bym2, Leroux and SLM), the temporal main effect (a
+#' precision, plus the correlation of ar1) and the interaction (a precision,
+#' plus the correlation of ar1 in type II and IV), and the residual precision
+#' when the sampling variances are not given.
+#' @noRd
+.n_hyper_st <- function(spatial, temporal, st_interaction, vardir_known) {
+  n_space <- if (spatial %in% c("none", "besag")) 1L else 2L
+  n_time <- if (temporal == "ar1") 2L else 1L
+  n_int <- if (temporal == "ar1" && st_interaction %in% c("type2", "type4")) 2L else 1L
+  n_space + n_time + n_int + if (vardir_known) 0L else 1L
+}
+
 #' Knorr-Held space-time interaction with all identifiability constraints
 #'
 #' With a random walk in time the interaction is intrinsic in the direction "one

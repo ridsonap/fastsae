@@ -291,8 +291,15 @@ benchmark_sae.default <- function(
     mse_matrix <- NULL
   }
 
-  if (any(weight <= 0, na.rm = TRUE)) {
+  if (anyNA(weight)) {
+    cli::cli_abort("Benchmark {.arg weight} must not contain missing values.")
+  }
+  if (any(weight <= 0)) {
     cli::cli_abort("Benchmark {.arg weight} must be strictly positive for all domains.")
+  }
+  if (!is.null(national_target) &&
+      (!is.numeric(national_target) || length(national_target) != 1 || !is.finite(national_target))) {
+    cli::cli_abort("{.arg national_target} must be a single finite number.")
   }
 
   # Build working data frame
@@ -397,6 +404,15 @@ benchmark_sae.default <- function(
     initial_target_map[1] <- as.numeric(national_target)
   } else {
     cli::cli_abort("Please provide either {.arg target} or {.arg national_target}.")
+  }
+  # A missing target would silently turn every benchmarked estimate into NA
+  bad_groups <- names(target_map)[!is.finite(target_map)]
+  if (length(bad_groups) > 0) {
+    cli::cli_abort(c(
+      "Benchmark {.arg target} must be finite.",
+      "x" = "Missing or infinite target for group{?s} {.val {bad_groups}}.",
+      "i" = "A weighted mean of direct estimates is {.code NA} when some domains have none; use {.code na.rm = TRUE}."
+    ))
   }
 
   # --- STAGE 1: Hierarchical Group Harmonization to National Target ---

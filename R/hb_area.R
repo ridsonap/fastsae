@@ -39,8 +39,11 @@
 #' fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use
 #' INLA's default \code{"compact"} mode (van Niekerk et al., 2023), which leaves the linear
 #' predictors out of the latent field and is designed for data-rich models. Gaussian models with
-#' a \code{"type1"} to \code{"type4"} interaction also use a grid over the hyperparameters
-#' (\code{int.strategy = "grid"}). These choices rest on comparisons with long Stan runs with the
+#' a \code{"type1"} to \code{"type4"} interaction and three hyperparameters (a Besag or iid area
+#' effect and a random walk or iid in time) also use a grid over the hyperparameters
+#' (\code{int.strategy = "grid"}); with \code{temporal = "ar1"} or a BYM, BYM2, Leroux or SLM area
+#' effect the grid grows exponentially (13 minutes for 12 areas with AR(1)) and was not validated,
+#' so INLA's default integration is kept. These choices rest on comparisons with long Stan runs with the
 #' same model and priors (Gaussian, binomial, Poisson, beta, gamma and negative binomial; iid,
 #' Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held interactions):
 #' \itemize{
@@ -886,8 +889,13 @@ hb_area <- function(
   # Gaussian models with a Knorr-Held interaction: INLA's default integration over
   # the three precisions overstated posterior SDs by 6-13% against Stan (posterior
   # means off by up to 0.33 SD) in both modes; a grid matched Stan (<= 0.04 SD,
-  # SDs within 2%), about 5-8 times slower. inla_engine(control.inla = ) overrides.
-  if (family == "gaussian" && st_interaction %in% c("type1", "type2", "type3", "type4")) {
+  # SDs within 2%), about 5-8 times slower. The grid grows exponentially with the
+  # number of hyperparameters (ar1 or a two-parameter spatial effect add one or
+  # two: 30 s and 13 min for 12 areas against 1 s), and only the three-precision
+  # models were validated, so larger models keep INLA's default (CCD).
+  # inla_engine(control.inla = ) overrides.
+  if (family == "gaussian" && st_interaction %in% c("type1", "type2", "type3", "type4") &&
+      .n_hyper_st(spatial, temporal, st_interaction, vardir_known = !is.null(vardir)) <= 3) {
     control_inla <- c(control_inla, list(int.strategy = "grid", dz = 0.5, diff.logdens = 8))
   }
 

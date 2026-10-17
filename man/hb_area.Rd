@@ -247,8 +247,11 @@ With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of
 fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use
 INLA's default \code{"compact"} mode (van Niekerk et al., 2023), which leaves the linear
 predictors out of the latent field and is designed for data-rich models. Gaussian models with
-a \code{"type1"} to \code{"type4"} interaction also use a grid over the hyperparameters
-(\code{int.strategy = "grid"}). These choices rest on comparisons with long Stan runs with the
+a \code{"type1"} to \code{"type4"} interaction and three hyperparameters (a Besag or iid area
+effect and a random walk or iid in time) also use a grid over the hyperparameters
+(\code{int.strategy = "grid"}); with \code{temporal = "ar1"} or a BYM, BYM2, Leroux or SLM area
+effect the grid grows exponentially (13 minutes for 12 areas with AR(1)) and was not validated,
+so INLA's default integration is kept. These choices rest on comparisons with long Stan runs with the
 same model and priors (Gaussian, binomial, Poisson, beta, gamma and negative binomial; iid,
 Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held interactions):
 \itemize{
