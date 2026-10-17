@@ -543,12 +543,13 @@ different priors</td>
 </tr>
 <tr class="odd">
 <td align="left"><strong>Execution time</strong></td>
-<td align="left">120 s (4 chains x 2000 iterations in parallel; largest
+<td align="left">22 min (4 chains x 10,000 iterations with 2,000
+warm-up, in parallel; largest
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat R</annotation></semantics></math>
-1.07). One chain of 200 iterations takes about 10 s but has not
-converged
+1.007). Every transition reaches the maximum tree depth; 4 chains x
+2,000 iterations (120 s) have not converged
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat R</annotation></semantics></math>
-&gt; 2)</td>
+1.07, and 1.12 on a Linux runner)</td>
 <td align="left">1.1 s</td>
 </tr>
 <tr class="even">
@@ -556,21 +557,22 @@ converged
 <code>tipsae</code></strong></td>
 <td align="left">Reference</td>
 <td align="left">
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.998</mn></mrow><annotation encoding="application/x-tex">r = 0.998</annotation></semantics></math>,
-mean absolute difference 0.0016 (largest 0.006)</td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.999</mn></mrow><annotation encoding="application/x-tex">r = 0.999</annotation></semantics></math>,
+mean absolute difference 0.0017 (largest 0.006)</td>
 </tr>
 <tr class="odd">
 <td align="left"><strong>Posterior SD vs
 <code>tipsae</code></strong></td>
 <td align="left">Reference</td>
-<td align="left">ratio 0.84 to 1.26 (the priors differ)</td>
+<td align="left">ratio 0.81 to 1.22 (the priors differ)</td>
 </tr>
 </tbody>
 </table>
-<p>Measured on 2026-10-16 on one machine (Apple silicon, R 4.6.1, INLA
-26.8.7, tipsae 1.0.3); times depend on the hardware. INLA needs no
-chains or warm-up, but its fit should still be checked
-(<code>convergence</code>, from INLA’s mode search).</p>
+<p>Measured on 2026-10-16 (<code>tipsae</code> reference refitted on
+2026-10-17) on one machine (Apple silicon, R 4.6.1, INLA 26.8.7, tipsae
+1.0.3); times depend on the hardware. INLA needs no chains or warm-up,
+but its fit should still be checked (<code>convergence</code>, from
+INLA’s mode search).</p>
 <div class="section level3">
 <h3 id="interactive-beta-sae-benchmark-explorer-n-30-to-n-1000">Interactive Beta SAE Benchmark Explorer
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">n = 30</annotation></semantics></math>
