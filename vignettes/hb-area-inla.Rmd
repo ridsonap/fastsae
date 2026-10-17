@@ -107,7 +107,21 @@ further `INLA::inla()` arguments:
 - **`strategy = "simplified.laplace"`**: Slightly faster Laplace, good for large models
 
 The same models can be fitted by MCMC on CPU or GPU with `engine = jax_engine()`
-(NumPyro NUTS on JAX; see `?jax_engine`).
+(NumPyro NUTS on JAX; see `?jax_engine`). An MCMC fit is only usable when its chains have
+converged. The fit reports the rank-normalized R-hat and the effective sample size (ESS) of
+every parameter (Vehtari et al., 2021) and warns when R-hat is at least 1.05, the ESS is below
+100 per chain, or there are divergent transitions; the trace and rank plots show which parameter
+is the problem:
+
+```{r jax_convergence, eval = FALSE}
+fit_jax <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
+                   engine = jax_engine(chains = 4, samples = 1000))
+fit_jax$rhat_max                   # below 1.01 is recommended
+fit_jax$ess_min                    # above 100 per chain
+head(fit_jax$mcmc_diagnostics)     # R-hat and ESS of each parameter
+autoplot(fit_jax, type = "rank")   # chains near the dashed line: mixed
+autoplot(fit_jax, type = "trace", pars = c("sigma2_u", "hb[5]"))
+```
 
 ---
 
@@ -551,3 +565,4 @@ summary(fit_pois)
 - Knorr-Held, L. (2000). Bayesian modelling of inhomogeneous spatial and temporal variation in rates. *Statistics in Medicine*, 19(17-18), 2555–2567.
 - Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian models by using integrated nested Laplace approximations. *Journal of the Royal Statistical Society: Series B*, 71(2), 319–392.
 - Simpson, D., Rue, H., Riebler, A., Martins, T. G., & Sørbye, S. H. (2017). Penalising model component complexity: A principled, practical approach to constructing priors. *Statistical Science*, 32(1), 1–28.
+- Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C. (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing convergence of MCMC. *Bayesian Analysis*, 16(2), 667–718.

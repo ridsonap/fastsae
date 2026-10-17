@@ -54,6 +54,7 @@ Suggests:
     lme4,
     MASS,
     parallel,
+    posterior,
     reticulate,
     sae,
     spdep,

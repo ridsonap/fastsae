@@ -191,7 +191,7 @@ test_that("hb_twofold(engine = 'jax') agrees with INLA", {
   )
   for (cfg in cfgs) {
     args <- c(cfg, list(domain = "area", subarea = "subarea", data = dat, weight = "pop", print_result = FALSE))
-    fit_jax <- suppressMessages(do.call(hb_twofold, c(args, list(engine = eng))))
+    fit_jax <- quiet_mcmc(do.call(hb_twofold, c(args, list(engine = eng))))
     fit_inla <- do.call(hb_twofold, args)
     expect_named(fit_jax$df_hb, names(fit_inla$df_hb))
     expect_named(fit_jax$df_area, names(fit_inla$df_area))

@@ -144,6 +144,7 @@
     call = call
   )
   if (isTRUE(engine$keep_draws)) result$draws <- draws
+  result <- c(result, .mcmc_fields(run))
 
   class(result) <- c("fastsae_hb_twofold", "fastsae_hb", "fastsae")
   result

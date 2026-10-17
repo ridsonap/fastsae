@@ -353,7 +353,7 @@ test_that("engine = 'jax' Fay-Herriot agrees with INLA", {
   skip_if_no_numpyro()
   skip_if_not_installed("INLA")
   data("mys", package = "fastsae")
-  fit_jax <- suppressMessages(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
+  fit_jax <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
                                       engine = jax_eng, print_result = FALSE))
   fit_inla <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", print_result = FALSE)
   expect_identical(names(fit_jax$df_hb), names(fit_inla$df_hb))
@@ -390,19 +390,19 @@ test_that("engine = 'jax' fits count, spatial, and temporal models end to end", 
   data("sim_panel", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  fit_bym2 <- suppressMessages(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", spatial = "bym2",
+  fit_bym2 <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", spatial = "bym2",
                                        W = mys_knn, engine = jax_eng, print_result = FALSE))
   expect_false(is.null(fit_bym2$phi))
   expect_true(all(is.finite(fit_bym2$df_hb$hb)))
 
-  fit_pois <- suppressMessages(hb_area(y_poisson ~ x1 + x2, data = sim_panel, domain = "area", time = "year",
+  fit_pois <- quiet_mcmc(hb_area(y_poisson ~ x1 + x2, data = sim_panel, domain = "area", time = "year",
                                        family = "poisson", exposure = "exposure", temporal = "ar1",
                                        engine = jax_eng, print_result = FALSE))
   expect_true(all(c("time", "rate", "estimated_count") %in% names(fit_pois$df_hb)))
   expect_true(all(is.finite(fit_pois$df_hb$hb) & fit_pois$df_hb$hb > 0))
   expect_false(is.null(fit_pois$rho_time))
 
-  fit_bm <- suppressMessages(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", engine = jax_eng,
+  fit_bm <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", engine = jax_eng,
                                      self_benchmark = TRUE, benchmark_weight = "n",
                                      print_result = FALSE))
   expect_equal(fit_bm$benchmark_summary$discrepancy, 0, tolerance = 1e-8)

@@ -72,7 +72,8 @@ importFrom(ggplot2, ggplot, aes, geom_point, geom_line, geom_ribbon,
            facet_wrap, labs, theme_minimal, theme, element_text,
            scale_color_brewer, geom_bar, geom_errorbar, geom_hline,
            geom_vline, position_dodge, expand_limits, geom_abline,
-           scale_fill_brewer, autoplot, geom_smooth, scale_color_gradient)
+           scale_fill_brewer, autoplot, geom_smooth, scale_color_gradient,
+           geom_step, scale_x_continuous)
 importFrom(methods, is)
 importFrom(Matrix, Matrix, Diagonal)
 

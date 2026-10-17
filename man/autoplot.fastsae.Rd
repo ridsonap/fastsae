@@ -7,7 +7,8 @@
 \usage{
 \method{autoplot}{fastsae}(
   object,
-  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map"),
+  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map", "trace",
+    "rank"),
   ...
 )
 
@@ -20,13 +21,18 @@
 \item{type}{Type of plot to create.
 \itemize{
   \item For a single \code{fastsae} object: \code{"comparison"}, \code{"ribbon"},
-    \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"}.
+    \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"};
+    for a fit with \code{\link{jax_engine}()} also \code{"trace"} and \code{"rank"},
+    the MCMC convergence plots (see Details).
   \item For a list of \code{fastsae} objects: \code{"comparison"},
     \code{"mse"}, \code{"scatter"}, or \code{"map"}.
 }}
 
 \item{...}{Additional arguments passed to internal plotting helpers
-(e.g. \code{title}) or to \pkg{ggplot2} layers.}
+(e.g. \code{title}) or to \pkg{ggplot2} layers. For \code{"trace"} and \code{"rank"}:
+\code{pars}, the parameters to show (names in \code{fit$mcmc_diagnostics$parameter},
+such as \code{"sigma2_u"}, a coefficient name or \code{"hb[5]"} for row 5 of
+\code{df_hb}), and for \code{"rank"} \code{bins} (default 20).}
 }
 \value{
 A \code{ggplot} object.
@@ -35,6 +41,17 @@ A \code{ggplot} object.
 Creates diagnostic and comparison plots for Small Area Estimation (SAE)
 models fitted with \pkg{fastsae}. This extends the generic
 \code{\link[ggplot2]{autoplot}} from \pkg{ggplot2}.
+}
+\details{
+\strong{MCMC convergence plots.} \code{"trace"} draws each chain's sampled values against
+the iteration; \code{"rank"} the rank plot of Vehtari et al. (2021): the draws of all chains
+are ranked together and each chain's ranks are counted in \code{bins} bins. If the chains
+sample the same distribution each chain's counts lie near the dashed line (an equal share);
+a chain stuck in one region has too many low or high ranks. The facet labels give the
+rank-normalized R-hat and bulk ESS. By default the plots show the variance and other
+hyperparameters, up to eight coefficients and the area or domain with the largest R-hat;
+all R-hats and ESSs are in \code{fit$mcmc_diagnostics}. The numbers, not the plots, are the
+check (R-hat < 1.01 and ESS > 100 per chain); the plots show why a check fails.
 }
 \examples{
 library(fastsae)
@@ -48,4 +65,9 @@ autoplot(fit_fh, type = "rse")
 fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
 autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
 
+}
+\references{
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & B\enc{ü}{u}rkner, P.-C.
+  (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing
+  convergence of MCMC. \emph{Bayesian Analysis}, 16(2), 667-718.
 }

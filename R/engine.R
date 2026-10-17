@@ -24,6 +24,27 @@
 #' \code{spatial = "slm"} and \code{temporal = "rw2"} are not available.
 #' \code{jax_engine()} is available for \code{hb_area()}, \code{hb_unit()} and \code{hb_twofold()}.
 #'
+#' @section MCMC convergence:
+#' A \code{jax_engine()} fit carries the diagnostics of Vehtari et al. (2021), computed as
+#' the R package \pkg{posterior} does: \code{mcmc_diagnostics}, a table of the
+#' rank-normalized split R-hat and the bulk and tail effective sample sizes (ESS) of every
+#' hyperparameter (variances, \code{phi}, \code{rho}, ...), coefficient and area or domain
+#' parameter (\code{hb[j]}, row \code{j} of \code{df_hb}); \code{rhat_max} and
+#' \code{ess_min}, their extremes; \code{divergences}, the number of divergent transitions
+#' after warmup; \code{treedepth_hits}, the iterations that reached the maximum tree depth;
+#' and \code{trace}, the per-chain draws (iterations x chains x parameters) of the
+#' hyperparameters, up to eight coefficients and the area with the largest R-hat.
+#' \code{convergence} is \code{rhat_max < 1.05}, as before. A fit warns when R-hat is at
+#' least 1.05, when the bulk or tail ESS is below 100 per chain or when there are divergent
+#' transitions (warning class \code{fastsae_mcmc_warning}), and informs when R-hat is
+#' between 1.01 and 1.05; Vehtari et al. recommend R-hat < 1.01 and ESS > 100 per chain.
+#' \code{autoplot(fit, type = "trace")} and \code{type = "rank"} plot the chains; see
+#' \code{\link{autoplot.fastsae}}.
+#'
+#' Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & B\enc{ü}{u}rkner, P.-C. (2021).
+#' Rank-normalization, folding, and localization: An improved R-hat for assessing
+#' convergence of MCMC. \emph{Bayesian Analysis}, 16(2), 667-718.
+#'
 #' @param strategy INLA approximation strategy: \code{"laplace"} (default, full
 #'   Laplace approximation, highest accuracy), \code{"simplified.laplace"}
 #'   (faster) or \code{"gaussian"} (fastest).
@@ -141,9 +162,10 @@ inla_engine <- function(
 #' @rdname hb_engine
 #' @param warmup Number of warmup (adaptation) iterations per chain. Default 500.
 #' @param samples Number of posterior draws kept per chain. Default 1000.
-#' @param chains Number of MCMC chains. Default 2. With more than one chain,
-#'   the fit reports the largest split R-hat and \code{convergence} is
-#'   \code{rhat_max < 1.05}.
+#' @param chains Number of MCMC chains. Default 2; 4 is recommended for checking
+#'   convergence. With more than one chain, the fit reports the largest
+#'   rank-normalized split R-hat and \code{convergence} is \code{rhat_max < 1.05}
+#'   (see the section MCMC convergence).
 #' @param device \code{"auto"} (default: CUDA when available, otherwise CPU),
 #'   \code{"cpu"}, \code{"cuda"} or \code{"metal"} (Apple silicon GPU, through
 #'   jax-metal). JAX fixes its device at the first fit of an R session.

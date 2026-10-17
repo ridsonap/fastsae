@@ -43,7 +43,8 @@
 #' Sets the JAX platform for the device, calls `fit_numpyro_hb()` with the
 #' model arguments in `...` and returns the backend output (`fit`), the n x S
 #' draws of the area parameters (`draws`), the coefficient table (`estcoef`),
-#' the largest split R-hat (`rhat_max`) and the sampling time (`elapsed`).
+#' the largest rank-normalized split R-hat (`rhat_max`), the convergence
+#' diagnostics (`mcmc`, see `.mcmc_summary()`) and the sampling time (`elapsed`).
 #' Shared by `.fit_jax_area()` and `.fit_jax_twofold()`.
 #' @noRd
 .run_numpyro <- function(engine, X, ...) {
@@ -105,14 +106,112 @@
   }
 
   rhat_max <- if (!is.null(fit_py$rhat_max)) as.numeric(fit_py$rhat_max) else NULL
-  if (!is.null(rhat_max) && !(rhat_max < 1.05)) {
-    cli::cli_warn(c(
-      "The MCMC chains have not converged (max split R-hat = {round(rhat_max, 3)} >= 1.05).",
-      "i" = "Increase {.arg warmup} and {.arg samples} in {.fn jax_engine}."
-    ))
-  }
+  mcmc <- .mcmc_summary(fit_py, colnames(X), engine$chains)
+  fit_py$diagnostics <- NULL
+  fit_py$trace <- NULL
+  .warn_mcmc(rhat_max, mcmc, engine$chains)
 
-  list(fit = fit_py, draws = draws, estcoef = estcoef, rhat_max = rhat_max, elapsed = elapsed)
+  list(fit = fit_py, draws = draws, estcoef = estcoef, rhat_max = rhat_max, mcmc = mcmc, elapsed = elapsed)
+}
+
+#' Convergence diagnostics of a NumPyro fit
+#'
+#' The backend's table of rank-normalized split R-hat and bulk/tail ESS
+#' (Vehtari et al., 2021) per hyperparameter, coefficient (named after the
+#' columns of X) and area parameter (`hb[j]`, row j of df_hb), the per-chain
+#' draws of the key parameters as an iterations x chains x parameters array,
+#' and the numbers of divergent transitions and of iterations at the maximum
+#' tree depth. NULL entries when the backend gives none.
+#' @noRd
+.mcmc_summary <- function(fit_py, coef_names, chains) {
+  tab <- fit_py$diagnostics
+  if (is.null(tab)) {
+    return(list(table = NULL, trace = NULL, ess_min = NULL, divergences = fit_py$num_divergent,
+                treedepth_hits = fit_py$treedepth_hits))
+  }
+  rename <- function(p) {
+    k <- suppressWarnings(as.integer(sub("^beta\\[([0-9]+)\\]$", "\\1", p)))
+    ifelse(grepl("^beta\\[", p) & !is.na(k) & k <= length(coef_names), coef_names[pmax(k, 1)], p)
+  }
+  table <- data.frame(
+    parameter = rename(as.character(unlist(tab$parameter))),
+    mean = as.numeric(tab$mean),
+    sd = as.numeric(tab$sd),
+    rhat = as.numeric(tab$rhat),
+    ess_bulk = as.numeric(tab$ess_bulk),
+    ess_tail = as.numeric(tab$ess_tail),
+    stringsAsFactors = FALSE
+  )
+  trace <- NULL
+  if (!is.null(fit_py$trace)) {
+    tr <- as.array(fit_py$trace$draws)
+    trace <- aperm(array(tr, dim = dim(tr)), c(2, 1, 3))
+    dimnames(trace) <- list(
+      iteration = NULL, chain = seq_len(dim(trace)[2]),
+      parameter = rename(as.character(unlist(fit_py$trace$names)))
+    )
+  }
+  ess <- c(table$ess_bulk, table$ess_tail)
+  list(
+    table = table,
+    trace = trace,
+    ess_min = if (any(is.finite(ess))) min(ess, na.rm = TRUE) else NA_real_,
+    divergences = fit_py$num_divergent,
+    treedepth_hits = fit_py$treedepth_hits
+  )
+}
+
+#' Warn about MCMC convergence (thresholds of Vehtari et al., 2021)
+#'
+#' R-hat >= 1.05 marks the fit as not converged (as before); 1.01 <= R-hat < 1.05
+#' only informs. Bulk or tail ESS below 100 per chain and divergent transitions
+#' warn; iterations at the maximum tree depth (an efficiency issue) inform.
+#' The warnings have class `fastsae_mcmc_warning`.
+#' @noRd
+.warn_mcmc <- function(rhat_max, mcmc, chains) {
+  tab <- mcmc$table
+  worst <- function(col, fun) {
+    if (is.null(tab) || !any(is.finite(tab[[col]]))) return(NULL)
+    tab$parameter[fun(tab[[col]])]
+  }
+  if (!is.null(rhat_max) && !(rhat_max < 1.05)) {
+    par <- worst("rhat", which.max)
+    cli::cli_warn(c(
+      "The MCMC chains have not converged (max R-hat = {round(rhat_max, 3)} >= 1.05{if (!is.null(par)) paste0(', ', par)}).",
+      "i" = "Increase {.arg warmup} and {.arg samples} in {.fn jax_engine}; see {.code autoplot(fit, type = \"trace\")}."
+    ), class = "fastsae_mcmc_warning")
+  } else if (!is.null(rhat_max) && rhat_max >= 1.01) {
+    cli::cli_alert_warning("Max R-hat = {round(rhat_max, 3)} ({worst('rhat', which.max)}); values below 1.01 are recommended.")
+  }
+  if (!is.null(mcmc$ess_min) && is.finite(mcmc$ess_min) && mcmc$ess_min < 100 * chains) {
+    par <- tab$parameter[which.min(pmin(tab$ess_bulk, tab$ess_tail))]
+    cli::cli_warn(c(
+      "Low effective sample size: min bulk/tail ESS = {round(mcmc$ess_min)} ({par}), below 100 per chain ({100 * chains}).",
+      "i" = "The posterior SDs and intervals are unreliable; increase {.arg samples} in {.fn jax_engine}."
+    ), class = "fastsae_mcmc_warning")
+  }
+  if (!is.null(mcmc$divergences) && mcmc$divergences > 0) {
+    cli::cli_warn(c(
+      "{mcmc$divergences} divergent transition{?s} after warmup: the sampler may miss parts of the posterior.",
+      "i" = "Increase {.arg warmup}, or simplify the model (e.g. a weakly identified variance)."
+    ), class = "fastsae_mcmc_warning")
+  }
+  if (!is.null(mcmc$treedepth_hits) && mcmc$treedepth_hits > 0) {
+    cli::cli_alert_warning("{mcmc$treedepth_hits} iteration{?s} reached the maximum tree depth (slow sampling, not a validity problem).")
+  }
+  invisible(NULL)
+}
+
+#' Convergence fields of a jax_engine() result
+#' @noRd
+.mcmc_fields <- function(run) {
+  list(
+    mcmc_diagnostics = run$mcmc$table,
+    ess_min = run$mcmc$ess_min,
+    divergences = run$mcmc$divergences,
+    treedepth_hits = run$mcmc$treedepth_hits,
+    trace = run$mcmc$trace
+  )
 }
 
 #' Fit hb_area() by MCMC (NumPyro NUTS on JAX)
@@ -316,6 +415,7 @@
     }
   }
   if (isTRUE(ctrl$keep_draws)) out$draws <- draws
+  out <- c(out, .mcmc_fields(run))
 
   if (inherits(data, "sf") && requireNamespace("sf", quietly = TRUE) && nrow(out$df_hb) == nrow(data)) {
     out$df_hb <- sf::st_set_geometry(out$df_hb, sf::st_geometry(data))

@@ -158,6 +158,7 @@
     call = call
   )
   if (isTRUE(engine$keep_draws)) result$draws <- theta
+  result <- c(result, .mcmc_fields(run))
 
   class(result) <- c("fastsae_hb_unit", "fastsae_hb", "fastsae")
   result

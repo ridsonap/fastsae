@@ -147,6 +147,162 @@ def build_temporal_operator(T, temporal, rho, jnp):
         return L
     return jnp.eye(T)
 
+# ---------------------------------------------------------------------------
+# Convergence diagnostics of Vehtari, Gelman, Simpson, Carpenter and Buerkner (2021),
+# "Rank-normalization, folding, and localization: An improved R-hat for assessing
+# convergence of MCMC", Bayesian Analysis 16(2). Same computations as rhat(),
+# ess_bulk() and ess_tail() of the R package posterior. Draws are arrays of
+# shape (chains, iterations, K), one column per parameter.
+# ---------------------------------------------------------------------------
+
+def _split_chains(x):
+    """Each chain split in halves (the middle iteration dropped when odd)."""
+    n = x.shape[1]
+    if n == 1:
+        return x
+    return np.concatenate([x[:, :n // 2], x[:, int(np.ceil(n / 2)):]], axis=0)
+
+def _is_constant(x):
+    return ~np.all(np.isfinite(x), axis=(0, 1)) | (np.ptp(x.reshape(-1, x.shape[2]), axis=0) <= np.finfo(float).eps)
+
+def _rhat_basic(x):
+    m, n = x.shape[0], x.shape[1]
+    chain_mean = x.mean(axis=1)
+    var_between = n * np.var(chain_mean, axis=0, ddof=1)
+    var_within = np.mean(np.var(x, axis=1, ddof=1), axis=0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.sqrt((var_between / var_within + n - 1) / n)
+
+def _z_scale(x):
+    from scipy.stats import rankdata
+    from scipy.special import ndtri
+    m, n, k = x.shape
+    r = rankdata(x.reshape(m * n, k), method="average", axis=0)
+    return ndtri((r - 0.375) / (m * n - 0.75 + 1.0)).reshape(m, n, k)
+
+def _autocovariance(x):
+    """Biased autocovariances along axis 1 (mean-centred, divided by N), via the FFT."""
+    n = x.shape[1]
+    size = 1 << int(np.ceil(np.log2(2 * n)))
+    yc = x - x.mean(axis=1, keepdims=True)
+    f = np.fft.rfft(yc, n=size, axis=1)
+    return np.fft.irfft(f * np.conj(f), n=size, axis=1)[:, :n] / n
+
+def _ess_one(acov_means, chain_means, n, m):
+    """ESS of one parameter from its chain-averaged autocovariances (Geyer's initial
+    monotone sequence), as posterior:::.ess."""
+    mean_var = acov_means[0] * n / (n - 1)
+    var_plus = mean_var * (n - 1) / n
+    if m > 1:
+        var_plus += np.var(chain_means, ddof=1)
+    rho = np.zeros(n)
+    t = 0
+    rho_even = 1.0
+    rho[0] = rho_even
+    rho_odd = 1.0 - (mean_var - acov_means[1]) / var_plus
+    rho[1] = rho_odd
+    while t < n - 5 and not np.isnan(rho_even + rho_odd) and rho_even + rho_odd > 0:
+        t += 2
+        rho_even = 1.0 - (mean_var - acov_means[t]) / var_plus
+        rho_odd = 1.0 - (mean_var - acov_means[t + 1]) / var_plus
+        if rho_even + rho_odd >= 0:
+            rho[t] = rho_even
+            rho[t + 1] = rho_odd
+    max_t = t
+    if rho_even > 0:
+        rho[max_t] = rho_even
+    t = 0
+    while t <= max_t - 4:
+        t += 2
+        if rho[t] + rho[t + 1] > rho[t - 2] + rho[t - 1]:
+            rho[t] = (rho[t - 2] + rho[t - 1]) / 2.0
+            rho[t + 1] = rho[t]
+    ess = m * n
+    tau = -1.0 + 2.0 * np.sum(rho[:max_t]) + rho[max_t]
+    return ess / max(tau, 1.0 / np.log10(ess))
+
+def _ess(x):
+    m, n, k = x.shape
+    out = np.full(k, np.nan)
+    if n < 3:
+        return out
+    acov = _autocovariance(x).mean(axis=0)
+    chain_means = x.mean(axis=1)
+    const = _is_constant(x)
+    for j in range(k):
+        if not const[j]:
+            out[j] = _ess_one(acov[:, j], chain_means[:, j], n, m)
+    return out
+
+def rank_rhat(x):
+    """Rank-normalized split R-hat: the larger of the bulk and the folded (tail) R-hat."""
+    folded = np.abs(x - np.median(x.reshape(-1, x.shape[2]), axis=0))
+    out = np.maximum(_rhat_basic(_z_scale(_split_chains(x))), _rhat_basic(_z_scale(_split_chains(folded))))
+    out[_is_constant(x)] = np.nan
+    return out
+
+def ess_bulk(x):
+    out = _ess(_z_scale(_split_chains(x)))
+    out[_is_constant(x)] = np.nan
+    return out
+
+def ess_tail(x):
+    flat = x.reshape(-1, x.shape[2])
+    res = []
+    for prob in (0.05, 0.95):
+        q = np.quantile(flat, prob, axis=0)
+        res.append(_ess(_split_chains((x <= q).astype(np.float64))))
+    out = np.minimum(res[0], res[1])
+    out[_is_constant(x)] = np.nan
+    return out
+
+# Scalar parameters reported with their diagnostics (backend name -> reported name)
+_DIAG_SCALARS = (
+    ("sigma2_u", "sigma2_u"), ("sigma2_spatial", "sigma2_spatial"), ("sigma2_iid", "sigma2_iid"),
+    ("sigma2_t", "sigma2_t"), ("sigma2_subarea", "sigma2_subarea"), ("sigma2_e", "sigma2_e"),
+    ("phi_est", "phi"), ("rho_spatial", "rho_spatial"), ("rho_t", "rho_t"), ("nu_u", "nu"),
+    ("tau_horseshoe", "tau_horseshoe"), ("alpha_dispersion", "alpha_dispersion"),
+    ("shape_param", "shape_param"), ("phi_beta", "phi_beta"),
+)
+
+def mcmc_diagnostics(samples, num_chains, hb_rows=None, max_trace_beta=8):
+    """R-hat, bulk and tail ESS of the hyperparameters, coefficients and area parameters
+    (rows hb_rows of hb_est, or all), and the per-chain draws of the hyperparameters,
+    the first coefficients and the area parameter with the largest R-hat (trace)."""
+    blocks = []
+    for key, name in _DIAG_SCALARS:
+        if key in samples:
+            blocks.append(([name], np.asarray(samples[key], dtype=np.float64).reshape(-1, 1)))
+    n_hyper = sum(len(b[0]) for b in blocks)
+    beta = np.asarray(samples["beta"], dtype=np.float64)
+    blocks.append((["beta[%d]" % (j + 1) for j in range(beta.shape[1])], beta))
+    hb = np.asarray(samples["hb_est"], dtype=np.float64)
+    if hb_rows is not None:
+        hb = hb[:, np.asarray(hb_rows, dtype=np.int64)]
+    blocks.append((["hb[%d]" % (j + 1) for j in range(hb.shape[1])], hb))
+
+    names = [nm for b in blocks for nm in b[0]]
+    flat = np.concatenate([b[1] for b in blocks], axis=1)
+    x = flat.reshape(num_chains, -1, flat.shape[1])
+    rhat = rank_rhat(x)
+    table = {
+        "parameter": names,
+        "mean": flat.mean(axis=0),
+        "sd": flat.std(axis=0, ddof=1),
+        "rhat": rhat,
+        "ess_bulk": ess_bulk(x),
+        "ess_tail": ess_tail(x),
+    }
+
+    n_beta = beta.shape[1]
+    trace_idx = list(range(n_hyper + min(n_beta, max_trace_beta)))
+    hb_rhat = rhat[n_hyper + n_beta:]
+    if hb_rhat.size > 0:
+        worst = int(np.nanargmax(hb_rhat)) if np.any(np.isfinite(hb_rhat)) else 0
+        trace_idx.append(n_hyper + n_beta + worst)
+    trace = {"names": [names[i] for i in trace_idx], "draws": x[:, :, trace_idx]}
+    return table, trace
+
 def fit_numpyro_hb(
     y,
     X,
@@ -181,7 +337,8 @@ def fit_numpyro_hb(
     twofold_weights=None,
     return_draws=False,
     draw_rows=None,
-    progress_bar=True
+    progress_bar=True,
+    max_tree_depth=10
 ):
     jax, jnp, numpyro, dist, MCMC, NUTS, init_to_median, dev_str = init_jax_environment(device)
 
@@ -454,7 +611,9 @@ def fit_numpyro_hb(
     on_metal = dev_str.lower().startswith("metal")
     pref_chain_method = "sequential" if on_metal else ("vectorized" if num_chains > 1 else "sequential")
     rng_key = jax.random.PRNGKey(seed)
-    kernel = NUTS(model, init_strategy=init_to_median, target_accept_prob=0.85, max_tree_depth=10)
+    kernel = NUTS(model, init_strategy=init_to_median, target_accept_prob=0.85, max_tree_depth=max_tree_depth)
+    # divergent transitions and the number of leapfrog steps of each iteration (tree depth)
+    extra_fields = ("diverging", "num_steps")
 
     # On Metal, NumPyro must step the chain from Python (its progress-bar loop):
     # the alternative fuses the whole chain into one kernel, which jax-metal
@@ -475,7 +634,7 @@ def fit_numpyro_hb(
             chain_method=pref_chain_method,
             progress_bar=progress_bar or on_metal
         )
-        mcmc.run(rng_key)
+        mcmc.run(rng_key, extra_fields=extra_fields)
     except Exception as e:
         err_msg = str(e)
         if "legalize" in err_msg or "popcnt" in err_msg or "bytecode" in err_msg or "MPS" in err_msg:
@@ -491,7 +650,7 @@ def fit_numpyro_hb(
                         chain_method="sequential",
                         progress_bar=progress_bar
                     )
-                    mcmc.run(rng_key)
+                    mcmc.run(rng_key, extra_fields=extra_fields)
             else:
                 raise e
         elif pref_chain_method == "vectorized":
@@ -503,7 +662,7 @@ def fit_numpyro_hb(
                 chain_method="sequential",
                 progress_bar=progress_bar
             )
-            mcmc.run(rng_key)
+            mcmc.run(rng_key, extra_fields=extra_fields)
         else:
             raise e
     finally:
@@ -511,17 +670,11 @@ def fit_numpyro_hb(
 
     samples = mcmc.get_samples()
 
-    # Convergence: largest split R-hat over the coefficients and the area parameters
-    # (scale invariant, so computed before the Gaussian back-transformation)
-    rhat_max = None
-    if num_chains > 1:
-        from numpyro.diagnostics import split_gelman_rubin
-        by_chain = mcmc.get_samples(group_by_chain=True)
-        rhats = [np.ravel(np.asarray(split_gelman_rubin(np.asarray(by_chain[k]))))
-                 for k in ("beta", "hb_est") if k in by_chain]
-        rhats = np.concatenate(rhats) if rhats else np.array([])
-        rhats = rhats[np.isfinite(rhats)]
-        rhat_max = float(np.max(rhats)) if rhats.size > 0 else None
+    # Divergent transitions and iterations that reached the maximum tree depth
+    extra = mcmc.get_extra_fields()
+    num_divergent = int(np.sum(np.asarray(extra["diverging"]))) if "diverging" in extra else None
+    treedepth_hits = (int(np.sum(np.asarray(extra["num_steps"]) >= 2 ** max_tree_depth - 1))
+                      if "num_steps" in extra else None)
 
     if y_c != 0.0 or y_s != 1.0:
         samples = {k: np.asarray(v) for k, v in samples.items()}
@@ -533,6 +686,13 @@ def fit_numpyro_hb(
         for k in list(samples):
             if k.startswith("sigma2_"):
                 samples[k] = (y_s ** 2) * samples[k]
+
+    # Convergence: rank-normalized split R-hat and bulk/tail ESS of every hyperparameter,
+    # coefficient and area parameter (samples are chain-major, as get_samples() flattens them)
+    diag_table, diag_trace = mcmc_diagnostics(samples, num_chains, hb_rows=draw_rows)
+    rhats = np.asarray(diag_table["rhat"])
+    rhats = rhats[np.isfinite(rhats)]
+    rhat_max = float(np.max(rhats)) if num_chains > 1 and rhats.size > 0 else None
 
     # Extract posterior statistics — keep as numpy arrays for zero-copy reticulate transfer
     beta_samples = np.asarray(samples["beta"])
@@ -804,6 +964,11 @@ def fit_numpyro_hb(
         "area_ci_upper": area_ci_upper,
         "shrinkage_weights": shrinkage_weights,
         "rhat_max": rhat_max,
+        "diagnostics": diag_table,
+        "trace": diag_trace,
+        "num_divergent": num_divergent,
+        "treedepth_hits": treedepth_hits,
+        "max_tree_depth": max_tree_depth,
         "hb_draws": _draw_columns(hb_samples, draw_rows) if return_draws else None,
         "sigma2_e_draws": np.asarray(samples["sigma2_e"], dtype=np.float64) if return_draws and "sigma2_e" in samples else None
     }

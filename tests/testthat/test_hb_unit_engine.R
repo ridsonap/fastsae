@@ -191,7 +191,7 @@ test_that("hb_unit(engine = 'jax') matches Stan for the same model and priors", 
     poisson = list(y_pois ~ x1, family = "poisson")
   )
   for (k in names(cfgs)) {
-    fit <- suppressWarnings(suppressMessages(do.call(hb_unit, c(cfgs[[k]], list(
+    fit <- quiet_mcmc(suppressWarnings(do.call(hb_unit, c(cfgs[[k]], list(
       unit_data = d$sample, Xpop = d$pop, domain_var = "dom", engine = eng, print_result = FALSE
     )))))
     ref <- fx$ref[[k]]
@@ -233,7 +233,7 @@ test_that("hb_unit(engine = 'jax') agrees with hbsae and INLA", {
   for (k in c("binomial", "poisson")) {
     args <- list(as.formula(paste(if (k == "binomial") "y_bin" else "y_pois", "~ x1")), unit_data = s,
                  Xpop = d$pop, domain_var = "dom", family = k, print_result = FALSE)
-    fit_jax <- suppressWarnings(suppressMessages(do.call(hb_unit, c(args, list(engine = eng)))))
+    fit_jax <- quiet_mcmc(suppressWarnings(do.call(hb_unit, c(args, list(engine = eng)))))
     fit_inla <- suppressWarnings(do.call(hb_unit, args))
     expect_named(fit_jax$df_hb, names(fit_inla$df_hb))
     z <- abs(fit_jax$df_hb$hb - fit_inla$df_hb$hb) / fit_inla$df_hb$sd

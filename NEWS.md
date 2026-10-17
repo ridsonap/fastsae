@@ -41,6 +41,19 @@
   are 1.1-1.4 times INLA's and 0.8-1.0 times hbsae's.
 * The NumPyro backend returns the draws of the residual variance (`sigma2_e`) and can return the
   draws of selected rows only (`draw_rows`).
+* Convergence diagnostics for `jax_engine()` fits (Vehtari et al., 2021), identical to
+  `posterior::rhat()`, `ess_bulk()` and `ess_tail()` (checked to 1e-10): the rank-normalized split
+  R-hat and bulk/tail ESS of every hyperparameter, coefficient and area parameter in
+  `mcmc_diagnostics`, with `ess_min`, `divergences` (divergent transitions) and `treedepth_hits`.
+  `rhat_max` used to cover only the coefficients and the area parameters, with the classic split
+  R-hat, so a variance whose chains had not mixed went unnoticed: on `mys` without `vardir`
+  (2 x 300 draws) the residual variance had R-hat 1.13 and a bulk ESS of 14, with 13 divergent
+  transitions. Fits warn for R-hat >= 1.05, ESS below 100 per chain and divergent transitions
+  (class `fastsae_mcmc_warning`), inform for R-hat between 1.01 and 1.05, and `print()` shows
+  the ESS and divergences.
+* `autoplot(fit, type = "trace")` and `type = "rank"` plot the chains of a `jax_engine()` fit:
+  the hyperparameters, coefficients and the area with the largest R-hat by default, or any
+  `pars`, with R-hat and ESS in the panel labels.
 * `jax_engine()`: the WAIC of a Gaussian model with an unknown residual variance (`hb_area()`
   without `vardir`, `hb_unit()`) used the posterior mean of the residual SD in every draw; it
   now uses the SD of each draw (on `mys`: 129.3 instead of 135.9).

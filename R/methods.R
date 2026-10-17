@@ -30,7 +30,11 @@
 #' @noRd
 .convergence_detail <- function(x) {
   if (!is.null(x$rhat_max)) {
-    sprintf("max R-hat = %.3f", x$rhat_max)
+    paste0(
+      sprintf("max R-hat = %.3f", x$rhat_max),
+      if (!is.null(x$ess_min) && is.finite(x$ess_min)) sprintf(", min ESS = %.0f", x$ess_min),
+      if (!is.null(x$divergences)) sprintf(", %d divergent", as.integer(x$divergences))
+    )
   } else if (!is.null(x$inla_mode_status)) {
     paste("INLA mode status", x$inla_mode_status)
   } else {
@@ -164,6 +168,9 @@ summary.fastsae <- function(object, ...) {
     method = object$method,
     engine = object$engine,
     rhat_max = object$rhat_max,
+    ess_min = object$ess_min,
+    divergences = object$divergences,
+    mcmc_diagnostics = object$mcmc_diagnostics,
     family = object$family,
     spatial = object$spatial,
     temporal = object$temporal,

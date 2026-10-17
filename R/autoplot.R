@@ -20,12 +20,32 @@ ggplot2::autoplot
 #' @param type Type of plot to create.
 #'   \itemize{
 #'     \item For a single \code{fastsae} object: \code{"comparison"}, \code{"ribbon"},
-#'       \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"}.
+#'       \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"};
+#'       for a fit with \code{\link{jax_engine}()} also \code{"trace"} and \code{"rank"},
+#'       the MCMC convergence plots (see Details).
 #'     \item For a list of \code{fastsae} objects: \code{"comparison"},
 #'       \code{"mse"}, \code{"scatter"}, or \code{"map"}.
 #'   }
 #' @param ... Additional arguments passed to internal plotting helpers
-#'   (e.g. \code{title}) or to \pkg{ggplot2} layers.
+#'   (e.g. \code{title}) or to \pkg{ggplot2} layers. For \code{"trace"} and \code{"rank"}:
+#'   \code{pars}, the parameters to show (names in \code{fit$mcmc_diagnostics$parameter},
+#'   such as \code{"sigma2_u"}, a coefficient name or \code{"hb[5]"} for row 5 of
+#'   \code{df_hb}), and for \code{"rank"} \code{bins} (default 20).
+#'
+#' @details
+#' \strong{MCMC convergence plots.} \code{"trace"} draws each chain's sampled values against
+#' the iteration; \code{"rank"} the rank plot of Vehtari et al. (2021): the draws of all chains
+#' are ranked together and each chain's ranks are counted in \code{bins} bins. If the chains
+#' sample the same distribution each chain's counts lie near the dashed line (an equal share);
+#' a chain stuck in one region has too many low or high ranks. The facet labels give the
+#' rank-normalized R-hat and bulk ESS. By default the plots show the variance and other
+#' hyperparameters, up to eight coefficients and the area or domain with the largest R-hat;
+#' all R-hats and ESSs are in \code{fit$mcmc_diagnostics}. The numbers, not the plots, are the
+#' check (R-hat < 1.01 and ESS > 100 per chain); the plots show why a check fails.
+#'
+#' @references Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & B\enc{ü}{u}rkner, P.-C.
+#'   (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing
+#'   convergence of MCMC. \emph{Bayesian Analysis}, 16(2), 667-718.
 #'
 #' @return A \code{ggplot} object.
 #'
@@ -45,12 +65,15 @@ ggplot2::autoplot
 #' @export
 autoplot.fastsae <- function(
   object,
-  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map"),
+  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map", "trace", "rank"),
   ...
 ) {
   type <- match.arg(type)
   if (type == "map") {
     return(map_sae(object, ...))
+  }
+  if (type %in% c("trace", "rank")) {
+    return(.autoplot_mcmc(object, type, ...))
   }
   switch(type,
     comparison = .autoplot_single_comparison(object, ...),
@@ -632,4 +655,101 @@ autoplot.fastsae_diagnose <- function(object,
       )
     return(p)
   }
+}
+
+#' Per-chain draws for the MCMC plots: iterations x chains x parameters
+#'
+#' The stored trace of the key parameters, plus rows of `draws` (chain-major,
+#' as NumPyro concatenates the chains) for parameters `hb[j]` not in it.
+#' @noRd
+.mcmc_trace <- function(object, pars) {
+  trace <- object$trace
+  if (is.null(trace)) {
+    cli::cli_abort(c(
+      "Trace and rank plots need the MCMC draws of a fit with {.code engine = jax_engine()}.",
+      "i" = "This fit used the {.val {object$engine %||% 'frequentist'}} engine."
+    ))
+  }
+  if (is.null(pars)) return(trace)
+  avail <- dimnames(trace)$parameter
+  extra <- setdiff(pars, avail)
+  rows <- suppressWarnings(as.integer(sub("^hb\\[([0-9]+)\\]$", "\\1", extra)))
+  bad <- extra[is.na(rows) | !grepl("^hb\\[", extra)]
+  if (length(bad) > 0) {
+    cli::cli_abort(c(
+      "Unknown parameter{?s} {.val {bad}}.",
+      "i" = "Available: {.val {avail}}, and {.code hb[j]} for row j of {.field df_hb}."
+    ))
+  }
+  if (length(extra) > 0) {
+    draws <- object$draws
+    if (is.null(draws) || any(rows > nrow(draws))) {
+      cli::cli_abort("{.val {extra}} need{?s/} the draws of the fit ({.code jax_engine(keep_draws = TRUE)}) and a valid row of {.field df_hb}.")
+    }
+    n_iter <- dim(trace)[1]
+    n_chain <- dim(trace)[2]
+    add <- array(t(draws[rows, , drop = FALSE]), dim = c(n_iter, n_chain, length(rows)))
+    trace <- array(c(trace, add), dim = c(n_iter, n_chain, dim(trace)[3] + length(rows)),
+                   dimnames = list(iteration = NULL, chain = seq_len(n_chain), parameter = c(avail, extra)))
+  }
+  trace[, , pars, drop = FALSE]
+}
+
+#' Trace and rank plots of a jax_engine() fit
+#' @noRd
+.autoplot_mcmc <- function(object, type, pars = NULL, bins = 20, title = NULL, ...) {
+  trace <- .mcmc_trace(object, pars)
+  dims <- dim(trace)
+  n_iter <- dims[1]
+  n_chain <- dims[2]
+  par_names <- dimnames(trace)$parameter
+  df <- data.frame(
+    iteration = rep(seq_len(n_iter), times = n_chain * dims[3]),
+    chain = factor(rep(rep(seq_len(n_chain), each = n_iter), times = dims[3])),
+    parameter = rep(par_names, each = n_iter * n_chain),
+    value = as.vector(trace)
+  )
+  # facet labels with the diagnostics of each parameter
+  tab <- object$mcmc_diagnostics
+  lab <- par_names
+  if (!is.null(tab)) {
+    i <- match(par_names, tab$parameter)
+    lab <- ifelse(is.na(i), par_names,
+                  sprintf("%s\nR-hat %.3f, ESS %.0f", par_names, tab$rhat[i], tab$ess_bulk[i]))
+  }
+  df$parameter <- factor(df$parameter, levels = par_names, labels = lab)
+
+  if (type == "trace") {
+    p <- ggplot(df, aes(x = .data$iteration, y = .data$value, colour = .data$chain)) +
+      geom_line(linewidth = 0.25, alpha = 0.8) +
+      facet_wrap(~parameter, scales = "free_y") +
+      labs(x = "Iteration (after warmup)", y = NULL, colour = "Chain",
+           title = title %||% "MCMC trace plot")
+  } else {
+    df$rank <- stats::ave(df$value, df$parameter, FUN = function(v) rank(v, ties.method = "average"))
+    n_total <- n_iter * n_chain
+    df$bin <- pmin(floor((df$rank - 1) / n_total * bins), bins - 1)
+    counts <- stats::aggregate(list(count = df$rank), df[c("parameter", "chain", "bin")], length)
+    full <- expand.grid(parameter = levels(df$parameter), chain = levels(df$chain), bin = 0:(bins - 1),
+                        stringsAsFactors = FALSE)
+    counts$parameter <- as.character(counts$parameter)
+    counts$chain <- as.character(counts$chain)
+    full <- merge(full, counts, all.x = TRUE)
+    full$count[is.na(full$count)] <- 0
+    full$parameter <- factor(full$parameter, levels = levels(df$parameter))
+    full$chain <- factor(full$chain, levels = levels(df$chain))
+    # step from the left edge of each bin; the last bin is closed on the right
+    last <- full[full$bin == bins - 1, ]
+    last$bin <- bins
+    full <- rbind(full, last)
+    p <- ggplot(full, aes(x = .data$bin / bins, y = .data$count, colour = .data$chain)) +
+      geom_hline(yintercept = n_iter / bins, linetype = "dashed", colour = "grey40") +
+      geom_step(linewidth = 0.4) +
+      facet_wrap(~parameter, scales = "free_y") +
+      scale_x_continuous(labels = function(x) paste0(round(100 * x), "%")) +
+      labs(x = "Rank (share of all draws)", y = "Draws per bin", colour = "Chain",
+           title = title %||% "MCMC rank plot",
+           subtitle = "Chains that sample the same distribution stay near the dashed line")
+  }
+  p + theme_minimal(base_size = 11) + theme(legend.position = "bottom")
 }
