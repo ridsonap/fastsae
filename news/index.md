@@ -238,11 +238,16 @@
   out of the latent field and is designed for data-rich models. Gaussian
   models of
   [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
-  with a `"type1"` to `"type4"` interaction also integrate over a grid
-  of hyperparameters. The choices rest on comparisons with the exact
-  posterior (numerical integration over the variances) and with long
-  Stan runs with the same model and priors (scripts in
-  `benchmarks/validation`):
+  with a `"type1"` to `"type4"` interaction and three hyperparameters (a
+  Besag or iid area effect, a random walk or iid in time) also integrate
+  over a grid of hyperparameters. Larger models (`temporal = "ar1"`, or
+  a BYM, BYM2, Leroux or SLM area effect) keep INLA’s default
+  integration: the grid grows exponentially with the number of
+  hyperparameters (with AR(1), 30 s and 13 min for 12 areas against
+  about 1 s) and was validated only for three. The choices rest on
+  comparisons with the exact posterior (numerical integration over the
+  variances) and with long Stan runs with the same model and priors
+  (scripts in `benchmarks/validation`):
   - Gaussian: the compact mode overstated the posterior SDs by up to 18%
     ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
     when the area variance is small relative to `vardir`; it was
@@ -335,6 +340,12 @@
 
 #### Fixes before the 1.0.0 release
 
+- [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
+  stops when a `target` or `national_target` is missing or not finite,
+  or a `weight` is missing. Before, a target of `NA` (for example a
+  [`weighted.mean()`](https://rdrr.io/r/stats/weighted.mean.html) of
+  direct estimates that include unsampled domains) silently made every
+  benchmarked estimate `NA`.
 - `hb_area(st_interaction = "type2" / "type3" / "type4")` now fit with
   INLA. They always failed before (the interaction reused the index of a
   main effect, which INLA rejects), and with `spatial = "none"` the type

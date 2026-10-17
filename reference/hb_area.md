@@ -367,8 +367,12 @@ of any family are fitted in INLA's `"classic"` mode (Rue, Martino and
 Chopin, 2009); the other models use INLA's default `"compact"` mode (van
 Niekerk et al., 2023), which leaves the linear predictors out of the
 latent field and is designed for data-rich models. Gaussian models with
-a `"type1"` to `"type4"` interaction also use a grid over the
-hyperparameters (`int.strategy = "grid"`). These choices rest on
+a `"type1"` to `"type4"` interaction and three hyperparameters (a Besag
+or iid area effect and a random walk or iid in time) also use a grid
+over the hyperparameters (`int.strategy = "grid"`); with
+`temporal = "ar1"` or a BYM, BYM2, Leroux or SLM area effect the grid
+grows exponentially (13 minutes for 12 areas with AR(1)) and was not
+validated, so INLA's default integration is kept. These choices rest on
 comparisons with long Stan runs with the same model and priors
 (Gaussian, binomial, Poisson, beta, gamma and negative binomial; iid,
 Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held
@@ -487,48 +491,7 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 1.884566 
-#> 
-#> Fixed Effects Coefficients:
-#>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.0427e+00  6.9228e-01  4.3952e+00  1.1066e-05  1.6969e+00
-#> x1          -1.1730e-03  8.7917e-03 -1.3343e-01  8.9386e-01 -1.8740e-02
-#> x2           5.1639e-02  5.5506e-02  9.3033e-01  3.5220e-01 -5.6669e-02
-#> x3           3.7778e-02  5.2655e-02  7.1747e-01  4.7309e-01 -6.6888e-02
-#>             ci_upper
-#> (Intercept)   4.4243
-#> x1            0.0159
-#> x2            0.1619
-#> x3            0.1404
-#> 
-#> HB Estimates (First 6 domains):
-#>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.339905    7.339905 0.7461451 0.5567325 10.16560 5.898825
-#> 2      2 7.599650 6.498471    6.498471 0.8065357 0.6504998 12.41116 4.946484
-#> 3      3 5.514137 5.050327    5.050327 0.7981020 0.6369668 15.80298 3.500406
-#> 4      4 3.869326 4.304520    4.304520 0.7105255 0.5048465 16.50650 2.900283
-#> 5      5 6.305063 6.322252    6.322252 0.8809220 0.7760235 13.93367 4.591942
-#> 6      6 3.926807 4.085714    4.085714 0.5728374 0.3281427 14.02050 2.959795
-#>   ci_upper random_effect    vardir
-#> 1 8.823250     2.6745756 0.6618838
-#> 2 8.108175     2.2907848 0.8374691
-#> 3 6.632283     0.9045415 0.8822257
-#> 4 5.688280    -1.1601813 0.6581716
-#> 5 8.053109    -0.0260277 1.2788021
-#> 6 5.206918    -0.7197458 0.3878004
-#> ... and 36 more rows.
-#> 
-#> 
-#> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
-#> Call:
-#> hb_area(formula = y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
-#> self_benchmark = TRUE, benchmark_weight = "n")
-#> 
-#> ✔ Convergence: Yes (INLA mode status 0)
-#> Model: HB-GAUSSIAN (Non-spatial)
-#> Engine: inla
-#> Self-Benchmarking: Active (benchmarked posterior draws)
-#> Random effect variance (sigma2_u): 1.884568 
+#> Random effect variance (sigma2_u): 1.88457 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
@@ -544,19 +507,60 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.256270    7.339906 0.7810375 0.6100195 10.76362 5.728155
-#> 2      2 7.599650 6.424625    6.498471 0.8217473 0.6752687 12.79059 4.861850
-#> 3      3 5.514137 4.981063    5.050327 0.8189591 0.6706939 16.44145 3.389950
-#> 4      4 3.869326 4.226625    4.304520 0.7339468 0.5386778 17.36484 2.818008
-#> 5      5 6.305063 6.314664    6.322252 0.8601441 0.7398478 13.62138 4.645758
-#> 6      6 3.926807 4.042643    4.085714 0.6641426 0.4410854 16.42843 2.779245
+#> 1      1 8.359527 7.339906    7.339906 0.7461462 0.5567342 10.16561 5.898824
+#> 2      2 7.599650 6.498471    6.498471 0.8065369 0.6505017 12.41118 4.946483
+#> 3      3 5.514137 5.050327    5.050327 0.7981024 0.6369674 15.80298 3.500406
+#> 4      4 3.869326 4.304520    4.304520 0.7105257 0.5048468 16.50651 2.900282
+#> 5      5 6.305063 6.322252    6.322252 0.8809222 0.7760239 13.93368 4.591941
+#> 6      6 3.926807 4.085714    4.085714 0.5728374 0.3281427 14.02050 2.959794
+#>   ci_upper random_effect    vardir
+#> 1 8.823253    2.67457612 0.6618838
+#> 2 8.108179    2.29078540 0.8374691
+#> 3 6.632284    0.90454146 0.8822257
+#> 4 5.688280   -1.16018177 0.6581716
+#> 5 8.053109   -0.02602779 1.2788021
+#> 6 5.206918   -0.71974607 0.3878004
+#> ... and 36 more rows.
+#> 
+#> 
+#> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
+#> Call:
+#> hb_area(formula = y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
+#> self_benchmark = TRUE, benchmark_weight = "n")
+#> 
+#> ✔ Convergence: Yes (INLA mode status 0)
+#> Model: HB-GAUSSIAN (Non-spatial)
+#> Engine: inla
+#> Self-Benchmarking: Active (benchmarked posterior draws)
+#> Random effect variance (sigma2_u): 1.884566 
+#> 
+#> Fixed Effects Coefficients:
+#>                    beta   std.error      zvalue      pvalue    ci_lower
+#> (Intercept)  3.0427e+00  6.9228e-01  4.3952e+00  1.1066e-05  1.6969e+00
+#> x1          -1.1731e-03  8.7918e-03 -1.3343e-01  8.9386e-01 -1.8740e-02
+#> x2           5.1639e-02  5.5506e-02  9.3033e-01  3.5220e-01 -5.6669e-02
+#> x3           3.7778e-02  5.2655e-02  7.1746e-01  4.7309e-01 -6.6889e-02
+#>             ci_upper
+#> (Intercept)   4.4243
+#> x1            0.0159
+#> x2            0.1619
+#> x3            0.1404
+#> 
+#> HB Estimates (First 6 domains):
+#>   domain        y       hb linear_pred        sd       mse      rse ci_lower
+#> 1      1 8.359527 7.258077    7.339912 0.7851895 0.6165225 10.81815 5.676891
+#> 2      2 7.599650 6.427801    6.498477 0.8346315 0.6966097 12.98471 4.776768
+#> 3      3 5.514137 4.984533    5.050330 0.8296652 0.6883444 16.64479 3.412980
+#> 4      4 3.869326 4.226200    4.304518 0.7369201 0.5430512 17.43694 2.779462
+#> 5      5 6.305063 6.311429    6.322252 0.8539728 0.7292695 13.53058 4.633933
+#> 6      6 3.926807 4.042628    4.085713 0.6633474 0.4400297 16.40881 2.775758
 #>   ci_upper random_effect    vardir hb_unbenchmarked
-#> 1 8.777577    2.67457625 0.6618838         7.339906
-#> 2 7.972709    2.29078549 0.8374691         6.498471
-#> 3 6.539604    0.90454153 0.8822257         5.050327
-#> 4 5.609947   -1.16018179 0.6581716         4.304520
-#> 5 7.951762   -0.02602778 1.2788021         6.322252
-#> 6 5.347738   -0.71974608 0.3878004         4.085714
+#> 1 8.782752    2.67458213 0.6618838         7.339912
+#> 2 8.001078    2.29079086 0.8374691         6.498477
+#> 3 6.671097    0.90454342 0.8822257         5.050330
+#> 4 5.661323   -1.16018463 0.6581716         4.304518
+#> 5 7.927924   -0.02602784 1.2788021         6.322252
+#> 6 5.320192   -0.71974790 0.3878004         4.085713
 #> ... and 36 more rows.
 #> 
 #> 
@@ -569,37 +573,37 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (BYM2)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 1.937398 
-#> Spatial autocorrelation (rho): 0.1224 
-#> Spatial mixing fraction (phi): 0.1224 
+#> Random effect variance (sigma2_u): 1.937285 
+#> Spatial autocorrelation (rho): 0.1228 
+#> Spatial mixing fraction (phi): 0.1228 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.02755869  0.69085236  4.38235268  0.00001174  1.68381321
-#> x1          -0.00059797  0.00882713 -0.06774181  0.94599117 -0.01820185
-#> x2           0.04797834  0.05570596  0.86127843  0.38908472 -0.06086679
-#> x3           0.04106668  0.05281275  0.77759035  0.43681055 -0.06381940
+#> (Intercept)  3.0275e+00  6.9082e-01  4.3824e+00  1.1736e-05  1.6838e+00
+#> x1          -5.9668e-04  8.8270e-03 -6.7597e-02  9.4611e-01 -1.8200e-02
+#> x2           4.7971e-02  5.5706e-02  8.6115e-01  3.8916e-01 -6.0876e-02
+#> x3           4.1075e-02  5.2812e-02  7.7775e-01  4.3672e-01 -6.3810e-02
 #>             ci_upper
-#> (Intercept)   4.4054
+#> (Intercept)   4.4053
 #> x1            0.0166
 #> x2            0.1585
 #> x3            0.1441
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.297273    7.297273 0.7516423 0.5649662 10.30032 5.843681
-#> 2      2 7.599650 6.486099    6.486099 0.8084306 0.6535600 12.46405 4.929313
-#> 3      3 5.514137 5.022927    5.022927 0.7981243 0.6370024 15.88962 3.473655
-#> 4      4 3.869326 4.307561    4.307561 0.7084373 0.5018834 16.44637 2.907296
-#> 5      5 6.305063 6.284971    6.284971 0.8840997 0.7816322 14.06689 4.549581
-#> 6      6 3.926807 4.109150    4.109150 0.5750882 0.3307265 13.99531 2.978809
+#> 1      1 8.359527 7.297120    7.297120 0.7517194 0.5650821 10.30159 5.843384
+#> 2      2 7.599650 6.485957    6.485957 0.8085036 0.6536781 12.46545 4.929041
+#> 3      3 5.514137 5.022806    5.022806 0.7981286 0.6370093 15.89009 3.473558
+#> 4      4 3.869326 4.307617    4.307617 0.7084337 0.5018783 16.44607 2.907340
+#> 5      5 6.305063 6.284941    6.284941 0.8840783 0.7815945 14.06661 4.549576
+#> 6      6 3.926807 4.109193    4.109193 0.5750833 0.3307208 13.99504 2.978857
 #>   ci_upper random_effect    vardir
-#> 1 8.789666    2.61762721 0.6618838
-#> 2 8.098373    2.27870059 0.8374691
-#> 3 6.605436    0.91264462 0.8822257
-#> 4 5.687123   -1.12695008 0.6581716
-#> 5 8.022994   -0.05621494 1.2788021
-#> 6 5.234710   -0.66308549 0.3878004
+#> 1 8.789616     2.6174615 0.6618838
+#> 2 8.098333     2.2785852 0.8374691
+#> 3 6.605352     0.9126307 0.8822257
+#> 4 5.687153    -1.1268170 0.6581716
+#> 5 8.022926    -0.0562319 1.2788021
+#> 6 5.234741    -0.6629496 0.3878004
 #> ... and 36 more rows.
 #> 
 
