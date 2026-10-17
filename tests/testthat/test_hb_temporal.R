@@ -6,9 +6,6 @@ test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   skip_if_not_installed("INLA")
   skip_if_not_installed("tipsae")
   skip_if_not_installed("spdep")
-  skip_if_not_installed("spam")
-  skip_if_not_installed("rstantools")
-  skip_if_not_installed("rstan")
 
   data("emilia", package = "tipsae")
   data("emilia_shp", package = "tipsae")
@@ -18,35 +15,12 @@ test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
   W <- spdep::nb2mat(nb, style = "B", zero.policy = TRUE)
   rownames(W) <- colnames(W) <- emilia_shp$NAME_DISTRICT
 
-  # 2. Fit tipsae Stan MCMC model
-  t0_tip <- Sys.time()
-  fit_tip <- tipsae::fit_sae(
-    formula_fixed = hcr ~ x,
-    data = emilia,
-    domains = "id",
-    disp_direct = "vars",
-    type_disp = "var",
-    domain_size = "n",
-    spatial_error = TRUE,
-    spatial_df = emilia_shp,
-    domains_spatial_df = "NAME_DISTRICT",
-    temporal_error = TRUE,
-    temporal_variable = "year",
-    chains = 4,
-    iter = 2000,
-    cores = 4,
-    seed = 42
-  )
-  # The reference must have converged: one chain of 200 iterations gave R-hat > 2
-  expect_lt(max(rstan::summary(fit_tip$stanfit)$summary[, "Rhat"], na.rm = TRUE), 1.1)
-  t1_tip <- Sys.time()
-  time_tip <- as.numeric(difftime(t1_tip, t0_tip, units = "secs"))
-  sum_tip <- summary(fit_tip)
-  est_tip <- tipsae::extract(sum_tip)$in_sample
-  colnames(est_tip)[1:4] <- c("Domains", "Times", "Direct_est", "HB_est")
+  # 2. Converged tipsae (Stan) posterior, stored because Stan draws differ
+  # across platforms; rebuild with fixtures/make-tipsae-emilia.R
+  ref <- readRDS(test_path("fixtures", "tipsae-emilia.rds"))
+  expect_lt(attr(ref, "info")$max_rhat_theta, 1.01)
 
   # 3. Fit fastsae INLA model with equivalent domain-specific RW1 + Besag structure
-  t0_inla <- Sys.time()
   fit_inla <- hb_area(
     hcr ~ x,
     data = emilia,
@@ -60,8 +34,6 @@ test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
     W = W,
     print_result = FALSE
   )
-  t1_inla <- Sys.time()
-  time_inla <- as.numeric(difftime(t1_inla, t0_inla, units = "secs"))
 
   expect_s3_class(fit_inla, "fastsae_hb_area")
   expect_s3_class(fit_inla, "fastsae")
@@ -74,19 +46,21 @@ test_that("hb_area matches tipsae::fit_sae on spatio-temporal Beta SAE", {
 
   # 5. Merge and compare estimates
   df_comp <- merge(
-    data.frame(id = df_hb$domain, year = df_hb$time, inla_est = df_hb$hb),
-    est_tip,
-    by.x = c("id", "year"),
-    by.y = c("Domains", "Times")
+    data.frame(id = df_hb$domain, year = df_hb$time, inla_est = df_hb$hb, inla_sd = df_hb$sd),
+    ref,
+    by = c("id", "year")
   )
+  expect_equal(nrow(df_comp), nrow(emilia))
 
-  cor_val <- stats::cor(df_comp$inla_est, df_comp$HB_est)
-  mae_val <- mean(abs(df_comp$inla_est - df_comp$HB_est))
+  cor_val <- stats::cor(df_comp$inla_est, df_comp$hb)
+  mae_val <- mean(abs(df_comp$inla_est - df_comp$hb))
+  sd_ratio <- df_comp$inla_sd / df_comp$sd
 
-  # Against the converged tipsae fit: r = 0.998 and MAE = 0.0016 (the priors differ)
+  # Against the converged tipsae fit: r = 0.999, MAE = 0.0017 and SD ratios
+  # 0.81 to 1.22 (the priors differ)
   expect_gt(cor_val, 0.99)
   expect_lt(mae_val, 0.005)
-  expect_gt(time_tip, time_inla)
+  expect_true(all(sd_ratio > 0.7 & sd_ratio < 1.4))
 
   # Check hyperparameters
   expect_false(is.null(fit_inla$random_effect_var))

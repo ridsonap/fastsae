@@ -327,11 +327,11 @@ The test used the official `tipsae` panel dataset: **`emilia`** (38 health distr
 | :--- | :--- | :--- |
 | **Model** | Beta, Besag ICAR + domain-specific RW(1) | `family = "beta"`, `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"`; same structure, different priors |
 | **Computation** | Hamiltonian Monte Carlo (NUTS) | Integrated nested Laplace approximation (INLA's default `"compact"` mode for Beta) |
-| **Execution time** | 120 s (4 chains x 2000 iterations in parallel; largest $\hat R$ 1.07). One chain of 200 iterations takes about 10 s but has not converged ($\hat R$ > 2) | 1.1 s |
-| **Posterior means vs converged `tipsae`** | Reference | $r = 0.998$, mean absolute difference 0.0016 (largest 0.006) |
-| **Posterior SD vs `tipsae`** | Reference | ratio 0.84 to 1.26 (the priors differ) |
+| **Execution time** | 22 min (4 chains x 10,000 iterations with 2,000 warm-up, in parallel; largest $\hat R$ 1.007). Every transition reaches the maximum tree depth; 4 chains x 2,000 iterations (120 s) have not converged ($\hat R$ 1.07, and 1.12 on a Linux runner) | 1.1 s |
+| **Posterior means vs converged `tipsae`** | Reference | $r = 0.999$, mean absolute difference 0.0017 (largest 0.006) |
+| **Posterior SD vs `tipsae`** | Reference | ratio 0.81 to 1.22 (the priors differ) |
 
-Measured on 2026-10-16 on one machine (Apple silicon, R 4.6.1, INLA 26.8.7, tipsae 1.0.3); times depend on the hardware. INLA needs no chains or warm-up, but its fit should still be checked (`convergence`, from INLA's mode search).
+Measured on 2026-10-16 (`tipsae` reference refitted on 2026-10-17) on one machine (Apple silicon, R 4.6.1, INLA 26.8.7, tipsae 1.0.3); times depend on the hardware. INLA needs no chains or warm-up, but its fit should still be checked (`convergence`, from INLA's mode search).
 
 ### Interactive Beta SAE Benchmark Explorer ($n = 30$ to $n = 1,000$)
 

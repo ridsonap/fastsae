@@ -208,10 +208,10 @@ In `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`, the mode
 | :--- | :--- | :--- |
 | **Model** | Beta, Besag ICAR + domain-specific RW(1) | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` |
 | **Estimation** | MCMC (NUTS) | Integrated nested Laplace approximation (INLA's default `"compact"` mode for Beta) |
-| **Execution time** | 120 s (4 chains x 2000 iterations, largest $\hat R$ 1.07); one chain of 200 iterations (about 10 s) has not converged | 1.1 s |
-| **Posterior means vs converged `tipsae`** | Reference | $r = 0.998$, mean absolute difference 0.0016 |
+| **Execution time** | 22 min (4 chains x 10,000 iterations, largest $\hat R$ 1.007); 4 chains x 2,000 iterations (120 s) have not converged | 1.1 s |
+| **Posterior means vs converged `tipsae`** | Reference | $r = 0.999$, mean absolute difference 0.0017 |
 
-Measured on 2026-10-16 on one machine (Apple silicon); times depend on the hardware. The accuracy of `hb_area()` was also checked against Stan with identical models and priors; see the Engines section of `?hb_area`.
+Measured on 2026-10-16 (`tipsae` reference refitted on 2026-10-17) on one machine (Apple silicon); times depend on the hardware. The accuracy of `hb_area()` was also checked against Stan with identical models and priors; see the Engines section of `?hb_area`.
 
 ### Interactive Scalability Explorer ($n = 30$ to $n = 1,000$)
 

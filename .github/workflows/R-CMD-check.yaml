@@ -70,7 +70,6 @@ jobs:
             any::rcmdcheck
             any::knitr?source
             any::xfun?source
-          extra-repositories: 'https://inla.r-inla-download.org/R/stable'
           needs: check
           cache-version: 3
 
@@ -176,7 +175,6 @@ jobs:
             any::MASS
             any::sn
             INLA
-          extra-repositories: 'https://inla.r-inla-download.org/R/stable'
           cache-version: 3
 
       - name: Install fastsae
