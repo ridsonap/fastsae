@@ -111,8 +111,9 @@ that reason \code{"auto"} uses the CPU on macOS.}
 (default) or \code{"horseshoe"} (regularized horseshoe, for many
 candidate covariates).}
 
-\item{robust}{Logical; Student-t sampling errors instead of normal
-(Gaussian family only). Default \code{FALSE}.}
+\item{robust}{Logical; Student-t instead of normal random effects (the
+area effects, and the sub-area effects of \code{hb_twofold()}), with the
+degrees of freedom estimated. Default \code{FALSE}.}
 
 \item{keep_draws}{Logical; keep the posterior draws of the area parameters
 in \code{$draws} of the fit (needed by \code{benchmark_sae()} to propagate
@@ -152,7 +153,7 @@ JAX, Phan et al. 2019) on CPU, CUDA GPU or Apple Metal, through
 The fixed effects get a normal or a regularized horseshoe prior (Piironen
 and Vehtari 2017), and the variance components half-normal priors.
 \code{spatial = "slm"} and \code{temporal = "rw2"} are not available.
-\code{jax_engine()} is available for \code{hb_area()} only.
+\code{jax_engine()} is available for \code{hb_area()} and \code{hb_twofold()}.
 }
 
 \examples{

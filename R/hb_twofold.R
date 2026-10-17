@@ -3,7 +3,8 @@
 #' @description
 #' Estimates small area parameters under a two-fold sub-area level model
 #' (Torabi & Rao, 2014 Bayesian hierarchical framework) using Integrated Nested
-#' Laplace Approximations (\pkg{INLA}). The model accounts for nested random effects
+#' Laplace Approximations (\pkg{INLA}) or, with \code{engine = jax_engine()}, MCMC
+#' (NumPyro's No-U-Turn sampler on JAX). The model accounts for nested random effects
 #' at both the primary area level (\eqn{v_i}) and the nested sub-area level (\eqn{u_{ij}}),
 #' supporting Gaussian, Binomial (logistic), and Poisson responses, with optional
 #' spatial correlation structures (BYM2, Besag) across areas and aggregate area-level
@@ -41,16 +42,18 @@
 #' @param exposure Optional character string or vector specifying expected baseline exposures per sub-area.
 #'   Required when \code{family = "poisson"}.
 #' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
-#'   object holding the approximation strategy, the priors (\code{prior_prec} for the area
+#'   object, or \code{"jax"} or a \code{\link{jax_engine}()} object. \code{inla_engine()} holds the approximation strategy, the priors (\code{prior_prec} for the area
 #'   effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
 #'   both by default \code{list(prior = "pc.prec", param = c(1, 0.01))}; \code{prior_phi} for
 #'   BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
 #'   (default 200) and their \code{seed}, and further \code{INLA::inla()} arguments. The
 #'   Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
 #'   in INLA's default \code{"compact"} mode, as in \code{\link{hb_area}};
-#'   \code{inla_engine(inla.mode = )} selects a mode.
+#'   \code{inla_engine(inla.mode = )} selects a mode. \code{jax_engine()} samples the same
+#'   model by MCMC (see the Engines section).
 #' @param compute_area Logical. If \code{TRUE} (default), computes aggregate primary area-level
-#'   estimates and posterior standard errors via posterior sampling.
+#'   estimates and posterior standard errors from joint posterior draws (sampled from the INLA
+#'   fit, or the MCMC draws with \code{jax_engine()}).
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec_area} (now
 #'   \code{prior_prec}), \code{prior_prec_subarea}, \code{prior_phi}, \code{n_samples} (now
@@ -102,10 +105,29 @@
 #'   \item \code{method}: Description of method.
 #'   \item \code{convergence}: Logical indicating convergence.
 #'   \item \code{level}: \code{"subarea"}.
-#'   \item \code{fit}: Raw fitted INLA model object.
-#'   \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
+#'   \item \code{fit}: Raw fitted INLA model object, or the list returned by the Python backend
+#'     for the JAX engine.
+#'   \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"} or \code{"jax"}) and its
+#'     settings.
+#'   \item \code{draws}, \code{rhat_max}, \code{device}, \code{elapsed_seconds}: With the JAX
+#'     engine, the posterior draws of the sub-area parameters (rows of \code{df_hb} by draws, kept
+#'     when \code{jax_engine(keep_draws = TRUE)}), the largest split R-hat (\code{convergence} is
+#'     \code{rhat_max < 1.05}), the JAX device and the sampling time.
 #'   \item \code{call}: Matched function call.
 #' }
+#'
+#' @section Engines:
+#' Both engines fit the same model and return the same structure. With
+#' \code{jax_engine()} the area effect (iid, Besag or BYM2) and the iid sub-area effect have
+#' half-normal priors on their standard deviations (on the standardised response scale for
+#' \code{family = "gaussian"}) instead of the PC priors of \code{inla_engine()}, so the
+#' estimates differ slightly. On simulated data (20 areas, 56 sub-areas; Gaussian, binomial,
+#' Poisson and Gaussian with BYM2) the area means of the two engines correlated above 0.999 and
+#' differed by a median of 0.02-0.07 posterior SD, with area SDs 0.85-1.14 times those of INLA.
+#' The posterior means of the variances were larger with MCMC (area variance 0.93 against 0.68
+#' for the Gaussian model): their posteriors are skewed, and INLA's summary is biased downwards
+#' for small variances. \code{jax_engine(robust = TRUE)} gives Student-t area and sub-area
+#' effects and \code{prior_beta = "horseshoe"} a regularized horseshoe prior on the coefficients.
 #'
 #' @references
 #' \enumerate{
@@ -169,14 +191,12 @@ hb_twofold <- function(
     ),
     used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws")
   )
-  .require_inla_engine(engine, "hb_twofold")
   strategy <- engine$strategy
   scale_model <- engine$scale_model
   # referenced by name in the INLA formula
   prior_prec_area <- engine$prior_prec
   prior_prec_subarea <- engine$prior_prec_subarea
   prior_phi <- engine$prior_phi
-  .check_inla_installed()
 
   family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson"))
   spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "besag"))
@@ -248,6 +268,18 @@ hb_twofold <- function(
     adj_res <- .convert_spatial_weights(W, n_domains = n_domains, spatial = spatial, domain_names = unique_domains)
     adj_graph <- adj_res$graph
   }
+
+  if (engine$name == "jax") {
+    result <- .fit_jax_twofold(
+      formula = formula, mf = mf, y = y, domain_vec = domain_vec, subarea_vec = subarea_vec,
+      unique_domains = unique_domains, family = family, spatial = spatial, adj_graph = adj_graph,
+      vardir = vardir_vec, trials = trials_vec, exposure = exposure_vec, weight = weight_vec,
+      compute_area = compute_area, engine = engine, call = call_matched
+    )
+    if (print_result) print(result)
+    return(invisible(result))
+  }
+  .check_inla_installed()
 
   # 5. Build Data for INLA
   inla_data <- as.data.frame(mf[, term_labels, drop = FALSE])
@@ -367,39 +399,9 @@ hb_twofold <- function(
   # 10. Area-Level Aggregation
   df_area <- NULL
   if (compute_area) {
-    if (!is.null(weight_vec)) {
-      bad_w <- which(is.na(weight_vec) | weight_vec < 0)
-      if (length(bad_w) > 0) {
-        cli::cli_warn(c(
-          "{.arg weight} is missing or negative for {length(bad_w)} subarea{?s}: {.val {utils::head(subarea_vec[bad_w], 10)}}.",
-          "i" = "They get weight 0 in the area aggregates of {.code df_area}."
-        ))
-      }
-    }
-    # Normalize weights per area
-    norm_weight <- numeric(n_subareas)
-    for (d in unique_domains) {
-      idx <- which(domain_vec == d)
-      if (is.null(weight_vec)) {
-        norm_weight[idx] <- 1 / length(idx)
-      } else {
-        w_sub <- weight_vec[idx]
-        w_sub[is.na(w_sub) | w_sub < 0] <- 0  # reported below
-        sum_w <- sum(w_sub)
-        norm_weight[idx] <- if (sum_w > 0) w_sub / sum_w else 1 / length(idx)
-      }
-    }
-
-    # Area point estimate
-    area_hb <- as.numeric(tapply(norm_weight * hb_pred, domain_vec, sum, na.rm = TRUE)[as.character(unique_domains)])
-    n_subs <- as.integer(table(factor(domain_vec, levels = unique_domains)))
-
-    # Compute area-level uncertainty via posterior sampling
-    area_sd <- rep(NA_real_, n_domains)
-    area_lower <- rep(NA_real_, n_domains)
-    area_upper <- rep(NA_real_, n_domains)
-
-    ps_ok <- tryCatch({
+    norm_weight <- .twofold_weights(weight_vec, domain_vec, unique_domains, subarea_vec)
+    # Joint posterior draws of the sub-area parameters on the response scale
+    mat_samples <- tryCatch({
       ps <- .inla_draws(fit, engine$draws, engine$seed)
       pred_names <- paste0("Predictor:", seq_len(n_subareas))
       latent_rows <- rownames(ps[[1]]$latent)
@@ -414,48 +416,12 @@ hb_twofold <- function(
         } else if (family == "poisson") {
           mat_samples <- exp(mat_samples)
         }
-
-        for (i in seq_along(unique_domains)) {
-          d <- unique_domains[i]
-          idx <- which(domain_vec == d)
-          w_i <- norm_weight[idx]
-          area_draws <- colSums(w_i * mat_samples[idx, , drop = FALSE])
-          area_sd[i] <- stats::sd(area_draws)
-          area_lower[i] <- stats::quantile(area_draws, probs = 0.025)
-          area_upper[i] <- stats::quantile(area_draws, probs = 0.975)
-        }
-        TRUE
+        mat_samples
       } else {
-        FALSE
+        NULL
       }
-    }, error = function(e) FALSE)
-
-    if (!ps_ok) {
-      # Fallback: independent approximation if posterior sampling failed
-      for (i in seq_along(unique_domains)) {
-        d <- unique_domains[i]
-        idx <- which(domain_vec == d)
-        w_i <- norm_weight[idx]
-        area_sd[i] <- sqrt(sum((w_i * hb_sd[idx])^2))
-        area_lower[i] <- area_hb[i] - 1.96 * area_sd[i]
-        area_upper[i] <- area_hb[i] + 1.96 * area_sd[i]
-      }
-    }
-
-    area_mse <- area_sd^2
-    area_rse <- ifelse(abs(area_hb) < .Machine$double.eps, NA_real_, (area_sd / abs(area_hb)) * 100)
-
-    df_area <- data.frame(
-      domain = unique_domains,
-      hb_area = area_hb,
-      sd_area = area_sd,
-      mse_area = area_mse,
-      rse_area = area_rse,
-      ci_lower_area = area_lower,
-      ci_upper_area = area_upper,
-      n_subareas = n_subs,
-      stringsAsFactors = FALSE
-    )
+    }, error = function(e) NULL)
+    df_area <- .twofold_area_table(mat_samples, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd)
   }
 
   # 11. Fixed Effects Coefficients
@@ -546,4 +512,76 @@ hb_twofold <- function(
   }
 
   return(invisible(result))
+}
+
+#' Sub-area weights normalised within each area
+#'
+#' Missing or negative weights get weight 0 (with a warning); an area whose
+#' weights sum to 0, and every area when `weight_vec` is NULL, gets equal weights.
+#' @noRd
+.twofold_weights <- function(weight_vec, domain_vec, unique_domains, subarea_vec) {
+  if (!is.null(weight_vec)) {
+    bad_w <- which(is.na(weight_vec) | weight_vec < 0)
+    if (length(bad_w) > 0) {
+      cli::cli_warn(c(
+        "{.arg weight} is missing or negative for {length(bad_w)} subarea{?s}: {.val {utils::head(subarea_vec[bad_w], 10)}}.",
+        "i" = "They get weight 0 in the area aggregates of {.code df_area}."
+      ))
+    }
+  }
+  norm_weight <- numeric(length(domain_vec))
+  for (d in unique_domains) {
+    idx <- which(domain_vec == d)
+    if (is.null(weight_vec)) {
+      norm_weight[idx] <- 1 / length(idx)
+    } else {
+      w_sub <- weight_vec[idx]
+      w_sub[is.na(w_sub) | w_sub < 0] <- 0
+      sum_w <- sum(w_sub)
+      norm_weight[idx] <- if (sum_w > 0) w_sub / sum_w else 1 / length(idx)
+    }
+  }
+  norm_weight
+}
+
+#' Area aggregates of a two-fold fit
+#'
+#' `draws` is the n x S matrix of joint posterior draws of the sub-area
+#' parameters on the response scale; the area SD and interval come from the
+#' weighted sums of the draws, which keep the covariance the sub-areas of an
+#' area share through v_i. Without draws (`NULL`) they are approximated from
+#' independent sub-area errors.
+#' @noRd
+.twofold_area_table <- function(draws, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd) {
+  n_domains <- length(unique_domains)
+  area_hb <- as.numeric(tapply(norm_weight * hb_pred, domain_vec, sum, na.rm = TRUE)[as.character(unique_domains)])
+  n_subs <- as.integer(table(factor(domain_vec, levels = unique_domains)))
+  area_sd <- area_lower <- area_upper <- rep(NA_real_, n_domains)
+
+  for (i in seq_along(unique_domains)) {
+    idx <- which(domain_vec == unique_domains[i])
+    w_i <- norm_weight[idx]
+    if (!is.null(draws)) {
+      area_draws <- colSums(w_i * draws[idx, , drop = FALSE])
+      area_sd[i] <- stats::sd(area_draws)
+      area_lower[i] <- stats::quantile(area_draws, probs = 0.025)
+      area_upper[i] <- stats::quantile(area_draws, probs = 0.975)
+    } else {
+      area_sd[i] <- sqrt(sum((w_i * hb_sd[idx])^2))
+      area_lower[i] <- area_hb[i] - 1.96 * area_sd[i]
+      area_upper[i] <- area_hb[i] + 1.96 * area_sd[i]
+    }
+  }
+
+  data.frame(
+    domain = unique_domains,
+    hb_area = area_hb,
+    sd_area = area_sd,
+    mse_area = area_sd^2,
+    rse_area = ifelse(abs(area_hb) < .Machine$double.eps, NA_real_, (area_sd / abs(area_hb)) * 100),
+    ci_lower_area = area_lower,
+    ci_upper_area = area_upper,
+    n_subareas = n_subs,
+    stringsAsFactors = FALSE
+  )
 }

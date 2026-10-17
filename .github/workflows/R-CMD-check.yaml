@@ -185,7 +185,7 @@ jobs:
         run: |
           stopifnot(fastsae::check_numpyro_available(device = "cpu"))
           res <- testthat::test_dir(
-            "tests/testthat", filter = "hb_area_engine", package = "fastsae",
+            "tests/testthat", filter = "engine", package = "fastsae",
             load_package = "installed", reporter = "summary", stop_on_failure = TRUE
           )
           df <- as.data.frame(res)

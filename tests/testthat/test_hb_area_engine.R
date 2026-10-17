@@ -199,9 +199,8 @@ test_that("hb_unit() and hb_twofold() take inla_engine() with their own defaults
                               used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws"))
   expect_identical(eng$draws, 200L)
 
-  # INLA only
+  # INLA only (hb_twofold() also takes jax_engine(); see test_hb_twofold_engine.R)
   expect_error(hb_unit(y ~ x, data.frame(), data.frame(), "d", engine = "jax"), "INLA only")
-  expect_error(hb_twofold(y ~ x, domain = "a", data = data.frame(), engine = jax_engine()), "INLA only")
   expect_error(hb_unit(y ~ x, data.frame(), data.frame(), "d", engine = "laplace"), "removed")
 })
 

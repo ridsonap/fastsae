@@ -66,17 +66,19 @@ Required when \code{family = "binomial"}.}
 Required when \code{family = "poisson"}.}
 
 \item{engine}{Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
-object holding the approximation strategy, the priors (\code{prior_prec} for the area
+object, or \code{"jax"} or a \code{\link{jax_engine}()} object. \code{inla_engine()} holds the approximation strategy, the priors (\code{prior_prec} for the area
 effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
 both by default \code{list(prior = "pc.prec", param = c(1, 0.01))}; \code{prior_phi} for
 BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
 (default 200) and their \code{seed}, and further \code{INLA::inla()} arguments. The
 Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
 in INLA's default \code{"compact"} mode, as in \code{\link{hb_area}};
-\code{inla_engine(inla.mode = )} selects a mode.}
+\code{inla_engine(inla.mode = )} selects a mode. \code{jax_engine()} samples the same
+model by MCMC (see the Engines section).}
 
 \item{compute_area}{Logical. If \code{TRUE} (default), computes aggregate primary area-level
-estimates and posterior standard errors via posterior sampling.}
+estimates and posterior standard errors from joint posterior draws (sampled from the INLA
+fit, or the MCMC draws with \code{jax_engine()}).}
 
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 
@@ -131,20 +133,42 @@ An object of class \code{c("fastsae_hb_twofold", "fastsae_hb", "fastsae")} conta
   \item \code{method}: Description of method.
   \item \code{convergence}: Logical indicating convergence.
   \item \code{level}: \code{"subarea"}.
-  \item \code{fit}: Raw fitted INLA model object.
-  \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"}) and its settings.
+  \item \code{fit}: Raw fitted INLA model object, or the list returned by the Python backend
+    for the JAX engine.
+  \item \code{engine}, \code{engine_spec}: Engine name (\code{"inla"} or \code{"jax"}) and its
+    settings.
+  \item \code{draws}, \code{rhat_max}, \code{device}, \code{elapsed_seconds}: With the JAX
+    engine, the posterior draws of the sub-area parameters (rows of \code{df_hb} by draws, kept
+    when \code{jax_engine(keep_draws = TRUE)}), the largest split R-hat (\code{convergence} is
+    \code{rhat_max < 1.05}), the JAX device and the sampling time.
   \item \code{call}: Matched function call.
 }
 }
 \description{
 Estimates small area parameters under a two-fold sub-area level model
 (Torabi & Rao, 2014 Bayesian hierarchical framework) using Integrated Nested
-Laplace Approximations (\pkg{INLA}). The model accounts for nested random effects
+Laplace Approximations (\pkg{INLA}) or, with \code{engine = jax_engine()}, MCMC
+(NumPyro's No-U-Turn sampler on JAX). The model accounts for nested random effects
 at both the primary area level (\eqn{v_i}) and the nested sub-area level (\eqn{u_{ij}}),
 supporting Gaussian, Binomial (logistic), and Poisson responses, with optional
 spatial correlation structures (BYM2, Besag) across areas and aggregate area-level
 estimation.
 }
+\section{Engines}{
+
+Both engines fit the same model and return the same structure. With
+\code{jax_engine()} the area effect (iid, Besag or BYM2) and the iid sub-area effect have
+half-normal priors on their standard deviations (on the standardised response scale for
+\code{family = "gaussian"}) instead of the PC priors of \code{inla_engine()}, so the
+estimates differ slightly. On simulated data (20 areas, 56 sub-areas; Gaussian, binomial,
+Poisson and Gaussian with BYM2) the area means of the two engines correlated above 0.999 and
+differed by a median of 0.02-0.07 posterior SD, with area SDs 0.85-1.14 times those of INLA.
+The posterior means of the variances were larger with MCMC (area variance 0.93 against 0.68
+for the Gaussian model): their posteriors are skewed, and INLA's summary is biased downwards
+for small variances. \code{jax_engine(robust = TRUE)} gives Student-t area and sub-area
+effects and \code{prior_beta = "horseshoe"} a regularized horseshoe prior on the coefficients.
+}
+
 \examples{
 \donttest{
 if (requireNamespace("INLA", quietly = TRUE)) {

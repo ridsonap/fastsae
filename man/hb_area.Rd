@@ -236,7 +236,7 @@ with either. Feature support:
   \code{temporal} \tab all \tab all but \code{"rw2"} \cr
   \code{st_interaction} \tab all \tab all \cr
   Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
-  Horseshoe prior, Student-t errors \tab -- \tab yes \cr
+  Horseshoe prior, Student-t random effects \tab -- \tab yes \cr
 }
 The \code{"jax"} engine uses weakly informative priors (half-normal standard deviations,
 uniform spatial mixing / autocorrelation parameters) instead of the PC priors of INLA, so its

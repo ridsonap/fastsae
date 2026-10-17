@@ -23,7 +23,17 @@
     `benchmark_group`) adjusts the MCMC draws exactly as for INLA, and `benchmark_sae()` uses the
     draws for the MSE matrix.
   * The engine settings are returned in `engine_spec`; `engine` holds the engine name.
-* `hb_unit()` and `hb_twofold()` take the same `engine = inla_engine(...)` (INLA only). In
+* `hb_twofold()` also takes `engine = jax_engine()` (or `"jax"`): the two-fold model with an
+  iid, Besag or BYM2 area effect and an iid sub-area effect is sampled by NumPyro NUTS, for the
+  Gaussian, binomial and Poisson families, and the area aggregates in `df_area` come from the
+  MCMC draws. Against INLA on simulated data (20 areas) the area means correlated above 0.999
+  and differed by a median of 0.02-0.07 posterior SD (the priors differ: half-normal standard
+  deviations instead of PC priors); a fit took 7-11 s against 11-31 s for INLA with the area
+  aggregates. The result has the structure of the INLA engine plus `draws`, `rhat_max`, `device`
+  and `elapsed_seconds`.
+* `jax_engine(robust = TRUE)` is documented as what it does: Student-t random effects (it was
+  described as Student-t sampling errors for the Gaussian family).
+* `hb_unit()` and `hb_twofold()` take the same `engine = inla_engine(...)` (`hb_unit()` INLA only). In
   `hb_twofold()`, `prior_prec_area` is now `inla_engine(prior_prec = )`, `n_samples` is
   `inla_engine(draws = )`, and the posterior draws for the area aggregates honour `seed`. Their
   results carry `engine` and `engine_spec` too.

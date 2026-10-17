@@ -22,7 +22,7 @@
 #' The fixed effects get a normal or a regularized horseshoe prior (Piironen
 #' and Vehtari 2017), and the variance components half-normal priors.
 #' \code{spatial = "slm"} and \code{temporal = "rw2"} are not available.
-#' \code{jax_engine()} is available for \code{hb_area()} only.
+#' \code{jax_engine()} is available for \code{hb_area()} and \code{hb_twofold()}.
 #'
 #' @param strategy INLA approximation strategy: \code{"laplace"} (default, full
 #'   Laplace approximation, highest accuracy), \code{"simplified.laplace"}
@@ -154,8 +154,9 @@ inla_engine <- function(
 #' @param prior_beta Prior for the regression coefficients: \code{"normal"}
 #'   (default) or \code{"horseshoe"} (regularized horseshoe, for many
 #'   candidate covariates).
-#' @param robust Logical; Student-t sampling errors instead of normal
-#'   (Gaussian family only). Default \code{FALSE}.
+#' @param robust Logical; Student-t instead of normal random effects (the
+#'   area effects, and the sub-area effects of \code{hb_twofold()}), with the
+#'   degrees of freedom estimated. Default \code{FALSE}.
 #' @param keep_draws Logical; keep the posterior draws of the area parameters
 #'   in \code{$draws} of the fit (needed by \code{benchmark_sae()} to propagate
 #'   the posterior covariance). Default \code{TRUE}.
@@ -202,7 +203,7 @@ print.fastsae_engine <- function(x, ...) {
     cli::cli_bullets(c(
       "*" = "{x$chains} chain{?s} x {x$samples} draws, {x$warmup} warmup, seed {x$seed}",
       "*" = "Device: {x$device}",
-      "*" = "Prior on coefficients: {x$prior_beta}{if (x$robust) ', Student-t sampling errors' else ''}"
+      "*" = "Prior on coefficients: {x$prior_beta}{if (x$robust) ', Student-t random effects' else ''}"
     ))
   } else {
     cli::cli_text("{.strong INLA engine}")

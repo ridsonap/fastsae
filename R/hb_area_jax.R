@@ -38,6 +38,83 @@
   list(scale_factor = scale_factor, eig_values = eig$values, eig_vectors = eig$vectors)
 }
 
+#' Run the NumPyro backend with the settings of a jax_engine()
+#'
+#' Sets the JAX platform for the device, calls `fit_numpyro_hb()` with the
+#' model arguments in `...` and returns the backend output (`fit`), the n x S
+#' draws of the area parameters (`draws`), the coefficient table (`estcoef`),
+#' the largest split R-hat (`rhat_max`) and the sampling time (`elapsed`).
+#' Shared by `.fit_jax_area()` and `.fit_jax_twofold()`.
+#' @noRd
+.run_numpyro <- function(engine, X, ...) {
+  # JAX reads JAX_PLATFORMS when it initializes, i.e. at the first fit of the session
+  old_plat <- Sys.getenv("JAX_PLATFORMS", unset = NA)
+  on.exit({
+    if (is.na(old_plat) || !nzchar(old_plat)) {
+      Sys.unsetenv("JAX_PLATFORMS")
+    } else {
+      Sys.setenv(JAX_PLATFORMS = old_plat)
+    }
+  }, add = TRUE)
+  if (!nzchar(Sys.getenv("JAX_PLATFORMS"))) {
+    if (engine$device == "cpu" || (engine$device == "auto" && Sys.info()["sysname"] == "Darwin")) {
+      Sys.setenv(JAX_PLATFORMS = "cpu")
+    } else if (engine$device == "cuda") {
+      Sys.setenv(JAX_PLATFORMS = "cuda,cpu")
+    }
+  }
+
+  backend <- .get_numpyro_backend(device = engine$device)
+  cli::cli_alert_info("Running NumPyro NUTS ({engine$chains} chain{?s} x {engine$samples} draws, {engine$warmup} warmup)...")
+  t0 <- Sys.time()
+  fit_py <- backend$fit_numpyro_hb(
+    X = X,
+    ...,
+    num_warmup = engine$warmup,
+    num_samples = engine$samples,
+    num_chains = engine$chains,
+    device = engine$device,
+    seed = engine$seed,
+    prior_beta = engine$prior_beta,
+    robust = engine$robust,
+    return_draws = TRUE,
+    progress_bar = engine$progress
+  )
+  elapsed <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+  cli::cli_alert_success("Sampling completed in {round(elapsed, 2)} seconds.")
+  .warn_device_fallback(engine$device, fit_py$device_used)
+
+  # Draws of the area parameters, n x S
+  draws <- t(as.matrix(fit_py$hb_draws))
+  fit_py$hb_draws <- NULL
+
+  beta_mean <- as.numeric(fit_py$beta_mean)
+  beta_sd <- as.numeric(fit_py$beta_sd)
+  zval <- beta_mean / pmax(beta_sd, 1e-8)
+  estcoef <- data.frame(
+    beta = beta_mean,
+    std.error = beta_sd,
+    zvalue = zval,
+    pvalue = 2 * stats::pnorm(abs(zval), lower.tail = FALSE),
+    ci_lower = as.numeric(fit_py$beta_ci_lower),
+    ci_upper = as.numeric(fit_py$beta_ci_upper),
+    row.names = colnames(X)
+  )
+  if (engine$prior_beta == "horseshoe" && length(fit_py$shrinkage_weights) == ncol(X)) {
+    estcoef$shrinkage_factor <- round(as.numeric(fit_py$shrinkage_weights), 4)
+  }
+
+  rhat_max <- if (!is.null(fit_py$rhat_max)) as.numeric(fit_py$rhat_max) else NULL
+  if (!is.null(rhat_max) && !(rhat_max < 1.05)) {
+    cli::cli_warn(c(
+      "The MCMC chains have not converged (max split R-hat = {round(rhat_max, 3)} >= 1.05).",
+      "i" = "Increase {.arg warmup} and {.arg samples} in {.fn jax_engine}."
+    ))
+  }
+
+  list(fit = fit_py, draws = draws, estcoef = estcoef, rhat_max = rhat_max, elapsed = elapsed)
+}
+
 #' Fit hb_area() by MCMC (NumPyro NUTS on JAX)
 #'
 #' Receives the data prepared by `hb_area()` and returns the same
@@ -118,29 +195,10 @@
     spec <- .icar_spectral(W_obj$graph)
   }
 
-  # JAX reads JAX_PLATFORMS when it initializes, i.e. at the first fit of the session
-  old_plat <- Sys.getenv("JAX_PLATFORMS", unset = NA)
-  on.exit({
-    if (is.na(old_plat) || !nzchar(old_plat)) {
-      Sys.unsetenv("JAX_PLATFORMS")
-    } else {
-      Sys.setenv(JAX_PLATFORMS = old_plat)
-    }
-  }, add = TRUE)
-  if (!nzchar(Sys.getenv("JAX_PLATFORMS"))) {
-    if (ctrl$device == "cpu" || (ctrl$device == "auto" && Sys.info()["sysname"] == "Darwin")) {
-      Sys.setenv(JAX_PLATFORMS = "cpu")
-    } else if (ctrl$device == "cuda") {
-      Sys.setenv(JAX_PLATFORMS = "cuda,cpu")
-    }
-  }
-
-  backend <- .get_numpyro_backend(device = ctrl$device)
-  cli::cli_alert_info("Running NumPyro NUTS ({ctrl$chains} chain{?s} x {ctrl$samples} draws, {ctrl$warmup} warmup)...")
-  t0 <- Sys.time()
-  fit_py <- backend$fit_numpyro_hb(
-    y = y_fit,
+  run <- .run_numpyro(
+    engine,
     X = X_mat,
+    y = y_fit,
     domain_idx = domain_idx,
     time_idx = time_idx,
     vardir = vardir_num,
@@ -156,40 +214,12 @@
     scale_factor = if (!is.null(spec)) spec$scale_factor else 1,
     eig_values = spec$eig_values,
     eig_vectors = spec$eig_vectors,
-    num_warmup = ctrl$warmup,
-    num_samples = ctrl$samples,
-    num_chains = ctrl$chains,
-    device = ctrl$device,
-    seed = ctrl$seed,
-    benchmark = FALSE,
-    prior_beta = prior_beta,
-    robust = robust,
-    return_draws = TRUE,
-    progress_bar = ctrl$progress
+    benchmark = FALSE
   )
-  elapsed <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
-  cli::cli_alert_success("Sampling completed in {round(elapsed, 2)} seconds.")
-  .warn_device_fallback(ctrl$device, fit_py$device_used)
-
-  # Draws of the area parameters, n x S
-  draws <- t(as.matrix(fit_py$hb_draws))
-  fit_py$hb_draws <- NULL
-
-  beta_mean <- as.numeric(fit_py$beta_mean)
-  beta_sd <- as.numeric(fit_py$beta_sd)
-  zval <- beta_mean / pmax(beta_sd, 1e-8)
-  estcoef <- data.frame(
-    beta = beta_mean,
-    std.error = beta_sd,
-    zvalue = zval,
-    pvalue = 2 * stats::pnorm(abs(zval), lower.tail = FALSE),
-    ci_lower = as.numeric(fit_py$beta_ci_lower),
-    ci_upper = as.numeric(fit_py$beta_ci_upper),
-    row.names = colnames(X_mat)
-  )
-  if (prior_beta == "horseshoe" && length(fit_py$shrinkage_weights) == ncol(X_mat)) {
-    estcoef$shrinkage_factor <- round(as.numeric(fit_py$shrinkage_weights), 4)
-  }
+  fit_py <- run$fit
+  draws <- run$draws
+  estcoef <- run$estcoef
+  elapsed <- run$elapsed
 
   hb_est <- as.numeric(fit_py$hb_mean)
   hb_sd <- as.numeric(fit_py$hb_sd)
@@ -217,13 +247,7 @@
   extras <- c(if (prior_beta == "horseshoe") "Horseshoe", if (isTRUE(robust)) "Student-t")
   if (length(extras) > 0) model_label <- paste0(model_label, " [", paste(extras, collapse = " + "), "]")
 
-  rhat_max <- if (!is.null(fit_py$rhat_max)) as.numeric(fit_py$rhat_max) else NULL
-  if (!is.null(rhat_max) && !(rhat_max < 1.05)) {
-    cli::cli_warn(c(
-      "The MCMC chains have not converged (max split R-hat = {round(rhat_max, 3)} >= 1.05).",
-      "i" = "Increase {.arg warmup} and {.arg samples} in {.fn jax_engine}."
-    ))
-  }
+  rhat_max <- run$rhat_max
 
   out <- list(
     df_hb = df_hb,
