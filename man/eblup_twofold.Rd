@@ -136,8 +136,10 @@ dat <- do.call(rbind, lapply(1:m, function(d) {
 }))
 dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
   rnorm(nrow(dat), sd = sqrt(dat$vardir))
-m1 <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area",
-                    subarea = "subarea", data = dat)
+m1 <- eblup_twofold(y ~ x1,
+  vardir = "vardir", domain = "area",
+  subarea = "subarea", data = dat
+)
 
 }
 \references{
