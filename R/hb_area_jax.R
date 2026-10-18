@@ -298,7 +298,7 @@
     if (!is.matrix(W_obj$graph)) {
       cli::cli_abort("{.code engine = \"jax\"} needs {.arg W} as a matrix, {.cls Matrix}, {.cls nb} or {.cls listw} object, not an INLA graph.")
     }
-    spec <- .icar_spectral(W_obj$graph)
+    if (spatial != "sar") spec <- .icar_spectral(W_obj$graph)
   }
 
   run <- .run_numpyro(
@@ -320,6 +320,7 @@
     scale_factor = if (!is.null(spec)) spec$scale_factor else 1,
     eig_values = spec$eig_values,
     eig_vectors = spec$eig_vectors,
+    W_sar = if (spatial == "sar") W_obj$W_mat else NULL,
     benchmark = FALSE
   )
   fit_py <- run$fit

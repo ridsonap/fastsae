@@ -180,7 +180,7 @@
 #'
 #' @param W Matrix, Matrix object, `spdep` `nb`, or `listw` object.
 #' @param n_domains Expected number of unique domains.
-#' @param spatial Spatial model type ("bym2", "bym", "besag", "generic1", "slm", "none").
+#' @param spatial Spatial model type ("bym2", "bym", "besag", "generic1", "sar", "slm", "none").
 #' @param domain_names Optional vector of unique domain names for alignment.
 #'
 #' @return A list with `graph` (symmetric adjacency matrix or inla graph object)
@@ -239,7 +239,7 @@
   # graph, on which the "spatial" effect is almost exchangeable.
   n_adj <- nrow(adj_mat)
   density <- if (n_adj > 1) sum(adj_mat) / (n_adj * (n_adj - 1)) else 0
-  if (spatial != "slm" && n_adj >= 4 && density > 0.5) {
+  if (!spatial %in% c("sar", "slm") && n_adj >= 4 && density > 0.5) {
     cli::cli_warn(c(
       "{.arg W} links {round(100 * density)}% of all pairs of domains. The {.val {spatial}} model uses only the pattern {.code W > 0}, not the weights, so a dense matrix (e.g. distance-decay weights) gives an almost unstructured spatial effect.",
       "i" = "Use a neighbourhood graph: {.code create_weights(method = \"queen\")} for polygons or {.code create_weights(coords, method = \"knn\")} for centroids."
@@ -253,6 +253,15 @@
     cli::cli_warn(
       "{length(isolated_idx)} domain(s) have no spatial neighbors in {.arg W} (isolated nodes): {paste(isolated_idx, collapse = ', ')}."
     )
+  }
+
+  # SAR: the weights of eblup_sfh(), which expects a row-standardised W
+  if (spatial == "sar") {
+    rs <- rowSums(W_mat)
+    if (any(rs > 0 & abs(rs - 1) > 1e-8)) {
+      cli::cli_inform("{.code spatial = \"sar\"}: {.arg W} is row-standardised.")
+      W_mat <- W_mat / ifelse(rs > 0, rs, 1)
+    }
   }
 
   return(list(
@@ -361,7 +370,7 @@
       }
     }
 
-    # Look for Phi (spatial proportion in BYM2), Beta (generic1 / Leroux), or Rho (slm)
+    # Look for Phi (spatial proportion in BYM2), Beta (generic1 / Leroux), or Rho (sar, slm)
     phi_rows <- main_rows("Phi for")
     beta_rows <- main_rows("^(Beta|Lambda) for")
     rho_rows <- main_rows("^Rho for (\\.\\.domain_id\\.\\.|domain)")
@@ -377,7 +386,7 @@
       phi <- hyper_summary[beta_rows[1], "mean"]
       rho <- phi
     } else if (length(rho_rows) > 0) {
-      # In SLM, Rho represents spatial autocorrelation
+      # In SAR and SLM, Rho is the spatial autocorrelation, reported by INLA on (0, 1)
       rho_raw <- hyper_summary[rho_rows[1], "mean"]
       if (!is.null(rho_range)) {
         rho <- rho_range[1] + rho_raw * (rho_range[2] - rho_range[1])
