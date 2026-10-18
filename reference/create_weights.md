@@ -120,8 +120,8 @@ if (requireNamespace("sf", quietly = TRUE) && requireNamespace("spdep", quietly 
   # North Carolina counties, an sf polygon data set shipped with 'sf'
   nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
   W_queen <- create_weights(nc, method = "queen", style = "W")
-  W_knn   <- create_weights(nc, method = "knn", k = 5, style = "W")
-  W_bin   <- create_weights(nc, method = "queen", style = "B")
+  W_knn <- create_weights(nc, method = "knn", k = 5, style = "W")
+  W_bin <- create_weights(nc, method = "queen", style = "B")
   W_queen
 }
 #> 

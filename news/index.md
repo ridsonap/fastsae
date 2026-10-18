@@ -204,6 +204,28 @@
 - The examples now use the full `mys_panel` and `mys_proxmat` (domains
   21 and 25 are unsampled).
 
+#### Area means in `eblup_twofold()`
+
+- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  now also estimates the area means
+  $`\theta_i = \sum_j w_{ij}\theta_{ij}`$, returned in `df_area`
+  (`eblup_area`, `mse_area`, `rse_area`, `n_subareas`, `n_sampled`). The
+  new argument `weight` gives the sub-area weights (normalised within
+  each area, equal by default, as in
+  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md));
+  `compute_area = FALSE` skips them.
+  - The analytical MSE is the second-order estimator of the sub-areas
+    applied to the linear target ($`g_1 + g_2 + 2g_3`$, minus the ML
+    bias term). It includes the covariance of the sub-area errors
+    through the area effect and $`\hat\beta`$, so it is not
+    $`\sum_j w_{ij}^2 \mathrm{mse}_{ij}`$. Areas without a sampled
+    sub-area get the synthetic estimator. `mse_type = "bootstrap"`
+    computes the area MSE from the same replicates.
+  - Tested against a dense implementation (finite-difference $`g_3`$,
+    REML information) and, with a weight on one sub-area, against the
+    sub-area MSE. `benchmarks/validation/twofold_area_mse.R` checks the
+    MSE estimators by Monte Carlo.
+
 #### MSE argument, convergence and input checks
 
 - All EBLUP functions choose the MSE with `mse_type`, which includes

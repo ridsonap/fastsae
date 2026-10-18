@@ -14,7 +14,7 @@ with two nested random effects. **fastsae** fits it in two ways:
 
 | Function | Approach | Uncertainty | Area aggregates |
 |:---|:---|:---|:---|
-| [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md) | EBLUP, REML or ML | Analytical (Prasad-Rao type) or parametric bootstrap MSE | not computed |
+| [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md) | EBLUP, REML or ML | Analytical (Prasad-Rao type) or parametric bootstrap MSE | `df_area`, weighted by `weight` |
 | [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md) | Hierarchical Bayes with INLA | Posterior SD and credible intervals | `df_area`, weighted by `weight` |
 
 [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
@@ -108,6 +108,7 @@ fit_tf <- eblup_twofold(
   domain = "area",
   subarea = "subarea",
   data = dat,
+  weight = "pop",
   print_result = FALSE
 )
 
@@ -140,6 +141,25 @@ the REML fit (for ML it adds the bias correction). Sub-area `A01-3` is
 not sampled: it still gets the area effect of `A01`, while its sub-area
 effect is 0.
 
+`weight` (here the population of each sub-area) aggregates the sub-area
+EBLUPs to area means,
+$`\tilde\theta_i = \sum_j w_{ij}\tilde\theta_{ij} / \sum_j w_{ij}`$, in
+`df_area`. Their MSE accounts for the errors the sub-areas of an area
+share (the estimated area effect and $`\hat\beta`$), so it is larger
+than $`\sum_j w_{ij}^2\,\mathrm{mse}_{ij}`$ would suggest.
+
+``` r
+
+head(fit_tf$df_area)
+#>   domain eblup_area  mse_area rse_area n_subareas n_sampled
+#> 1    A01   13.43189 0.2748473 3.903090          4         4
+#> 2    A02   11.19056 0.3146821 5.012844          5         4
+#> 3    A03   14.07817 0.2208185 3.337885          3         3
+#> 4    A04   16.64890 0.3174408 3.384120          6         4
+#> 5    A05   13.25981 0.4443843 5.027383          4         3
+#> 6    A06   12.79993 0.2838182 4.162101          3         3
+```
+
 ### How much does the area effect help?
 
 Because the data are simulated, we can compare each estimator with the
@@ -158,10 +178,14 @@ emp_mse <- function(est, rows) mean((est[rows] - dat$theta[rows])^2)
 data.frame(
   rows = c("sampled sub-areas", "unsampled sub-areas of sampled areas"),
   direct = c(emp_mse(dat$y, sampled), NA),
-  fay_herriot = c(emp_mse(fit_fh$df_eblup$eblup, sampled),
-                  emp_mse(fit_fh$df_eblup$eblup, in_sampled_area)),
-  two_fold = c(emp_mse(fit_tf$df_eblup$eblup, sampled),
-               emp_mse(fit_tf$df_eblup$eblup, in_sampled_area))
+  fay_herriot = c(
+    emp_mse(fit_fh$df_eblup$eblup, sampled),
+    emp_mse(fit_fh$df_eblup$eblup, in_sampled_area)
+  ),
+  two_fold = c(
+    emp_mse(fit_tf$df_eblup$eblup, sampled),
+    emp_mse(fit_tf$df_eblup$eblup, in_sampled_area)
+  )
 )
 #>                                   rows   direct fay_herriot  two_fold
 #> 1                    sampled sub-areas 1.211463   0.5087563 0.5291281
@@ -344,8 +368,10 @@ here the two are practically equal:
 
 ``` r
 
-c(eblup_two_fold = emp_mse(fit_tf$df_eblup$eblup, sampled | in_sampled_area),
-  hb_two_fold = emp_mse(fit_hb$df_hb$hb, sampled | in_sampled_area))
+c(
+  eblup_two_fold = emp_mse(fit_tf$df_eblup$eblup, sampled | in_sampled_area),
+  hb_two_fold = emp_mse(fit_hb$df_hb$hb, sampled | in_sampled_area)
+)
 #> eblup_two_fold    hb_two_fold 
 #>      0.5583827      0.5692370
 ```

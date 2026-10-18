@@ -95,6 +95,8 @@ with an area random effect \(v_i\) and a subarea random effect \(u_{ij}\).</p>
 <span>  benchmark_weight <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  benchmark_target <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  benchmark_group <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  weight <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  compute_area <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -175,6 +177,19 @@ grouping / stratum column in <code>data</code> (e.g. area identifier for subarea
 for group-specific self-benchmarking.</p></dd>
 
 
+<dt id="arg-weight">weight<a class="anchor" aria-label="anchor" href="#arg-weight"></a></dt>
+<dd><p>Optional vector, column name or one-sided formula referencing the sub-area
+weights \(w_{ij}\) (e.g. population sizes) used for the area means
+\(\theta_i = \sum_j w_{ij}\theta_{ij}\). They are normalised within each area; if
+<code>NULL</code>, every sub-area of an area gets the same weight. Missing or negative weights
+get weight 0 (with a warning), as in <code><a href="hb_twofold.html">hb_twofold</a></code>.</p></dd>
+
+
+<dt id="arg-compute-area">compute_area<a class="anchor" aria-label="anchor" href="#arg-compute-area"></a></dt>
+<dd><p>Logical. If <code>TRUE</code> (default), adds the EBLUPs of the area means and
+their MSE in <code>df_area</code> (see Details).</p></dd>
+
+
 <dt id="arg-print-result">print_result<a class="anchor" aria-label="anchor" href="#arg-print-result"></a></dt>
 <dd><p>print coefficient or not, default value is TRUE.</p></dd>
 
@@ -193,7 +208,9 @@ following the convention of <span class="pkg">sae</span> for the Fay-Herriot mod
 of sampled subareas. The restricted (REML) likelihood is not reported: it depends on the
 covariates through X, so it cannot compare models with different covariates.,
 <code>df_eblup</code> a data frame that contains domain, subarea, y, eblup, vardir,
-random_effect_area, random_effect_subarea, mse, and rse. <br></p>
+random_effect_area, random_effect_subarea, mse, and rse. <br><code>df_area</code> (if <code>compute_area = TRUE</code>) a data frame with one row per area: domain,
+<code>eblup_area</code>, <code>mse_area</code>, <code>rse_area</code>, <code>n_subareas</code> (sub-areas in
+<code>data</code>) and <code>n_sampled</code> (those with a direct estimate). <br></p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -202,6 +219,17 @@ When the response contains NA the subarea is treated as non-sampled and predicte
 with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
 g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
 derivation for g3) or by parametric bootstrap.</p>
+<p>Area means. The target of area \(i\) is \(\theta_i = \sum_j w_{ij}\theta_{ij}\) over
+the sub-areas of the area in <code>data</code> (sampled or not), with the normalised
+<code>weight</code>. Its EBLUP is \(\sum_j w_{ij}\tilde\theta_{ij}\). The analytical MSE is the
+same second-order estimator as for the sub-areas, applied to this linear target (Torabi
+and Rao, 2014, derive it for population-weighted area means): it includes the covariance
+of the sub-area prediction errors through the shared area effect and \(\hat\beta\), so
+it is not \(\sum_j w_{ij}^2\,\mathrm{mse}_{ij}\). An area without sampled sub-areas gets
+the synthetic estimator \(\bar x_i'\hat\beta\) with MSE
+\(\bar x_i' Q \bar x_i + \hat\sigma_v^2 + \hat\sigma_u^2\sum_j w_{ij}^2\). With
+<code>mse_type = "bootstrap"</code> the area MSE comes from the same bootstrap replicates.
+Sub-areas of the population that are not rows of <code>data</code> are not part of the area mean.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -227,8 +255,10 @@ level model. <em>Journal of Multivariate Analysis</em>, 127, 36–55.</p></li>
 <span class="r-in"><span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dat</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="va">dat</span><span class="op">$</span><span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">[</span><span class="va">dat</span><span class="op">$</span><span class="va">area</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span>, sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">vardir</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">m1</span> <span class="op">&lt;-</span> <span class="fu">eblup_twofold</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>, domain <span class="op">=</span> <span class="st">"area"</span>,</span></span>
-<span class="r-in"><span>                    subarea <span class="op">=</span> <span class="st">"subarea"</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">m1</span> <span class="op">&lt;-</span> <span class="fu">eblup_twofold</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span>,</span></span>
+<span class="r-in"><span>  vardir <span class="op">=</span> <span class="st">"vardir"</span>, domain <span class="op">=</span> <span class="st">"area"</span>,</span></span>
+<span class="r-in"><span>  subarea <span class="op">=</span> <span class="st">"subarea"</span>, data <span class="op">=</span> <span class="va">dat</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
@@ -262,6 +292,16 @@ level model. <em>Journal of Multivariate Analysis</em>, 127, 36–55.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5           -0.11207085 0.3373565  43.15098</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6            0.23695732 0.4494131  34.01206</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 67 more rows.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Area-Level Aggregates (First 6 areas):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain eblup_area  mse_area  rse_area n_subareas n_sampled</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1  1.9917254 0.3588993  30.07855          2         2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2  1.1244377 0.1668759  36.32966          4         4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 -1.3463420 0.1532791  29.07944          2         2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4  0.5992751 0.2009970  74.81154          2         2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5  0.1725406 0.1227905 203.09114          4         4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6  2.1532308 0.1139611  15.67790          5         5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 14 more areas.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

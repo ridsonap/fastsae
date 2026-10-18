@@ -137,7 +137,10 @@ ways:</p>
 <td align="left">EBLUP, REML or ML</td>
 <td align="left">Analytical (Prasad-Rao type) or parametric bootstrap
 MSE</td>
-<td align="left">not computed</td>
+<td align="left">
+<code>df_area</code>, weighted by
+<code>weight</code>
+</td>
 </tr>
 <tr class="even">
 <td align="left"><code><a href="../reference/hb_twofold.html">hb_twofold()</a></code></td>
@@ -251,6 +254,7 @@ predicted.</p>
 <span>  domain <span class="op">=</span> <span class="st">"area"</span>,</span>
 <span>  subarea <span class="op">=</span> <span class="st">"subarea"</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">dat</span>,</span>
+<span>  weight <span class="op">=</span> <span class="st">"pop"</span>,</span>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -280,6 +284,24 @@ predicted.</p>
 type MSE of the REML fit (for ML it adds the bias correction). Sub-area
 <code>A01-3</code> is not sampled: it still gets the area effect of
 <code>A01</code>, while its sub-area effect is 0.</p>
+<p><code>weight</code> (here the population of each sub-area) aggregates
+the sub-area EBLUPs to area means,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>θ</mi><mo accent="true">̃</mo></mover><mi>i</mi></msub><mo>=</mo><msub><mo>∑</mo><mi>j</mi></msub><msub><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mover><mi>θ</mi><mo accent="true">̃</mo></mover><mrow><mi>i</mi><mi>j</mi></mrow></msub><mi>/</mi><msub><mo>∑</mo><mi>j</mi></msub><msub><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\tilde\theta_i = \sum_j w_{ij}\tilde\theta_{ij} / \sum_j w_{ij}</annotation></semantics></math>,
+in <code>df_area</code>. Their MSE accounts for the errors the sub-areas
+of an area share (the estimated area effect and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>β</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat\beta</annotation></semantics></math>),
+so it is larger than
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>j</mi></msub><msubsup><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow><mn>2</mn></msubsup><mspace width="0.167em"></mspace><msub><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi></mrow><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\sum_j w_{ij}^2\,\mathrm{mse}_{ij}</annotation></semantics></math>
+would suggest.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_area</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   domain eblup_area  mse_area rse_area n_subareas n_sampled</span></span>
+<span><span class="co">#&gt; 1    A01   13.43189 0.2748473 3.903090          4         4</span></span>
+<span><span class="co">#&gt; 2    A02   11.19056 0.3146821 5.012844          5         4</span></span>
+<span><span class="co">#&gt; 3    A03   14.07817 0.2208185 3.337885          3         3</span></span>
+<span><span class="co">#&gt; 4    A04   16.64890 0.3174408 3.384120          6         4</span></span>
+<span><span class="co">#&gt; 5    A05   13.25981 0.4443843 5.027383          4         3</span></span>
+<span><span class="co">#&gt; 6    A06   12.79993 0.2838182 4.162101          3         3</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="how-much-does-the-area-effect-help">How much does the area effect help?<a class="anchor" aria-label="anchor" href="#how-much-does-the-area-effect-help"></a>
@@ -289,7 +311,7 @@ the true
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>θ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">\theta_{ij}</annotation></semantics></math>.
 The Fay-Herriot model, fitted with <code><a href="../reference/eblup_fh.html">eblup_fh()</a></code> on the same
 rows, ignores the areas.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_fh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>, data <span class="op">=</span> <span class="va">dat</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sampled</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">y</span><span class="op">)</span></span>
@@ -299,10 +321,14 @@ rows, ignores the areas.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sampled sub-areas"</span>, <span class="st">"unsampled sub-areas of sampled areas"</span><span class="op">)</span>,</span>
 <span>  direct <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">emp_mse</span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">y</span>, <span class="va">sampled</span><span class="op">)</span>, <span class="cn">NA</span><span class="op">)</span>,</span>
-<span>  fay_herriot <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_fh</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">sampled</span><span class="op">)</span>,</span>
-<span>                  <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_fh</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">in_sampled_area</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  two_fold <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">sampled</span><span class="op">)</span>,</span>
-<span>               <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">in_sampled_area</span><span class="op">)</span><span class="op">)</span></span>
+<span>  fay_herriot <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_fh</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">sampled</span><span class="op">)</span>,</span>
+<span>    <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_fh</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">in_sampled_area</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  two_fold <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">sampled</span><span class="op">)</span>,</span>
+<span>    <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">in_sampled_area</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;                                   rows   direct fay_herriot  two_fold</span></span>
 <span><span class="co">#&gt; 1                    sampled sub-areas 1.211463   0.5087563 0.5291281</span></span>
@@ -326,7 +352,7 @@ is relative to
 generated from the fitted model and predicts with the same estimator as
 the point estimate. <code>seed</code> makes it reproducible without
 changing the random number stream of the session.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_twofold.html">eblup_twofold</a></span><span class="op">(</span></span>
 <span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span>,</span>
 <span>  vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>
@@ -351,10 +377,10 @@ needed.</p>
 <h3 id="diagnostics-and-plots">Diagnostics and plots<a class="anchor" aria-label="anchor" href="#diagnostics-and-plots"></a>
 </h3>
 <p>The usual tools of the package work on the result:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_tf</span>, type <span class="op">=</span> <span class="st">"comparison"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="twofold-subarea_files/figure-html/diagnostics-1.png" class="r-plt" alt="" width="672"></p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/diagnose.html">diagnose</a></span><span class="op">(</span><span class="va">fit_tf</span><span class="op">)</span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">fastsae Small Area Estimation Diagnostic Report</span> ─────────────────────────────</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model:</span> <span style="color: #0000BB;">"TWOFOLD"</span> | <span style="font-weight: bold;">Domains:</span> 131 (Sampled: 111, Unsampled: 20)</span></span>
@@ -386,7 +412,7 @@ only run when INLA is installed.</p>
 sub-area) aggregates the sub-area posteriors to area estimates,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>θ</mi><mo accent="true">̂</mo></mover><mi>i</mi></msub><mo>=</mo><msub><mo>∑</mo><mi>j</mi></msub><msub><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>θ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mi>/</mi><msub><mo>∑</mo><mi>j</mi></msub><msub><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\hat\theta_i = \sum_j w_{ij} \theta_{ij} / \sum_j w_{ij}</annotation></semantics></math>,
 with their posterior uncertainty in <code>df_area</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_hb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_twofold.html">hb_twofold</a></span><span class="op">(</span></span>
 <span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span>,</span>
 <span>  vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>
@@ -432,7 +458,7 @@ with their posterior uncertainty in <code>df_area</code>.</p>
 <span><span class="co">#&gt; 6          3</span></span></code></pre></div>
 <p>With the default vague priors the posterior means are very close to
 the EBLUP:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.9996075</span></span>
 <span><span class="fu"><a href="../reference/compare_sae.html">compare_sae</a></span><span class="op">(</span><span class="va">fit_tf</span>, <span class="va">fit_hb</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"EBLUP two-fold"</span>, <span class="st">"HB two-fold"</span><span class="op">)</span><span class="op">)</span></span>
@@ -467,9 +493,11 @@ is also smaller than the REML estimate (both are below the true value
 smaller reported uncertainty is therefore not evidence of a more
 accurate estimator. With simulated data, the error against the truth
 settles it; here the two are practically equal:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>eblup_two_fold <span class="op">=</span> <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">sampled</span> <span class="op">|</span> <span class="va">in_sampled_area</span><span class="op">)</span>,</span>
-<span>  hb_two_fold <span class="op">=</span> <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span>, <span class="va">sampled</span> <span class="op">|</span> <span class="va">in_sampled_area</span><span class="op">)</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  eblup_two_fold <span class="op">=</span> <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">sampled</span> <span class="op">|</span> <span class="va">in_sampled_area</span><span class="op">)</span>,</span>
+<span>  hb_two_fold <span class="op">=</span> <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span>, <span class="va">sampled</span> <span class="op">|</span> <span class="va">in_sampled_area</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="co">#&gt; eblup_two_fold    hb_two_fold </span></span>
 <span><span class="co">#&gt;      0.5583827      0.5692370</span></span></code></pre></div>
 <p>For counts or proportions, use <code>family = "poisson"</code> with
@@ -488,7 +516,7 @@ chunk is not run here. The result has the same structure, plus the
 posterior draws in <code>draws</code> and the largest split R-hat in
 <code>rhat_max</code>; the area aggregates in <code>df_area</code> come
 from the MCMC draws.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_jax</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_twofold.html">hb_twofold</a></span><span class="op">(</span></span>
 <span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span>,</span>
 <span>  vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>

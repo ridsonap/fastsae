@@ -304,8 +304,10 @@ if (requireNamespace("INLA", quietly = TRUE)) {
   dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
     rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area",
-                    subarea = "subarea", data = dat)
+  fit <- hb_twofold(y ~ x1,
+    vardir = "vardir", domain = "area",
+    subarea = "subarea", data = dat
+  )
   summary(fit)
 }
 #> 
