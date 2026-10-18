@@ -40,3 +40,4 @@
 ^inst/python/__pycache__$
 ^\.git$
 ^vignettes/articles$
+^data-raw$

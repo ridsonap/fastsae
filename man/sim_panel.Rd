@@ -26,8 +26,8 @@ A data frame with 210 rows and 15 variables in domain-major order:
 }
 }
 \source{
-Simulated using \code{\link{sim_series_data}} based on the spatial
-  proximity structure of \code{\link{mys_proxmat}}.
+Simulated using \code{\link{sim_series_data}} with the dense distance-decay
+  weights that \code{\link{mys_proxmat}} held until fastsae 1.0.0.
 }
 \usage{
 data(sim_panel)
@@ -37,8 +37,8 @@ A synthetic panel dataset containing 42 domains observed over 5 time periods
 (2022 to 2026, total 210 observations). Features multiple response variables
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma) driven by domain-level spatial autocorrelation
-and first-order autoregressive AR(1) temporal dynamics. It shares the 42-domain
-spatial structure of \code{\link{mys_proxmat}} and is formatted in domain-major order
+and first-order autoregressive AR(1) temporal dynamics. Its 42 areas and centroids are
+those of \code{\link{sim_area}} (see \code{\link{mys_proxmat}}), in domain-major order
 for direct use in \code{\link{eblup_stfh}}.
 }
 \examples{

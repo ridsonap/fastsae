@@ -38,15 +38,19 @@
 "mys_panel"
 
 #' @title Example proximity matrix
-#' @description A 42 by 42 row-standardized spatial proximity matrix for the 42 areas in \code{mys}.
-#'   Every pair of areas has a positive weight, larger for areas whose centroids
-#'   (\code{sim_area$x_coord}, \code{sim_area$y_coord}) are close, so it suits the SAR
-#'   models (\code{\link{eblup_sfh}}, \code{\link{eblup_stfh}}, \code{hb_area(spatial = "slm")}).
-#'   The CAR models of \code{\link{hb_area}} use only the pattern \code{W > 0}, which for this
-#'   matrix is a complete graph; build a neighbourhood graph for them, for example
-#'   \code{create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4)}.
-#' @format A square numeric matrix with 42 rows and 42 columns with values between 0 and 1.
-#' @source Simulated proximity weights between the 42 areas.
+#' @description A 42 by 42 row-standardized spatial weight matrix for the 42 areas in \code{mys}:
+#'   each area is linked to its 4 nearest areas by centroid distance
+#'   (\code{sim_area$x_coord}, \code{sim_area$y_coord}), a link in either direction counts,
+#'   and each row is divided by its number of neighbours (4 to 8). The weights suit the SAR
+#'   models (\code{\link{eblup_sfh}}, \code{\link{eblup_stfh}}, \code{hb_area(spatial = "slm")}),
+#'   and the pattern \code{W > 0} is the neighbourhood graph the CAR models of
+#'   \code{\link{hb_area}} use (\code{"besag"}, \code{"bym"}, \code{"bym2"}, \code{"leroux"}).
+#'   Until fastsae 1.0.0 it was a dense distance-decay matrix that linked every pair of areas,
+#'   which a CAR model reads as a complete graph.
+#' @format A square numeric matrix with 42 rows and 42 columns with values between 0 and 1;
+#'   every row sums to 1.
+#' @source Built from the \code{sim_area} centroids by \code{data-raw/mys_proxmat.R} in the
+#'   package sources.
 "mys_proxmat"
 
 
@@ -118,7 +122,7 @@
 #' representing various probability distributions (Gaussian, Poisson, Binomial,
 #' Beta, Negative Binomial, and Gamma). Designed for testing and benchmarking
 #' generalized linear and spatial small area estimation models (HB / INLA).
-#' It shares the 42-domain spatial structure of \code{\link{mys_proxmat}}.
+#' Its centroids give the neighbourhood graph of \code{\link{mys_proxmat}}.
 #'
 #' @usage data(sim_area)
 #' @aliases sae_area_multi
@@ -141,8 +145,9 @@
 #'   \item{y_coord}{Centroid y coordinate.}
 #' }
 #'
-#' @source Simulated using \code{\link{sim_area_data}} based on the spatial
-#'   proximity structure of \code{\link{mys_proxmat}}.
+#' @source Simulated using \code{\link{sim_area_data}} with the dense distance-decay
+#'   weights that \code{\link{mys_proxmat}} held until fastsae 1.0.0; the centroids are a
+#'   two-dimensional scaling of those weights.
 #'
 #' @keywords datasets
 #' @examples
@@ -157,8 +162,8 @@
 #' (2022 to 2026, total 210 observations). Features multiple response variables
 #' representing various probability distributions (Gaussian, Poisson, Binomial,
 #' Beta, Negative Binomial, and Gamma) driven by domain-level spatial autocorrelation
-#' and first-order autoregressive AR(1) temporal dynamics. It shares the 42-domain
-#' spatial structure of \code{\link{mys_proxmat}} and is formatted in domain-major order
+#' and first-order autoregressive AR(1) temporal dynamics. Its 42 areas and centroids are
+#' those of \code{\link{sim_area}} (see \code{\link{mys_proxmat}}), in domain-major order
 #' for direct use in \code{\link{eblup_stfh}}.
 #'
 #' @usage data(sim_panel)
@@ -183,8 +188,8 @@
 #'   \item{y_coord}{Centroid y coordinate.}
 #' }
 #'
-#' @source Simulated using \code{\link{sim_series_data}} based on the spatial
-#'   proximity structure of \code{\link{mys_proxmat}}.
+#' @source Simulated using \code{\link{sim_series_data}} with the dense distance-decay
+#'   weights that \code{\link{mys_proxmat}} held until fastsae 1.0.0.
 #'
 #' @keywords datasets
 #' @examples

@@ -380,6 +380,14 @@
   aggregates are weighted totals (they were weighted means, on the wrong scale for stage 1).
 
 ### Breaking changes and clean-up
+* `mys_proxmat` is now the row-standardised 4-nearest-neighbour graph of the 42 areas
+  (symmetric, 4 to 8 neighbours per area, built from the `sim_area` centroids by
+  `data-raw/mys_proxmat.R`). It was a dense distance-decay matrix with almost equal weights
+  (largest weight per row 0.03-0.04, against 1/41 = 0.024 for equal weights), which the CAR models
+  of `hb_area()` read as a complete graph. Results that use `mys_proxmat` change. On `mys` the
+  SAR correlation of `eblup_sfh()` stays at its bound -1 with either matrix: the residuals of
+  `mys` have no positive spatial autocorrelation. `sim_area` and `sim_panel` are unchanged
+  (simulated with the old matrix).
 * `benchmark()`, a plain alias of `benchmark_sae()`, is removed; use `benchmark_sae()`.
 * The leftover handling of `df_ebp`/`ebp` result tables (from the removed `ebp_area()`) is removed
   from the methods and utilities; results are in `df_hb` (HB) or `df_eblup` (EBLUP).

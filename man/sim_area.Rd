@@ -25,8 +25,9 @@ A data frame with 42 rows and 14 variables:
 }
 }
 \source{
-Simulated using \code{\link{sim_area_data}} based on the spatial
-  proximity structure of \code{\link{mys_proxmat}}.
+Simulated using \code{\link{sim_area_data}} with the dense distance-decay
+  weights that \code{\link{mys_proxmat}} held until fastsae 1.0.0; the centroids are a
+  two-dimensional scaling of those weights.
 }
 \usage{
 data(sim_area)
@@ -36,7 +37,7 @@ A synthetic dataset containing 42 domains with multiple response variables
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma). Designed for testing and benchmarking
 generalized linear and spatial small area estimation models (HB / INLA).
-It shares the 42-domain spatial structure of \code{\link{mys_proxmat}}.
+Its centroids give the neighbourhood graph of \code{\link{mys_proxmat}}.
 }
 \examples{
 data(sim_area)

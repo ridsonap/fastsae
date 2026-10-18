@@ -402,18 +402,24 @@ test_that("hb_area() fits Gaussian models in INLA's classic mode, other families
 })
 
 # A CAR model uses only the pattern W > 0: a dense matrix such as distance-decay
-# weights (mys_proxmat links all 861 pairs) becomes a complete graph.
+# weights (all 861 pairs linked) becomes a complete graph.
 test_that("a dense W for a CAR model gives a warning", {
   skip_if_not_installed("INLA")
-  expect_warning(hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "besag", W = mys_proxmat,
+  xy <- cbind(sim_area$x_coord, sim_area$y_coord)
+  W_dense <- 1 / as.matrix(stats::dist(xy))
+  diag(W_dense) <- 0
+  W_dense <- W_dense / rowSums(W_dense)
+  expect_warning(hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "besag", W = W_dense,
                          print_result = FALSE),
                  "pattern")
-  xy <- cbind(sim_area$x_coord, sim_area$y_coord)
+  # mys_proxmat is a 4-nearest-neighbour graph (it was distance-decay weights)
+  expect_no_warning(hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "besag", W = mys_proxmat,
+                            print_result = FALSE))
   W_knn <- create_weights(xy, method = "knn", k = 4, style = "B")
   expect_no_warning(hb_area(y ~ x1, data = mys, vardir = "vardir", spatial = "besag", W = W_knn,
                             print_result = FALSE))
   # the SAR (slm) model uses the weights themselves
-  expect_no_warning(.convert_spatial_weights(mys_proxmat, n_domains = 42, spatial = "slm"))
+  expect_no_warning(.convert_spatial_weights(W_dense, n_domains = 42, spatial = "slm"))
 })
 
 # Knorr-Held (2000) interactions with a random walk in time are intrinsic in
