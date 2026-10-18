@@ -55,8 +55,8 @@
 #'   # North Carolina counties, an sf polygon data set shipped with 'sf'
 #'   nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
 #'   W_queen <- create_weights(nc, method = "queen", style = "W")
-#'   W_knn   <- create_weights(nc, method = "knn", k = 5, style = "W")
-#'   W_bin   <- create_weights(nc, method = "queen", style = "B")
+#'   W_knn <- create_weights(nc, method = "knn", k = 5, style = "W")
+#'   W_bin <- create_weights(nc, method = "queen", style = "B")
 #'   W_queen
 #' }
 #'
@@ -145,14 +145,12 @@ create_weights <- function(
         }
       }
       # Centroids are evaluated lazily, only if the island fallback is needed
-
     } else {
       # Distance-based methods (knn, distance, idw) for sf
       suppressWarnings({
         dist_src <- if (is_polygon) sf::st_centroid(sf::st_geometry(data)) else sf::st_geometry(data)
       })
     }
-
   } else if (inherits(data, "listw")) {
     if (requireNamespace("spdep", quietly = TRUE)) {
       W_mat <- spdep::listw2mat(data)
@@ -162,14 +160,12 @@ create_weights <- function(
     } else {
       cli::cli_abort("Package {.pkg spdep} is required to process {.cls listw} objects.")
     }
-
   } else if (inherits(data, "nb")) {
     n <- length(data)
     adj_list <- lapply(seq_len(n), function(i) {
       nbrs <- data[[i]]
       if (length(nbrs) == 1 && nbrs[1] == 0) integer(0) else setdiff(as.integer(nbrs), i)
     })
-
   } else if (is.matrix(data) || is.data.frame(data)) {
     # Matrix / data.frame of coordinates
     df_coords <- as.data.frame(data)
@@ -191,7 +187,6 @@ create_weights <- function(
     }
     storage.mode(coords_mat) <- "double"
     dist_src <- coords_mat
-
   } else {
     cli::cli_abort("Unsupported input type for {.arg data}. Expected an {.cls sf} object, coordinate matrix, or {.cls nb}/{.cls listw} object.")
   }
@@ -218,7 +213,6 @@ create_weights <- function(
       d[cbind(seq_along(rows), rows)] <- Inf
       for (j in seq_along(rows)) adj_list[[rows[j]]] <- order(d[j, ])[seq_len(k_eff)]
     }
-
   } else if (method == "distance") {
     d_all <- if (length(blocks) == 1L) .dist_rows(dist_src, blocks[[1]]) else NULL
     if (!is.null(d_all)) diag(d_all) <- Inf
@@ -246,7 +240,6 @@ create_weights <- function(
       for (j in seq_along(rows)) adj_list[[rows[j]]] <- which(d[j, ] <= d_max)
     }
     rm(d_all)
-
   } else if (method == "idw") {
     # Inverse distance weights written block by block into the result, with
     # the row-wise styles applied per block (no n x n temporaries)
@@ -348,7 +341,6 @@ create_weights <- function(
     W_out <- matrix(0, nrow = n, ncol = n)
     if (length(rows) > 0) W_out[cbind(rows, cols)] <- vals
     if (style == "minmax") W_out <- .minmax_scale(W_out)
-
   }
 
   # Attach domain names

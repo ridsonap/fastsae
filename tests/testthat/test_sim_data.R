@@ -59,9 +59,11 @@ test_that("sim_area_data generates complete multi-distribution dataset", {
 
   df <- sim$data
   expect_equal(nrow(df), 40)
-  expect_true(all(c("domain", "x1", "x2", "y_gaussian", "vardir", "y_poisson",
-                    "exposure", "y_binomial", "trials", "y_beta", "y_nbinomial",
-                    "y_gamma", "x_coord", "y_coord") %in% names(df)))
+  expect_true(all(c(
+    "domain", "x1", "x2", "y_gaussian", "vardir", "y_poisson",
+    "exposure", "y_binomial", "trials", "y_beta", "y_nbinomial",
+    "y_gamma", "x_coord", "y_coord"
+  ) %in% names(df)))
 
   # Check unsampled counts
   expect_equal(sum(is.na(df$y_gaussian)), 5)
@@ -123,15 +125,19 @@ test_that("hb_area fits successfully on simulated data across families", {
   expect_equal(nrow(fit_gauss$df_hb), 35)
 
   # 2. Spatial Poisson with BYM2 and simulated W
-  fit_pois <- hb_area(y_poisson ~ x1 + x2, data = df, exposure = "exposure",
-                       family = "poisson", spatial = "bym2", W = W)
+  fit_pois <- hb_area(y_poisson ~ x1 + x2,
+    data = df, exposure = "exposure",
+    family = "poisson", spatial = "bym2", W = W
+  )
   expect_s3_class(fit_pois, "fastsae")
   expect_equal(nrow(fit_pois$df_hb), 35)
   expect_false(any(is.na(fit_pois$df_hb$hb)))
 
   # 3. Spatial Binomial with BYM2 and simulated W
-  fit_bin <- hb_area(y_binomial ~ x1 + x2, data = df, trials = "trials",
-                      family = "binomial", spatial = "bym2", W = W)
+  fit_bin <- hb_area(y_binomial ~ x1 + x2,
+    data = df, trials = "trials",
+    family = "binomial", spatial = "bym2", W = W
+  )
   expect_s3_class(fit_bin, "fastsae")
   expect_equal(nrow(fit_bin$df_hb), 35)
 
@@ -154,9 +160,11 @@ test_that("built-in sim_area dataset loads and integrates with mys_proxmat", {
 
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
   # Test spatial fit with mys_proxmat
-  fit_multi_spatial <- hb_area(y_poisson ~ x1 + x2, data = sim_area,
-                                exposure = "exposure", family = "poisson",
-                                spatial = "bym2", W = mys_knn)
+  fit_multi_spatial <- hb_area(y_poisson ~ x1 + x2,
+    data = sim_area,
+    exposure = "exposure", family = "poisson",
+    spatial = "bym2", W = mys_knn
+  )
   expect_s3_class(fit_multi_spatial, "fastsae")
   expect_equal(nrow(fit_multi_spatial$df_hb), 42)
 })

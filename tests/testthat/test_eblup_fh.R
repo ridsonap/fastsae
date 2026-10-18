@@ -147,7 +147,9 @@ test_that("REML fits report the full log-likelihood only", {
   V <- diag(fit_fast$random_effect_var + mysnona$vardir)
   expect_named(fit_fast$goodness, c("loglikelihood", "AIC", "BIC"))
   expect_equal(unname(fit_fast$goodness["loglikelihood"]),
-               .loglik_dense(mysnona$y, X, V), tolerance = 1e-8)
+    .loglik_dense(mysnona$y, X, V),
+    tolerance = 1e-8
+  )
   expect_named(fit_fast_ml$goodness, c("loglikelihood", "AIC", "BIC"))
 })
 
@@ -243,7 +245,7 @@ test_that("invalid method throws error", {
     # maxiter no convergence
     fit_nc <- eblup_fh(
       y ~ x1 + x2 + x3,
-      vardir = 'vardir',
+      vardir = "vardir",
       method = "ML",
       maxiter = 1,
       data = mysnona,

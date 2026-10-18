@@ -9,7 +9,7 @@ test_that("map_sae works for single model eblup_fh with auto and explicit keys",
 
   # Synthetic sf grid
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -49,7 +49,7 @@ test_that("map_sae works with zero-friction when model data is sf", {
 
   data(mys)
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -70,7 +70,7 @@ test_that("map_sae works for benchmarked objects", {
   bm <- benchmark_sae(fit_fh, target = 6.5, method = "ratio")
 
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -94,7 +94,7 @@ test_that("map_sae works for two-model comparison", {
   fit_sfh <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat)
 
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -120,7 +120,7 @@ test_that("autoplot and plot dispatch correctly to map_sae", {
   fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -150,7 +150,7 @@ test_that("map_sae handles errors cleanly", {
 
   # Non-existent key
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -163,7 +163,7 @@ test_that("map_sae.default works with data frame and checks errors", {
   skip_if_not_installed("sf")
   data(mys)
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -199,7 +199,7 @@ test_that("map_sae.list edge cases and two-model errors", {
   fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -226,7 +226,7 @@ test_that("map_sae smart key matching errors and NA direct branches", {
   fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1),
     what = "polygons"
   )[seq_len(nrow(mys))]
@@ -271,8 +271,10 @@ test_that("map_sae honours thresholds, any geometry column name, and rejects pan
   lv <- levels(p$data$reliability)
   expect_match(lv[1], "5%")
   expect_match(lv[3], "10%")
-  expect_equal(as.integer(p$data$reliability),
-               as.integer(.reliability_tier(p$data$rse, c(5, 10))))
+  expect_equal(
+    as.integer(p$data$reliability),
+    as.integer(.reliability_tier(p$data$rse, c(5, 10)))
+  )
   expect_s3_class(map_sae(fit, sf_geom = shp, type = "comparison"), "ggplot")
 
   panel <- fit

@@ -125,21 +125,29 @@ test_that("EBLUP agrees with sae::mseSFH", {
 # for ML. Information: REML (P) for REML, ML (V^-1) for ML. A rho on the
 # boundary is treated as fixed (only the sigma2 block is inverted).
 .sfh_mse_R <- function(fit, X, y, psi, W) {
-  m <- nrow(W); s2 <- fit$random_effect_var; rho <- fit$rho
+  m <- nrow(W)
+  s2 <- fit$random_effect_var
+  rho <- fit$rho
   Sig <- solve(crossprod(diag(m) - rho * W))
   C <- 2 * rho * t(W) %*% W - W - t(W)
   der3 <- Sig %*% C %*% Sig
-  G <- s2 * Sig; V <- G + diag(psi); Vi <- solve(V)
-  Q <- solve(t(X) %*% Vi %*% X); P <- Vi - Vi %*% X %*% Q %*% t(X) %*% Vi
+  G <- s2 * Sig
+  V <- G + diag(psi)
+  Vi <- solve(V)
+  Q <- solve(t(X) %*% Vi %*% X)
+  P <- Vi - Vi %*% X %*% Q %*% t(X) %*% Vi
   Va <- list(Sig, -s2 * der3)
   M <- if (fit$method == "ML") Vi else P
   I <- outer(1:2, 1:2, Vectorize(function(a, b) 0.5 * sum(diag(M %*% Va[[a]] %*% M %*% Va[[b]]))))
   Ii <- if (abs(rho) >= 0.999) matrix(c(1 / I[1, 1], 0, 0, 0), 2) else solve(I)
   g1 <- diag(G - G %*% Vi %*% G)
-  R <- X - G %*% Vi %*% X; g2 <- rowSums((R %*% Q) * R)
+  R <- X - G %*% Vi %*% X
+  g2 <- rowSums((R %*% Q) * R)
   L <- list(Vi %*% Va[[1]] - Vi %*% Va[[1]] %*% Vi %*% G, Vi %*% Va[[2]] - Vi %*% Va[[2]] %*% Vi %*% G)
-  g3 <- 0; for (a in 1:2) for (b in 1:2) g3 <- g3 + Ii[a, b] * colSums(L[[a]] * (V %*% L[[b]]))
-  D12 <- -der3; D22 <- 2 * s2 * der3 %*% C %*% Sig - 2 * s2 * Sig %*% t(W) %*% W %*% Sig
+  g3 <- 0
+  for (a in 1:2) for (b in 1:2) g3 <- g3 + Ii[a, b] * colSums(L[[a]] * (V %*% L[[b]]))
+  D12 <- -der3
+  D22 <- 2 * s2 * der3 %*% C %*% Sig - 2 * s2 * Sig %*% t(W) %*% W %*% Sig
   Ps <- diag(psi)
   g4 <- 0.5 * diag(Ps %*% Vi %*% D12 %*% Vi %*% Ps) * (Ii[1, 2] + Ii[2, 1]) +
     0.5 * diag(Ps %*% Vi %*% D22 %*% Vi %*% Ps) * Ii[2, 2]
@@ -158,23 +166,31 @@ test_that("MSE agrees with sae::mseSFH (REML) and with an independent computatio
   skip_if_not_installed("MASS")
   pop <- simulate_safe_sfh(rho_true = 0.7)
   set.seed(1)
-  d <- data.frame(y = pop$theta_true + rnorm(pop$m, sd = sqrt(pop$vardir)),
-                  x1 = pop$X[, 2], x2 = pop$X[, 3], x3 = pop$X[, 4], vardir = pop$vardir)
+  d <- data.frame(
+    y = pop$theta_true + rnorm(pop$m, sd = sqrt(pop$vardir)),
+    x1 = pop$X[, 2], x2 = pop$X[, 3], x3 = pop$X[, 4], vardir = pop$vardir
+  )
   s <- sae::mseSFH(d$y ~ d$x1 + d$x2 + d$x3, vardir = d$vardir, proxmat = pop$W, method = "REML")
-  f <- eblup_sfh(y ~ x1 + x2 + x3, vardir = "vardir", data = d, W = pop$W, method = "REML",
-                 print_result = FALSE)
+  f <- eblup_sfh(y ~ x1 + x2 + x3,
+    vardir = "vardir", data = d, W = pop$W, method = "REML",
+    print_result = FALSE
+  )
   expect_true(abs(f$rho) < 0.999)
   expect_equal(f$df_eblup$mse, s$mse, tolerance = tol)
   expect_equal(f$df_eblup$mse, .sfh_mse_R(f, pop$X, d$y, d$vardir, pop$W),
-               tolerance = 1e-8, ignore_attr = TRUE)
+    tolerance = 1e-8, ignore_attr = TRUE
+  )
 
   # ML uses the ML information (sae::mseSFH uses the REML one), so it is checked
   # against the independent computation instead
-  f_ml <- eblup_sfh(y ~ x1 + x2 + x3, vardir = "vardir", data = d, W = pop$W, method = "ML",
-                    print_result = FALSE)
+  f_ml <- eblup_sfh(y ~ x1 + x2 + x3,
+    vardir = "vardir", data = d, W = pop$W, method = "ML",
+    print_result = FALSE
+  )
   expect_true(abs(f_ml$rho) < 0.999)
   expect_equal(f_ml$df_eblup$mse, .sfh_mse_R(f_ml, pop$X, d$y, d$vardir, pop$W),
-               tolerance = 1e-8, ignore_attr = TRUE)
+    tolerance = 1e-8, ignore_attr = TRUE
+  )
 })
 
 test_that("MSE with rho-hat on the boundary treats rho as fixed", {
@@ -183,7 +199,8 @@ test_that("MSE with rho-hat on the boundary treats rho as fixed", {
     expect_equal(fit$rho, -1)
     expect_true(is.na(fit$estvarcomp$std.error[2]))
     expect_equal(fit$df_eblup$mse, .sfh_mse_R(fit, X, mysnona$y, mysnona$vardir, mys_proxmat_nona),
-                 tolerance = 1e-8, ignore_attr = TRUE)
+      tolerance = 1e-8, ignore_attr = TRUE
+    )
   }
 })
 
@@ -235,7 +252,9 @@ test_that("SFH REML fits report the full log-likelihood only", {
   V <- fit_fast$random_effect_var * solve(t(A) %*% A) + diag(mysnona$vardir)
   expect_named(fit_fast$goodness, c("loglikelihood", "AIC", "BIC"))
   expect_equal(unname(fit_fast$goodness["loglikelihood"]),
-               .loglik_dense(mysnona$y, X, V), tolerance = 1e-6)
+    .loglik_dense(mysnona$y, X, V),
+    tolerance = 1e-6
+  )
   expect_named(fit_fast_ml$goodness, c("loglikelihood", "AIC", "BIC"))
 })
 
@@ -371,8 +390,10 @@ test_that("eblup_sfh validation and edge cases", {
 # and kriging uses the same model.
 # ------------------------------------------------------------------
 test_that("SFH with unsampled domains uses the full-domain SAR marginal covariance", {
-  fit <- eblup_sfh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, W = mys_proxmat,
-                   print_result = FALSE)
+  fit <- eblup_sfh(y ~ x1 + x2 + x3,
+    vardir = "vardir", data = mys, W = mys_proxmat,
+    print_result = FALSE
+  )
   s <- !is.na(mys$y)
   D <- nrow(mys_proxmat)
   rho <- fit$rho
@@ -385,9 +406,11 @@ test_that("SFH with unsampled domains uses the full-domain SAR marginal covarian
   r <- mys$y[s] - X[s, ] %*% beta
   expect_equal(fit$estcoef$beta, as.vector(beta), tolerance = 1e-6)
   expect_equal(fit$df_eblup$eblup[s], as.vector(X[s, ] %*% beta + s2 * Sig[s, s] %*% Vi %*% r),
-               tolerance = 1e-6)
+    tolerance = 1e-6
+  )
   expect_equal(fit$df_eblup$eblup[!s], as.vector(X[!s, ] %*% beta + s2 * Sig[!s, s] %*% Vi %*% r),
-               tolerance = 1e-6)
+    tolerance = 1e-6
+  )
 })
 
 test_that("SFH bootstrap validity does not depend on the scale of y", {
@@ -400,9 +423,11 @@ test_that("SFH bootstrap validity does not depend on the scale of y", {
     x1 = sim$X[, "x1"], x2 = sim$X[, "x2"], x3 = sim$X[, "x3"],
     vardir = sim$vardir * k^2
   )
-  fit_s <- suppressWarnings(eblup_sfh(y ~ x1 + x2 + x3, vardir = "vardir", data = d, W = sim$W,
-                                      mse_type = "pbmse", B = 10, seed = 1,
-                                      print_result = FALSE))
+  fit_s <- suppressWarnings(eblup_sfh(y ~ x1 + x2 + x3,
+    vardir = "vardir", data = d, W = sim$W,
+    mse_type = "pbmse", B = 10, seed = 1,
+    print_result = FALSE
+  ))
   expect_true(all(is.finite(fit_s$df_eblup$mse_pb)))
   expect_gt(max(fit_s$df_eblup$mse_pb), 1e6)
 })
@@ -429,7 +454,7 @@ test_that("SFH bootstrap validity does not depend on the scale of y", {
   XtViX <- t(X) %*% Vi %*% X
   P <- Vi - Vi %*% X %*% solve(XtViX, t(X) %*% Vi)
   -0.5 * (as.numeric(determinant(V)$modulus) + as.numeric(determinant(XtViX)$modulus) +
-            drop(t(d$y) %*% P %*% d$y))
+    drop(t(d$y) %*% P %*% d$y))
 }
 
 test_that("SFH returns the constrained REML maximiser when sigma2 is at 0", {
@@ -460,16 +485,26 @@ test_that("SFH MSE of kriged (unsampled) domains matches an independent second-o
   ns <- c(5, 18, 33, 47, 60)
   y[ns] <- NA
   d <- data.frame(y, x1 = pop$X[, 2], x2 = pop$X[, 3], x3 = pop$X[, 4], vardir = pop$vardir)
-  W <- pop$W; Dn <- nrow(W); s <- setdiff(seq_len(Dn), ns)
-  X <- pop$X; Xs <- X[s, ]; Xr <- X[ns, ]; psi <- pop$vardir[s]
+  W <- pop$W
+  Dn <- nrow(W)
+  s <- setdiff(seq_len(Dn), ns)
+  X <- pop$X
+  Xs <- X[s, ]
+  Xr <- X[ns, ]
+  psi <- pop$vardir[s]
   for (meth in c("REML", "ML")) {
-    f <- eblup_sfh(y ~ x1 + x2 + x3, vardir = "vardir", data = d, W = W, method = meth,
-                   print_result = FALSE)
+    f <- eblup_sfh(y ~ x1 + x2 + x3,
+      vardir = "vardir", data = d, W = W, method = meth,
+      print_result = FALSE
+    )
     th <- c(f$random_effect_var, f$rho)
     Gf <- function(t) t[1] * solve(crossprod(diag(Dn) - t[2] * W))
-    G <- Gf(th); Vi <- solve(G[s, s] + diag(psi)); Q <- solve(t(Xs) %*% Vi %*% Xs)
+    G <- Gf(th)
+    Vi <- solve(G[s, s] + diag(psi))
+    Q <- solve(t(Xs) %*% Vi %*% Xs)
     P <- Vi - Vi %*% Xs %*% Q %*% t(Xs) %*% Vi
-    A <- G[ns, s]; Rr <- Xr - A %*% Vi %*% Xs
+    A <- G[ns, s]
+    Rr <- Xr - A %*% Vi %*% Xs
     g1 <- function(t) {
       Gt <- Gf(t)
       diag(Gt[ns, ns] - Gt[ns, s] %*% solve(Gt[s, s] + diag(psi), Gt[s, ns]))
@@ -477,7 +512,8 @@ test_that("SFH MSE of kriged (unsampled) domains matches an independent second-o
     # first/second derivatives by finite differences (independent of the C++ algebra)
     e <- function(a, h) replace(c(0, 0), a, h)
     dG <- lapply(1:2, function(a) (Gf(th + e(a, 1e-5)) - Gf(th - e(a, 1e-5))) / 2e-5)
-    Va <- lapply(dG, function(M) M[s, s]); Aa <- lapply(dG, function(M) M[ns, s])
+    Va <- lapply(dG, function(M) M[s, s])
+    Aa <- lapply(dG, function(M) M[ns, s])
     Mi <- if (meth == "ML") Vi else P # ML information for ML, REML information for REML
     Fm <- outer(1:2, 1:2, Vectorize(function(a, b) 0.5 * sum(diag(Mi %*% Va[[a]] %*% Mi %*% Va[[b]]))))
     Fi <- solve(Fm)
@@ -486,8 +522,10 @@ test_that("SFH MSE of kriged (unsampled) domains matches an independent second-o
     g3 <- 0
     for (a in 1:2) for (b in 1:2) g3 <- g3 + Fi[a, b] * rowSums((L[[a]] %*% P) * L[[b]])
     hh <- 1e-4
-    H <- function(j, k) (g1(th + e(j, hh) + e(k, hh)) - g1(th + e(j, hh) - e(k, hh)) -
-                           g1(th - e(j, hh) + e(k, hh)) + g1(th - e(j, hh) - e(k, hh))) / (4 * hh^2)
+    H <- function(j, k) {
+      (g1(th + e(j, hh) + e(k, hh)) - g1(th + e(j, hh) - e(k, hh)) -
+        g1(th - e(j, hh) + e(k, hh)) + g1(th - e(j, hh) - e(k, hh))) / (4 * hh^2)
+    }
     half_tr <- 0
     for (j in 1:2) for (k in 1:2) half_tr <- half_tr + 0.5 * Fi[j, k] * H(j, k)
     mse <- g1(th) + rowSums((Rr %*% Q) * Rr) + g3 - half_tr
@@ -506,12 +544,16 @@ test_that("SFH with a dense W (dense factorisation path) matches the independent
   set.seed(29)
   D <- 50
   xy <- cbind(runif(D), runif(D))
-  W <- 1 / as.matrix(dist(xy)); diag(W) <- 0; W <- W / rowSums(W)
+  W <- 1 / as.matrix(dist(xy))
+  diag(W) <- 0
+  W <- W / rowSums(W)
   X <- cbind(1, rnorm(D), rnorm(D))
   psi <- runif(D, 0.3, 1)
   v <- solve(diag(D) - 0.5 * W, rnorm(D, sd = 0.8))
-  d <- data.frame(y = drop(X %*% c(1, 1, -1)) + v + rnorm(D, sd = sqrt(psi)),
-                  x1 = X[, 2], x2 = X[, 3], vardir = psi)
+  d <- data.frame(
+    y = drop(X %*% c(1, 1, -1)) + v + rnorm(D, sd = sqrt(psi)),
+    x1 = X[, 2], x2 = X[, 3], vardir = psi
+  )
   for (meth in c("REML", "ML")) {
     f <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = d, W = W, method = meth, print_result = FALSE)
     expect_true(f$convergence)
@@ -519,7 +561,8 @@ test_that("SFH with a dense W (dense factorisation path) matches the independent
     expect_equal(f$df_eblup$mse, .sfh_mse_R(f, X, d$y, psi, W), tolerance = 1e-8, ignore_attr = TRUE)
     # GLS beta, EBLUP and log-likelihood from dense algebra
     G <- f$random_effect_var * solve(crossprod(diag(D) - f$rho * W))
-    V <- G + diag(psi); Vi <- solve(V)
+    V <- G + diag(psi)
+    Vi <- solve(V)
     b <- solve(t(X) %*% Vi %*% X, t(X) %*% Vi %*% d$y)
     expect_equal(f$estcoef$beta, as.numeric(b), tolerance = 1e-10)
     expect_equal(f$df_eblup$eblup, as.numeric(X %*% b + G %*% Vi %*% (d$y - X %*% b)), tolerance = 1e-10)

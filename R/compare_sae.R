@@ -136,13 +136,13 @@ compare_sae.default <- function(model1, model2 = NULL, names = NULL, thresholds 
   rmsd_val <- sqrt(mean(merged$diff^2, na.rm = TRUE))
 
   mean_ratio <- if (has_mse) mean(merged$mse_ratio, na.rm = TRUE) else NA_real_
-  med_ratio  <- if (has_mse) stats::median(merged$mse_ratio, na.rm = TRUE) else NA_real_
-  n_eff2     <- if (has_mse) sum(merged$mse_2 < merged$mse_1, na.rm = TRUE) else NA_integer_
-  pct_eff2   <- if (has_mse) (n_eff2 / nrow(merged)) * 100 else NA_real_
+  med_ratio <- if (has_mse) stats::median(merged$mse_ratio, na.rm = TRUE) else NA_real_
+  n_eff2 <- if (has_mse) sum(merged$mse_2 < merged$mse_1, na.rm = TRUE) else NA_integer_
+  pct_eff2 <- if (has_mse) (n_eff2 / nrow(merged)) * 100 else NA_real_
 
   mean_rse1 <- if (has_rse) mean(merged$rse_1, na.rm = TRUE) else NA_real_
   mean_rse2 <- if (has_rse) mean(merged$rse_2, na.rm = TRUE) else NA_real_
-  rse_gain  <- if (has_rse) mean_rse1 - mean_rse2 else NA_real_
+  rse_gain <- if (has_rse) mean_rse1 - mean_rse2 else NA_real_
 
   # A posterior variance and a frequentist MSE are not the same quantity, so a
   # smaller one is not evidence of a more efficient estimator
@@ -294,7 +294,6 @@ autoplot.fastsae_comparison <- function(
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
 
     return(p)
-
   } else if (type == "difference") {
     df$domain_fac <- factor(df$label, levels = df$label[order(df$diff)])
 
@@ -324,7 +323,6 @@ autoplot.fastsae_comparison <- function(
       )
 
     return(p)
-
   } else if (type == "mse") {
     long_mse <- rbind(
       data.frame(domain = df$label, mse = df$mse_1, Model = n1),
@@ -349,7 +347,6 @@ autoplot.fastsae_comparison <- function(
       )
 
     return(p)
-
   } else if (type == "rse") {
     long_rse <- rbind(
       data.frame(domain = df$label, rse = df$rse_1, Model = n1),
@@ -377,7 +374,6 @@ autoplot.fastsae_comparison <- function(
       )
 
     return(p)
-
   } else {
     # Default comparison: Overlaid point estimates with lines
     long_est <- rbind(

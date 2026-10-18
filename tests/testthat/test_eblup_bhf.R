@@ -310,7 +310,8 @@ test_that("eblup_bhf handles unsampled domains, full enumeration, and NA in unit
 # ============================================================================
 .lmer_ref <- function(y, x, dom, reml) {
   dd <- data.frame(y = y, x = x, dom = factor(dom))
-  lme4::lmer(y ~ x + (1 | dom), dd, REML = reml,
+  lme4::lmer(y ~ x + (1 | dom), dd,
+    REML = reml,
     control = lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(rhoend = 1e-12))
   )
 }
@@ -343,8 +344,10 @@ test_that("compiled BHF fit agrees with lme4 (REML, ML, and the s2u = 0 boundary
 test_that("eblup_bhf returns lme4-equivalent coefficients and residuals", {
   skip_if_not_installed("lme4")
   m <- suppressMessages(.lmer_ref(df_cornsoybean$CornHec, df_cornsoybean$CornPix, df_cornsoybean$CountyIndex, TRUE))
-  fit <- eblup_bhf(CornHec ~ CornPix, unit_data = df_cornsoybean, Xpop = Xpop,
-    domain_var = "CountyIndex", popsize_var = "PopnSegments", print_result = FALSE)
+  fit <- eblup_bhf(CornHec ~ CornPix,
+    unit_data = df_cornsoybean, Xpop = Xpop,
+    domain_var = "CountyIndex", popsize_var = "PopnSegments", print_result = FALSE
+  )
   expect_equal(fit$estcoef$std.error, unname(sqrt(diag(as.matrix(vcov(m))))), tolerance = 1e-5)
   expect_equal(residuals(fit), unname(residuals(m)), tolerance = 1e-5)
   expect_true(fit$convergence)
@@ -353,8 +356,10 @@ test_that("eblup_bhf returns lme4-equivalent coefficients and residuals", {
 test_that("bootstrap MSE matches a reference refit-based bootstrap and is thread invariant", {
   skip_on_cran()
   skip_if_not_installed("lme4")
-  args <- list(formula = CornHec ~ CornPix + SoyBeansPix, unit_data = df_cornsoybean, Xpop = Xpop,
-    domain_var = "CountyIndex", popsize_var = "PopnSegments", B = 30, seed = 3)
+  args <- list(
+    formula = CornHec ~ CornPix + SoyBeansPix, unit_data = df_cornsoybean, Xpop = Xpop,
+    domain_var = "CountyIndex", popsize_var = "PopnSegments", B = 30, seed = 3
+  )
   r1 <- do.call(fastsae:::.pbmse_unit, args)
   r2 <- do.call(fastsae:::.pbmse_unit, c(args, n_threads = 2))
   expect_identical(r1$mse, r2$mse)
@@ -368,16 +373,22 @@ test_that("bootstrap MSE matches a reference refit-based bootstrap and is thread
   Xbar <- cbind(1, xp$CornPix, xp$SoyBeansPix)
   di <- match(dom, sel)
   m0 <- lme4::lmer(CornHec ~ CornPix + SoyBeansPix + (1 | di), data.frame(formuladata, di = factor(di)))
-  b <- lme4::fixef(m0); s2u <- lme4::VarCorr(m0)$di[1]; s2e <- sigma(m0)^2
-  nd <- tabulate(di, length(sel)); N <- xp$PopnSegments; rd <- N - nd
+  b <- lme4::fixef(m0)
+  s2u <- lme4::VarCorr(m0)$di[1]
+  s2e <- sigma(m0)^2
+  nd <- tabulate(di, length(sel))
+  N <- xp$PopnSegments
+  rd <- N - nd
   set.seed(3)
   mse <- 0
   for (k in seq_len(30)) {
-    u <- rnorm(length(sel), sd = sqrt(s2u)); e <- rnorm(length(di), sd = sqrt(s2e))
+    u <- rnorm(length(sel), sd = sqrt(s2u))
+    e <- rnorm(length(di), sd = sqrt(s2e))
     er <- rnorm(length(sel), 0, sqrt(s2e / rd))
     yb <- drop(Xs %*% b) + u[di] + e
     mb <- lme4::refit(m0, newresp = yb)
-    ub <- lme4::ranef(mb)$di[, 1]; bb <- lme4::fixef(mb)
+    ub <- lme4::ranef(mb)$di[, 1]
+    bb <- lme4::fixef(mb)
     fd <- nd / N
     est <- fd * tapply(yb, di, mean) + drop((Xbar - fd * rowsum(Xs, di) / nd) %*% bb) + (1 - fd) * ub
     truth <- drop(Xbar %*% b) + u + (nd * tapply(e, di, mean) + rd * er) / N

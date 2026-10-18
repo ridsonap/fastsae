@@ -115,8 +115,10 @@ test_that("jax_engine() rejects unsupported models and INLA arguments before fit
   expect_error(fit_jax(control.compute = list(cpo = TRUE)), "cannot be used with")
   df$yc <- rpois(12, 5)
   expect_error(
-    hb_area(yc ~ x, data = df, family = "poisson", engine = "jax", self_benchmark = TRUE,
-            benchmark_method = "wfq", print_result = FALSE),
+    hb_area(yc ~ x,
+      data = df, family = "poisson", engine = "jax", self_benchmark = TRUE,
+      benchmark_method = "wfq", print_result = FALSE
+    ),
     "gaussian"
   )
 })
@@ -169,34 +171,44 @@ test_that("deprecated method and INLA arguments of hb_area() map onto inla_engin
 
 test_that("hb_unit() and hb_twofold() take inla_engine() with their own defaults", {
   pc <- list(prior = "pc.prec", param = c(1, 0.01))
-  unit_defaults <- list(prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
-                        prior_phi = list(prior = "pc", param = c(0.5, 0.5)))
-  eng <- .resolve_inla_engine("inla", TRUE, list(), "hb_unit", defaults = unit_defaults,
-                              used = c("scale_model", "prior_prec", "prior_phi"))
+  unit_defaults <- list(
+    prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
+    prior_phi = list(prior = "pc", param = c(0.5, 0.5))
+  )
+  eng <- .resolve_inla_engine("inla", TRUE, list(), "hb_unit",
+    defaults = unit_defaults,
+    used = c("scale_model", "prior_prec", "prior_phi")
+  )
   expect_identical(eng$prior_prec, unit_defaults$prior_prec)
   eng <- .resolve_inla_engine(inla_engine(prior_prec = pc), FALSE, list(), "hb_unit",
-                              defaults = unit_defaults, used = c("scale_model", "prior_prec", "prior_phi"))
+    defaults = unit_defaults, used = c("scale_model", "prior_prec", "prior_phi")
+  )
   expect_identical(eng$prior_prec, pc)
 
   # settings the function does not use are ignored with a warning
   expect_warning(
     .resolve_inla_engine(inla_engine(prior_rho_time = pc, link = "log"), FALSE, list(), "hb_unit",
-                         defaults = unit_defaults, used = c("scale_model", "prior_prec", "prior_phi")),
+      defaults = unit_defaults, used = c("scale_model", "prior_prec", "prior_phi")
+    ),
     "not used by"
   )
 
   # the old hb_twofold() arguments are renamed
   expect_warning(
     eng <- .resolve_inla_engine("inla", TRUE, list(n_samples = 50, prior_prec_area = pc, strategy = "gaussian"),
-                                "hb_twofold", defaults = list(draws = 200L),
-                                used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws")),
+      "hb_twofold",
+      defaults = list(draws = 200L),
+      used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws")
+    ),
     "deprecated"
   )
   expect_identical(eng$draws, 50L)
   expect_identical(eng$prior_prec, pc)
   expect_identical(eng$strategy, "gaussian")
-  eng <- .resolve_inla_engine("inla", TRUE, list(), "hb_twofold", defaults = list(draws = 200L),
-                              used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws"))
+  eng <- .resolve_inla_engine("inla", TRUE, list(), "hb_twofold",
+    defaults = list(draws = 200L),
+    used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws")
+  )
   expect_identical(eng$draws, 200L)
 
   # hb_unit() and hb_twofold() also take jax_engine(); see test_hb_unit_engine.R and
@@ -224,9 +236,11 @@ test_that("engine = 'jax' maps arguments to the backend and returns the fastsae 
   df <- sim_engine_df()
   df$y[3] <- NA
 
-  fit <- hb_area(y ~ x, data = df, domain = "area", vardir = "vardir", spatial = "leroux",
-                 W = chain_W(12), engine = jax_engine(samples = 50, device = "cpu", prior_beta = "horseshoe"),
-                 print_result = FALSE)
+  fit <- hb_area(y ~ x,
+    data = df, domain = "area", vardir = "vardir", spatial = "leroux",
+    W = chain_W(12), engine = jax_engine(samples = 50, device = "cpu", prior_beta = "horseshoe"),
+    print_result = FALSE
+  )
 
   a <- env$args
   expect_equal(a$spatial, "leroux")
@@ -267,9 +281,11 @@ test_that("engine = 'jax' posterior self-benchmarking holds per group", {
   env <- new.env()
   local_fake_backend(env)
   df <- sim_engine_df()
-  fit <- hb_area(y ~ x, data = df, domain = "area", vardir = "vardir", engine = "jax",
-                 self_benchmark = TRUE, benchmark_weight = "w", benchmark_group = "prov",
-                 print_result = FALSE)
+  fit <- hb_area(y ~ x,
+    data = df, domain = "area", vardir = "vardir", engine = "jax",
+    self_benchmark = TRUE, benchmark_weight = "w", benchmark_group = "prov",
+    print_result = FALSE
+  )
   expect_true(fit$self_benchmark)
   expect_equal(fit$benchmark_method, "posterior")
   expect_true("hb_unbenchmarked" %in% names(fit$df_hb))
@@ -291,8 +307,10 @@ test_that("engine = 'jax' converts binomial proportions and keeps draws optional
   df <- data.frame(id = 1:15, x = rnorm(15), n = 40)
   df$p <- rbinom(15, df$n, 0.3) / df$n
   expect_message(
-    fit <- hb_area(p ~ x, data = df, domain = "id", family = "binomial", trials = "n",
-                   engine = jax_engine(keep_draws = FALSE), print_result = FALSE),
+    fit <- hb_area(p ~ x,
+      data = df, domain = "id", family = "binomial", trials = "n",
+      engine = jax_engine(keep_draws = FALSE), print_result = FALSE
+    ),
     "proportions"
   )
   expect_equal(env$args$y, round(df$p * df$n))
@@ -343,18 +361,24 @@ test_that("the Metal replacement of NUTS' checkpoint index matches NumPyro", {
   n <- jnp$arange(0L, 4096L, dtype = jnp$int32)
   ours <- backend$`_leaf_idx_to_ckpt_idxs`(n)
   ref <- hmc_util$`_leaf_idx_to_ckpt_idxs`(n)
-  expect_identical(as.integer(reticulate::py_to_r(jnp$asarray(ours[[1]])$tolist())),
-                   as.integer(reticulate::py_to_r(jnp$asarray(ref[[1]])$tolist())))
-  expect_identical(as.integer(reticulate::py_to_r(jnp$asarray(ours[[2]])$tolist())),
-                   as.integer(reticulate::py_to_r(jnp$asarray(ref[[2]])$tolist())))
+  expect_identical(
+    as.integer(reticulate::py_to_r(jnp$asarray(ours[[1]])$tolist())),
+    as.integer(reticulate::py_to_r(jnp$asarray(ref[[1]])$tolist()))
+  )
+  expect_identical(
+    as.integer(reticulate::py_to_r(jnp$asarray(ours[[2]])$tolist())),
+    as.integer(reticulate::py_to_r(jnp$asarray(ref[[2]])$tolist()))
+  )
 })
 
 test_that("engine = 'jax' Fay-Herriot agrees with INLA", {
   skip_if_no_numpyro()
   skip_if_not_installed("INLA")
   data("mys", package = "fastsae")
-  fit_jax <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
-                                      engine = jax_eng, print_result = FALSE))
+  fit_jax <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3,
+    data = mys, vardir = "vardir",
+    engine = jax_eng, print_result = FALSE
+  ))
   fit_inla <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", print_result = FALSE)
   expect_identical(names(fit_jax$df_hb), names(fit_inla$df_hb))
   expect_gt(cor(fit_jax$df_hb$hb, fit_inla$df_hb$hb), 0.99)
@@ -390,21 +414,27 @@ test_that("engine = 'jax' fits count, spatial, and temporal models end to end", 
   data("sim_panel", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  fit_bym2 <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", spatial = "bym2",
-                                       W = mys_knn, engine = jax_eng, print_result = FALSE))
+  fit_bym2 <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3,
+    data = mys, vardir = "vardir", spatial = "bym2",
+    W = mys_knn, engine = jax_eng, print_result = FALSE
+  ))
   expect_false(is.null(fit_bym2$phi))
   expect_true(all(is.finite(fit_bym2$df_hb$hb)))
 
-  fit_pois <- quiet_mcmc(hb_area(y_poisson ~ x1 + x2, data = sim_panel, domain = "area", time = "year",
-                                       family = "poisson", exposure = "exposure", temporal = "ar1",
-                                       engine = jax_eng, print_result = FALSE))
+  fit_pois <- quiet_mcmc(hb_area(y_poisson ~ x1 + x2,
+    data = sim_panel, domain = "area", time = "year",
+    family = "poisson", exposure = "exposure", temporal = "ar1",
+    engine = jax_eng, print_result = FALSE
+  ))
   expect_true(all(c("time", "rate", "estimated_count") %in% names(fit_pois$df_hb)))
   expect_true(all(is.finite(fit_pois$df_hb$hb) & fit_pois$df_hb$hb > 0))
   expect_false(is.null(fit_pois$rho_time))
 
-  fit_bm <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", engine = jax_eng,
-                                     self_benchmark = TRUE, benchmark_weight = "n",
-                                     print_result = FALSE))
+  fit_bm <- quiet_mcmc(hb_area(y ~ x1 + x2 + x3,
+    data = mys, vardir = "vardir", engine = jax_eng,
+    self_benchmark = TRUE, benchmark_weight = "n",
+    print_result = FALSE
+  ))
   expect_equal(fit_bm$benchmark_summary$discrepancy, 0, tolerance = 1e-8)
 })
 
@@ -415,16 +445,20 @@ test_that("engine = 'jax' samples an AR(1) time effect without divergent transit
   # intercept along a ridge whose width depends on rho: NUTS used to report 30-200
   # divergent transitions of 4000 here (R-hat up to 1.04, 0.2 posterior SD from INLA)
   eng <- jax_engine(warmup = 500, samples = 1000, chains = 4, seed = 42, device = "cpu", progress = FALSE)
-  fit <- quiet_mcmc(hb_area(y_gaussian ~ x1 + x2, vardir = "vardir", data = sim_panel,
-                            domain = "area", time = "year", temporal = "ar1",
-                            engine = eng, print_result = FALSE))
+  fit <- quiet_mcmc(hb_area(y_gaussian ~ x1 + x2,
+    vardir = "vardir", data = sim_panel,
+    domain = "area", time = "year", temporal = "ar1",
+    engine = eng, print_result = FALSE
+  ))
   expect_lte(fit$divergences, 20)
   # 1.01 is within Monte Carlo noise of the intercept at ESS ~ 500 (as for temporal = "iid")
   expect_lt(fit$rhat_max, 1.02)
 
   skip_if_not_installed("INLA")
-  ref <- suppressWarnings(hb_area(y_gaussian ~ x1 + x2, vardir = "vardir", data = sim_panel,
-                                  domain = "area", time = "year", temporal = "ar1",
-                                  print_result = FALSE))
+  ref <- suppressWarnings(hb_area(y_gaussian ~ x1 + x2,
+    vardir = "vardir", data = sim_panel,
+    domain = "area", time = "year", temporal = "ar1",
+    print_result = FALSE
+  ))
   expect_lt(max(abs(fit$df_hb$hb - ref$df_hb$hb) / ref$df_hb$sd), 0.15)
 })

@@ -93,7 +93,9 @@ make_data <- function(seed = 11) {
   n_d <- sample(3:12, D, replace = TRUE)
   n_d[c(4, 17, 29)] <- 0
   s <- do.call(rbind, lapply(seq_len(D), function(d) {
-    if (n_d[d] == 0) return(NULL)
+    if (n_d[d] == 0) {
+      return(NULL)
+    }
     data.frame(dom = d, x1 = rnorm(n_d[d], mx[d], 1))
   }))
   s$y_gauss <- 2 + 1.5 * s$x1 + u[s$dom] + rnorm(nrow(s), sd = 2)
@@ -129,9 +131,11 @@ fit_ref <- function(response, fam, bym2 = FALSE) {
     y_c = if (gauss) mean(y) else 0, y_s = if (gauss) sqrt(mean((y - mean(y))^2)) else 1,
     int_mask = c(1, 0)
   )
-  fit <- model$sample(data = sdat, chains = 4, parallel_chains = 4, iter_warmup = 1000,
-                      iter_sampling = 5000, seed = 7, refresh = 0, adapt_delta = 0.95,
-                      show_messages = FALSE)
+  fit <- model$sample(
+    data = sdat, chains = 4, parallel_chains = 4, iter_warmup = 1000,
+    iter_sampling = 5000, seed = 7, refresh = 0, adapt_delta = 0.95,
+    show_messages = FALSE
+  )
   pars <- c("mu", "sigma2_u", "sigma2_e", "beta_y")
   smr <- fit$summary(pars, "rhat", "ess_bulk")
   info <- list(

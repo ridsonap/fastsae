@@ -6,5 +6,5 @@
   beta <- solve(t(X) %*% Vi %*% X, t(X) %*% Vi %*% y)
   r <- y - X %*% beta
   -0.5 * (length(y) * log(2 * pi) + as.numeric(determinant(V)$modulus) +
-            drop(t(r) %*% Vi %*% r))
+    drop(t(r) %*% Vi %*% r))
 }

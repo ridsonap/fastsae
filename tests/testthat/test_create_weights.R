@@ -64,7 +64,7 @@ test_that("create_weights works with sf polygon data and Queen/Rook", {
 
   # Create a simple 3x3 regular grid of polygons
   grid_geom <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 3,0, 3,3, 0,3, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 3, 0, 3, 3, 0, 3, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1)
   )
   sf_grid <- sf::st_sf(id = paste0("G", 1:9), geometry = grid_geom)
@@ -98,7 +98,7 @@ test_that("eblup_sfh automatically constructs weights when data is sf and W is N
 
   # Create 9-polygon dataset with simulated variables (3x3 grid)
   grid_geom <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 3,0, 3,3, 0,3, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 3, 0, 3, 3, 0, 3, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1)
   )
   set.seed(123)
@@ -156,7 +156,11 @@ test_that("block-wise distances (several row blocks) match a dense computation",
   expect_gt(length(fastsae:::.row_blocks(n)), 1)
   Dm <- unname(as.matrix(dist(co)))
   diag(Dm) <- Inf
-  strip <- function(w) { w <- unclass(w); attributes(w) <- attributes(w)[c("dim")]; w }
+  strip <- function(w) {
+    w <- unclass(w)
+    attributes(w) <- attributes(w)[c("dim")]
+    w
+  }
 
   # knn, row-standardised
   w <- suppressMessages(create_weights(co, method = "knn", k = 3, style = "W"))

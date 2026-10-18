@@ -258,8 +258,10 @@ eblup_bhf <- function(
 #' @noRd
 .bhf_upred <- function(fit, selectdom) {
   sampled <- !is.na(fit$u)
-  data.frame(`(Intercept)` = fit$u[sampled], row.names = as.character(selectdom[sampled]),
-             check.names = FALSE)
+  data.frame(
+    `(Intercept)` = fit$u[sampled], row.names = as.character(selectdom[sampled]),
+    check.names = FALSE
+  )
 }
 
 #' @noRd

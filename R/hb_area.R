@@ -834,9 +834,11 @@ hb_area <- function(
       ))
       # With a random walk in time, type IV (and type II with rw2) is a generic0
       # term with all Knorr-Held (2000) constraints (see .st_generic0())
-      st_g0 <- .st_generic0(st_interaction, temporal, domain_id = domain_id, time_id = time_id,
-                            n_domains = n_domains, n_times = n_times, graph = W_obj$graph,
-                            scale_model = scale_model)
+      st_g0 <- .st_generic0(st_interaction, temporal,
+        domain_id = domain_id, time_id = time_id,
+        n_domains = n_domains, n_times = n_times, graph = W_obj$graph,
+        scale_model = scale_model
+      )
       if (!is.null(st_g0)) {
         inla_data$..st_id2.. <- st_g0$index
         rand_terms <- c(rand_terms, paste0(
@@ -900,7 +902,7 @@ hb_area <- function(
   # models were validated, so larger models keep INLA's default (CCD).
   # inla_engine(control.inla = ) overrides.
   if (family == "gaussian" && st_interaction %in% c("type1", "type2", "type3", "type4") &&
-      .n_hyper_st(spatial, temporal, st_interaction, vardir_known = !is.null(vardir)) <= 3) {
+    .n_hyper_st(spatial, temporal, st_interaction, vardir_known = !is.null(vardir)) <= 3) {
     control_inla <- c(control_inla, list(int.strategy = "grid", dz = 0.5, diff.logdens = 8))
   }
 

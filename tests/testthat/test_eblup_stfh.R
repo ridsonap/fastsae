@@ -19,7 +19,8 @@ mys_proxmat_nona <- mys_proxmat[-c(21, 25), -c(21, 25)]
 # the observed mys_panel response, so the agreement tests use a response
 # simulated from the ST model on the same covariates, vardir and W.
 local({
-  D <- 40; Tt <- 11
+  D <- 40
+  Tt <- 11
   set.seed(2)
   W <- mys_proxmat_nona
   Om1 <- solve(t(diag(D) - 0.5 * W) %*% (diag(D) - 0.5 * W))
@@ -298,23 +299,31 @@ test_that("eblup_stfh validation and edge cases", {
 
   # Parameter bounds errors
   expect_error(
-    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
-               W = mys_proxmat_nona, sigma21_start = -1),
+    eblup_stfh(y ~ x1 + x2,
+      data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+      W = mys_proxmat_nona, sigma21_start = -1
+    ),
     "sigma21_start must be >= 0"
   )
   expect_error(
-    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
-               W = mys_proxmat_nona, sigma22_start = -1),
+    eblup_stfh(y ~ x1 + x2,
+      data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+      W = mys_proxmat_nona, sigma22_start = -1
+    ),
     "sigma22_start must be >= 0"
   )
   expect_error(
-    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
-               W = mys_proxmat_nona, rho1_start = -1.5),
+    eblup_stfh(y ~ x1 + x2,
+      data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+      W = mys_proxmat_nona, rho1_start = -1.5
+    ),
     "rho1_start must be in the interval"
   )
   expect_error(
-    eblup_stfh(y ~ x1 + x2, data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
-               W = mys_proxmat_nona, model = "ST", rho2_start = 1.5),
+    eblup_stfh(y ~ x1 + x2,
+      data = mys_panel_nona, vardir = ~vardir, domain = ~area, time = ~year,
+      W = mys_proxmat_nona, model = "ST", rho2_start = 1.5
+    ),
     "rho2_start must be in the interval"
   )
 
@@ -365,8 +374,10 @@ test_that("eblup_stfh is invariant to the row order of the panel", {
   # time-major input (as stored in mys_panel) must give the same fit as the
   # domain-major panel, with results returned in the caller's row order
   tm <- mys_panel_nona[order(mys_panel_nona$year, mys_panel_nona$area), ]
-  fit_tm <- eblup_stfh(y ~ x1 + x2 + x3, data = tm, vardir = ~vardir, domain = ~area,
-                       time = ~year, W = mys_proxmat_nona, model = "ST", print_result = FALSE)
+  fit_tm <- eblup_stfh(y ~ x1 + x2 + x3,
+    data = tm, vardir = ~vardir, domain = ~area,
+    time = ~year, W = mys_proxmat_nona, model = "ST", print_result = FALSE
+  )
   expect_equal(fit_tm$estvarcomp$estimate, fit_fast$estvarcomp$estimate, tolerance = 1e-8)
   expect_equal(fit_tm$estcoef$beta, fit_fast$estcoef$beta, tolerance = 1e-8)
   expect_equal(fit_tm$df_eblup$domain, tm$area)

@@ -157,8 +157,10 @@
 #'   dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
 #'     rnorm(nrow(dat), sd = sqrt(dat$vardir))
 #'
-#'   fit <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area",
-#'                     subarea = "subarea", data = dat)
+#'   fit <- hb_twofold(y ~ x1,
+#'     vardir = "vardir", domain = "area",
+#'     subarea = "subarea", data = dat
+#'   )
 #'   summary(fit)
 #' }
 #' }
@@ -401,26 +403,29 @@ hb_twofold <- function(
   if (compute_area) {
     norm_weight <- .twofold_weights(weight_vec, domain_vec, unique_domains, subarea_vec)
     # Joint posterior draws of the sub-area parameters on the response scale
-    mat_samples <- tryCatch({
-      ps <- .inla_draws(fit, engine$draws, engine$seed)
-      pred_names <- paste0("Predictor:", seq_len(n_subareas))
-      latent_rows <- rownames(ps[[1]]$latent)
-      pred_indices <- match(pred_names, latent_rows)
+    mat_samples <- tryCatch(
+      {
+        ps <- .inla_draws(fit, engine$draws, engine$seed)
+        pred_names <- paste0("Predictor:", seq_len(n_subareas))
+        latent_rows <- rownames(ps[[1]]$latent)
+        pred_indices <- match(pred_names, latent_rows)
 
-      if (!any(is.na(pred_indices))) {
-        mat_samples <- sapply(ps, function(s) s$latent[pred_indices, 1])
+        if (!any(is.na(pred_indices))) {
+          mat_samples <- sapply(ps, function(s) s$latent[pred_indices, 1])
 
-        # Link function transformation if binomial or poisson
-        if (family == "binomial") {
-          mat_samples <- 1 / (1 + exp(-mat_samples))
-        } else if (family == "poisson") {
-          mat_samples <- exp(mat_samples)
+          # Link function transformation if binomial or poisson
+          if (family == "binomial") {
+            mat_samples <- 1 / (1 + exp(-mat_samples))
+          } else if (family == "poisson") {
+            mat_samples <- exp(mat_samples)
+          }
+          mat_samples
+        } else {
+          NULL
         }
-        mat_samples
-      } else {
-        NULL
-      }
-    }, error = function(e) NULL)
+      },
+      error = function(e) NULL
+    )
     df_area <- .twofold_area_table(mat_samples, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd)
   }
 
@@ -438,8 +443,8 @@ hb_twofold <- function(
 
   # 12. Hyperparameters
   hyp_sum <- fit$summary.hyperpar
-  s2v <- NA_real_  # area variance
-  s2u <- NA_real_  # subarea variance
+  s2v <- NA_real_ # area variance
+  s2u <- NA_real_ # subarea variance
   phi_val <- NA_real_
 
   if (!is.null(hyp_sum) && nrow(hyp_sum) > 0) {

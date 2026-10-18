@@ -132,14 +132,13 @@ spatial_test <- function(
     kurt <- (n_pts * sum(z^4)) / (denom^2)
 
     var_I <- (n_pts * ((n_pts^2 - 3 * n_pts + 3) * s1 - n_pts * s2 + 3 * s0^2) -
-                kurt * ((n_pts^2 - n_pts) * s1 - 2 * n_pts * s2 + 6 * s0^2)) /
+      kurt * ((n_pts^2 - n_pts) * s1 - 2 * n_pts * s2 + 6 * s0^2)) /
       ((n_pts - 1) * (n_pts - 2) * (n_pts - 3) * s0^2) - E_I^2
 
     var_I <- max(1e-10, var_I)
     z_stat <- (moran_I - E_I) / sqrt(var_I)
 
-    p_val <- switch(
-      alt,
+    p_val <- switch(alt,
       "greater" = stats::pnorm(z_stat, lower.tail = FALSE),
       "less" = stats::pnorm(z_stat, lower.tail = TRUE),
       "two.sided" = 2 * stats::pnorm(-abs(z_stat))
@@ -204,63 +203,66 @@ spatial_test <- function(
       .get_variable(data, vardir)
     }
 
-    tryCatch({
-      fit_fh <- eblup_fh(
-        formula = formula,
-        vardir = vardir_vec,
-        data = data,
-        method = "ML",
-        print_result = FALSE
-      )
+    tryCatch(
+      {
+        fit_fh <- eblup_fh(
+          formula = formula,
+          vardir = vardir_vec,
+          data = data,
+          method = "ML",
+          print_result = FALSE
+        )
 
-      fit_sfh <- eblup_sfh(
-        formula = formula,
-        vardir = vardir_vec,
-        data = data,
-        W = W_mat,
-        method = "ML",
-        mse_type = "analytical",
-        print_result = FALSE
-      )
+        fit_sfh <- eblup_sfh(
+          formula = formula,
+          vardir = vardir_vec,
+          data = data,
+          W = W_mat,
+          method = "ML",
+          mse_type = "analytical",
+          print_result = FALSE
+        )
 
-      ll_fh <- as.numeric(fit_fh$goodness["loglikelihood"])
-      ll_sfh <- as.numeric(fit_sfh$goodness["loglikelihood"])
+        ll_fh <- as.numeric(fit_fh$goodness["loglikelihood"])
+        ll_sfh <- as.numeric(fit_sfh$goodness["loglikelihood"])
 
-      # LRT Statistic: 2 * (ll_sfh - ll_fh)
-      lrt_stat <- max(0.0, 2 * (ll_sfh - ll_fh))
-      lrt_pval <- stats::pchisq(lrt_stat, df = 1, lower.tail = FALSE)
+        # LRT Statistic: 2 * (ll_sfh - ll_fh)
+        lrt_stat <- max(0.0, 2 * (ll_sfh - ll_fh))
+        lrt_pval <- stats::pchisq(lrt_stat, df = 1, lower.tail = FALSE)
 
-      aic_fh <- as.numeric(fit_fh$goodness["AIC"])
-      aic_sfh <- as.numeric(fit_sfh$goodness["AIC"])
-      delta_aic <- aic_sfh - aic_fh
+        aic_fh <- as.numeric(fit_fh$goodness["AIC"])
+        aic_sfh <- as.numeric(fit_sfh$goodness["AIC"])
+        delta_aic <- aic_sfh - aic_fh
 
-      bic_fh <- as.numeric(fit_fh$goodness["BIC"])
-      bic_sfh <- as.numeric(fit_sfh$goodness["BIC"])
-      delta_bic <- bic_sfh - bic_fh
+        bic_fh <- as.numeric(fit_fh$goodness["BIC"])
+        bic_sfh <- as.numeric(fit_sfh$goodness["BIC"])
+        delta_bic <- bic_sfh - bic_fh
 
-      rho_est <- as.numeric(fit_sfh$rho)
-      sigma2_u_fh <- as.numeric(fit_fh$random_effect_var)
-      sigma2_u_sfh <- as.numeric(fit_sfh$random_effect_var)
+        rho_est <- as.numeric(fit_sfh$rho)
+        sigma2_u_fh <- as.numeric(fit_fh$random_effect_var)
+        sigma2_u_sfh <- as.numeric(fit_sfh$random_effect_var)
 
-      comp_res <- list(
-        ll_fh = ll_fh,
-        ll_sfh = ll_sfh,
-        lrt_stat = lrt_stat,
-        lrt_pval = lrt_pval,
-        aic_fh = aic_fh,
-        aic_sfh = aic_sfh,
-        delta_aic = delta_aic,
-        bic_fh = bic_fh,
-        bic_sfh = bic_sfh,
-        delta_bic = delta_bic,
-        rho = rho_est,
-        sigma2_u_fh = sigma2_u_fh,
-        sigma2_u_sfh = sigma2_u_sfh,
-        method = "ML"
-      )
-    }, error = function(e) {
-      cli::cli_alert_warning("Could not complete model comparison (FH vs SFH): {e$message}")
-    })
+        comp_res <- list(
+          ll_fh = ll_fh,
+          ll_sfh = ll_sfh,
+          lrt_stat = lrt_stat,
+          lrt_pval = lrt_pval,
+          aic_fh = aic_fh,
+          aic_sfh = aic_sfh,
+          delta_aic = delta_aic,
+          bic_fh = bic_fh,
+          bic_sfh = bic_sfh,
+          delta_bic = delta_bic,
+          rho = rho_est,
+          sigma2_u_fh = sigma2_u_fh,
+          sigma2_u_sfh = sigma2_u_sfh,
+          method = "ML"
+        )
+      },
+      error = function(e) {
+        cli::cli_alert_warning("Could not complete model comparison (FH vs SFH): {e$message}")
+      }
+    )
   }
 
   # Step D: Formulate Recommendation

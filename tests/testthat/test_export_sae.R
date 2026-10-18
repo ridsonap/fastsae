@@ -153,7 +153,9 @@ test_that("export_sae handles openxlsx branch and package missing fallback", {
         res <- export_sae(fit_fh, file = tmp_xlsx)
       },
       .has_pkg = function(pkg) {
-        if (pkg == "writexl") return(FALSE)
+        if (pkg == "writexl") {
+          return(FALSE)
+        }
         requireNamespace(pkg, quietly = TRUE)
       },
       .package = "fastsae"
@@ -179,4 +181,3 @@ test_that("export_sae handles openxlsx branch and package missing fallback", {
   unlink(fallback_csv)
   if (file.exists(tmp_xlsx2)) unlink(tmp_xlsx2)
 })
-

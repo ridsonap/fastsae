@@ -296,7 +296,8 @@ TwofoldFit twofold_fit(const mat& Xs, const vec& ys, const vec& psis,
 List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
                         const arma::vec& vardirall, const arma::ivec& area,
                         std::string method = "REML", std::string mse_type = "analytical",
-                        int B = 200, int maxiter = 100, double precision = 1e-4) {
+                        int B = 200, int maxiter = 100, double precision = 1e-4,
+                        Rcpp::Nullable<Rcpp::NumericVector> wall_ = R_NilValue) {
   const int N = Xall.n_rows;
   const int p = Xall.n_cols;
 
@@ -308,6 +309,14 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
   if (vardirall.n_elem != (uword)N || yall.n_elem != (uword)N)
     Rcpp::stop("y, vardir and X must have the same number of rows.");
   if (arma::any(area < 0)) Rcpp::stop("area must be a 0-based index (>= 0).");
+  // Area means are computed when sub-area weights are given (normalised within
+  // each area by the caller).
+  const bool compute_area = wall_.isNotNull();
+  vec wall;
+  if (compute_area) {
+    wall = Rcpp::as<arma::vec>(wall_.get());
+    if (wall.n_elem != (uword)N) Rcpp::stop("weights must have one value per row.");
+  }
 
   uvec idx_s = find_finite(yall);
   uvec idx_ns = find_nonfinite(yall);
@@ -382,6 +391,19 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
       eblup_all(gi) = Xbeta_all(gi) + vhat;
       v_area(gi) = vhat;
       u_sub(gi) = 0.0;
+    }
+  }
+
+  // ---- Area means mu_d = sum_j w_dj theta_dj over the sub-areas of area d in
+  // the data; the EBLUP of a linear target is the same combination of EBLUPs.
+  std::vector<uvec> rows_area(m_all);
+  vec area_eblup(m_all), area_mse(m_all);
+  area_eblup.fill(datum::nan);
+  area_mse.fill(datum::nan);
+  if (compute_area) {
+    for (int d = 0; d < m_all; ++d) {
+      rows_area[d] = find(area == d);
+      area_eblup(d) = dot(wall.elem(rows_area[d]), eblup_all.elem(rows_area[d]));
     }
   }
 
@@ -536,6 +558,58 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
         }
       }
     }
+
+    // Area means: the same g1 + g2 + 2 g3 [- b_ML'grad g1] for the linear target
+    //   mu_d = k_d'beta + W_d v_d + sum_j w_dj u_dj,  k_d = sum_j w_dj x_dj,
+    // W_d = sum_j w_dj. With s_d = Cov(y_d, mu_d) = s2v W_d 1 + s2u w_s
+    // (w_s: weights of the sampled sub-areas) and b_d = V_d^{-1} s_d:
+    //   g1 = s2v W_d^2 + s2u sum_j w_dj^2 - s_d'b_d,
+    //   g2 = (k_d - X_d'b_d)' Q (k_d - X_d'b_d),
+    //   db_d/ds2v = V_d^{-1}(W_d 1 - 1 1'b_d),  db_d/ds2u = V_d^{-1}(w_s - b_d).
+    // A weight of 1 on one sub-area gives the sub-area MSE above.
+    if (compute_area) {
+      for (int d = 0; d < m_all; ++d) {
+        const uvec& rows = rows_area[d];
+        if (rows.n_elem == 0) continue;
+        const vec wa = wall.elem(rows);
+        const double wsum = accu(wa), wsq = accu(square(wa));
+        const vec kvec = Xall.rows(rows).t() * wa;
+        const uvec& id = sidx[d];
+        if (id.n_elem == 0) {
+          // synthetic: error = k'(b^-b) - W v_i - sum_j w_j u_ij
+          area_mse(d) = as_scalar(kvec.t() * f.Q * kvec) + s2v * wsum * wsum + s2u * wsq;
+          continue;
+        }
+        const int nd = id.n_elem;
+        const mat Xd = Xs.rows(id);
+        const vec psid = psis.elem(id);
+        const vec ws = wall.elem(idx_s.elem(id));
+        mat Vd = s2v * ones<mat>(nd, nd) + diagmat(s2u + psid);
+        mat Vinv;
+        if (!inv_sympd(Vinv, Vd)) Vinv = pinv(Vd);
+        const vec onev = ones<vec>(nd);
+        const vec sv = s2v * wsum * onev + s2u * ws;
+        const vec b = Vinv * sv;
+        const double g1 = s2v * wsum * wsum + s2u * wsq - dot(sv, b);
+        const vec dvec = kvec - Xd.t() * b;
+        const double g2 = as_scalar(dvec.t() * f.Q * dvec);
+        const double ob = accu(b);                       // 1'V^{-1}s_d
+        const vec b_v = Vinv * ((wsum - ob) * onev);
+        const vec b_u = Vinv * (ws - b);
+        const double Evv = dot(b_v, Vd * b_v);
+        const double Euu = dot(b_u, Vd * b_u);
+        const double Evu = dot(b_v, Vd * b_u);
+        const double g3 = Evv * var_v + Euu * var_u + 2.0 * Evu * cov_vu;
+        double mse_d = g1 + g2 + 2.0 * g3;
+        if (is_ml) {
+          const double dg1_v = wsum * wsum - 2.0 * wsum * ob + ob * ob;
+          const double dg1_u = wsq - 2.0 * dot(ws, b) + dot(b, b);
+          mse_d -= bML(0) * dg1_v + bML(1) * dg1_u;
+        }
+        if (mse_d < 0 && mse_d > -1e-8) mse_d = 0;
+        area_mse(d) = mse_d;
+      }
+    }
   } else {
     // ---- parametric bootstrap MSE (paper notation: s2v=area, s2u=subarea)
     // OpenMP parallel: pre-generate all random draws (RNG not thread-safe),
@@ -546,6 +620,7 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
     mat E_star = randn<mat>(Ns, B);
     E_star.each_col() %= sqrt(psis);           // sampling errors
     mat SqDiff(N, B, fill::zeros);
+    mat AreaSq(compute_area ? m_all : 0, B, fill::zeros);
 
 #pragma omp parallel for schedule(static)
     for (int b = 0; b < B; ++b) {
@@ -582,8 +657,18 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
         }
       }
       SqDiff.col(b) = square(eb_star - theta_star);
+      if (compute_area) {
+        for (int d = 0; d < m_all; ++d) {
+          const uvec& rows = rows_area[d];
+          if (rows.n_elem == 0) continue;
+          const vec wa = wall.elem(rows);
+          const double diff = dot(wa, eb_star.elem(rows)) - dot(wa, theta_star.elem(rows));
+          AreaSq(d, b) = diff * diff;
+        }
+      }
     }
     mse_all = mean(SqDiff, 1);
+    if (compute_area) area_mse = mean(AreaSq, 1);
   }
 
   // ---- RSE (%)
@@ -620,5 +705,6 @@ List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall,
   return List::create(
     _["random_effect_var"] = s2, _["estcoef"] = df_coef, _["df_eblup"] = df_eblup,
     _["goodness"] = goodness, _["n_iter"] = f.niter,
-    _["convergence"] = f.conv, _["method"] = "eblup", _["level"] = "subarea");
+    _["convergence"] = f.conv, _["method"] = "eblup", _["level"] = "subarea",
+    _["area_eblup"] = area_eblup, _["area_mse"] = area_mse);
 }

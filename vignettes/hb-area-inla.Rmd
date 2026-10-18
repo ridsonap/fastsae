@@ -114,12 +114,14 @@ every parameter (Vehtari et al., 2021) and warns when R-hat is at least 1.05, th
 is the problem:
 
 ```{r jax_convergence, eval = FALSE}
-fit_jax <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
-                   engine = jax_engine(chains = 4, samples = 1000))
-fit_jax$rhat_max                   # below 1.01 is recommended
-fit_jax$ess_min                    # above 100 per chain
-head(fit_jax$mcmc_diagnostics)     # R-hat and ESS of each parameter
-autoplot(fit_jax, type = "rank")   # chains near the dashed line: mixed
+fit_jax <- hb_area(y ~ x1 + x2 + x3,
+  data = mys, vardir = "vardir",
+  engine = jax_engine(chains = 4, samples = 1000)
+)
+fit_jax$rhat_max # below 1.01 is recommended
+fit_jax$ess_min # above 100 per chain
+head(fit_jax$mcmc_diagnostics) # R-hat and ESS of each parameter
+autoplot(fit_jax, type = "rank") # chains near the dashed line: mixed
 autoplot(fit_jax, type = "trace", pars = c("sigma2_u", "hb[5]"))
 ```
 

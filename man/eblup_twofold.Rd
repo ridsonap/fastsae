@@ -20,6 +20,8 @@ eblup_twofold(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
+  weight = NULL,
+  compute_area = TRUE,
   print_result = TRUE
 )
 }
@@ -66,6 +68,15 @@ benchmark target(s). If \code{NULL} (default), calibrates to the weighted aggreg
 grouping / stratum column in \code{data} (e.g. area identifier for subarea-to-area benchmarking)
 for group-specific self-benchmarking.}
 
+\item{weight}{Optional vector, column name or one-sided formula referencing the sub-area
+weights \eqn{w_{ij}} (e.g. population sizes) used for the area means
+\eqn{\theta_i = \sum_j w_{ij}\theta_{ij}}. They are normalised within each area; if
+\code{NULL}, every sub-area of an area gets the same weight. Missing or negative weights
+get weight 0 (with a warning), as in \code{\link{hb_twofold}}.}
+
+\item{compute_area}{Logical. If \code{TRUE} (default), adds the EBLUPs of the area means and
+their MSE in \code{df_area} (see Details).}
+
 \item{print_result}{print coefficient or not, default value is TRUE.}
 }
 \value{
@@ -82,6 +93,9 @@ of sampled subareas. The restricted (REML) likelihood is not reported: it depend
 covariates through X, so it cannot compare models with different covariates.,
 \code{df_eblup} a data frame that contains domain, subarea, y, eblup, vardir,
 random_effect_area, random_effect_subarea, mse, and rse. \cr
+\code{df_area} (if \code{compute_area = TRUE}) a data frame with one row per area: domain,
+\code{eblup_area}, \code{mse_area}, \code{rse_area}, \code{n_subareas} (sub-areas in
+\code{data}) and \code{n_sampled} (those with a direct estimate). \cr
 }
 \description{
 This function gives the Empirical Best Linear Unbiased Prediction (EBLUP)
@@ -94,6 +108,18 @@ When the response contains NA the subarea is treated as non-sampled and predicte
 with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
 g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
 derivation for g3) or by parametric bootstrap.
+
+Area means. The target of area \eqn{i} is \eqn{\theta_i = \sum_j w_{ij}\theta_{ij}} over
+the sub-areas of the area in \code{data} (sampled or not), with the normalised
+\code{weight}. Its EBLUP is \eqn{\sum_j w_{ij}\tilde\theta_{ij}}. The analytical MSE is the
+same second-order estimator as for the sub-areas, applied to this linear target (Torabi
+and Rao, 2014, derive it for population-weighted area means): it includes the covariance
+of the sub-area prediction errors through the shared area effect and \eqn{\hat\beta}, so
+it is not \eqn{\sum_j w_{ij}^2\,\mathrm{mse}_{ij}}. An area without sampled sub-areas gets
+the synthetic estimator \eqn{\bar x_i'\hat\beta} with MSE
+\eqn{\bar x_i' Q \bar x_i + \hat\sigma_v^2 + \hat\sigma_u^2\sum_j w_{ij}^2}. With
+\code{mse_type = "bootstrap"} the area MSE comes from the same bootstrap replicates.
+Sub-areas of the population that are not rows of \code{data} are not part of the area mean.
 }
 \examples{
 library(fastsae)
@@ -110,8 +136,10 @@ dat <- do.call(rbind, lapply(1:m, function(d) {
 }))
 dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
   rnorm(nrow(dat), sd = sqrt(dat$vardir))
-m1 <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area",
-                    subarea = "subarea", data = dat)
+m1 <- eblup_twofold(y ~ x1,
+  vardir = "vardir", domain = "area",
+  subarea = "subarea", data = dat
+)
 
 }
 \references{

@@ -6,8 +6,10 @@ tf_engine_data <- function(m = 12, seed = 1) {
   set.seed(seed)
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
     nd <- sample(2:4, 1)
-    data.frame(area = d, subarea = paste0(d, "-", seq_len(nd)), x1 = rnorm(nd),
-               vardir = runif(nd, 0.2, 0.8), pop = runif(nd, 50, 500))
+    data.frame(
+      area = d, subarea = paste0(d, "-", seq_len(nd)), x1 = rnorm(nd),
+      vardir = runif(nd, 0.2, 0.8), pop = runif(nd, 50, 500)
+    )
   }))
   dat$y <- 1 + dat$x1 + rnorm(m, sd = 0.8)[dat$area] + rnorm(nrow(dat), sd = 0.6) +
     rnorm(nrow(dat), sd = sqrt(dat$vardir))
@@ -67,8 +69,10 @@ skip_if_no_numpyro_tf <- function() {
   if (!suppressMessages(check_numpyro_available())) skip("NumPyro / JAX not available")
 }
 
-twofold_hb_columns <- c("domain", "subarea", "y", "hb", "linear_pred", "vardir", "sd", "mse", "rse",
-                        "ci_lower", "ci_upper", "random_effect_area", "random_effect_subarea")
+twofold_hb_columns <- c(
+  "domain", "subarea", "y", "hb", "linear_pred", "vardir", "sd", "mse", "rse",
+  "ci_lower", "ci_upper", "random_effect_area", "random_effect_subarea"
+)
 
 # ---------------------------------------------------------------------------
 # R side of engine = "jax" with a fake backend
@@ -81,8 +85,10 @@ test_that("hb_twofold(engine = 'jax') maps the nested model to the backend", {
   dat$y[2] <- NA
   eng <- jax_engine(samples = 50, device = "cpu")
 
-  fit <- suppressMessages(hb_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                                     data = dat, weight = "pop", engine = eng, print_result = FALSE))
+  fit <- suppressMessages(hb_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, weight = "pop", engine = eng, print_result = FALSE
+  ))
   n <- nrow(dat)
   a <- env$args
   expect_equal(a$domain_idx, dat$area - 1L)
@@ -121,7 +127,9 @@ test_that("hb_twofold(engine = 'jax') maps the nested model to the backend", {
   expect_equal(fit$df_area$hb_area, unname(rowMeans(area_draws)), tolerance = 1e-10)
   expect_equal(fit$df_area$sd_area, unname(apply(area_draws, 1, stats::sd)), tolerance = 1e-10)
   expect_equal(fit$df_area$ci_upper_area,
-               unname(apply(area_draws, 1, stats::quantile, 0.975)), tolerance = 1e-10)
+    unname(apply(area_draws, 1, stats::quantile, 0.975)),
+    tolerance = 1e-10
+  )
   expect_equal(fit$df_area$n_subareas, as.integer(table(dat$area)))
 
   expect_match(tf_printed(fit), "Engine: jax")
@@ -135,11 +143,15 @@ test_that("hb_twofold(engine = 'jax') passes counts, spatial structure and MCMC 
   dat$n <- 40
   dat$cnt <- stats::rbinom(nrow(dat), dat$n, 0.3)
 
-  fit <- suppressMessages(hb_twofold(cnt ~ x1, domain = "area", data = dat, family = "binomial",
-                                     trials = "n", spatial = "bym2", W = tf_chain_W(12),
-                                     engine = jax_engine(robust = TRUE, prior_beta = "horseshoe",
-                                                         keep_draws = FALSE),
-                                     print_result = FALSE))
+  fit <- suppressMessages(hb_twofold(cnt ~ x1,
+    domain = "area", data = dat, family = "binomial",
+    trials = "n", spatial = "bym2", W = tf_chain_W(12),
+    engine = jax_engine(
+      robust = TRUE, prior_beta = "horseshoe",
+      keep_draws = FALSE
+    ),
+    print_result = FALSE
+  ))
   a <- env$args
   expect_equal(a$family, "binomial")
   expect_equal(a$trials, dat$n)
@@ -153,16 +165,22 @@ test_that("hb_twofold(engine = 'jax') passes counts, spatial structure and MCMC 
   expect_true(all(fit$df_hb$hb > 0 & fit$df_hb$hb < 1))
 
   # compute_area = FALSE leaves the area table out
-  fit2 <- suppressMessages(hb_twofold(cnt ~ x1, domain = "area", data = dat, family = "binomial",
-                                      trials = "n", engine = "jax", compute_area = FALSE,
-                                      print_result = FALSE))
+  fit2 <- suppressMessages(hb_twofold(cnt ~ x1,
+    domain = "area", data = dat, family = "binomial",
+    trials = "n", engine = "jax", compute_area = FALSE,
+    print_result = FALSE
+  ))
   expect_null(fit2$df_area)
 })
 
 test_that("hb_twofold(engine = 'jax') rejects INLA settings and keeps the input checks", {
   dat <- tf_engine_data()
-  fit_jax <- function(...) hb_twofold(y ~ x1, domain = "area", data = dat, engine = "jax",
-                                      print_result = FALSE, ...)
+  fit_jax <- function(...) {
+    hb_twofold(y ~ x1,
+      domain = "area", data = dat, engine = "jax",
+      print_result = FALSE, ...
+    )
+  }
   expect_error(fit_jax(vardir = "vardir", strategy = "gaussian"), "cannot be used with")
   expect_error(fit_jax(vardir = "vardir", n_samples = 50), "cannot be used with")
   expect_error(fit_jax(), "vardir")

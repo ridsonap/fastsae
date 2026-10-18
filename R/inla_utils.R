@@ -73,8 +73,12 @@
 #' @noRd
 .st_generic0 <- function(st_interaction, temporal, domain_id, time_id, n_domains, n_times,
                          graph = NULL, scale_model = TRUE) {
-  if (!temporal %in% c("rw1", "rw2")) return(NULL)
-  if (!(st_interaction == "type4" || (st_interaction == "type2" && temporal == "rw2"))) return(NULL)
+  if (!temporal %in% c("rw1", "rw2")) {
+    return(NULL)
+  }
+  if (!(st_interaction == "type4" || (st_interaction == "type2" && temporal == "rw2"))) {
+    return(NULL)
+  }
   D <- n_domains
   Tt <- n_times
   k_t <- if (temporal == "rw1") 1L else 2L
@@ -100,18 +104,21 @@
     for (k in unique(comp)) {
       m <- which(comp == k)
       if (length(m) == 1) {
-        R_s[m, m] <- 1                       # a domain without neighbours: iid term
+        R_s[m, m] <- 1 # a domain without neighbours: iid term
       } else if (isTRUE(scale_model)) {
         R_s[m, m] <- as.matrix(INLA::inla.scale.model(R_s[m, m, drop = FALSE],
-                                                      constr = list(A = matrix(1, 1, length(m)), e = 0)))
+          constr = list(A = matrix(1, 1, length(m)), e = 0)
+        ))
       }
     }
     Cmat <- kronecker(R_t, R_s)
-    rows_time <- unlist(lapply(seq_len(Tt), function(t) lapply(multi, function(k) {
-      a <- numeric(D * Tt)
-      a[(t - 1) * D + which(comp == k)] <- 1
-      a
-    })), recursive = FALSE)
+    rows_time <- unlist(lapply(seq_len(Tt), function(t) {
+      lapply(multi, function(k) {
+        a <- numeric(D * Tt)
+        a[(t - 1) * D + which(comp == k)] <- 1
+        a
+      })
+    }), recursive = FALSE)
     doms <- setdiff(seq_len(D), vapply(multi, function(k) which(comp == k)[1], integer(1)))
     rows_dom <- lapply(doms, row_dt, w = 1)
     if (k_t == 2L) rows_dom <- c(rows_dom, lapply(doms, row_dt, w = tc))
@@ -125,8 +132,10 @@
     index <- (domain_id - 1L) * Tt + time_id
   }
   A <- do.call(rbind, rows)
-  list(Cmatrix = Matrix::Matrix(Cmat, sparse = TRUE), rankdef = rankdef,
-       extraconstr = list(A = A, e = rep(0, nrow(A))), index = index)
+  list(
+    Cmatrix = Matrix::Matrix(Cmat, sparse = TRUE), rankdef = rankdef,
+    extraconstr = list(A = A, e = rep(0, nrow(A))), index = index
+  )
 }
 
 #' Connected components of an adjacency matrix (breadth-first search)
@@ -161,8 +170,10 @@
 #' @noRd
 .inla_draws <- function(fit, n, seed = 1L) {
   seed <- as.integer(seed)
-  .with_seed(if (seed > 0) seed else -1L,
-             INLA::inla.posterior.sample(n = n, result = fit, seed = seed))
+  .with_seed(
+    if (seed > 0) seed else -1L,
+    INLA::inla.posterior.sample(n = n, result = fit, seed = seed)
+  )
 }
 
 #' Convert and validate spatial proximity / weight matrix for INLA models
@@ -452,12 +463,12 @@
   linpred_summary <- as.data.frame(fit$summary.linear.predictor[seq_len(n_obs), , drop = FALSE])
 
   hb_est <- fitted_summary$mean
-  hb_sd  <- fitted_summary$sd
+  hb_sd <- fitted_summary$sd
   hb_mse <- hb_sd^2
   hb_rse <- ifelse(abs(hb_est) < .Machine$double.eps, NA_real_, (hb_sd / abs(hb_est)) * 100)
   ci_lower <- fitted_summary[["0.025quant"]]
   ci_upper <- fitted_summary[["0.975quant"]]
-  linpred  <- linpred_summary$mean
+  linpred <- linpred_summary$mean
 
   # Assemble df_hb
   if (!is.null(time)) {
@@ -648,7 +659,9 @@
 #' @noRd
 .check_inla_link <- function(link, family) {
   ok <- .inla_links(family)
-  if (is.null(link)) return(ok[1])
+  if (is.null(link)) {
+    return(ok[1])
+  }
   link <- tolower(link)
   if (!link %in% ok) {
     cli::cli_abort(c(

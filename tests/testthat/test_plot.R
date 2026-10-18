@@ -151,7 +151,7 @@ test_that("autoplot covers ribbon, rse, single scatter warning, map, and error p
   # 7. Map type via autoplot
   if (requireNamespace("sf", quietly = TRUE)) {
     grid_sf <- sf::st_make_grid(
-      sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+      sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
       cellsize = c(1, 1),
       what = "polygons"
     )[seq_len(nrow(mys))]
@@ -213,4 +213,3 @@ test_that("autoplot.list covers edge cases and multi-model branches", {
   p_calc_rse <- autoplot(fit_calc_rse, type = "rse")
   expect_s3_class(p_calc_rse, "ggplot")
 })
-
