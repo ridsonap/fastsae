@@ -107,8 +107,11 @@
   (`hb_unit()`). The PC prior depends on the unit of the response: on `mys` with the response in
   tenths it moved the estimates by up to 4.1 posterior SD. In a simulation
   (`benchmarks/validation/default_sd_prior.R`) the 95% intervals covered 93-97% with the
-  half-normal prior (EBLUP: 93-96%) and 85-95% with PC priors scaled to sd(y). Other families
-  keep the PC prior on their link scale. Leroux's $\lambda$ gets a uniform prior.
+  half-normal prior (EBLUP: 93-96%) and 85-95% with PC priors scaled to sd(y). The other
+  families get a half-normal(1) prior on the link scale instead of the PC prior: for binomial
+  and beta responses the intervals covered 93-95% against 92-94%, and the PC prior
+  underestimated the area SD by up to 18% (`benchmarks/validation/default_sd_prior_glm.R`).
+  Leroux's $\lambda$ gets a uniform prior.
   `inla_engine(prior_prec = )` overrides the default as before.
 * `jax_engine(priors = "inla")`, the new default, gives the NumPyro engine the priors of
   `inla_engine()`: the default above, INLA's PC prior on the BYM2 $\phi$ (on INLA's support of

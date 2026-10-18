@@ -357,7 +357,6 @@ def fit_numpyro_hb(
     benchmark_method="logit",
     prior_beta="normal",
     priors="inla",
-    pc_alpha=0.01,
     pc_phi=(0.5, 0.5),
     robust=False,
     twofold_weights=None,
@@ -451,7 +450,7 @@ def fit_numpyro_hb(
     # Default priors. "inla": those of inla_engine(), so both engines fit the same model
     # (.default_prior_prec() in R). Random-effect SDs: half-normal with scale sd(y) for
     # Gaussian models (sigma_std = sigma / y_s ~ HalfNormal(sd(y) / y_s) on the standardised
-    # scale), the PC prior P(sigma > 1) = pc_alpha on the link scale otherwise.
+    # scale) and 1 on the link scale otherwise (sd_scale = y_s = 1).
     # "weakly_informative": half-normal with scale 1 on the (standardised) model scale.
     inla_priors = priors == "inla"
     if family == "gaussian" and len(obs_idx) > 1:
@@ -460,14 +459,8 @@ def fit_numpyro_hb(
             sd_scale = 1.0
     else:
         sd_scale = 1.0
-    pc_rate = -np.log(pc_alpha)
-
     def sample_sd(name):
-        if inla_priors and family == "gaussian":
-            return numpyro.sample(name, dist.HalfNormal(sd_scale / y_s))
-        if inla_priors:
-            return numpyro.sample(name, dist.Exponential(pc_rate))
-        return numpyro.sample(name, dist.HalfNormal(1.0))
+        return numpyro.sample(name, dist.HalfNormal(sd_scale / y_s if inla_priors else 1.0))
 
     pc_phi_gm1 = None
     pc_phi_lam = 1.0

@@ -1,13 +1,13 @@
 # Default priors of the HB models (.default_prior_prec), shared by inla_engine() and
-# jax_engine(): half-normal(sd y) random-effect SDs for Gaussian models, PC(1, 0.01) otherwise.
+# jax_engine(): half-normal random-effect SDs, scale sd(y) for Gaussian models and 1 otherwise.
 
 # scale s of the half-normal default prior, read back from its INLA expression
 hn_scale <- function(prior) as.numeric(sub("^expression: s = ([^;]+);.*$", "\\1", prior$prior))
 
-test_that("the default SD prior is half-normal(sd y) for Gaussian models, PC(1) otherwise", {
+test_that("the default SD prior is half-normal(sd y) for Gaussian models, half-normal(1) otherwise", {
   y <- c(10, 14, NA, 22, 30)
   expect_equal(hn_scale(.default_prior_prec(y, "gaussian")), sd(y, na.rm = TRUE))
-  expect_equal(.default_prior_prec(y, "binomial"), list(prior = "pc.prec", param = c(1, 0.01)))
+  expect_equal(hn_scale(.default_prior_prec(y, "binomial")), 1)
   expect_equal(hn_scale(.default_prior_prec(NULL, "gaussian")), 1)
   expect_equal(hn_scale(.default_prior_prec(c(3, 3, NA), "gaussian")), 1)
   # the expression is the half-normal density of sigma = exp(-theta / 2) on theta
@@ -92,7 +92,6 @@ test_that("jax_engine() passes the prior set to the backend", {
   data("mys", package = "fastsae")
   hb_area(y ~ x1, data = mys, vardir = "vardir", engine = jax_engine(samples = 100), print_result = FALSE)
   expect_equal(env$args$priors, "inla")
-  expect_equal(env$args$pc_alpha, .prior_pc_alpha)
   hb_area(y ~ x1,
     data = mys, vardir = "vardir", print_result = FALSE,
     engine = jax_engine(samples = 100, priors = "weakly_informative")

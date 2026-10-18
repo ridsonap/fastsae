@@ -53,17 +53,18 @@ any link.}
 rw1, rw2) to a generalized variance of 1. Default \code{TRUE}.}
 
 \item{prior_prec}{Prior for the precision of the area (domain) random
-effect. \code{NULL} (default), in all HB functions: for \code{family = "gaussian"}
-a half-normal prior on the standard deviation with scale \eqn{s_y}, the standard
-deviation of the observed responses (given to INLA as an \code{"expression:"}
-prior); for the other families the PC prior
-\code{list(prior = "pc.prec", param = c(1, 0.01))}, i.e. \eqn{P(\sigma > 1) = 0.01}
-on the link scale. An area standard deviation cannot exceed \eqn{s_y}, so the
-Gaussian prior only sets the scale and does not depend on the unit of the response.
-A fixed PC prior with \eqn{U = 1} does: on \code{mys} with the response in tenths
-it moved the estimates by up to 4.1 posterior SD, and in a simulation (Fay-Herriot,
-15-60 areas) its 95\% intervals covered 85-92\% of the true values against 93-97\%
-with the half-normal prior (the EBLUP intervals: 93-96\%).}
+effect. \code{NULL} (default), in all HB functions: a half-normal prior on the
+standard deviation (given to INLA as an \code{"expression:"} prior), with scale
+\eqn{s_y}, the standard deviation of the observed responses, for
+\code{family = "gaussian"} and scale 1 on the link scale (logit, log) of the other
+families. An area standard deviation cannot exceed \eqn{s_y}, so the Gaussian prior
+only sets the scale and does not depend on the unit of the response. INLA's PC prior
+\code{list(prior = "pc.prec", param = c(1, 0.01))} does: on \code{mys} with the
+response in tenths it moved the estimates by up to 4.1 posterior SD. In simulations
+the 95\% intervals covered 93-97\% of the true values with the half-normal prior
+against 85-92\% with that PC prior (Fay-Herriot, 15-60 areas; EBLUP: 93-96\%), and
+93-95\% against 92-94\% for binomial and beta responses, where the PC prior also
+underestimated the area SD by up to 18\%.}
 
 \item{prior_phi}{Prior for the mixing parameter of \code{spatial = "bym2"}.
 \code{NULL} (default): the PC prior \code{list(prior = "pc", param = c(0.5, 0.5))}.}
@@ -117,7 +118,7 @@ candidate covariates).}
 defaults of \code{\link{inla_engine}()}, so that both engines fit the same model:
 every random-effect standard deviation gets the default of
 \code{inla_engine(prior_prec = )} (half-normal with scale \eqn{s_y} for Gaussian
-models, \eqn{P(\sigma > 1) = 0.01} PC prior otherwise), the BYM2 mixing parameter
+models, 1 on the link scale otherwise), the BYM2 mixing parameter
 \eqn{\phi} INLA's PC prior (\eqn{P(\phi < 0.5) = 0.5}), the AR(1) correlation INLA's
 \eqn{N(0, 1/0.15)} prior on \eqn{\log((1 + \rho)/(1 - \rho))}, the Leroux and SAR
 correlations uniform priors, and the coefficients \eqn{N(0, 1000)}. On \code{mys} the

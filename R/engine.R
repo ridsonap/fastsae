@@ -57,17 +57,18 @@
 #' @param scale_model Logical; scale the intrinsic GMRF models (besag, bym,
 #'   rw1, rw2) to a generalized variance of 1. Default \code{TRUE}.
 #' @param prior_prec Prior for the precision of the area (domain) random
-#'   effect. \code{NULL} (default), in all HB functions: for \code{family = "gaussian"}
-#'   a half-normal prior on the standard deviation with scale \eqn{s_y}, the standard
-#'   deviation of the observed responses (given to INLA as an \code{"expression:"}
-#'   prior); for the other families the PC prior
-#'   \code{list(prior = "pc.prec", param = c(1, 0.01))}, i.e. \eqn{P(\sigma > 1) = 0.01}
-#'   on the link scale. An area standard deviation cannot exceed \eqn{s_y}, so the
-#'   Gaussian prior only sets the scale and does not depend on the unit of the response.
-#'   A fixed PC prior with \eqn{U = 1} does: on \code{mys} with the response in tenths
-#'   it moved the estimates by up to 4.1 posterior SD, and in a simulation (Fay-Herriot,
-#'   15-60 areas) its 95\% intervals covered 85-92\% of the true values against 93-97\%
-#'   with the half-normal prior (the EBLUP intervals: 93-96\%).
+#'   effect. \code{NULL} (default), in all HB functions: a half-normal prior on the
+#'   standard deviation (given to INLA as an \code{"expression:"} prior), with scale
+#'   \eqn{s_y}, the standard deviation of the observed responses, for
+#'   \code{family = "gaussian"} and scale 1 on the link scale (logit, log) of the other
+#'   families. An area standard deviation cannot exceed \eqn{s_y}, so the Gaussian prior
+#'   only sets the scale and does not depend on the unit of the response. INLA's PC prior
+#'   \code{list(prior = "pc.prec", param = c(1, 0.01))} does: on \code{mys} with the
+#'   response in tenths it moved the estimates by up to 4.1 posterior SD. In simulations
+#'   the 95\% intervals covered 93-97\% of the true values with the half-normal prior
+#'   against 85-92\% with that PC prior (Fay-Herriot, 15-60 areas; EBLUP: 93-96\%), and
+#'   93-95\% against 92-94\% for binomial and beta responses, where the PC prior also
+#'   underestimated the area SD by up to 18\%.
 #' @param prior_phi Prior for the mixing parameter of \code{spatial = "bym2"}.
 #'   \code{NULL} (default): the PC prior \code{list(prior = "pc", param = c(0.5, 0.5))}.
 #' @param prior_rho Prior for the spatial correlation of
@@ -180,7 +181,7 @@ inla_engine <- function(
 #'   defaults of \code{\link{inla_engine}()}, so that both engines fit the same model:
 #'   every random-effect standard deviation gets the default of
 #'   \code{inla_engine(prior_prec = )} (half-normal with scale \eqn{s_y} for Gaussian
-#'   models, \eqn{P(\sigma > 1) = 0.01} PC prior otherwise), the BYM2 mixing parameter
+#'   models, 1 on the link scale otherwise), the BYM2 mixing parameter
 #'   \eqn{\phi} INLA's PC prior (\eqn{P(\phi < 0.5) = 0.5}), the AR(1) correlation INLA's
 #'   \eqn{N(0, 1/0.15)} prior on \eqn{\log((1 + \rho)/(1 - \rho))}, the Leroux and SAR
 #'   correlations uniform priors, and the coefficients \eqn{N(0, 1000)}. On \code{mys} the
@@ -408,20 +409,17 @@ print.fastsae_engine <- function(x, ...) {
 
 #' Default prior on the standard deviations of the random effects
 #'
-#' Gaussian models: a half-normal prior on each random-effect SD with scale
-#' s = sd of the observed responses (sigma cannot exceed it, since
-#' Var(y) = Var(x'beta) + sigma^2 + E[vardir], so the prior only fixes the scale).
-#' Other families: INLA's PC prior P(sigma > 1) = `.prior_pc_alpha` on the link
-#' scale (logit, log), which has no unit. INLA's PC prior with U = 1 on the
-#' response scale is informative for a response in large units: on `mys` with y
-#' in tenths, the estimates moved by up to 4.1 posterior SD. In a simulation
-#' (Fay-Herriot, 15-60 areas) the 95% intervals covered 93-97% with the
-#' half-normal prior, as the EBLUP intervals, and 85-95% with PC priors scaled to
-#' sd(y) (alpha 0.01-0.1). Both engines use these priors.
-#' @noRd
-.prior_pc_alpha <- 0.01
-
-#' @rdname dot-prior_pc_alpha
+#' A half-normal prior on each random-effect SD, with scale s = sd of the observed
+#' responses for Gaussian models (sigma cannot exceed it, since
+#' Var(y) = Var(x'beta) + sigma^2 + E[vardir], so the prior only fixes the scale)
+#' and s = 1 on the link scale (logit, log) of the other families. INLA's PC prior
+#' P(sigma > 1) = 0.01 is informative for a response in large units: on `mys` with
+#' y in tenths, the estimates moved by up to 4.1 posterior SD. In simulations the
+#' 95% intervals covered 93-97% with the half-normal prior (Fay-Herriot, as the
+#' EBLUP intervals) against 85-95% with PC priors scaled to sd(y), and 93-95%
+#' against 92-94% for binomial and beta (half-normal(2.5), as tipsae: 0-0.5 points
+#' more, but the area SD up to 18% too large with 15 areas). Both engines use these
+#' priors (benchmarks/validation/default_sd_prior*.R).
 #' @noRd
 .prior_sd_scale <- function(y) {
   if (is.null(y)) {
@@ -441,14 +439,10 @@ print.fastsae_engine <- function(x, ...) {
   ))
 }
 
-#' @rdname dot-prior_pc_alpha
+#' @rdname dot-prior_sd_scale
 #' @noRd
 .default_prior_prec <- function(y, family) {
-  if (family == "gaussian") {
-    .half_normal_prec(.prior_sd_scale(y))
-  } else {
-    list(prior = "pc.prec", param = c(1, .prior_pc_alpha))
-  }
+  .half_normal_prec(if (family == "gaussian") .prior_sd_scale(y) else 1)
 }
 
 #' Response of a model formula, or NULL when it cannot be evaluated yet
