@@ -10,7 +10,7 @@ hb_area(
   domain = NULL,
   time = NULL,
   family = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"),
-  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "slm"),
+  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "sar", "slm"),
   temporal = c("none", "rw1", "rw2", "ar1", "iid"),
   st_interaction = c("none", "domain-specific", "separable", "type1", "type2", "type3",
     "type4"),
@@ -69,10 +69,18 @@ Options:
   \item \code{"bym"}: Classic Besag-York-Mollié (1991) model.
   \item \code{"besag"}: Intrinsic Conditional Autoregressive (ICAR) model.
   \item \code{"generic1"}: Leroux spatial autoregressive model.
+  \item \code{"sar"}: Simultaneous autoregressive (SAR) area effect,
+    \eqn{\eta = X\beta + u}, \eqn{u = (I - \rho W)^{-1}\epsilon},
+    \eqn{\epsilon \sim N(0, \sigma^2 I)}: the model of \code{\link{eblup_sfh}}
+    (Petrucci and Salvati, 2006), with \eqn{\rho} uniform on \eqn{|\rho| \le 0.999}.
+    With INLA it is the \code{"slm"} latent model with a zero covariate matrix, so that
+    only \eqn{\epsilon} is filtered. Not combinable with the \code{"type3"},
+    \code{"type4"} and \code{"separable"} interactions, which are CAR fields.
   \item \code{"slm"}: Spatial lag model, \eqn{\eta = (I - \rho W)^{-1}(X\beta + \epsilon)}
     (INLA \code{"slm"}). Note that the covariates are spatially filtered too, so this
     is \emph{not} the Bayesian counterpart of \code{\link{eblup_sfh}}, whose SAR
     structure applies to the random effect only: \eqn{X\beta + (I - \rho W)^{-1}\epsilon}.
+    Use \code{"sar"} for that model.
 }}
 
 \item{temporal}{Character string specifying the temporal random effect structure:
@@ -126,8 +134,8 @@ match the total number of domains in \code{data}. Required when \code{spatial !=
 The CAR models (\code{"besag"}, \code{"bym"}, \code{"bym2"}, \code{"leroux"}) use only the
 neighbourhood pattern \code{W > 0}, not the weights: give a neighbourhood graph (for
 example \code{create_weights(method = "queen")} or \code{"knn"}). A dense matrix such as
-distance-decay weights becomes a nearly complete graph and gives a warning. \code{"slm"}
-uses the row-standardised weights.}
+distance-decay weights becomes a nearly complete graph and gives a warning. \code{"sar"}
+and \code{"slm"} use the weights, row-standardised (as \code{\link{eblup_sfh}} expects).}
 
 \item{vardir}{Vector, column name, or formula specifying the sampling variances of the
 direct estimator (for \code{family = "gaussian"} or \code{family = "beta"}).}
@@ -215,7 +223,7 @@ An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containi
 \description{
 Estimates small area parameters using area-level Hierarchical Bayesian models
 under various distributions (Gaussian, Binomial, Poisson, Negative Binomial, Beta, Gamma)
-and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux).
+and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux, SAR).
 Two estimation engines are available through \code{engine}:
 \itemize{
   \item \code{\link{inla_engine}()} (default, or \code{"inla"}): Integrated Nested
@@ -330,6 +338,9 @@ if (check_numpyro_available()) {
 \references{
 \enumerate{
   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
+  \item Petrucci, A., and Salvati, N. (2006). Small area estimation for spatial correlation in
+    watershed erosion assessment. \emph{Journal of Agricultural, Biological, and Environmental
+    Statistics}, 11(2), 169-182.
   \item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
     \emph{Survey Methodology}, 34(1), 29-36.
   \item Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An intuitive Bayesian spatial model

@@ -3,7 +3,7 @@
 #' @description
 #' Estimates small area parameters using area-level Hierarchical Bayesian models
 #' under various distributions (Gaussian, Binomial, Poisson, Negative Binomial, Beta, Gamma)
-#' and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux).
+#' and spatial random effect structures (non-spatial, BYM2, BYM, Besag/ICAR, Leroux, SAR).
 #' Two estimation engines are available through \code{engine}:
 #' \itemize{
 #'   \item \code{\link{inla_engine}()} (default, or \code{"inla"}): Integrated Nested
@@ -97,10 +97,18 @@
 #'     \item \code{"bym"}: Classic Besag-York-Mollié (1991) model.
 #'     \item \code{"besag"}: Intrinsic Conditional Autoregressive (ICAR) model.
 #'     \item \code{"generic1"}: Leroux spatial autoregressive model.
+#'     \item \code{"sar"}: Simultaneous autoregressive (SAR) area effect,
+#'       \eqn{\eta = X\beta + u}, \eqn{u = (I - \rho W)^{-1}\epsilon},
+#'       \eqn{\epsilon \sim N(0, \sigma^2 I)}: the model of \code{\link{eblup_sfh}}
+#'       (Petrucci and Salvati, 2006), with \eqn{\rho} uniform on \eqn{|\rho| \le 0.999}.
+#'       With INLA it is the \code{"slm"} latent model with a zero covariate matrix, so that
+#'       only \eqn{\epsilon} is filtered. Not combinable with the \code{"type3"},
+#'       \code{"type4"} and \code{"separable"} interactions, which are CAR fields.
 #'     \item \code{"slm"}: Spatial lag model, \eqn{\eta = (I - \rho W)^{-1}(X\beta + \epsilon)}
 #'       (INLA \code{"slm"}). Note that the covariates are spatially filtered too, so this
 #'       is \emph{not} the Bayesian counterpart of \code{\link{eblup_sfh}}, whose SAR
 #'       structure applies to the random effect only: \eqn{X\beta + (I - \rho W)^{-1}\epsilon}.
+#'       Use \code{"sar"} for that model.
 #'   }
 #' @param W Proximity or spatial adjacency matrix. Can be a square \code{matrix},
 #'   \code{Matrix}, or \code{spdep} \code{nb} or \code{listw} object. Dimensions must
@@ -108,8 +116,8 @@
 #'   The CAR models (\code{"besag"}, \code{"bym"}, \code{"bym2"}, \code{"leroux"}) use only the
 #'   neighbourhood pattern \code{W > 0}, not the weights: give a neighbourhood graph (for
 #'   example \code{create_weights(method = "queen")} or \code{"knn"}). A dense matrix such as
-#'   distance-decay weights becomes a nearly complete graph and gives a warning. \code{"slm"}
-#'   uses the row-standardised weights.
+#'   distance-decay weights becomes a nearly complete graph and gives a warning. \code{"sar"}
+#'   and \code{"slm"} use the weights, row-standardised (as \code{\link{eblup_sfh}} expects).
 #' @param vardir Vector, column name, or formula specifying the sampling variances of the
 #'   direct estimator (for \code{family = "gaussian"} or \code{family = "beta"}).
 #' @param trials Vector, column name, or formula specifying sample sizes / total trials
@@ -230,6 +238,9 @@
 #' @references
 #' \enumerate{
 #'   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
+#'   \item Petrucci, A., and Salvati, N. (2006). Small area estimation for spatial correlation in
+#'     watershed erosion assessment. \emph{Journal of Agricultural, Biological, and Environmental
+#'     Statistics}, 11(2), 169-182.
 #'   \item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
 #'     \emph{Survey Methodology}, 34(1), 29-36.
 #'   \item Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An intuitive Bayesian spatial model
@@ -303,7 +314,7 @@ hb_area <- function(
   domain = NULL,
   time = NULL,
   family = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"),
-  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "slm"),
+  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "sar", "slm"),
   temporal = c("none", "rw1", "rw2", "ar1", "iid"),
   st_interaction = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"),
   W = NULL,
@@ -323,7 +334,7 @@ hb_area <- function(
   call_matched <- match.call()
   benchmark_method <- match.arg(benchmark_method)
   family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"))
-  spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "bym", "besag", "generic1", "leroux", "slm"))
+  spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "bym", "besag", "generic1", "leroux", "sar", "slm"))
   if (spatial == "leroux") spatial <- "generic1" # same model; INLA calls it generic1
   temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
   st_interaction <- match.arg(tolower(st_interaction), choices = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"))
@@ -349,6 +360,12 @@ hb_area <- function(
     cli::cli_abort(c(
       "{.code spatial = \"slm\"} cannot be combined with {.code st_interaction = \"separable\"}.",
       "i" = "Use {.code spatial = \"bym2\"}, {.code \"besag\"} or {.code \"leroux\"} for a spatial field evolving over time."
+    ))
+  }
+  if (spatial == "sar" && st_interaction %in% c("type3", "type4", "separable")) {
+    cli::cli_abort(c(
+      "{.code spatial = \"sar\"} cannot be combined with {.code st_interaction = \"{st_interaction}\"}.",
+      "i" = "This interaction is a CAR field on the graph of {.arg W}; use {.code spatial = \"bym2\"}, {.code \"besag\"} or {.code \"leroux\"}."
     ))
   }
   if (st_interaction %in% c("type3", "type4") && !spatial %in% c("bym2", "bym", "besag", "generic1")) {
@@ -735,6 +752,25 @@ hb_area <- function(
     if (st_interaction != "separable") {
       rand_terms <- c(rand_terms, "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, hyper = hyper_generic1)")
     }
+  } else if (spatial == "sar") {
+    # SAR random effect of eblup_sfh(): u = (I - rho W)^{-1} eps. INLA's "slm" is
+    # (I - rho W)^{-1} (X beta + eps); with a zero X only eps is filtered and the
+    # covariates stay fixed effects. rho is uniform on |rho| <= 0.999, the range of
+    # eblup_sfh() (W is row-standardised).
+    rho_range <- c(-0.999, 0.999)
+    n_sar <- nrow(W_obj$W_mat)
+    args_sar <- list(
+      rho.min = rho_range[1],
+      rho.max = rho_range[2],
+      W = Matrix::Matrix(W_obj$W_mat, sparse = TRUE),
+      X = matrix(0, n_sar, 1),
+      Q.beta = Matrix::Diagonal(1, 1)
+    )
+    hyper_sar <- list(
+      prec = prior_prec,
+      rho = if (!is.null(prior_rho)) prior_rho else list(prior = "logitbeta", param = c(1, 1))
+    )
+    rand_terms <- c(rand_terms, "f(..domain_id.., model = 'slm', args.slm = args_sar, hyper = hyper_sar)")
   } else if (spatial == "slm") {
     W_mat <- W_obj$W_mat
     rs <- rowSums(W_mat)
@@ -923,7 +959,7 @@ hb_area <- function(
   # other non-Gaussian models both modes matched Stan, and classic was much
   # slower for many areas (beta, n = 2000: 32 s against 1.3 s), so they keep
   # INLA's default. inla_engine(inla.mode = ) overrides.
-  use_classic <- family == "gaussian" || spatial %in% c("generic1", "slm")
+  use_classic <- family == "gaussian" || spatial %in% c("generic1", "sar", "slm")
   if (use_classic && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
   # User settings (inla_engine(...)) override; control.* lists are merged
   inla_args <- utils::modifyList(inla_args, list(...))

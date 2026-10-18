@@ -323,6 +323,7 @@ def fit_numpyro_hb(
     scale_factor=1.0,
     eig_values=None,
     eig_vectors=None,
+    W_sar=None,
     num_warmup=500,
     num_samples=1000,
     num_chains=2,
@@ -405,6 +406,21 @@ def fit_numpyro_hb(
         evals_all = jnp.asarray(evals, dtype=jnp.float32)
         evecs_all = jnp.asarray(evecs, dtype=jnp.float32)
 
+    # SAR: u = (I - rho W)^{-1} eps. When W has a real spectrum, W = V diag(lam) V^{-1}
+    # (e.g. a row-standardised symmetric graph) and the solve is two matrix-vector
+    # products for any rho; otherwise it is a linear solve per evaluation.
+    sar_V = sar_Vinv = sar_lam = sar_W = None
+    if spatial == "sar" and W_sar is not None:
+        W_np = np.asarray(W_sar, dtype=np.float64)
+        lam, V = np.linalg.eig(W_np)
+        if (np.max(np.abs(lam.imag)) < 1e-8 and np.max(np.abs(V.imag)) < 1e-8
+                and np.linalg.cond(V.real) < 1e6):
+            sar_V = jnp.asarray(V.real, dtype=jnp.float32)
+            sar_Vinv = jnp.asarray(np.linalg.inv(V.real), dtype=jnp.float32)
+            sar_lam = jnp.asarray(lam.real, dtype=jnp.float32)
+        else:
+            sar_W = jnp.asarray(W_np, dtype=jnp.float32)
+
     pen_idx = np.where(int_mask == 0.0)[0]
 
     def model():
@@ -482,6 +498,17 @@ def fit_numpyro_hb(
                 u_spatial = sigma_s * jnp.dot(evecs_all, scale_leroux * z_leroux)
                 numpyro.deterministic("sigma2_u", sigma_s ** 2)
                 numpyro.deterministic("rho_spatial", rho_leroux)
+            elif spatial == "sar":
+                sigma_s = numpyro.sample("sigma_s", dist.HalfNormal(1.0))
+                rho_sar = numpyro.sample("rho_sar", dist.Uniform(-0.999, 0.999))
+                z_sar = numpyro.sample("z_sar", dist_rand.expand([D]))
+                if sar_V is not None:
+                    u_sar = jnp.dot(sar_V, jnp.dot(sar_Vinv, z_sar) / (1.0 - rho_sar * sar_lam))
+                else:
+                    u_sar = jnp.linalg.solve(jnp.eye(D) - rho_sar * sar_W, z_sar)
+                u_spatial = sigma_s * u_sar
+                numpyro.deterministic("sigma2_u", sigma_s ** 2)
+                numpyro.deterministic("rho_spatial", rho_sar)
 
         # 2. Temporal Random Effect
         u_temporal = jnp.zeros(T)
