@@ -171,6 +171,27 @@
   used (posterior draws or Wang-Fuller-Qu) instead of always reporting
   Wang-Fuller-Qu.
 
+#### SAR area effect in `hb_area()`
+
+- `hb_area(spatial = "sar")`: the simultaneous autoregressive area
+  effect $`u = (I - \rho W)^{-1}\varepsilon`$ of
+  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
+  i.e. its Bayesian counterpart (`"slm"` also filters the covariates).
+  $`\rho`$ is uniform on $`|\rho| \le 0.999`$ and `W` is
+  row-standardised. INLA fits it as its `"slm"` model with a zero
+  covariate matrix (in `"classic"` mode);
+  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  samples a non-centred $`u`$ through the eigendecomposition of `W` (a
+  linear solve when `W` has a complex spectrum). Not combinable with the
+  `"type3"`/`"type4"`/`"separable"` interactions.
+  - With known `vardir`, INLA is within 0.004 posterior SD of the exact
+    posterior (grid over $`\sigma`$ and $`\rho`$), and with 150 domains
+    within 0.06 SD of
+    [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    (SD / $`\sqrt{\mathrm{mse}}`$ 0.98-1.02, also for unsampled
+    domains). The JAX engine agrees with INLA within 0.22 SD (different
+    default priors).
+
 #### Unsampled domains and missing periods in `eblup_stfh()`
 
 - [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)

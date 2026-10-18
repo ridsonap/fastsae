@@ -3,8 +3,8 @@
 Estimates small area parameters using area-level Hierarchical Bayesian
 models under various distributions (Gaussian, Binomial, Poisson,
 Negative Binomial, Beta, Gamma) and spatial random effect structures
-(non-spatial, BYM2, BYM, Besag/ICAR, Leroux). Two estimation engines are
-available through `engine`:
+(non-spatial, BYM2, BYM, Besag/ICAR, Leroux, SAR). Two estimation
+engines are available through `engine`:
 
 - [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
   (default, or `"inla"`): Integrated Nested Laplace Approximations
@@ -31,7 +31,7 @@ hb_area(
   domain = NULL,
   time = NULL,
   family = c("gaussian", "binomial", "poisson", "nbinomial", "beta", "gamma"),
-  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "slm"),
+  spatial = c("none", "bym2", "bym", "besag", "generic1", "leroux", "sar", "slm"),
   temporal = c("none", "rw1", "rw2", "ar1", "iid"),
   st_interaction = c("none", "domain-specific", "separable", "type1", "type2", "type3",
     "type4"),
@@ -116,12 +116,22 @@ hb_area(
 
   - `"generic1"`: Leroux spatial autoregressive model.
 
+  - `"sar"`: Simultaneous autoregressive (SAR) area effect, \\\eta =
+    X\beta + u\\, \\u = (I - \rho W)^{-1}\epsilon\\, \\\epsilon \sim
+    N(0, \sigma^2 I)\\: the model of
+    [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    (Petrucci and Salvati, 2006), with \\\rho\\ uniform on \\\|\rho\|
+    \le 0.999\\. With INLA it is the `"slm"` latent model with a zero
+    covariate matrix, so that only \\\epsilon\\ is filtered. Not
+    combinable with the `"type3"`, `"type4"` and `"separable"`
+    interactions, which are CAR fields.
+
   - `"slm"`: Spatial lag model, \\\eta = (I - \rho W)^{-1}(X\beta +
     \epsilon)\\ (INLA `"slm"`). Note that the covariates are spatially
     filtered too, so this is *not* the Bayesian counterpart of
     [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
     whose SAR structure applies to the random effect only: \\X\beta +
-    (I - \rho W)^{-1}\epsilon\\.
+    (I - \rho W)^{-1}\epsilon\\. Use `"sar"` for that model.
 
 - temporal:
 
@@ -199,7 +209,10 @@ hb_area(
   neighbourhood pattern `W > 0`, not the weights: give a neighbourhood
   graph (for example `create_weights(method = "queen")` or `"knn"`). A
   dense matrix such as distance-decay weights becomes a nearly complete
-  graph and gives a warning. `"slm"` uses the row-standardised weights.
+  graph and gives a warning. `"sar"` and `"slm"` use the weights,
+  row-standardised (as
+  [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+  expects).
 
 - vardir:
 
@@ -415,40 +428,45 @@ repository (`benchmarks/validation`).
 1.  Rao, J. N. K., and Molina, I. (2015). *Small Area Estimation*. John
     Wiley & Sons.
 
-2.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
+2.  Petrucci, A., and Salvati, N. (2006). Small area estimation for
+    spatial correlation in watershed erosion assessment. *Journal of
+    Agricultural, Biological, and Environmental Statistics*, 11(2),
+    169-182.
+
+3.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
     under a restriction. *Survey Methodology*, 34(1), 29-36.
 
-3.  Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An
+4.  Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An
     intuitive Bayesian spatial model for disease mapping that accounts
     for scaling. *Statistical Methods in Medical Research*, 25(4),
     1145-1165.
 
-4.  Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area
+5.  Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area
     estimation with spatio-temporal Fay-Herriot models. *Computational
     Statistics & Data Analysis*, 58, 308-325.
 
-5.  De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools
+6.  De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools
     for Mapping Proportions and Indicators on the Unit Interval.
     *Journal of Statistical Software*, 108(1), 1-36.
 
-6.  Phan, D., Pradhan, N., and Jankowiak, M. (2019). Composable effects
+7.  Phan, D., Pradhan, N., and Jankowiak, M. (2019). Composable effects
     for flexible and accelerated probabilistic programming in NumPyro.
     *arXiv:1912.11554*.
 
-7.  Piironen, J., and Vehtari, A. (2017). Sparsity information and
+8.  Piironen, J., and Vehtari, A. (2017). Sparsity information and
     regularization in the horseshoe and other shrinkage priors.
     *Electronic Journal of Statistics*, 11(2), 5018-5051.
 
-8.  Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian
+9.  Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian
     inference for latent Gaussian models by using integrated nested
     Laplace approximations. *Journal of the Royal Statistical Society:
     Series B*, 71(2), 319-392.
 
-9.  Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time
+10. Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time
     variation in disease risk. *Statistics in Medicine*, 19(17-18),
     2555-2567.
 
-10. van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A
+11. van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A
     new avenue for Bayesian inference with INLA. *Computational
     Statistics & Data Analysis*, 181, 107692.
 
@@ -514,19 +532,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.339909    7.339909 0.7461424 0.5567286 10.16555 5.898834
-#> 2      2 7.599650 6.498475    6.498475 0.8065333 0.6504960 12.41112 4.946492
-#> 3      3 5.514137 5.050329    5.050329 0.7981018 0.6369664 15.80297 3.500408
-#> 4      4 3.869326 4.304519    4.304519 0.7105255 0.5048465 16.50650 2.900282
-#> 5      5 6.305063 6.322252    6.322252 0.8809227 0.7760248 13.93369 4.591941
+#> 1      1 8.359527 7.339909    7.339909 0.7461421 0.5567281 10.16555 5.898835
+#> 2      2 7.599650 6.498475    6.498475 0.8065330 0.6504955 12.41111 4.946493
+#> 3      3 5.514137 5.050329    5.050329 0.7981017 0.6369664 15.80297 3.500408
+#> 4      4 3.869326 4.304518    4.304518 0.7105255 0.5048465 16.50650 2.900282
+#> 5      5 6.305063 6.322252    6.322252 0.8809227 0.7760249 13.93369 4.591941
 #> 6      6 3.926807 4.085713    4.085713 0.5728376 0.3281429 14.02050 2.959794
 #>   ci_upper random_effect    vardir
-#> 1 8.823249    2.67457937 0.6618838
-#> 2 8.108174    2.29078833 0.8374691
-#> 3 6.632283    0.90454266 0.8822257
-#> 4 5.688279   -1.16018318 0.6581716
-#> 5 8.053110   -0.02602776 1.2788021
-#> 6 5.206918   -0.71974698 0.3878004
+#> 1 8.823249    2.67457964 0.6618838
+#> 2 8.108174    2.29078856 0.8374691
+#> 3 6.632283    0.90454278 0.8822257
+#> 4 5.688279   -1.16018328 0.6581716
+#> 5 8.053110   -0.02602775 1.2788021
+#> 6 5.206918   -0.71974703 0.3878004
 #> ... and 36 more rows.
 #> 
 #> 
@@ -539,14 +557,14 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Self-Benchmarking: Active (benchmarked posterior draws)
-#> Random effect variance (sigma2_u): 1.884568 
+#> Random effect variance (sigma2_u): 1.884566 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  3.0427e+00  6.9228e-01  4.3952e+00  1.1066e-05  1.6969e+00
-#> x1          -1.1730e-03  8.7918e-03 -1.3343e-01  8.9386e-01 -1.8740e-02
+#> x1          -1.1730e-03  8.7917e-03 -1.3343e-01  8.9386e-01 -1.8740e-02
 #> x2           5.1639e-02  5.5506e-02  9.3033e-01  3.5220e-01 -5.6669e-02
-#> x3           3.7778e-02  5.2655e-02  7.1746e-01  4.7309e-01 -6.6889e-02
+#> x3           3.7778e-02  5.2655e-02  7.1747e-01  4.7309e-01 -6.6888e-02
 #>             ci_upper
 #> (Intercept)   4.4243
 #> x1            0.0159
@@ -555,19 +573,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.254819    7.339910 0.7738841 0.5988966 10.66717 5.751732
-#> 2      2 7.599650 6.425882    6.498475 0.8378889 0.7020578 13.03928 4.777720
-#> 3      3 5.514137 4.978483    5.050329 0.8260296 0.6823250 16.59200 3.395866
-#> 4      4 3.869326 4.225347    4.304518 0.7307925 0.5340576 17.29544 2.843183
-#> 5      5 6.305063 6.316370    6.322252 0.8578261 0.7358656 13.58100 4.649366
-#> 6      6 3.926807 4.039297    4.085713 0.6663260 0.4439903 16.49609 2.772944
+#> 1      1 8.359527 7.258793    7.339907 0.8017704 0.6428358 11.04551 5.702937
+#> 2      2 7.599650 6.427851    6.498473 0.8429050 0.7104889 13.11333 4.814560
+#> 3      3 5.514137 4.984474    5.050328 0.8284980 0.6864089 16.62157 3.391929
+#> 4      4 3.869326 4.225733    4.304519 0.7396150 0.5470303 17.50264 2.838160
+#> 5      5 6.305063 6.311428    6.322252 0.8503655 0.7231215 13.47342 4.655828
+#> 6      6 3.926807 4.041854    4.085714 0.6614284 0.4374875 16.36448 2.796725
 #>   ci_upper random_effect    vardir hb_unbenchmarked
-#> 1 8.813243    2.67457997 0.6618838         7.339910
-#> 2 8.039971    2.29078890 0.8374691         6.498475
-#> 3 6.599053    0.90454272 0.8822257         5.050329
-#> 4 5.635691   -1.16018360 0.6581716         4.304518
-#> 5 7.981333   -0.02602782 1.2788021         6.322252
-#> 6 5.340906   -0.71974725 0.3878004         4.085713
+#> 1 8.863288    2.67457776 0.6618838         7.339907
+#> 2 8.123331    2.29078685 0.8374691         6.498473
+#> 3 6.646705    0.90454216 0.8822257         5.050328
+#> 4 5.662191   -1.16018237 0.6581716         4.304519
+#> 5 7.899649   -0.02602774 1.2788021         6.322252
+#> 6 5.316078   -0.71974645 0.3878004         4.085714
 #> ... and 36 more rows.
 #> 
 #> 
@@ -580,37 +598,37 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (BYM2)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 1.937365 
-#> Spatial autocorrelation (rho): 0.1224 
-#> Spatial mixing fraction (phi): 0.1224 
+#> Random effect variance (sigma2_u): 1.937366 
+#> Spatial autocorrelation (rho): 0.1223 
+#> Spatial mixing fraction (phi): 0.1223 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.0276e+00  6.9089e-01  4.3822e+00  1.1748e-05  1.6838e+00
-#> x1          -5.9971e-04  8.8276e-03 -6.7936e-02  9.4584e-01 -1.8204e-02
-#> x2           4.7989e-02  5.5708e-02  8.6143e-01  3.8900e-01 -6.0861e-02
-#> x3           4.1056e-02  5.2815e-02  7.7736e-01  4.3695e-01 -6.3833e-02
+#> (Intercept)  3.02752781  0.69084345  4.38236448  0.00001174  1.68380747
+#> x1          -0.00059740  0.00882714 -0.06767764  0.94604225 -0.01820139
+#> x2           0.04797489  0.05570608  0.86121464  0.38911984 -0.06087052
+#> x3           0.04107026  0.05281287  0.77765624  0.43677169 -0.06381647
 #>             ci_upper
-#> (Intercept)   4.4056
+#> (Intercept)   4.4054
 #> x1            0.0166
 #> x2            0.1585
 #> x3            0.1441
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.297591    7.297591 0.7516026 0.5649065 10.29933 5.844016
-#> 2      2 7.599650 6.486363    6.486363 0.8083980 0.6535073 12.46304 4.929573
-#> 3      3 5.514137 5.023109    5.023109 0.7981442 0.6370341 15.88945 3.473773
-#> 4      4 3.869326 4.307470    4.307470 0.7084577 0.5019122 16.44719 2.907183
-#> 5      5 6.305063 6.285048    6.285048 0.8841425 0.7817079 14.06739 4.549580
-#> 6      6 3.926807 4.109071    4.109071 0.5750967 0.3307362 13.99578 2.978716
+#> 1      1 8.359527 7.297203    7.297203 0.7516677 0.5650043 10.30076 5.843563
+#> 2      2 7.599650 6.486041    6.486041 0.8084466 0.6535860 12.46441 4.929234
+#> 3      3 5.514137 5.022871    5.022871 0.7981268 0.6370063 15.88985 3.473604
+#> 4      4 3.869326 4.307585    4.307585 0.7084341 0.5018789 16.44620 2.907319
+#> 5      5 6.305063 6.284947    6.284947 0.8840923 0.7816192 14.06682 4.549573
+#> 6      6 3.926807 4.109175    4.109175 0.5750887 0.3307270 13.99523 2.978831
 #>   ci_upper random_effect    vardir
-#> 1 8.789838    2.61796666 0.6618838
-#> 2 8.098498    2.27893643 0.8374691
-#> 3 6.605626    0.91269124 0.8822257
-#> 4 5.687087   -1.12714558 0.6581716
-#> 5 8.023153   -0.05616079 1.2788021
-#> 6 5.234650   -0.66328497 0.3878004
+#> 1 8.789643    2.61755018 0.6618838
+#> 2 8.098353    2.27865273 0.8374691
+#> 3 6.605393    0.91263435 0.8822257
+#> 4 5.687135   -1.12689313 0.6581716
+#> 5 8.022960   -0.05623204 1.2788021
+#> 6 5.234734   -0.66301973 0.3878004
 #> ... and 36 more rows.
 #> 
 
