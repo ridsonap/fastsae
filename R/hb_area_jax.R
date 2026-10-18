@@ -80,6 +80,8 @@
     device = engine$device,
     seed = engine$seed,
     prior_beta = engine$prior_beta,
+    priors = engine$priors,
+    pc_alpha = .prior_pc_alpha,
     robust = engine$robust,
     return_draws = TRUE,
     progress_bar = engine$progress

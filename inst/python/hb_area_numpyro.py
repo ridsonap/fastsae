@@ -119,6 +119,28 @@ def horseshoe_shrinkage(tau, lam, c2, xp=np):
     lam_tilde = xp.sqrt(c2) * lam / xp.sqrt(c2 + tau ** 2 * lam ** 2)
     return lam_tilde, 1.0 / (1.0 + (tau * lam_tilde) ** 2)
 
+def pc_bym2_phi_setup(laplacian_eigenvalues, scale_factor, u=0.5, alpha=0.5):
+    """PC prior of the BYM2 mixing parameter phi (Riebler et al., 2016), as INLA's
+    inla.pc.bym.phi(): an exponential prior with rate lam on the distance
+    d(phi) = sqrt(2 KLD), 2 KLD = sum_i [phi (g_i - 1) - log(1 + phi (g_i - 1))], where
+    g_i are the eigenvalues of the scaled ICAR covariance (0 in its null space), and
+    lam such that P(phi < u) = alpha. Returns (g - 1, lam)."""
+    ev = np.asarray(laplacian_eigenvalues, dtype=np.float64)
+    g = np.where(ev > 1e-6, 1.0 / np.maximum(ev, 1e-6) / scale_factor, 0.0)
+    gm1 = g - 1.0
+    x = u * gm1
+    d_u = np.sqrt(max(np.sum(x - np.log1p(x)), 0.0))
+    return gm1, float(-np.log(1.0 - alpha) / d_u)
+
+
+def pc_bym2_phi_logdens(phi, gm1, lam, xp=np):
+    """Log density of the PC prior of phi (see pc_bym2_phi_setup)."""
+    x = phi * gm1
+    d = xp.sqrt(xp.maximum(xp.sum(x - xp.log1p(x)), 1e-30))
+    dd = 0.5 * xp.sum(gm1 * x / (1.0 + x)) / d  # d'(phi)
+    return xp.log(lam) - lam * d + xp.log(xp.abs(dd))
+
+
 def build_temporal_operator(T, temporal, rho, jnp):
     """
     Constructs a numerically stable non-centered 1D temporal operator (T x T).
@@ -334,6 +356,9 @@ def fit_numpyro_hb(
     benchmark_target=None,
     benchmark_method="logit",
     prior_beta="normal",
+    priors="inla",
+    pc_alpha=0.01,
+    pc_phi=(0.5, 0.5),
     robust=False,
     twofold_weights=None,
     return_draws=False,
@@ -423,9 +448,41 @@ def fit_numpyro_hb(
 
     pen_idx = np.where(int_mask == 0.0)[0]
 
+    # Default priors. "inla": those of inla_engine(), so both engines fit the same model
+    # (.default_prior_prec() in R). Random-effect SDs: half-normal with scale sd(y) for
+    # Gaussian models (sigma_std = sigma / y_s ~ HalfNormal(sd(y) / y_s) on the standardised
+    # scale), the PC prior P(sigma > 1) = pc_alpha on the link scale otherwise.
+    # "weakly_informative": half-normal with scale 1 on the (standardised) model scale.
+    inla_priors = priors == "inla"
+    if family == "gaussian" and len(obs_idx) > 1:
+        sd_scale = float(np.std(y_np[obs_idx].astype(np.float64), ddof=1))
+        if not np.isfinite(sd_scale) or sd_scale <= 0:
+            sd_scale = 1.0
+    else:
+        sd_scale = 1.0
+    pc_rate = -np.log(pc_alpha)
+
+    def sample_sd(name):
+        if inla_priors and family == "gaussian":
+            return numpyro.sample(name, dist.HalfNormal(sd_scale / y_s))
+        if inla_priors:
+            return numpyro.sample(name, dist.Exponential(pc_rate))
+        return numpyro.sample(name, dist.HalfNormal(1.0))
+
+    pc_phi_gm1 = None
+    pc_phi_lam = 1.0
+    if inla_priors and spatial == "bym2" and evals_all is not None:
+        gm1_np, pc_phi_lam = pc_bym2_phi_setup(np.asarray(evals_all), scale_factor, pc_phi[0], pc_phi[1])
+        pc_phi_gm1 = jnp.asarray(gm1_np, dtype=jnp.float32)
+
     def model():
         # Regression coefficients
-        beta_scale = 2.5 if family in ("beta", "binomial") else 10.0
+        if inla_priors:
+            # INLA: N(0, 1000) on the original scale (its flat intercept also gets it:
+            # a wider one let chains drift with the area effects on the centred scale)
+            beta_scale = np.sqrt(1000.0) / y_s
+        else:
+            beta_scale = 2.5 if family in ("beta", "binomial") else 10.0
         if prior_beta == "horseshoe" and len(pen_idx) > 0:
             # Regularized Horseshoe (Finnish Horseshoe) prior (Carvalho et al. 2010; Piironen & Vehtari 2017)
             # Penalized coefficients: every column except the intercept (if any)
@@ -462,18 +519,18 @@ def fit_numpyro_hb(
         # Avoid double-counting spatial field if separable spatio-temporal structure is active
         if st_interaction != "separable":
             if spatial == "none":
-                sigma_s = numpyro.sample("sigma_s", dist.HalfNormal(1.0))
+                sigma_s = sample_sd("sigma_s")
                 z_s = numpyro.sample("z_s", dist_rand.expand([D]))
                 u_spatial = sigma_s * z_s
                 numpyro.deterministic("sigma2_u", sigma_s ** 2)
             elif spatial == "besag":
-                sigma_s = numpyro.sample("sigma_s", dist.HalfNormal(1.0))
+                sigma_s = sample_sd("sigma_s")
                 z_icar = numpyro.sample("z_icar", dist_rand.expand([icar_rank]))
                 u_spatial = sigma_s * jnp.dot(icar_basis, z_icar)
                 numpyro.deterministic("sigma2_u", sigma_s ** 2)
             elif spatial == "bym":
-                sigma_s = numpyro.sample("sigma_s", dist.HalfNormal(1.0))
-                sigma_iid = numpyro.sample("sigma_iid", dist.HalfNormal(1.0))
+                sigma_s = sample_sd("sigma_s")
+                sigma_iid = sample_sd("sigma_iid")
                 z_icar = numpyro.sample("z_icar", dist_rand.expand([icar_rank]))
                 z_iid = numpyro.sample("z_iid", dist_rand.expand([D]))
                 u_spatial = sigma_s * jnp.dot(icar_basis, z_icar) + sigma_iid * z_iid
@@ -481,8 +538,18 @@ def fit_numpyro_hb(
                 numpyro.deterministic("sigma2_iid", sigma_iid ** 2)
                 numpyro.deterministic("sigma2_u", sigma_s ** 2 + sigma_iid ** 2)
             elif spatial == "bym2":
-                sigma_s = numpyro.sample("sigma_s", dist.HalfNormal(1.0))
-                phi = numpyro.sample("phi", dist.Beta(1.0, 1.0))
+                sigma_s = sample_sd("sigma_s")
+                if pc_phi_gm1 is not None:
+                    # On logit(phi) in (-15, 12), the support of INLA's tabulated prior: the
+                    # untruncated PC prior puts about 10% of its mass at phi > 1 - 1e-8.
+                    phi_logit = numpyro.sample("phi_logit", dist.Uniform(-15.0, 12.0))
+                    phi = jax.nn.sigmoid(phi_logit)
+                    numpyro.factor(
+                        "phi_pc_prior",
+                        pc_bym2_phi_logdens(phi, pc_phi_gm1, pc_phi_lam, xp=jnp) + jnp.log(phi) + jnp.log1p(-phi)
+                    )
+                else:
+                    phi = numpyro.sample("phi", dist.Beta(1.0, 1.0))
                 z_iid = numpyro.sample("z_iid", dist_rand.expand([D]))
                 z_icar = numpyro.sample("z_icar", dist_rand.expand([icar_rank]))
                 u_icar = jnp.dot(icar_basis, z_icar)
@@ -490,7 +557,7 @@ def fit_numpyro_hb(
                 numpyro.deterministic("sigma2_u", sigma_s ** 2)
                 numpyro.deterministic("phi_est", phi)
             elif spatial == "leroux":
-                sigma_s = numpyro.sample("sigma_s", dist.HalfNormal(1.0))
+                sigma_s = sample_sd("sigma_s")
                 rho_leroux = numpyro.sample("rho_leroux", dist.Beta(1.0, 1.0))
                 prec_evals = rho_leroux * evals_all + (1.0 - rho_leroux)
                 scale_leroux = 1.0 / jnp.sqrt(jnp.maximum(prec_evals, 1e-6))
@@ -499,7 +566,7 @@ def fit_numpyro_hb(
                 numpyro.deterministic("sigma2_u", sigma_s ** 2)
                 numpyro.deterministic("rho_spatial", rho_leroux)
             elif spatial == "sar":
-                sigma_s = numpyro.sample("sigma_s", dist.HalfNormal(1.0))
+                sigma_s = sample_sd("sigma_s")
                 rho_sar = numpyro.sample("rho_sar", dist.Uniform(-0.999, 0.999))
                 z_sar = numpyro.sample("z_sar", dist_rand.expand([D]))
                 if sar_V is not None:
@@ -514,10 +581,15 @@ def fit_numpyro_hb(
         u_temporal = jnp.zeros(T)
         rho_t = 0.0
         if temporal != "none" and T > 1:
-            sigma_t = numpyro.sample("sigma_t", dist.HalfNormal(1.0))
+            sigma_t = sample_sd("sigma_t")
             numpyro.deterministic("sigma2_t", sigma_t ** 2)
             if temporal == "ar1":
-                rho_t = numpyro.sample("rho_t", dist.Uniform(-0.99, 0.99))
+                if inla_priors:
+                    # INLA: N(0, precision 0.15) on log((1 + rho) / (1 - rho))
+                    x_rho = numpyro.sample("rho_t_internal", dist.Normal(0.0, 1.0 / np.sqrt(0.15)))
+                    rho_t = numpyro.deterministic("rho_t", jnp.tanh(x_rho / 2.0))
+                else:
+                    rho_t = numpyro.sample("rho_t", dist.Uniform(-0.99, 0.99))
             C_T = build_temporal_operator(T, temporal, rho_t, jnp)
             z_t = numpyro.sample("z_t", dist.Normal(0.0, 1.0).expand([T]))
             u_temporal = sigma_t * jnp.dot(C_T, z_t)
@@ -531,7 +603,7 @@ def fit_numpyro_hb(
         # 3. Spatio-Temporal Interaction
         u_st = jnp.zeros(N)
         if st_interaction != "none" and temporal != "none" and T > 1:
-            sigma_st = numpyro.sample("sigma_st", dist.HalfNormal(1.0))
+            sigma_st = sample_sd("sigma_st")
             C_T = build_temporal_operator(T, temporal, rho_t, jnp)
 
             if st_interaction == "type1":
@@ -564,7 +636,7 @@ def fit_numpyro_hb(
 
         # Nested Sub-Area Random Effect (Torabi & Rao, 2014)
         if subarea_jnp is not None and num_subareas > 1:
-            sigma_sub = numpyro.sample("sigma_subarea", dist.HalfNormal(1.0))
+            sigma_sub = sample_sd("sigma_subarea")
             z_sub = numpyro.sample("z_subarea", dist_rand.expand([num_subareas]))
             u_subarea = sigma_sub * z_sub
             numpyro.deterministic("sigma2_subarea", sigma_sub ** 2)

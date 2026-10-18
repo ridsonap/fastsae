@@ -20,7 +20,7 @@
 #' \pkg{reticulate}. It needs Python with \code{jax} and \code{numpyro}; see
 #' \code{\link{setup_numpyro_env}} and \code{\link{check_numpyro_available}}.
 #' The fixed effects get a normal or a regularized horseshoe prior (Piironen
-#' and Vehtari 2017), and the variance components half-normal priors.
+#' and Vehtari 2017); see \code{priors} for the other priors.
 #' \code{spatial = "slm"} and \code{temporal = "rw2"} are not available.
 #' \code{jax_engine()} is available for \code{hb_area()}, \code{hb_unit()} and \code{hb_twofold()}.
 #'
@@ -57,29 +57,29 @@
 #' @param scale_model Logical; scale the intrinsic GMRF models (besag, bym,
 #'   rw1, rw2) to a generalized variance of 1. Default \code{TRUE}.
 #' @param prior_prec Prior for the precision of the area (domain) random
-#'   effect. \code{NULL} (default): the PC prior
-#'   \code{list(prior = "pc.prec", param = c(1, 0.01))} in \code{hb_area()} and
-#'   \code{hb_twofold()}, \code{list(prior = "loggamma", param = c(0.01, 0.01))}
-#'   in \code{hb_unit()}. The PC prior puts probability 0.01 on a standard
-#'   deviation above 1, which suits area-level responses such as proportions,
-#'   rates and log scales; unit-level responses are often on a raw scale (e.g.
-#'   hectares), where it would over-shrink the area effects, hence the vague
-#'   log-gamma prior. For an area-level response with a large scale, set
-#'   \code{prior_prec = list(prior = "pc.prec", param = c(U, 0.01))} with
-#'   \code{U} a plausible upper value of the area standard deviation.
+#'   effect. \code{NULL} (default), in all HB functions: for \code{family = "gaussian"}
+#'   a half-normal prior on the standard deviation with scale \eqn{s_y}, the standard
+#'   deviation of the observed responses (given to INLA as an \code{"expression:"}
+#'   prior); for the other families the PC prior
+#'   \code{list(prior = "pc.prec", param = c(1, 0.01))}, i.e. \eqn{P(\sigma > 1) = 0.01}
+#'   on the link scale. An area standard deviation cannot exceed \eqn{s_y}, so the
+#'   Gaussian prior only sets the scale and does not depend on the unit of the response.
+#'   A fixed PC prior with \eqn{U = 1} does: on \code{mys} with the response in tenths
+#'   it moved the estimates by up to 4.1 posterior SD, and in a simulation (Fay-Herriot,
+#'   15-60 areas) its 95\% intervals covered 85-92\% of the true values against 93-97\%
+#'   with the half-normal prior (the EBLUP intervals: 93-96\%).
 #' @param prior_phi Prior for the mixing parameter of \code{spatial = "bym2"}.
 #'   \code{NULL} (default): the PC prior \code{list(prior = "pc", param = c(0.5, 0.5))}.
 #' @param prior_rho Prior for the spatial correlation of
 #'   \code{spatial = "generic1"} or \code{"slm"} (\code{hb_area()} only);
 #'   \code{NULL} uses the INLA default.
 #' @param prior_prec_time Prior for the precision of the temporal random
-#'   effect (\code{hb_area()} only); \code{NULL} uses the INLA default.
+#'   effect (\code{hb_area()} only); \code{NULL}: the default of \code{prior_prec}.
 #' @param prior_rho_time Prior for the autocorrelation of
 #'   \code{temporal = "ar1"} (\code{hb_area()} only); \code{NULL} uses the INLA
 #'   default.
 #' @param prior_prec_subarea Prior for the precision of the subarea random
-#'   effect (\code{hb_twofold()} only). \code{NULL} (default):
-#'   \code{list(prior = "pc.prec", param = c(1, 0.01))}.
+#'   effect (\code{hb_twofold()} only). \code{NULL}: the default of \code{prior_prec}.
 #' @param draws Number of posterior draws from
 #'   \code{INLA::inla.posterior.sample()}: for posterior self-benchmarking in
 #'   \code{hb_area()} (\code{NULL}: 1000) and for the area aggregates of
@@ -176,6 +176,20 @@ inla_engine <- function(
 #' @param prior_beta Prior for the regression coefficients: \code{"normal"}
 #'   (default) or \code{"horseshoe"} (regularized horseshoe, for many
 #'   candidate covariates).
+#' @param priors Default priors of the model parameters. \code{"inla"} (default): the
+#'   defaults of \code{\link{inla_engine}()}, so that both engines fit the same model:
+#'   every random-effect standard deviation gets the default of
+#'   \code{inla_engine(prior_prec = )} (half-normal with scale \eqn{s_y} for Gaussian
+#'   models, \eqn{P(\sigma > 1) = 0.01} PC prior otherwise), the BYM2 mixing parameter
+#'   \eqn{\phi} INLA's PC prior (\eqn{P(\phi < 0.5) = 0.5}), the AR(1) correlation INLA's
+#'   \eqn{N(0, 1/0.15)} prior on \eqn{\log((1 + \rho)/(1 - \rho))}, the Leroux and SAR
+#'   correlations uniform priors, and the coefficients \eqn{N(0, 1000)}. On \code{mys} the
+#'   two engines then agree within 0.03 (iid) and 0.05 (BYM2) posterior SD.
+#'   \code{"weakly_informative"}: half-normal standard deviations with scale 1 on the
+#'   standardised response or the link scale, uniform \eqn{\phi} and AR(1) correlation and
+#'   \eqn{N(0, 10^2)} coefficients (\eqn{N(0, 2.5^2)} for logit links). The priors of the
+#'   likelihood (residual SD without \code{vardir}, beta precision, negative binomial and
+#'   gamma shapes) are the latter in both cases.
 #' @param robust Logical; Student-t instead of normal random effects (the
 #'   area effects, and the sub-area effects of \code{hb_twofold()}), with the
 #'   degrees of freedom estimated. Default \code{FALSE}.
@@ -192,6 +206,7 @@ jax_engine <- function(
   device = c("auto", "cpu", "cuda", "metal"),
   seed = 42,
   prior_beta = c("normal", "horseshoe"),
+  priors = c("inla", "weakly_informative"),
   robust = FALSE,
   keep_draws = TRUE,
   progress = interactive()
@@ -208,6 +223,7 @@ jax_engine <- function(
       device = match.arg(tolower(device), choices = c("auto", "cpu", "cuda", "metal")),
       seed = .check_count(seed, "seed", min = 0),
       prior_beta = match.arg(tolower(prior_beta), choices = c("normal", "horseshoe")),
+      priors = match.arg(tolower(priors), choices = c("inla", "weakly_informative")),
       robust = robust,
       keep_draws = keep_draws,
       progress = progress
@@ -225,7 +241,8 @@ print.fastsae_engine <- function(x, ...) {
     cli::cli_bullets(c(
       "*" = "{x$chains} chain{?s} x {x$samples} draws, {x$warmup} warmup, seed {x$seed}",
       "*" = "Device: {x$device}",
-      "*" = "Prior on coefficients: {x$prior_beta}{if (x$robust) ', Student-t random effects' else ''}"
+      "*" = "Prior on coefficients: {x$prior_beta}{if (x$robust) ', Student-t random effects' else ''}",
+      "*" = "Priors: {x$priors}"
     ))
   } else {
     cli::cli_text("{.strong INLA engine}")
@@ -387,6 +404,61 @@ print.fastsae_engine <- function(x, ...) {
     if (is.null(engine[[f]])) engine[f] <- list(defaults[[f]])
   }
   engine
+}
+
+#' Default prior on the standard deviations of the random effects
+#'
+#' Gaussian models: a half-normal prior on each random-effect SD with scale
+#' s = sd of the observed responses (sigma cannot exceed it, since
+#' Var(y) = Var(x'beta) + sigma^2 + E[vardir], so the prior only fixes the scale).
+#' Other families: INLA's PC prior P(sigma > 1) = `.prior_pc_alpha` on the link
+#' scale (logit, log), which has no unit. INLA's PC prior with U = 1 on the
+#' response scale is informative for a response in large units: on `mys` with y
+#' in tenths, the estimates moved by up to 4.1 posterior SD. In a simulation
+#' (Fay-Herriot, 15-60 areas) the 95% intervals covered 93-97% with the
+#' half-normal prior, as the EBLUP intervals, and 85-95% with PC priors scaled to
+#' sd(y) (alpha 0.01-0.1). Both engines use these priors.
+#' @noRd
+.prior_pc_alpha <- 0.01
+
+#' @rdname dot-prior_pc_alpha
+#' @noRd
+.prior_sd_scale <- function(y) {
+  if (is.null(y)) {
+    return(1)
+  }
+  s <- stats::sd(as.numeric(y), na.rm = TRUE)
+  if (is.finite(s) && s > 0) s else 1
+}
+
+#' Half-normal prior with scale `s` on a standard deviation, as an INLA prior on
+#' the log precision theta (sigma = exp(-theta / 2))
+#' @noRd
+.half_normal_prec <- function(s) {
+  list(prior = paste0(
+    "expression: s = ", format(s, digits = 15), "; sigma = exp(-theta/2); ",
+    "logdens = log(2) - log(s) - 0.5*log(2*pi) - 0.5*(sigma/s)^2 + log(sigma/2); return(logdens)"
+  ))
+}
+
+#' @rdname dot-prior_pc_alpha
+#' @noRd
+.default_prior_prec <- function(y, family) {
+  if (family == "gaussian") {
+    .half_normal_prec(.prior_sd_scale(y))
+  } else {
+    list(prior = "pc.prec", param = c(1, .prior_pc_alpha))
+  }
+}
+
+#' Response of a model formula, or NULL when it cannot be evaluated yet
+#' (the input checks of the model function report the problem)
+#' @noRd
+.response_or_null <- function(formula, data) {
+  tryCatch(
+    stats::model.response(stats::model.frame(formula, data, na.action = stats::na.pass)),
+    error = function(e) NULL
+  )
 }
 
 #' Abort when a model function gets an engine it does not support

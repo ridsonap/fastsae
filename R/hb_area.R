@@ -30,10 +30,10 @@
 #'   Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
 #'   Horseshoe prior, Student-t random effects \tab -- \tab yes \cr
 #' }
-#' The \code{"jax"} engine uses weakly informative priors (half-normal standard deviations,
-#' uniform spatial mixing / autocorrelation parameters) instead of the PC priors of INLA, so its
-#' estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
-#' not use \code{vardir}.
+#' By default both engines use the same priors (see \code{prior_prec} of
+#' \code{\link{inla_engine}()} and \code{priors} of \code{\link{jax_engine}()}), so their estimates
+#' differ only by the INLA approximation and the Monte Carlo error. For \code{family = "gamma"}
+#' the \code{"jax"} engine estimates a common shape and does not use \code{vardir}.
 #'
 #' With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of any family are
 #' fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use
@@ -374,10 +374,12 @@ hb_area <- function(
       "i" = "Use {.code spatial = \"bym2\"}, {.code \"bym\"}, {.code \"besag\"} or {.code \"leroux\"} with {.arg W}."
     ))
   }
+  prior_sd <- .default_prior_prec(.response_or_null(formula, data), family)
   engine <- .resolve_inla_engine(
     engine, missing(engine), list(...), "hb_area",
     defaults = list(
-      prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
+      prior_prec = prior_sd,
+      prior_prec_time = prior_sd,
       prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
       draws = 1000L
     ),
@@ -748,6 +750,9 @@ hb_area <- function(
       hyper_generic1$beta <- prior_rho
     } else if (!is.null(prior_phi) && !identical(prior_phi$prior, "pc")) {
       hyper_generic1$beta <- prior_phi
+    } else {
+      # uniform lambda, as jax_engine()
+      hyper_generic1$beta <- list(prior = "logitbeta", param = c(1, 1))
     }
     if (st_interaction != "separable") {
       rand_terms <- c(rand_terms, "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, hyper = hyper_generic1)")
