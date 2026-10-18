@@ -170,8 +170,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // eblup_twofold_core
-List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall, const arma::vec& vardirall, const arma::ivec& area, std::string method, std::string mse_type, int B, int maxiter, double precision);
-RcppExport SEXP _fastsae_eblup_twofold_core(SEXP XallSEXP, SEXP yallSEXP, SEXP vardirallSEXP, SEXP areaSEXP, SEXP methodSEXP, SEXP mse_typeSEXP, SEXP BSEXP, SEXP maxiterSEXP, SEXP precisionSEXP) {
+List eblup_twofold_core(const arma::mat& Xall, const arma::vec& yall, const arma::vec& vardirall, const arma::ivec& area, std::string method, std::string mse_type, int B, int maxiter, double precision, Rcpp::Nullable<Rcpp::NumericVector> wall_);
+RcppExport SEXP _fastsae_eblup_twofold_core(SEXP XallSEXP, SEXP yallSEXP, SEXP vardirallSEXP, SEXP areaSEXP, SEXP methodSEXP, SEXP mse_typeSEXP, SEXP BSEXP, SEXP maxiterSEXP, SEXP precisionSEXP, SEXP wall_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -184,7 +184,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type B(BSEXP);
     Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
     Rcpp::traits::input_parameter< double >::type precision(precisionSEXP);
-    rcpp_result_gen = Rcpp::wrap(eblup_twofold_core(Xall, yall, vardirall, area, method, mse_type, B, maxiter, precision));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type wall_(wall_SEXP);
+    rcpp_result_gen = Rcpp::wrap(eblup_twofold_core(Xall, yall, vardirall, area, method, mse_type, B, maxiter, precision, wall_));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -216,7 +217,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastsae_seblup_pbmse", (DL_FUNC) &_fastsae_seblup_pbmse, 11},
     {"_fastsae_eblup_stfh_core", (DL_FUNC) &_fastsae_eblup_stfh_core, 13},
     {"_fastsae_pbmse_stfh", (DL_FUNC) &_fastsae_pbmse_stfh, 12},
-    {"_fastsae_eblup_twofold_core", (DL_FUNC) &_fastsae_eblup_twofold_core, 9},
+    {"_fastsae_eblup_twofold_core", (DL_FUNC) &_fastsae_eblup_twofold_core, 10},
     {"_fastsae_eblup_bhf_cpp", (DL_FUNC) &_fastsae_eblup_bhf_cpp, 8},
     {NULL, NULL, 0}
 };

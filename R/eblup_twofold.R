@@ -38,6 +38,13 @@
 #' @param benchmark_group Optional vector, column name, or one-sided formula referencing the
 #'   grouping / stratum column in \code{data} (e.g. area identifier for subarea-to-area benchmarking)
 #'   for group-specific self-benchmarking.
+#' @param weight Optional vector, column name or one-sided formula referencing the sub-area
+#'   weights \eqn{w_{ij}} (e.g. population sizes) used for the area means
+#'   \eqn{\theta_i = \sum_j w_{ij}\theta_{ij}}. They are normalised within each area; if
+#'   \code{NULL}, every sub-area of an area gets the same weight. Missing or negative weights
+#'   get weight 0 (with a warning), as in \code{\link{hb_twofold}}.
+#' @param compute_area Logical. If \code{TRUE} (default), adds the EBLUPs of the area means and
+#'   their MSE in \code{df_area} (see Details).
 #' @param print_result print coefficient or not, default value is TRUE.
 #'
 #' @returns The function returns a list with the following objects:
@@ -53,6 +60,9 @@
 #'    covariates through X, so it cannot compare models with different covariates.,
 #' \code{df_eblup} a data frame that contains domain, subarea, y, eblup, vardir,
 #' random_effect_area, random_effect_subarea, mse, and rse. \cr
+#' \code{df_area} (if \code{compute_area = TRUE}) a data frame with one row per area: domain,
+#' \code{eblup_area}, \code{mse_area}, \code{rse_area}, \code{n_subareas} (sub-areas in
+#' \code{data}) and \code{n_sampled} (those with a direct estimate). \cr
 #'
 #' @details
 #' The model has a form that is response ~ auxiliary variables, with one row per subarea.
@@ -60,6 +70,18 @@
 #' with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
 #' g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
 #' derivation for g3) or by parametric bootstrap.
+#'
+#' Area means. The target of area \eqn{i} is \eqn{\theta_i = \sum_j w_{ij}\theta_{ij}} over
+#' the sub-areas of the area in \code{data} (sampled or not), with the normalised
+#' \code{weight}. Its EBLUP is \eqn{\sum_j w_{ij}\tilde\theta_{ij}}. The analytical MSE is the
+#' same second-order estimator as for the sub-areas, applied to this linear target (Torabi
+#' and Rao, 2014, derive it for population-weighted area means): it includes the covariance
+#' of the sub-area prediction errors through the shared area effect and \eqn{\hat\beta}, so
+#' it is not \eqn{\sum_j w_{ij}^2\,\mathrm{mse}_{ij}}. An area without sampled sub-areas gets
+#' the synthetic estimator \eqn{\bar x_i'\hat\beta} with MSE
+#' \eqn{\bar x_i' Q \bar x_i + \hat\sigma_v^2 + \hat\sigma_u^2\sum_j w_{ij}^2}. With
+#' \code{mse_type = "bootstrap"} the area MSE comes from the same bootstrap replicates.
+#' Sub-areas of the population that are not rows of \code{data} are not part of the area mean.
 #'
 #' @export
 #' @examples
@@ -97,6 +119,8 @@ eblup_twofold <- function(
   benchmark_weight = NULL,
   benchmark_target = NULL,
   benchmark_group = NULL,
+  weight = NULL,
+  compute_area = TRUE,
   print_result = TRUE
 ) {
   method <- match.arg(method, choices = c("REML", "ML"))
@@ -144,6 +168,13 @@ eblup_twofold <- function(
   .check_area_inputs(X, y, vardir, unit = "subarea")
 
   area_idx <- as.integer(factor(domain)) - 1L
+  unique_areas <- sort(unique(domain))
+
+  norm_weight <- NULL
+  if (isTRUE(compute_area)) {
+    weight_vec <- if (!is.null(weight)) .get_variable(data, weight) else NULL
+    norm_weight <- .twofold_weights(weight_vec, domain, unique_areas, subarea)
+  }
   if (length(unique(area_idx[!is.na(y)])) < 2) {
     cli::cli_abort("At least 2 areas with sampled subareas are needed to estimate the area variance.")
   }
@@ -157,8 +188,12 @@ eblup_twofold <- function(
     mse_type = if (mse_type == "none") "analytical" else mse_type,
     B = as.integer(B),
     maxiter = maxiter,
-    precision = precision
+    precision = precision,
+    wall_ = norm_weight
   ))
+  area_eblup <- res$area_eblup
+  area_mse <- res$area_mse
+  res$area_eblup <- res$area_mse <- NULL
 
   # attach metadata
   row.names(res$estcoef) <- colnames(X)
@@ -173,6 +208,22 @@ eblup_twofold <- function(
   res$df_eblup <- res$df_eblup[, c("domain", "subarea", "y", "eblup", "vardir",
                                    "random_effect_area", "random_effect_subarea",
                                    "mse", "rse")]
+
+  # Area means (see Details); a negative area MSE is NA, as for the sub-areas below
+  if (isTRUE(compute_area)) {
+    sampled <- !is.na(y)
+    if (mse_type == "none") area_mse[] <- NA_real_
+    area_mse[which(area_mse < 0)] <- NA_real_
+    res$df_area <- data.frame(
+      domain = unique_areas,
+      eblup_area = area_eblup,
+      mse_area = area_mse,
+      rse_area = ifelse(abs(area_eblup) < .Machine$double.eps, NA_real_, sqrt(area_mse) / abs(area_eblup) * 100),
+      n_subareas = as.integer(tabulate(area_idx + 1L, length(unique_areas))),
+      n_sampled = as.integer(tabulate(area_idx[sampled] + 1L, length(unique_areas))),
+      stringsAsFactors = FALSE
+    )
+  }
 
   # A negative second-order MSE estimate (possible with the ML bias correction) is not a
   # usable MSE: report NA rather than a NaN RSE

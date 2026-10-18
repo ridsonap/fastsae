@@ -30,7 +30,7 @@ effects. **fastsae** fits it in two ways:
 
 | Function | Approach | Uncertainty | Area aggregates |
 | :--- | :--- | :--- | :--- |
-| `eblup_twofold()` | EBLUP, REML or ML | Analytical (Prasad-Rao type) or parametric bootstrap MSE | not computed |
+| `eblup_twofold()` | EBLUP, REML or ML | Analytical (Prasad-Rao type) or parametric bootstrap MSE | `df_area`, weighted by `weight` |
 | `hb_twofold()` | Hierarchical Bayes with INLA | Posterior SD and credible intervals | `df_area`, weighted by `weight` |
 
 `hb_twofold()` also fits binomial and Poisson responses and a spatial (BYM2, Besag) area effect.
@@ -105,6 +105,7 @@ fit_tf <- eblup_twofold(
   domain = "area",
   subarea = "subarea",
   data = dat,
+  weight = "pop",
   print_result = FALSE
 )
 
@@ -116,6 +117,15 @@ head(fit_tf$df_eblup)
 The default `mse_type = "analytical"` gives the Prasad-Rao type MSE of the REML fit (for ML it
 adds the bias correction). Sub-area `A01-3` is not sampled: it still gets the area effect of
 `A01`, while its sub-area effect is 0.
+
+`weight` (here the population of each sub-area) aggregates the sub-area EBLUPs to area means,
+$\tilde\theta_i = \sum_j w_{ij}\tilde\theta_{ij} / \sum_j w_{ij}$, in `df_area`. Their MSE
+accounts for the errors the sub-areas of an area share (the estimated area effect and
+$\hat\beta$), so it is larger than $\sum_j w_{ij}^2\,\mathrm{mse}_{ij}$ would suggest.
+
+```{r area_eblup}
+head(fit_tf$df_area)
+```
 
 ### How much does the area effect help?
 
