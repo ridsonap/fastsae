@@ -143,7 +143,8 @@ gvf_smooth <- function(
         cli::cli_abort("Method 'cv_power' requires direct estimate 'y' to compute direct CV.")
       }
       fit_df$log_cv2 <- ifelse(fit_df$vardir > 0 & !is.na(fit_df$y) & fit_df$y > 0,
-                               log(fit_df$vardir / (fit_df$y^2)), NA_real_)
+        log(fit_df$vardir / (fit_df$y^2)), NA_real_
+      )
       model_formula <- stats::as.formula(paste("log_cv2 ~", rhs))
     }
   } else {

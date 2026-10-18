@@ -219,7 +219,7 @@ test_that("benchmark covers all validation, targets, and methods branches", {
   # 13. plot with sf_geom
   if (requireNamespace("sf", quietly = TRUE)) {
     grid_sf <- sf::st_make_grid(
-      sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+      sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
       cellsize = c(1, 1),
       what = "polygons"
     )[seq_len(nrow(mys))]
@@ -246,7 +246,8 @@ test_that(".mse_matrix: FH off-diagonal = R Q R', diagonal = reported mse", {
   R <- B * X
   G12 <- diag(ifelse(s, B * s2, s2)) + R %*% Q %*% t(R) # g1 (diagonal for FH) + g2
   expect_equal(M, cov2cor(G12) * outer(sqrt(fit$df_eblup$mse), sqrt(fit$df_eblup$mse)),
-               tolerance = 1e-10, ignore_attr = TRUE)
+    tolerance = 1e-10, ignore_attr = TRUE
+  )
 })
 
 test_that("benchmarked MSE follows mse - 2 k (Mw) + adj^2", {
@@ -259,7 +260,8 @@ test_that("benchmarked MSE follows mse - 2 k (Mw) + adj^2", {
   wn <- w / sum(w)
   adj <- bm$benchmarked - fit$df_eblup$eblup
   expect_equal(bm$mse_benchmarked, pmax(fit$df_eblup$mse - 2 * as.vector(M %*% wn) + adj^2, 0),
-               tolerance = 1e-10)
+    tolerance = 1e-10
+  )
   # without an MSE matrix (numeric input) there is no MSE column
   bm0 <- benchmark_sae(fit$df_eblup$eblup, target = 7.5, weight = w, method = "difference")
   expect_false("mse_benchmarked" %in% names(bm0))
@@ -273,8 +275,10 @@ test_that(".mse_matrix supports SFH (with unsampled domains) and STFH", {
   expect_true(all(eigen(Ms, symmetric = TRUE, only.values = TRUE)$values > -1e-8))
   d <- mys_panel |> filter(!is.na(y), year >= 2024)
   W <- mys_proxmat[-c(21, 25), -c(21, 25)]
-  fit_t <- eblup_stfh(y ~ x1 + x2, data = d, vardir = ~vardir, domain = ~area, time = ~year,
-                      W = W, mse_type = "analytical", print_result = FALSE)
+  fit_t <- eblup_stfh(y ~ x1 + x2,
+    data = d, vardir = ~vardir, domain = ~area, time = ~year,
+    W = W, mse_type = "analytical", print_result = FALSE
+  )
   Mt <- fastsae:::.mse_matrix(fit_t)
   expect_equal(diag(Mt), fit_t$df_eblup$mse)
   expect_equal(Mt, t(Mt))
@@ -286,8 +290,10 @@ test_that("hierarchical total benchmarking without group targets works on the to
   y <- c(10, 20, 30, 40)
   w <- c(1, 2, 3, 4)
   grp <- c("A", "A", "B", "B")
-  bm <- benchmark_sae(y, weight = w, group = grp, national_target = 330, type = "total",
-                      method = "ratio")
+  bm <- benchmark_sae(y,
+    weight = w, group = grp, national_target = 330, type = "total",
+    method = "ratio"
+  )
   expect_equal(sum(w * bm$benchmarked), 330)
   s1 <- attr(bm, "stage1_summary")
   expect_equal(unname(s1$original_group_estimate), c(1 * 10 + 2 * 20, 3 * 30 + 4 * 40))

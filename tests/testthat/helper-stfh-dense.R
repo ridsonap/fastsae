@@ -26,7 +26,7 @@
   Xs <- X[s, , drop = FALSE]
   Q <- solve(t(Xs) %*% Vi %*% Xs)
   beta <- Q %*% t(Xs) %*% Vi %*% y[s]
-  A <- pr$G[, s]                                    # Cov(theta_i, y_s), all cells
+  A <- pr$G[, s] # Cov(theta_i, y_s), all cells
   pred <- drop(X %*% beta + A %*% Vi %*% (y[s] - Xs %*% beta))
   g1 <- diag(pr$G) - rowSums((A %*% Vi) * A)
   R <- X - A %*% Vi %*% Xs
@@ -54,12 +54,17 @@
   np <- length(th)
   Gfun <- function(t) .stfh_dense_parts(t, W, D, T, model)$G
   G0 <- Gfun(th)
-  dG <- lapply(seq_len(np), function(a) { e <- replace(numeric(np), a, h); (Gfun(th + e) - Gfun(th - e)) / (2 * h) })
+  dG <- lapply(seq_len(np), function(a) {
+    e <- replace(numeric(np), a, h)
+    (Gfun(th + e) - Gfun(th - e)) / (2 * h)
+  })
   d2G <- function(a, b) {
-    ea <- replace(numeric(np), a, h); eb <- replace(numeric(np), b, h)
+    ea <- replace(numeric(np), a, h)
+    eb <- replace(numeric(np), b, h)
     (Gfun(th + ea + eb) - Gfun(th + ea - eb) - Gfun(th - ea + eb) + Gfun(th - ea - eb)) / (4 * h^2)
   }
-  V <- G0[s, s] + diag(vardir[s], sum(s)); Vi <- solve(V)
+  V <- G0[s, s] + diag(vardir[s], sum(s))
+  Vi <- solve(V)
   Xs <- X[s, , drop = FALSE]
   Q <- solve(t(Xs) %*% Vi %*% Xs)
   P <- Vi - Vi %*% Xs %*% Q %*% t(Xs) %*% Vi
@@ -75,16 +80,19 @@
   for (a in seq_len(np)) for (b in seq_len(np)) if (Finv[a, b] != 0) d2Gs[[paste(a, b)]] <- d2G(a, b)
   # sampled cells: Prasad-Rao form in P (as the C++ code)
   g3s <- g4s <- numeric(sum(s))
-  for (a in seq_len(np)) for (b in seq_len(np)) {
-    if (Finv[a, b] == 0) next
-    g3s <- g3s + Finv[a, b] * diag(P %*% Va[[a]] %*% P %*% Va[[b]] %*% P)
-    g4s <- g4s + 0.5 * Finv[a, b] * diag(P %*% d2Gs[[paste(a, b)]][s, s] %*% P)
+  for (a in seq_len(np)) {
+    for (b in seq_len(np)) {
+      if (Finv[a, b] == 0) next
+      g3s <- g3s + Finv[a, b] * diag(P %*% Va[[a]] %*% P %*% Va[[b]] %*% P)
+      g4s <- g4s + 0.5 * Finv[a, b] * diag(P %*% d2Gs[[paste(a, b)]][s, s] %*% P)
+    }
   }
   g3[s] <- psi[s]^2 * g3s
   g4[s] <- psi[s]^2 * g4s
   # unsampled cells: g3 from the exact derivative of the BLUP, g4 from d2 g1
   g1fun <- function(t) {
-    G <- Gfun(t); Vt <- G[s, s] + diag(vardir[s], sum(s))
+    G <- Gfun(t)
+    Vt <- G[s, s] + diag(vardir[s], sum(s))
     diag(G)[!s] - rowSums((G[!s, s, drop = FALSE] %*% solve(Vt)) * G[!s, s, drop = FALSE])
   }
   idx_u <- which(!s)
@@ -96,13 +104,17 @@
     g3u <- numeric(length(idx_u))
     for (a in seq_len(np)) for (b in seq_len(np)) g3u <- g3u + Finv[a, b] * rowSums((L[[a]] %*% P) * L[[b]])
     g4u <- numeric(length(idx_u))
-    for (a in seq_len(np)) for (b in seq_len(np)) {
-      if (Finv[a, b] == 0) next
-      ea <- replace(numeric(np), a, h); eb <- replace(numeric(np), b, h)
-      d2 <- (g1fun(th + ea + eb) - g1fun(th + ea - eb) - g1fun(th - ea + eb) + g1fun(th - ea - eb)) / (4 * h^2)
-      g4u <- g4u + 0.5 * Finv[a, b] * d2
+    for (a in seq_len(np)) {
+      for (b in seq_len(np)) {
+        if (Finv[a, b] == 0) next
+        ea <- replace(numeric(np), a, h)
+        eb <- replace(numeric(np), b, h)
+        d2 <- (g1fun(th + ea + eb) - g1fun(th + ea - eb) - g1fun(th - ea + eb) + g1fun(th - ea - eb)) / (4 * h^2)
+        g4u <- g4u + 0.5 * Finv[a, b] * d2
+      }
     }
-    g3[idx_u] <- g3u; g4[idx_u] <- g4u
+    g3[idx_u] <- g3u
+    g4[idx_u] <- g4u
   }
   list(g3 = g3, g4 = g4, Finv = Finv)
 }

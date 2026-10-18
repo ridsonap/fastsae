@@ -471,7 +471,9 @@ test_that("hb_unit finite-population mean predicts non-sampled units at xbar_r (
   # so predicting the non-sampled part at Xbar_d (instead of xbar_{d,r}) would
   # be off by f_d * (Xbar_d - xbar_{d,s}) * beta1 = 0.5 * 2 * 3 = 3.
   set.seed(42)
-  D <- 15; n <- 10; N <- 20
+  D <- 15
+  n <- 10
+  N <- 20
   dom <- rep(seq_len(D), each = n)
   x <- rnorm(D * n)
   u <- rnorm(D, sd = 1)
@@ -480,8 +482,10 @@ test_that("hb_unit finite-population mean predicts non-sampled units at xbar_r (
   xbar_s <- as.vector(tapply(x, dom, mean))
   pop <- data.frame(dom = seq_len(D), x = xbar_s + 2, N = N)
 
-  fit <- hb_unit(y ~ x, unit_data = smp, Xpop = pop, domain_var = "dom",
-                 popsize_var = "N", family = "gaussian", print_result = FALSE)
+  fit <- hb_unit(y ~ x,
+    unit_data = smp, Xpop = pop, domain_var = "dom",
+    popsize_var = "N", family = "gaussian", print_result = FALSE
+  )
   d <- fit$df_hb
   b <- fit$estcoef$beta
   f <- n / N
@@ -501,7 +505,8 @@ test_that("hb_unit starts INLA's mode search at the REML estimates", {
   names(df_sample)[names(df_sample) == "County"] <- "CountyIndex"
 
   fe <- eblup_bhf(
-    CornHec ~ CornPix + SoyBeansPix, unit_data = df_sample, Xpop = df_pop,
+    CornHec ~ CornPix + SoyBeansPix,
+    unit_data = df_sample, Xpop = df_pop,
     domain_var = "CountyIndex", popsize_var = "PopnSegments", print_result = FALSE
   )
   mf <- stats::model.frame(CornHec ~ CornPix + SoyBeansPix, df_sample)

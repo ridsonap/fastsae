@@ -19,12 +19,16 @@ test_that("hb_twofold works for Gaussian two-fold model and matches eblup_twofol
     stats::rnorm(nrow(dat), sd = 0.4) + stats::rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
   # Fit EBLUP Twofold
-  fit_eblup <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, print_result = FALSE)
+  fit_eblup <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   # Fit HB Twofold
-  fit_hb <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, print_result = FALSE)
+  fit_hb <- hb_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   expect_s3_class(fit_hb, "fastsae_hb_twofold")
   expect_s3_class(fit_hb, "fastsae_hb")
@@ -85,8 +89,10 @@ test_that("hb_twofold handles unsampled subareas with synthetic prediction", {
     stats::rnorm(nrow(dat), sd = sqrt(dat$vardir))
   dat$y[c(3, 8)] <- NA_real_
 
-  fit_sub <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                        data = dat, print_result = FALSE)
+  fit_sub <- hb_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   expect_true(all(is.finite(fit_sub$df_hb$hb)))
   expect_true(all(is.finite(fit_sub$df_hb$sd)))
@@ -113,8 +119,10 @@ test_that("hb_twofold computes area-level aggregates correctly", {
   }))
   dat$y <- 2 + dat$x1 + stats::rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit_agg <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                        weight = "w", data = dat, print_result = FALSE)
+  fit_agg <- hb_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    weight = "w", data = dat, print_result = FALSE
+  )
 
   expect_equal(nrow(fit_agg$df_area), m)
   for (d in 1:m) {
@@ -131,7 +139,10 @@ test_that("hb_twofold works with spatial BYM2 structure on area level", {
   set.seed(42)
   m <- 6
   W <- matrix(0, m, m)
-  for (i in 1:(m-1)) { W[i, i+1] <- 1; W[i+1, i] <- 1 }
+  for (i in 1:(m - 1)) {
+    W[i, i + 1] <- 1
+    W[i + 1, i] <- 1
+  }
   rownames(W) <- colnames(W) <- paste0("Area_", 1:m)
 
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
@@ -145,8 +156,10 @@ test_that("hb_twofold works with spatial BYM2 structure on area level", {
   }))
   dat$y <- 1 + dat$x1 + stats::rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit_sp <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       spatial = "bym2", W = W, data = dat, print_result = FALSE)
+  fit_sp <- hb_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    spatial = "bym2", W = W, data = dat, print_result = FALSE
+  )
 
   expect_s3_class(fit_sp, "fastsae_hb_twofold")
   expect_equal(fit_sp$spatial, "bym2")
@@ -174,9 +187,11 @@ test_that("hb_twofold works for Binomial and Poisson response models", {
   p <- 1 / (1 + exp(-(-0.5 + 0.8 * dat$x1)))
   dat$y_bin <- stats::rbinom(nrow(dat), size = dat$n_trials, prob = p)
 
-  fit_bin <- hb_twofold(y_bin ~ x1, domain = "area", subarea = "subarea",
-                        trials = "n_trials", family = "binomial", data = dat,
-                        print_result = FALSE)
+  fit_bin <- hb_twofold(y_bin ~ x1,
+    domain = "area", subarea = "subarea",
+    trials = "n_trials", family = "binomial", data = dat,
+    print_result = FALSE
+  )
 
   expect_s3_class(fit_bin, "fastsae_hb_twofold")
   expect_equal(fit_bin$family, "binomial")
@@ -186,9 +201,11 @@ test_that("hb_twofold works for Binomial and Poisson response models", {
   lambda <- exp(0.2 + 0.5 * dat$x1)
   dat$y_pois <- stats::rpois(nrow(dat), lambda = dat$exposure * lambda)
 
-  fit_pois <- hb_twofold(y_pois ~ x1, domain = "area", subarea = "subarea",
-                         exposure = "exposure", family = "poisson", data = dat,
-                         print_result = FALSE)
+  fit_pois <- hb_twofold(y_pois ~ x1,
+    domain = "area", subarea = "subarea",
+    exposure = "exposure", family = "poisson", data = dat,
+    print_result = FALSE
+  )
 
   expect_s3_class(fit_pois, "fastsae_hb_twofold")
   expect_equal(fit_pois$family, "poisson")
@@ -227,10 +244,14 @@ test_that("hb_twofold integrates with compare_sae() and diagnose()", {
   dat$y <- 1 + 1.2 * dat$x1 + stats::rnorm(m)[dat$area] +
     stats::rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit_eblup <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, print_result = FALSE)
-  fit_hb <- hb_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, print_result = FALSE)
+  fit_eblup <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
+  fit_hb <- hb_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   # diagnose
   diag <- diagnose(fit_hb)
@@ -389,5 +410,3 @@ test_that("hb_twofold handles INLA failure and fallback aggregation", {
   expect_s3_class(fit_fb, "fastsae")
   expect_false(any(is.na(fit_fb$df_area$hb)))
 })
-
-

@@ -198,7 +198,7 @@ export_sae <- function(
 
   y_val <- if ("y" %in% names(df)) df$y else rep(NA_real_, nrow(df))
   mse_val <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else rep(NA_real_, nrow(df)))
-  se_val  <- sqrt(mse_val)
+  se_val <- sqrt(mse_val)
 
   rse_val <- df$rse
   if (is.null(rse_val) && !all(is.na(mse_val))) {
@@ -267,7 +267,7 @@ export_sae <- function(
     for (rn in rownames(object$estcoef)) {
       b_val <- object$estcoef[rn, "beta"]
       se_val <- object$estcoef[rn, "std.error"]
-      p_val  <- object$estcoef[rn, "pvalue"]
+      p_val <- object$estcoef[rn, "pvalue"]
       add_row(paste0("Beta: ", rn), sprintf("%.4f (SE: %.4f, p: %.4e)", b_val, se_val, p_val))
     }
   }

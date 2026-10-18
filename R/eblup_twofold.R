@@ -99,8 +99,10 @@
 #' }))
 #' dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
 #'   rnorm(nrow(dat), sd = sqrt(dat$vardir))
-#' m1 <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area",
-#'                     subarea = "subarea", data = dat)
+#' m1 <- eblup_twofold(y ~ x1,
+#'   vardir = "vardir", domain = "area",
+#'   subarea = "subarea", data = dat
+#' )
 #'
 #' @md
 eblup_twofold <- function(
@@ -205,9 +207,11 @@ eblup_twofold <- function(
   # Add domain/subarea identifiers as first columns in df_eblup
   res$df_eblup$domain <- domain
   res$df_eblup$subarea <- subarea
-  res$df_eblup <- res$df_eblup[, c("domain", "subarea", "y", "eblup", "vardir",
-                                   "random_effect_area", "random_effect_subarea",
-                                   "mse", "rse")]
+  res$df_eblup <- res$df_eblup[, c(
+    "domain", "subarea", "y", "eblup", "vardir",
+    "random_effect_area", "random_effect_subarea",
+    "mse", "rse"
+  )]
 
   # Area means (see Details); a negative area MSE is NA, as for the sub-areas below
   if (isTRUE(compute_area)) {

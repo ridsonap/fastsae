@@ -228,7 +228,9 @@ eblup_stfh <- function(
   # e.g. time-major panels such as `mys_panel`, was silently mis-specified.
   data_orig <- data
   .resolve_rows <- function(v) {
-    if (is.null(v)) return(NULL)
+    if (is.null(v)) {
+      return(NULL)
+    }
     if ((is.character(v) && length(v) == 1) || inherits(v, "formula")) {
       return(.get_variable(data, v))
     }
@@ -302,7 +304,7 @@ eblup_stfh <- function(
     dom_blocks <- rep(unique(domain), each = n_time)
     time_blocks <- rep(time[seq_len(n_time)], n_domain)
     if (!identical(as.character(domain), as.character(dom_blocks)) ||
-        !identical(as.character(time), as.character(time_blocks))) {
+      !identical(as.character(time), as.character(time_blocks))) {
       cli::cli_abort(c(
         "{.arg data} must be a balanced panel: one row per domain and time period, with the same periods in every domain.",
         "i" = "Check for duplicated or missing domain x time combinations."

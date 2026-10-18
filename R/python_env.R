@@ -29,13 +29,16 @@ check_numpyro_available <- function(device = "auto") {
   if (device == "cpu" || (device == "auto" && Sys.info()["sysname"] == "Darwin")) {
     if (!nzchar(Sys.getenv("JAX_PLATFORMS"))) {
       old_plat <- Sys.getenv("JAX_PLATFORMS", unset = NA)
-      on.exit({
-        if (is.na(old_plat) || !nzchar(old_plat)) {
-          Sys.unsetenv("JAX_PLATFORMS")
-        } else {
-          Sys.setenv(JAX_PLATFORMS = old_plat)
-        }
-      }, add = TRUE)
+      on.exit(
+        {
+          if (is.na(old_plat) || !nzchar(old_plat)) {
+            Sys.unsetenv("JAX_PLATFORMS")
+          } else {
+            Sys.setenv(JAX_PLATFORMS = old_plat)
+          }
+        },
+        add = TRUE
+      )
       Sys.setenv(JAX_PLATFORMS = "cpu")
     }
   }
@@ -48,7 +51,9 @@ check_numpyro_available <- function(device = "auto") {
     has_venv <- isTRUE(tryCatch(reticulate::virtualenv_exists("r-numpyro-gpu"), error = function(e) FALSE))
     has_conda <- !has_venv && nzchar(Sys.which("conda")) &&
       isTRUE(tryCatch(reticulate::condaenv_exists("r-numpyro-gpu"), error = function(e) FALSE))
-    if (!env_py && !has_venv && !has_conda) return(FALSE)
+    if (!env_py && !has_venv && !has_conda) {
+      return(FALSE)
+    }
     if (!env_py) {
       if (has_venv) {
         try(reticulate::use_virtualenv("r-numpyro-gpu", required = FALSE), silent = TRUE)
@@ -70,14 +75,17 @@ check_numpyro_available <- function(device = "auto") {
     return(FALSE)
   }
 
-  tryCatch({
-    jax <- reticulate::import("jax")
-    devs <- jax$devices()
-    cli::cli_alert_success("JAX devices found: {paste(vapply(devs, as.character, character(1)), collapse = ', ')}")
-    TRUE
-  }, error = function(e) {
-    FALSE
-  })
+  tryCatch(
+    {
+      jax <- reticulate::import("jax")
+      devs <- jax$devices()
+      cli::cli_alert_success("JAX devices found: {paste(vapply(devs, as.character, character(1)), collapse = ', ')}")
+      TRUE
+    },
+    error = function(e) {
+      FALSE
+    }
+  )
 }
 
 #' Set up the Python environment for the NumPyro / JAX engine

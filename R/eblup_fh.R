@@ -241,8 +241,10 @@ eblup_fh <- function(
 
   # Add domain identifier as first column in df_eblup
   res$df_eblup$domain <- domain
-  cols_order <- c("domain", "y", "eblup", "vardir", "random_effect", "mse", "rse", "eblup_log", "mse_log",
-                  "eblup_unbenchmarked")
+  cols_order <- c(
+    "domain", "y", "eblup", "vardir", "random_effect", "mse", "rse", "eblup_log", "mse_log",
+    "eblup_unbenchmarked"
+  )
   res$df_eblup <- res$df_eblup[, intersect(cols_order, names(res$df_eblup))]
   if (mse_type == "none") res$df_eblup <- .drop_mse(res$df_eblup)
 

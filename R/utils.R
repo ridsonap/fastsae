@@ -286,7 +286,7 @@ utils::globalVariables(c("density", ".data"))
 #' @noRd
 .check_thresholds <- function(thresholds) {
   if (!is.numeric(thresholds) || length(thresholds) != 2 || anyNA(thresholds) ||
-      thresholds[1] >= thresholds[2]) {
+    thresholds[1] >= thresholds[2]) {
     cli::cli_abort("{.arg thresholds} must be a numeric vector of length 2 with increasing values.")
   }
   invisible(thresholds)
@@ -402,7 +402,9 @@ utils::globalVariables(c("density", ".data"))
 #' @noRd
 .check_unique_domain <- function(domain, shared_effect = FALSE) {
   dup <- unique(domain[duplicated(domain)])
-  if (length(dup) == 0) return(invisible(TRUE))
+  if (length(dup) == 0) {
+    return(invisible(TRUE))
+  }
   cli::cli_warn(c(
     "{.arg domain} has {length(dup)} duplicated value{?s}: {.val {utils::head(dup, 10)}}.",
     "i" = if (shared_effect) {
@@ -419,7 +421,9 @@ utils::globalVariables(c("density", ".data"))
 #' A negative or NULL seed leaves the stream as it is (no seed set).
 #' @noRd
 .with_seed <- function(seed, code) {
-  if (is.null(seed) || seed < 0) return(code)
+  if (is.null(seed) || seed < 0) {
+    return(code)
+  }
   old <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
     get(".Random.seed", envir = globalenv(), inherits = FALSE)
   }

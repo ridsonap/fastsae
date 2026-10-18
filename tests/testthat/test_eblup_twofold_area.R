@@ -7,8 +7,10 @@ sim_twofold_area <- function(seed = 11, m = 12) {
   set.seed(seed)
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
     nd <- sample(2:5, 1)
-    data.frame(area = d, subarea = paste0(d, "-", seq_len(nd)),
-               x1 = rnorm(nd), vardir = runif(nd, 0.2, 0.9), pop = rpois(nd, 50) + 1)
+    data.frame(
+      area = d, subarea = paste0(d, "-", seq_len(nd)),
+      x1 = rnorm(nd), vardir = runif(nd, 0.2, 0.9), pop = rpois(nd, 50) + 1
+    )
   }))
   dat$y <- 1 + dat$x1 + rnorm(m, sd = 0.8)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
     rnorm(nrow(dat), sd = sqrt(dat$vardir))
@@ -19,11 +21,15 @@ sim_twofold_area <- function(seed = 11, m = 12) {
 
 test_that("eblup_twofold area estimates are the weighted means of the subarea EBLUPs", {
   dat <- sim_twofold_area()
-  fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, weight = "pop", print_result = FALSE)
+  fit <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, weight = "pop", print_result = FALSE
+  )
 
-  expect_named(fit$df_area, c("domain", "eblup_area", "mse_area", "rse_area",
-                              "n_subareas", "n_sampled"))
+  expect_named(fit$df_area, c(
+    "domain", "eblup_area", "mse_area", "rse_area",
+    "n_subareas", "n_sampled"
+  ))
   expect_equal(fit$df_area$domain, sort(unique(dat$area)))
   w <- dat$pop / ave(dat$pop, dat$area, FUN = sum)
   ref <- as.numeric(rowsum(w * fit$df_eblup$eblup, dat$area))
@@ -33,8 +39,10 @@ test_that("eblup_twofold area estimates are the weighted means of the subarea EB
   expect_true(all(fit$df_area$mse_area > 0))
 
   # equal weights by default
-  fit_eq <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                          data = dat, print_result = FALSE)
+  fit_eq <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
   ref_eq <- as.numeric(tapply(fit_eq$df_eblup$eblup, dat$area, mean))
   expect_equal(fit_eq$df_area$eblup_area, ref_eq, tolerance = 1e-10)
 })
@@ -51,8 +59,10 @@ test_that("eblup_twofold area MSE with a one-subarea weight equals that subarea'
   dat$w1 <- as.numeric(sel)
 
   for (method in c("REML", "ML")) {
-    fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, weight = "w1", method = method, print_result = FALSE)
+    fit <- eblup_twofold(y ~ x1,
+      vardir = "vardir", domain = "area", subarea = "subarea",
+      data = dat, weight = "w1", method = method, print_result = FALSE
+    )
     sub <- fit$df_eblup[sel, ]
     expect_equal(fit$df_area$eblup_area, sub$eblup, tolerance = 1e-10)
     expect_equal(fit$df_area$mse_area, sub$mse, tolerance = 1e-8, info = method)
@@ -61,8 +71,10 @@ test_that("eblup_twofold area MSE with a one-subarea weight equals that subarea'
 
 test_that("eblup_twofold analytical area MSE matches a dense pure-R g1 + g2 + 2 g3", {
   dat <- sim_twofold_area(seed = 3, m = 10)
-  fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, weight = "pop", print_result = FALSE)
+  fit <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, weight = "pop", print_result = FALSE
+  )
   s2v <- fit$random_effect_var[["sigma2_v"]]
   s2u <- fit$random_effect_var[["sigma2_u"]]
 
@@ -72,7 +84,7 @@ test_that("eblup_twofold analytical area MSE matches a dense pure-R g1 + g2 + 2 
   ar_s <- dat$area[s]
   w <- dat$pop / ave(dat$pop, dat$area, FUN = sum)
   areas <- sort(unique(dat$area))
-  Zv <- outer(ar_s, areas, "==") * 1          # sampled rows x areas
+  Zv <- outer(ar_s, areas, "==") * 1 # sampled rows x areas
   Vfun <- function(dl) dl[1] * Zv %*% t(Zv) + diag(dl[2] + dat$vardir[s])
 
   # REML information I_rt = tr(P V_r P V_t) / 2 at the estimates
@@ -99,8 +111,10 @@ test_that("eblup_twofold analytical area MSE matches a dense pure-R g1 + g2 + 2 
     dvec <- kvec - colSums(b * Xs)
     g2 <- drop(t(dvec) %*% Q %*% dvec)
     h <- 1e-6
-    db <- cbind((b_fun(c(s2v + h, s2u)) - b_fun(c(s2v - h, s2u))) / (2 * h),
-                (b_fun(c(s2v, s2u + h)) - b_fun(c(s2v, s2u - h))) / (2 * h))
+    db <- cbind(
+      (b_fun(c(s2v + h, s2u)) - b_fun(c(s2v - h, s2u))) / (2 * h),
+      (b_fun(c(s2v, s2u + h)) - b_fun(c(s2v, s2u - h))) / (2 * h)
+    )
     g3 <- sum(diag(t(db) %*% V %*% db %*% info_inv))
     mse_ref[k] <- g1 + g2 + 2 * g3
   }
@@ -117,11 +131,15 @@ test_that("eblup_twofold bootstrap area MSE agrees with the analytical area MSE"
   dat$y <- 2 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) +
     rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fa <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                      data = dat, print_result = FALSE)
-  fb <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                      data = dat, mse_type = "bootstrap", B = 400, seed = 1,
-                      print_result = FALSE)
+  fa <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
+  fb <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, mse_type = "bootstrap", B = 400, seed = 1,
+    print_result = FALSE
+  )
   expect_equal(fb$df_area$eblup_area, fa$df_area$eblup_area)
   ratio <- fb$df_area$mse_area / fa$df_area$mse_area
   expect_gt(median(ratio), 0.8)
@@ -130,35 +148,47 @@ test_that("eblup_twofold bootstrap area MSE agrees with the analytical area MSE"
 
 test_that("eblup_twofold compute_area, mse_type = 'none' and invalid weights", {
   dat <- sim_twofold_area()
-  fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, compute_area = FALSE, print_result = FALSE)
+  fit <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, compute_area = FALSE, print_result = FALSE
+  )
   expect_null(fit$df_area)
 
-  fit_none <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                            data = dat, mse_type = "none", print_result = FALSE)
+  fit_none <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, mse_type = "none", print_result = FALSE
+  )
   expect_true(all(is.na(fit_none$df_area$mse_area)))
   expect_false(anyNA(fit_none$df_area$eblup_area))
 
   dat$pop[1] <- -1
   expect_warning(
-    eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                  data = dat, weight = "pop", print_result = FALSE),
+    eblup_twofold(y ~ x1,
+      vardir = "vardir", domain = "area", subarea = "subarea",
+      data = dat, weight = "pop", print_result = FALSE
+    ),
     "missing or negative"
   )
   expect_error(
-    eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                  data = dat, weight = dat$pop[-1], print_result = FALSE),
+    eblup_twofold(y ~ x1,
+      vardir = "vardir", domain = "area", subarea = "subarea",
+      data = dat, weight = dat$pop[-1], print_result = FALSE
+    ),
     "length does not match"
   )
 })
 
 test_that("eblup_twofold area estimates follow the self-benchmarked sub-area estimates", {
   dat <- sim_twofold_area()
-  fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, weight = "pop", self_benchmark = TRUE,
-                       benchmark_weight = "pop", print_result = FALSE)
+  fit <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, weight = "pop", self_benchmark = TRUE,
+    benchmark_weight = "pop", print_result = FALSE
+  )
   w <- dat$pop / ave(dat$pop, dat$area, FUN = sum)
   expect_equal(fit$df_area$eblup_area,
-               as.numeric(rowsum(w * fit$df_eblup$eblup, dat$area)), tolerance = 1e-10)
+    as.numeric(rowsum(w * fit$df_eblup$eblup, dat$area)),
+    tolerance = 1e-10
+  )
   expect_true(all(fit$df_area$mse_area > 0))
 })

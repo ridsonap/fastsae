@@ -154,8 +154,7 @@ sim_series_data <- function(D = 42,
   }
 
   # c. Deterministic temporal trend
-  trend_vec <- switch(
-    trend,
+  trend_vec <- switch(trend,
     "linear" = trend_slope * (seq_len(T) - 1),
     "random_walk" = cumsum(c(0, stats::rnorm(T - 1, mean = 0, sd = trend_slope))),
     "ar1" = {
@@ -324,8 +323,10 @@ print.fastsae_sim_series <- function(x, ...) {
   cat("  fastsae Simulated Spatio-Temporal Multi-Distribution Panel\n")
   cat("=================================================================\n")
   cat(sprintf("Domains (D): %d | Time periods (T): %d | Total observations: %d\n", D, T, N))
-  cat(sprintf("Observations: %d observed, %d missing/unsampled (%.1f%%)\n",
-              n_obs, n_na, 100 * n_na / N))
+  cat(sprintf(
+    "Observations: %d observed, %d missing/unsampled (%.1f%%)\n",
+    n_obs, n_na, 100 * n_na / N
+  ))
   cat(sprintf("Spatio-temporal parameters:\n"))
   cat(sprintf("  - Spatial correlation (rho_s / rho1):  %.2f (sigma_s = %.2f)\n", params$rho_s, params$sigma_s))
   cat(sprintf("  - Temporal AR(1)     (rho_t / rho2):  %.2f (sigma_t = %.2f)\n", params$rho_t, params$sigma_t))

@@ -298,7 +298,7 @@ benchmark_sae.default <- function(
     cli::cli_abort("Benchmark {.arg weight} must be strictly positive for all domains.")
   }
   if (!is.null(national_target) &&
-      (!is.numeric(national_target) || length(national_target) != 1 || !is.finite(national_target))) {
+    (!is.numeric(national_target) || length(national_target) != 1 || !is.finite(national_target))) {
     cli::cli_abort("{.arg national_target} must be a single finite number.")
   }
 
@@ -486,12 +486,10 @@ benchmark_sae.default <- function(
       }
       ratio_adj <- T_g / agg_initial
       df_work$y_bm[idx_g] <- y_g * ratio_adj
-
     } else if (method == "difference") {
       # Difference / Additive Benchmarking (Rao and Molina, 2015, Sec 10.3)
       diff_val <- T_g - agg_initial
       df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
-
     } else if (method == "optimal") {
       # Optimal Quadratic Loss / Variance-Weighted Benchmarking (Datta et al., 2011; Steorts et al., 2014)
       mse_g <- df_work$mse[idx_g]
@@ -507,7 +505,6 @@ benchmark_sae.default <- function(
         mse_pos <- pmax(mse_g, 1e-8)
         df_work$y_bm[idx_g] <- y_g + w_calc * mse_pos * diff_val / sum(w_calc^2 * mse_pos)
       }
-
     } else if (method == "logit") {
       # Logit-scale additive shift for bounded indicators in (0, 1) (Berg and Fuller, 2014)
       if (any(y_g <= 0 | y_g >= 1)) {
@@ -595,7 +592,8 @@ benchmark_sae.default <- function(
   res_df$benchmarked <- df_work$y_bm
   res_df$adjustment <- df_work$y_bm - df_work$y_hat
   res_df$rel_adjustment_pct <- ifelse(abs(df_work$y_hat) > .Machine$double.eps,
-                                      (res_df$adjustment / df_work$y_hat) * 100, NA_real_)
+    (res_df$adjustment / df_work$y_hat) * 100, NA_real_
+  )
   if (!all(is.na(df_work$mse_bm))) {
     res_df$mse <- df_work$mse
     res_df$mse_benchmarked <- df_work$mse_bm
@@ -677,8 +675,10 @@ print.fastsae_benchmark <- function(x, all_groups = FALSE, ...) {
   if (!is.null(nat_verif)) {
     disc_ok <- nat_verif$discrepancy < 1e-5
     status_icon <- if (disc_ok) "[CONSISTENT]" else "[APPROX]"
-    cat(sprintf("\nLevel 0 (National Target): Target = %.5f | Calibrated Aggregate = %.5f %s\n",
-                nat_verif$target, nat_verif$benchmarked_sum, status_icon))
+    cat(sprintf(
+      "\nLevel 0 (National Target): Target = %.5f | Calibrated Aggregate = %.5f %s\n",
+      nat_verif$target, nat_verif$benchmarked_sum, status_icon
+    ))
   }
 
   # Print verification
@@ -693,12 +693,16 @@ print.fastsae_benchmark <- function(x, all_groups = FALSE, ...) {
       g_label <- if (g == "All") "Target" else paste0("Group '", g, "'")
       disc_ok <- v$discrepancy < 1e-5
       status_icon <- if (disc_ok) "[CONSISTENT]" else "[APPROX]"
-      cat(sprintf("  %s: Target = %.5f | Original = %.5f -> Calibrated = %.5f %s\n",
-                  g_label, v$target, v$original_sum, v$benchmarked_sum, status_icon))
+      cat(sprintf(
+        "  %s: Target = %.5f | Original = %.5f -> Calibrated = %.5f %s\n",
+        g_label, v$target, v$original_sum, v$benchmarked_sum, status_icon
+      ))
     }
     if (n_grps > length(show_grps)) {
-      cat(sprintf("  ... and %d more groups (all verified consistent within < 1e-5; pass all_groups = TRUE to print all)\n",
-                  n_grps - length(show_grps)))
+      cat(sprintf(
+        "  ... and %d more groups (all verified consistent within < 1e-5; pass all_groups = TRUE to print all)\n",
+        n_grps - length(show_grps)
+      ))
     }
   }
 
@@ -806,7 +810,9 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
 .mse_operator <- function(object, n_draws = 500) {
   df <- object$df_hb %||% object$df_eblup
   mse <- df$mse %||% (if (!is.null(df$sd)) df$sd^2 else NULL)
-  if (is.null(df) || is.null(mse) || anyNA(mse)) return(NULL)
+  if (is.null(df) || is.null(mse) || anyNA(mse)) {
+    return(NULL)
+  }
 
   # M v = s * (G12 (s * v / d)) / d,  d = sqrt(diag(G12)), s = sqrt(mse)
   make_op <- function(g12_mult, g12_diag) {
@@ -828,7 +834,7 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
     Vi <- chol2inv(chol(Vs))
     Xs <- Xall[s, , drop = FALSE]
     Q <- solve(t(Xs) %*% Vi %*% Xs)
-    K <- G[, s, drop = FALSE] %*% Vi                  # n x m
+    K <- G[, s, drop = FALSE] %*% Vi # n x m
     R <- Xall - K %*% Xs
     RQ <- R %*% Q
     g12_diag <- diag(G) - rowSums(K * G[, s, drop = FALSE]) + rowSums(RQ * R)
@@ -861,10 +867,14 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
   if (model %in% c("ST", "S") && !is.null(object$W) && !is.null(object$estvarcomp)) {
     # all domains sampled: g1 = Psi - Psi V^-1 Psi, R = Psi V^-1 X
     th <- object$estvarcomp$estimate
-    dom <- df$domain; tim <- df$time
+    dom <- df$domain
+    tim <- df$time
     ord <- order(match(as.character(dom), unique(as.character(dom))), tim)
-    D <- length(unique(dom)); Tt <- length(unique(tim))
-    if (D * Tt != nrow(df)) return(NULL)
+    D <- length(unique(dom))
+    Tt <- length(unique(tim))
+    if (D * Tt != nrow(df)) {
+      return(NULL)
+    }
     O1 <- chol2inv(chol(crossprod(diag(D) - th[2] * object$W)))
     O2 <- if (model == "ST") outer(1:Tt, 1:Tt, function(i, j) th[4]^abs(i - j)) / (1 - th[4]^2) else diag(Tt)
     V <- th[1] * kronecker(O1, matrix(1, Tt, Tt)) + th[3] * kronecker(diag(D), O2)
@@ -893,11 +903,14 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
     return(make_op(function(v) Tc %*% crossprod(Tc, v) / S1, rowSums(Tc^2) / S1))
   }
   if (inherits(object, "fastsae_hb_area") && !is.null(object$fit) && inherits(object$fit, "inla") &&
-      requireNamespace("INLA", quietly = TRUE)) {
+    requireNamespace("INLA", quietly = TRUE)) {
     fam <- object$family %||% "gaussian"
     smp <- tryCatch(.inla_draws(object$fit, n_draws, object$engine_spec$seed %||% 1L),
-                    error = function(e) NULL)
-    if (is.null(smp)) return(NULL)
+      error = function(e) NULL
+    )
+    if (is.null(smp)) {
+      return(NULL)
+    }
     n <- nrow(df)
     rows <- grep("^Predictor:", rownames(smp[[1]]$latent))[seq_len(n)]
     eta <- vapply(smp, function(z) z$latent[rows, 1], numeric(n))
@@ -913,7 +926,9 @@ plot.fastsae_benchmark <- function(x, y = NULL, ...) {
 #' @noRd
 .mse_matrix <- function(object, n_draws = 500) {
   op <- .mse_operator(object, n_draws = n_draws)
-  if (is.null(op)) return(NULL)
+  if (is.null(op)) {
+    return(NULL)
+  }
   M <- op$mult(diag(length(op$mse)))
   M <- (M + t(M)) / 2
   dimnames(M) <- NULL

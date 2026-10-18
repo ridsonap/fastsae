@@ -37,8 +37,10 @@ fake_unit_backend <- function(env) {
       hb_ci_lower = apply(draws, 2, stats::quantile, 0.025, names = FALSE),
       hb_ci_upper = apply(draws, 2, stats::quantile, 0.975, names = FALSE),
       linpred_mean = colMeans(draws), rand_eff_mean = seq_len(n) / 10,
-      hyperparameters = c(list(sigma2_u = 0.3), if (gauss) list(sigma2_e = 1.5),
-                          if (args$spatial == "bym2") list(phi = 0.4)),
+      hyperparameters = c(
+        list(sigma2_u = 0.3), if (gauss) list(sigma2_e = 1.5),
+        if (args$spatial == "bym2") list(phi = 0.4)
+      ),
       dic = 10, p_dic = 3, waic = 11, p_waic = 3.5,
       device_used = "cpu", rhat_max = 1.01, shrinkage_weights = NULL,
       hb_draws = draws[, rows, drop = FALSE],
@@ -57,8 +59,10 @@ skip_if_no_numpyro_unit <- function() {
   if (!suppressMessages(check_numpyro_available())) skip("NumPyro / JAX not available")
 }
 
-unit_hb_columns <- c("domain", "y", "hb", "linear_pred", "vardir", "sd", "mse", "rse", "ci_lower",
-                     "ci_upper", "samp_size", "sample_mean", "random_effect")
+unit_hb_columns <- c(
+  "domain", "y", "hb", "linear_pred", "vardir", "sd", "mse", "rse", "ci_lower",
+  "ci_upper", "samp_size", "sample_mean", "random_effect"
+)
 
 # ---------------------------------------------------------------------------
 # R side of engine = "jax" with a fake backend
@@ -71,8 +75,10 @@ test_that("hb_unit(engine = 'jax') fits the sampled units and predicts each doma
   n <- nrow(d$sample)
   eng <- jax_engine(samples = 50, device = "cpu")
 
-  fit <- suppressMessages(hb_unit(y ~ x1, unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
-                                  engine = eng, print_result = FALSE))
+  fit <- suppressMessages(hb_unit(y ~ x1,
+    unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
+    engine = eng, print_result = FALSE
+  ))
   a <- env$args
   # the sampled units, then one prediction row per domain at the population mean
   expect_equal(a$y, c(d$sample$y, rep(NA, 6)))
@@ -112,8 +118,10 @@ test_that("hb_unit(engine = 'jax') draws the finite population mean", {
   local_fake_unit_backend(env)
   d <- unit_engine_data()
   n <- nrow(d$sample)
-  fit <- suppressMessages(hb_unit(y ~ x1, unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
-                                  popsize_var = "N", engine = jax_engine(seed = 9), print_result = FALSE))
+  fit <- suppressMessages(hb_unit(y ~ x1,
+    unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
+    popsize_var = "N", engine = jax_engine(seed = 9), print_result = FALSE
+  ))
 
   # prediction rows at the mean covariates of the non-sampled units
   n_d <- c(4, 2, 5, 3, 1, 0)
@@ -122,7 +130,8 @@ test_that("hb_unit(engine = 'jax') draws the finite population mean", {
 
   # Ybar_d = f_d ybar_s + (1 - f_d) (mu_r + ebar_r), ebar_r ~ N(0, sigma_e^2 / (N_d - n_d))
   mu <- t(fake_unit_backend(new.env())$fit_numpyro_hb(
-    env$args$y, env$args$X, env$args$domain_idx, family = "gaussian", spatial = "none",
+    env$args$y, env$args$X, env$args$domain_idx,
+    family = "gaussian", spatial = "none",
     draw_rows = n + 0:5
   )$hb_draws)
   s2e <- seq(1, 2, length.out = 200)
@@ -146,7 +155,8 @@ test_that("hb_unit(engine = 'jax') passes Bernoulli trials and the spatial struc
   W[cbind(1:5, 2:6)] <- 1
   W <- W + t(W)
   fit <- suppressWarnings(suppressMessages(hb_unit(
-    yb ~ x1, unit_data = d$sample, Xpop = d$pop, domain_var = "dom", family = "binomial",
+    yb ~ x1,
+    unit_data = d$sample, Xpop = d$pop, domain_var = "dom", family = "binomial",
     spatial = "bym2", W = W, popsize_var = "N", engine = jax_engine(keep_draws = FALSE),
     print_result = FALSE
   )))
@@ -163,13 +173,19 @@ test_that("hb_unit(engine = 'jax') passes Bernoulli trials and the spatial struc
 test_that("hb_unit() checks the unit responses of the binomial and Poisson models", {
   d <- unit_engine_data()
   d$sample$cnt <- 2
-  expect_error(suppressWarnings(hb_unit(cnt ~ x1, unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
-                                        family = "binomial", engine = "jax")), "0 or 1")
+  expect_error(suppressWarnings(hb_unit(cnt ~ x1,
+    unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
+    family = "binomial", engine = "jax"
+  )), "0 or 1")
   d$sample$cnt <- 1.5
-  expect_error(suppressWarnings(hb_unit(cnt ~ x1, unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
-                                        family = "poisson", engine = "jax")), "integer counts")
-  expect_error(hb_unit(y ~ x1, unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
-                       engine = "jax", strategy = "gaussian"), "cannot be used with")
+  expect_error(suppressWarnings(hb_unit(cnt ~ x1,
+    unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
+    family = "poisson", engine = "jax"
+  )), "integer counts")
+  expect_error(hb_unit(y ~ x1,
+    unit_data = d$sample, Xpop = d$pop, domain_var = "dom",
+    engine = "jax", strategy = "gaussian"
+  ), "cannot be used with")
 })
 
 # ---------------------------------------------------------------------------
@@ -220,10 +236,14 @@ test_that("hb_unit(engine = 'jax') agrees with hbsae and INLA", {
   # 0.094 posterior SD and from INLA's by at most 0.051, SD ratios 0.94-1.08.
   Xp <- cbind(1, d$pop$x1)
   rownames(Xp) <- d$pop$dom
-  h <- hbsae::fSAE.Unit(s$y_gauss, cbind(1, s$x1), factor(s$dom), Narea = setNames(d$pop$N, d$pop$dom),
-                        Xpop = Xp, fpc = TRUE, method = "HB", silent = TRUE)
-  fit <- suppressMessages(hb_unit(y_gauss ~ x1, unit_data = s, Xpop = d$pop, domain_var = "dom",
-                                  popsize_var = "N", engine = eng, print_result = FALSE))
+  h <- hbsae::fSAE.Unit(s$y_gauss, cbind(1, s$x1), factor(s$dom),
+    Narea = setNames(d$pop$N, d$pop$dom),
+    Xpop = Xp, fpc = TRUE, method = "HB", silent = TRUE
+  )
+  fit <- suppressMessages(hb_unit(y_gauss ~ x1,
+    unit_data = s, Xpop = d$pop, domain_var = "dom",
+    popsize_var = "N", engine = eng, print_result = FALSE
+  ))
   ref_sd <- sqrt(as.numeric(h$mse[rownames(Xp)]))
   z <- abs(fit$df_hb$hb - as.numeric(h$est[rownames(Xp)])) / ref_sd
   expect_lt(median(z), 0.1)
@@ -231,8 +251,10 @@ test_that("hb_unit(engine = 'jax') agrees with hbsae and INLA", {
   expect_true(all(fit$df_hb$sd / ref_sd > 0.85 & fit$df_hb$sd / ref_sd < 1.2))
 
   for (k in c("binomial", "poisson")) {
-    args <- list(as.formula(paste(if (k == "binomial") "y_bin" else "y_pois", "~ x1")), unit_data = s,
-                 Xpop = d$pop, domain_var = "dom", family = k, print_result = FALSE)
+    args <- list(as.formula(paste(if (k == "binomial") "y_bin" else "y_pois", "~ x1")),
+      unit_data = s,
+      Xpop = d$pop, domain_var = "dom", family = k, print_result = FALSE
+    )
     fit_jax <- quiet_mcmc(suppressWarnings(do.call(hb_unit, c(args, list(engine = eng)))))
     fit_inla <- suppressWarnings(do.call(hb_unit, args))
     expect_named(fit_jax$df_hb, names(fit_inla$df_hb))

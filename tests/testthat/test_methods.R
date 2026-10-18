@@ -186,7 +186,7 @@ test_that("S3 methods cover all print, summary, coef, fitted, residuals, and plo
 
   if (requireNamespace("sf", quietly = TRUE)) {
     grid_sf <- sf::st_make_grid(
-      sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+      sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
       cellsize = c(1, 1),
       what = "polygons"
     )[seq_len(nrow(mys))]

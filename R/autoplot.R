@@ -249,10 +249,14 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
   p <- p +
     geom_hline(yintercept = thresholds[1], linetype = "dashed", color = "#2A9D8F", linewidth = 0.8) +
     geom_hline(yintercept = thresholds[2], linetype = "dashed", color = "#E76F51", linewidth = 0.8) +
-    ggplot2::annotate("text", x = 1, y = thresholds[1] - 1.5, label = paste0("Reliable (\u2264 ", thresholds[1], "%)"),
-                      hjust = 0, size = 3, color = "#2A9D8F", fontface = "italic") +
-    ggplot2::annotate("text", x = 1, y = thresholds[2] + 1.5, label = paste0("Unreliable (> ", thresholds[2], "%)"),
-                      hjust = 0, size = 3, color = "#E76F51", fontface = "italic") +
+    ggplot2::annotate("text",
+      x = 1, y = thresholds[1] - 1.5, label = paste0("Reliable (\u2264 ", thresholds[1], "%)"),
+      hjust = 0, size = 3, color = "#2A9D8F", fontface = "italic"
+    ) +
+    ggplot2::annotate("text",
+      x = 1, y = thresholds[2] + 1.5, label = paste0("Unreliable (> ", thresholds[2], "%)"),
+      hjust = 0, size = 3, color = "#E76F51", fontface = "italic"
+    ) +
     labs(
       title = title %||% "Relative Standard Error (RSE %) across Domains",
       subtitle = paste0("Reliability thresholds: RSE \u2264 ", thresholds[1], "% (reliable) and > ", thresholds[2], "% (unreliable)"),
@@ -532,7 +536,6 @@ autoplot.fastsae_diagnose <- function(object,
       theme_minimal(base_size = 11) +
       theme(plot.title = element_text(face = "bold"))
     return(p)
-
   } else if (type == "rse") {
     # 2. RSE Reduction Plot
     valid_rse <- df_sampled[!is.na(df_sampled$direct_rse) & !is.na(df_sampled$sae_rse), ]
@@ -549,7 +552,6 @@ autoplot.fastsae_diagnose <- function(object,
       theme_minimal(base_size = 11) +
       theme(plot.title = element_text(face = "bold"))
     return(p)
-
   } else if (type == "residuals") {
     # 3. Residuals vs Fitted
     p <- ggplot(df_sampled, aes(x = .data$sae_pred, y = .data$std_residuals)) +
@@ -565,7 +567,6 @@ autoplot.fastsae_diagnose <- function(object,
       theme_minimal(base_size = 11) +
       theme(plot.title = element_text(face = "bold"))
     return(p)
-
   } else if (type == "qq") {
     # 4. Normal Q-Q Plot
     res_clean <- df_sampled$std_residuals[!is.na(df_sampled$std_residuals)]
@@ -582,7 +583,6 @@ autoplot.fastsae_diagnose <- function(object,
       theme_minimal(base_size = 11) +
       theme(plot.title = element_text(face = "bold"))
     return(p)
-
   } else if (type == "pit") {
     # 5. PIT Histogram (Probability Integral Transform)
     if (!"pit" %in% names(df) || all(is.na(df$pit))) {
@@ -602,7 +602,6 @@ autoplot.fastsae_diagnose <- function(object,
       theme_minimal(base_size = 11) +
       theme(plot.title = element_text(face = "bold"))
     return(p)
-
   } else if (type == "cpo") {
     # 6. CPO Index Plot
     if (!"cpo" %in% names(df) || all(is.na(df$cpo))) {
@@ -626,7 +625,6 @@ autoplot.fastsae_diagnose <- function(object,
         plot.title = element_text(face = "bold")
       )
     return(p)
-
   } else {
     # 5. Combined Dual Inspection (Calibration & RSE side by side)
     df_long <- data.frame(
@@ -670,7 +668,9 @@ autoplot.fastsae_diagnose <- function(object,
       "i" = "This fit used the {.val {object$engine %||% 'frequentist'}} engine."
     ))
   }
-  if (is.null(pars)) return(trace)
+  if (is.null(pars)) {
+    return(trace)
+  }
   avail <- dimnames(trace)$parameter
   extra <- setdiff(pars, avail)
   rows <- suppressWarnings(as.integer(sub("^hb\\[([0-9]+)\\]$", "\\1", extra)))
@@ -689,8 +689,10 @@ autoplot.fastsae_diagnose <- function(object,
     n_iter <- dim(trace)[1]
     n_chain <- dim(trace)[2]
     add <- array(t(draws[rows, , drop = FALSE]), dim = c(n_iter, n_chain, length(rows)))
-    trace <- array(c(trace, add), dim = c(n_iter, n_chain, dim(trace)[3] + length(rows)),
-                   dimnames = list(iteration = NULL, chain = seq_len(n_chain), parameter = c(avail, extra)))
+    trace <- array(c(trace, add),
+      dim = c(n_iter, n_chain, dim(trace)[3] + length(rows)),
+      dimnames = list(iteration = NULL, chain = seq_len(n_chain), parameter = c(avail, extra))
+    )
   }
   trace[, , pars, drop = FALSE]
 }
@@ -715,7 +717,8 @@ autoplot.fastsae_diagnose <- function(object,
   if (!is.null(tab)) {
     i <- match(par_names, tab$parameter)
     lab <- ifelse(is.na(i), par_names,
-                  sprintf("%s\nR-hat %.3f, ESS %.0f", par_names, tab$rhat[i], tab$ess_bulk[i]))
+      sprintf("%s\nR-hat %.3f, ESS %.0f", par_names, tab$rhat[i], tab$ess_bulk[i])
+    )
   }
   df$parameter <- factor(df$parameter, levels = par_names, labels = lab)
 
@@ -723,15 +726,19 @@ autoplot.fastsae_diagnose <- function(object,
     p <- ggplot(df, aes(x = .data$iteration, y = .data$value, colour = .data$chain)) +
       geom_line(linewidth = 0.25, alpha = 0.8) +
       facet_wrap(~parameter, scales = "free_y") +
-      labs(x = "Iteration (after warmup)", y = NULL, colour = "Chain",
-           title = title %||% "MCMC trace plot")
+      labs(
+        x = "Iteration (after warmup)", y = NULL, colour = "Chain",
+        title = title %||% "MCMC trace plot"
+      )
   } else {
     df$rank <- stats::ave(df$value, df$parameter, FUN = function(v) rank(v, ties.method = "average"))
     n_total <- n_iter * n_chain
     df$bin <- pmin(floor((df$rank - 1) / n_total * bins), bins - 1)
     counts <- stats::aggregate(list(count = df$rank), df[c("parameter", "chain", "bin")], length)
-    full <- expand.grid(parameter = levels(df$parameter), chain = levels(df$chain), bin = 0:(bins - 1),
-                        stringsAsFactors = FALSE)
+    full <- expand.grid(
+      parameter = levels(df$parameter), chain = levels(df$chain), bin = 0:(bins - 1),
+      stringsAsFactors = FALSE
+    )
     counts$parameter <- as.character(counts$parameter)
     counts$chain <- as.character(counts$chain)
     full <- merge(full, counts, all.x = TRUE)
@@ -747,9 +754,11 @@ autoplot.fastsae_diagnose <- function(object,
       geom_step(linewidth = 0.4) +
       facet_wrap(~parameter, scales = "free_y") +
       scale_x_continuous(labels = function(x) paste0(round(100 * x), "%")) +
-      labs(x = "Rank (share of all draws)", y = "Draws per bin", colour = "Chain",
-           title = title %||% "MCMC rank plot",
-           subtitle = "Chains that sample the same distribution stay near the dashed line")
+      labs(
+        x = "Rank (share of all draws)", y = "Draws per bin", colour = "Chain",
+        title = title %||% "MCMC rank plot",
+        subtitle = "Chains that sample the same distribution stay near the dashed line"
+      )
   }
   p + theme_minimal(base_size = 11) + theme(legend.position = "bottom")
 }

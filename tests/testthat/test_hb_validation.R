@@ -150,20 +150,20 @@ test_that("hb_area input validation and error checking", {
 
 test_that("inla_utils .convert_spatial_weights checks", {
   # 1. Unsupported spatial object type
-  expect_error(fastsae::: .convert_spatial_weights("bad_W", n_domains = 5), "Unsupported spatial object type")
+  expect_error(fastsae:::.convert_spatial_weights("bad_W", n_domains = 5), "Unsupported spatial object type")
 
   # 2. Dimension mismatch
   bad_mat <- matrix(0, nrow = 3, ncol = 3)
-  expect_error(fastsae::: .convert_spatial_weights(bad_mat, n_domains = 5), "must be a square matrix with dimensions equal to total number of domains")
+  expect_error(fastsae:::.convert_spatial_weights(bad_mat, n_domains = 5), "must be a square matrix with dimensions equal to total number of domains")
 
   # 3. Isolated nodes warning
   iso_mat <- matrix(0, nrow = 4, ncol = 4)
   iso_mat[1, 2] <- iso_mat[2, 1] <- 1
-  expect_warning(fastsae::: .convert_spatial_weights(iso_mat, n_domains = 4), "isolated nodes")
+  expect_warning(fastsae:::.convert_spatial_weights(iso_mat, n_domains = 4), "isolated nodes")
 
   # 4. inla.graph object
   g_obj <- structure(list(), class = "inla.graph")
-  res_g <- fastsae::: .convert_spatial_weights(g_obj, n_domains = 5)
+  res_g <- fastsae:::.convert_spatial_weights(g_obj, n_domains = 5)
   expect_identical(res_g$graph, g_obj)
 
   # 5. listw and nb objects from spdep
@@ -171,10 +171,10 @@ test_that("inla_utils .convert_spatial_weights checks", {
     W_mat <- matrix(0, 4, 4)
     W_mat[1, 2] <- W_mat[2, 1] <- W_mat[2, 3] <- W_mat[3, 2] <- W_mat[3, 4] <- W_mat[4, 3] <- 1
     lw <- spdep::mat2listw(W_mat, style = "B")
-    res_lw <- fastsae::: .convert_spatial_weights(lw, n_domains = 4)
+    res_lw <- fastsae:::.convert_spatial_weights(lw, n_domains = 4)
     expect_equal(unname(as.matrix(res_lw$W_mat)), W_mat, ignore_attr = TRUE)
 
-    res_nb <- fastsae::: .convert_spatial_weights(lw$neighbours, n_domains = 4)
+    res_nb <- fastsae:::.convert_spatial_weights(lw$neighbours, n_domains = 4)
     expect_equal(unname(as.matrix(res_nb$W_mat)), W_mat, ignore_attr = TRUE)
   }
 })
@@ -391,7 +391,9 @@ test_that("inla_utils helper checks and random effect extraction fallbacks work"
   # 1. .check_inla_installed when INLA is missing
   testthat::with_mocked_bindings(
     requireNamespace = function(package, ...) {
-      if (package == "INLA") return(FALSE)
+      if (package == "INLA") {
+        return(FALSE)
+      }
       TRUE
     },
     .package = "base",
@@ -402,12 +404,14 @@ test_that("inla_utils helper checks and random effect extraction fallbacks work"
 
   # 2. .convert_spatial_weights when spdep is missing for listw / nb
   skip_if_not_installed("spdep")
-  W_mat <- matrix(c(0,1,0,1,0,1,0,1,0), 3, 3)
+  W_mat <- matrix(c(0, 1, 0, 1, 0, 1, 0, 1, 0), 3, 3)
   listw_obj <- spdep::mat2listw(W_mat, style = "W")
   nb_obj <- spdep::mat2listw(W_mat, style = "B")$neighbours
   testthat::with_mocked_bindings(
     requireNamespace = function(package, ...) {
-      if (package == "spdep") return(FALSE)
+      if (package == "spdep") {
+        return(FALSE)
+      }
       TRUE
     },
     .package = "base",
@@ -456,5 +460,3 @@ test_that("inla_utils helper checks and random effect extraction fallbacks work"
   )
   expect_true(all(is.na(res_na$df_hb$random_effect)))
 })
-
-

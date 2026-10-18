@@ -50,13 +50,16 @@
 .run_numpyro <- function(engine, X, ...) {
   # JAX reads JAX_PLATFORMS when it initializes, i.e. at the first fit of the session
   old_plat <- Sys.getenv("JAX_PLATFORMS", unset = NA)
-  on.exit({
-    if (is.na(old_plat) || !nzchar(old_plat)) {
-      Sys.unsetenv("JAX_PLATFORMS")
-    } else {
-      Sys.setenv(JAX_PLATFORMS = old_plat)
-    }
-  }, add = TRUE)
+  on.exit(
+    {
+      if (is.na(old_plat) || !nzchar(old_plat)) {
+        Sys.unsetenv("JAX_PLATFORMS")
+      } else {
+        Sys.setenv(JAX_PLATFORMS = old_plat)
+      }
+    },
+    add = TRUE
+  )
   if (!nzchar(Sys.getenv("JAX_PLATFORMS"))) {
     if (engine$device == "cpu" || (engine$device == "auto" && Sys.info()["sysname"] == "Darwin")) {
       Sys.setenv(JAX_PLATFORMS = "cpu")
@@ -126,8 +129,10 @@
 .mcmc_summary <- function(fit_py, coef_names, chains) {
   tab <- fit_py$diagnostics
   if (is.null(tab)) {
-    return(list(table = NULL, trace = NULL, ess_min = NULL, divergences = fit_py$num_divergent,
-                treedepth_hits = fit_py$treedepth_hits))
+    return(list(
+      table = NULL, trace = NULL, ess_min = NULL, divergences = fit_py$num_divergent,
+      treedepth_hits = fit_py$treedepth_hits
+    ))
   }
   rename <- function(p) {
     k <- suppressWarnings(as.integer(sub("^beta\\[([0-9]+)\\]$", "\\1", p)))
@@ -171,7 +176,9 @@
 .warn_mcmc <- function(rhat_max, mcmc, chains) {
   tab <- mcmc$table
   worst <- function(col, fun) {
-    if (is.null(tab) || !any(is.finite(tab[[col]]))) return(NULL)
+    if (is.null(tab) || !any(is.finite(tab[[col]]))) {
+      return(NULL)
+    }
     tab$parameter[fun(tab[[col]])]
   }
   if (!is.null(rhat_max) && !(rhat_max < 1.05)) {

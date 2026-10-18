@@ -8,8 +8,10 @@ test_that("diagnose works for eblup_fh objects", {
   d_fh <- diagnose(fit_fh, rse_threshold = 25)
 
   expect_s3_class(d_fh, "fastsae_diagnose")
-  expect_named(d_fh, c("model_info", "precision", "brown_test", "spatial_test",
-                       "bayesian_metrics", "simulation_metrics", "df_diag", "status"))
+  expect_named(d_fh, c(
+    "model_info", "precision", "brown_test", "spatial_test",
+    "bayesian_metrics", "simulation_metrics", "df_diag", "status"
+  ))
 
   # Model info
   expect_equal(d_fh$model_info$N_total, nrow(mys))
@@ -38,8 +40,10 @@ test_that("diagnose works for eblup_sfh with spatial autocorrelation test", {
   data("mys", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = ~vardir,
-                       domain = ~area, W = mys_proxmat, print_result = FALSE)
+  fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3,
+    data = mys, vardir = ~vardir,
+    domain = ~area, W = mys_proxmat, print_result = FALSE
+  )
 
   # diagnose should automatically detect W from fit_sfh
   d_sfh <- diagnose(fit_sfh)
@@ -58,9 +62,11 @@ test_that("diagnose works for hb_area and handles simulation truth", {
   data("sim_area", package = "fastsae")
   data("mys_proxmat", package = "fastsae")
 
-  fit_hb <- hb_area(y_gaussian ~ x1 + x2, data = sim_area,
-                      vardir = "vardir", spatial = "bym2", W = mys_knn,
-                      print_result = FALSE)
+  fit_hb <- hb_area(y_gaussian ~ x1 + x2,
+    data = sim_area,
+    vardir = "vardir", spatial = "bym2", W = mys_knn,
+    print_result = FALSE
+  )
 
   # Supply dummy ground truth for simulation verification
   mock_truth <- fit_hb$df_hb$hb * runif(nrow(sim_area), 0.98, 1.02)
@@ -267,8 +273,10 @@ test_that("diagnose Brown W test keeps its size and is not driven by shrinkage",
     dat <- data.frame(y = 1 + x1 + rnorm(D, sd = sqrt(0.6)) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
     fit <- eblup_fh(y ~ x1, vardir = "psi", data = dat, print_result = FALSE)
     d <- diagnose(fit)
-    c(gof = !d$brown_test$goodness_of_fit$is_good_fit, caution = grepl("^CAUTION", d$status),
-      beta = d$brown_test$bias_regression$beta)
+    c(
+      gof = !d$brown_test$goodness_of_fit$is_good_fit, caution = grepl("^CAUTION", d$status),
+      beta = d$brown_test$bias_regression$beta
+    )
   }, numeric(3))
   expect_lte(mean(rej["gof", ]), 0.1)
   expect_equal(mean(rej["caution", ]), mean(rej["gof", ]))
@@ -280,10 +288,12 @@ test_that("diagnose reads Bayesian criteria of hb_unit-style goodness lists", {
   obj <- structure(
     list(
       model = "HB-UNIT",
-      df_hb = data.frame(domain = 1:6, y = c(1, 2, 3, 4, 5, 6), hb = c(1.1, 1.9, 3.1, 3.9, 5.1, 6.0),
-                         vardir = rep(0.2, 6), mse = rep(0.05, 6)),
+      df_hb = data.frame(
+        domain = 1:6, y = c(1, 2, 3, 4, 5, 6), hb = c(1.1, 1.9, 3.1, 3.9, 5.1, 6.0),
+        vardir = rep(0.2, 6), mse = rep(0.05, 6)
+      ),
       goodness = list(dic = 101.5, p_eff_dic = 4.2, waic = 102.3, p_eff_waic = 4.8, mlik = -60.1),
-      fit = list(cpo = list(cpo = runif(20), pit = runif(20)))  # unit rows: not per domain
+      fit = list(cpo = list(cpo = runif(20), pit = runif(20))) # unit rows: not per domain
     ),
     class = c("fastsae_hb_unit", "fastsae_hb", "fastsae")
   )
@@ -292,14 +302,15 @@ test_that("diagnose reads Bayesian criteria of hb_unit-style goodness lists", {
   expect_equal(d$bayesian_metrics$waic, 102.3)
   expect_equal(d$bayesian_metrics$pWAIC, 4.8)
   expect_equal(d$bayesian_metrics$log_mlik, -60.1)
-  expect_null(d$bayesian_metrics$cpo_summary)   # CPO rows do not match the domains
+  expect_null(d$bayesian_metrics$cpo_summary) # CPO rows do not match the domains
   expect_null(d$df_diag$cpo)
 })
 
 test_that("diagnose standardises residuals by sqrt(vardir - MSE)", {
   set.seed(21)
   D <- 300
-  x1 <- rnorm(D); psi <- runif(D, 0.3, 1.5)
+  x1 <- rnorm(D)
+  psi <- runif(D, 0.3, 1.5)
   dat <- data.frame(y = 1 + x1 + rnorm(D, sd = sqrt(0.6)) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
   fit <- eblup_fh(y ~ x1, vardir = "psi", data = dat, print_result = FALSE)
   d <- diagnose(fit)$df_diag

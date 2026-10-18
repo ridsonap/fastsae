@@ -71,7 +71,7 @@
 #' # Create a synthetic spatial grid for demonstration
 #' if (requireNamespace("sf", quietly = TRUE)) {
 #'   grid_sf <- sf::st_make_grid(
-#'     sf::st_polygon(list(matrix(c(0,0, 6,0, 6,7, 0,7, 0,0), ncol = 2, byrow = TRUE))),
+#'     sf::st_polygon(list(matrix(c(0, 0, 6, 0, 6, 7, 0, 7, 0, 0), ncol = 2, byrow = TRUE))),
 #'     cellsize = c(1, 1),
 #'     what = "polygons"
 #'   )[seq_len(nrow(mys))]
@@ -222,7 +222,7 @@ map_sae.fastsae_benchmark <- function(
 
     p <- ggplot2::ggplot(long_sf) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$Value), color = "gray30", linewidth = 0.2) +
-      ggplot2::facet_wrap(~ Source) +
+      ggplot2::facet_wrap(~Source) +
       ggplot2::scale_fill_viridis_c(option = palette %||% "viridis", name = "Value") +
       ggplot2::theme_minimal(base_size = 11) +
       ggplot2::labs(
@@ -231,7 +231,6 @@ map_sae.fastsae_benchmark <- function(
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
     return(p)
-
   } else if (type_chosen == "difference") {
     matched_sf$diff_val <- matched_sf$adjustment
     p <- ggplot2::ggplot(matched_sf) +
@@ -247,7 +246,6 @@ map_sae.fastsae_benchmark <- function(
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
     return(p)
-
   } else {
     # Single estimate map of benchmarked values
     matched_sf$plot_val <- matched_sf$estimate
@@ -278,7 +276,9 @@ map_sae.list <- function(
   ...
 ) {
   if (length(object) < 2) {
-    if (length(object) == 1) return(map_sae(object[[1]], sf_geom = sf_geom, key = key, ...))
+    if (length(object) == 1) {
+      return(map_sae(object[[1]], sf_geom = sf_geom, key = key, ...))
+    }
     cli::cli_abort("Empty list provided to {.fn map_sae}.")
   }
 
@@ -396,8 +396,9 @@ map_sae.default <- function(
   # Check sf_geom
   sf_obj <- sf_geom
   if (is.null(sf_obj)) {
-    if (!is.null(model1$data) && inherits(model1$data, "sf")) sf_obj <- model1$data
-    else if (!is.null(model2$data) && inherits(model2$data, "sf")) sf_obj <- model2$data
+    if (!is.null(model1$data) && inherits(model1$data, "sf")) {
+      sf_obj <- model1$data
+    } else if (!is.null(model2$data) && inherits(model2$data, "sf")) sf_obj <- model2$data
   }
   if (is.null(sf_obj)) {
     cli::cli_abort("Please provide spatial polygons via {.arg sf_geom} for two-model comparison.")
@@ -428,7 +429,6 @@ map_sae.default <- function(
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
     return(p)
-
   } else {
     # Default comparison: Faceted side-by-side
     long_data <- rbind(
@@ -439,7 +439,7 @@ map_sae.default <- function(
 
     p <- ggplot2::ggplot(long_sf) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$Value), color = "gray30", linewidth = 0.2) +
-      ggplot2::facet_wrap(~ Model, scales = facet_scales) +
+      ggplot2::facet_wrap(~Model, scales = facet_scales) +
       ggplot2::scale_fill_viridis_c(option = palette %||% "viridis", name = "Estimate") +
       ggplot2::theme_minimal(base_size = 11) +
       ggplot2::labs(
@@ -489,11 +489,11 @@ map_sae.default <- function(
 
 
   model_label <- switch(object$model %||% "SAE",
-    "FH"  = "Fay-Herriot EBLUP",
+    "FH" = "Fay-Herriot EBLUP",
     "Log-FH" = "Log Fay-Herriot EBLUP",
     "SFH" = "Spatial FH EBLUP",
-    "ST"  = "Spatio-Temporal FH EBLUP",
-    "S"   = "Spatio-Temporal FH EBLUP",
+    "ST" = "Spatio-Temporal FH EBLUP",
+    "S" = "Spatio-Temporal FH EBLUP",
     "BHF" = "Battese-Harter-Fuller EBLUP",
     "TWOFOLD" = "Two-fold FH EBLUP",
     object$model %||% "SAE Model"
@@ -618,7 +618,6 @@ map_sae.default <- function(
         subtitle = subtitle %||% "Model-based predictions across domains"
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
-
   } else if (type == "rse") {
     matched_sf$plot_val <- matched_sf$rse
     pal <- palette %||% "magma"
@@ -632,7 +631,6 @@ map_sae.default <- function(
         subtitle = subtitle %||% "Sampling error and precision distribution across domains"
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
-
   } else if (type == "reliability") {
     # 3-color traffic light scale (BPS / Eurostat guidelines)
     matched_sf$reliability <- .reliability_tier(matched_sf$rse, thresholds)
@@ -647,7 +645,6 @@ map_sae.default <- function(
         subtitle = subtitle %||% "Evaluation against official statistical publication thresholds"
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
-
   } else if (type == "comparison") {
     # Faceted: Direct Survey vs Model SAE
     if (all(is.na(matched_sf$direct))) {
@@ -663,7 +660,7 @@ map_sae.default <- function(
 
     p <- ggplot2::ggplot(long_sf) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$Value), color = "gray30", linewidth = 0.2) +
-      ggplot2::facet_wrap(~ Source) +
+      ggplot2::facet_wrap(~Source) +
       ggplot2::scale_fill_viridis_c(option = palette %||% "viridis", name = "Estimate", na.value = "gray90") +
       ggplot2::theme_minimal(base_size = 11) +
       ggplot2::labs(
@@ -671,7 +668,6 @@ map_sae.default <- function(
         subtitle = subtitle %||% "Side-by-side geographical comparison of domain values"
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
-
   } else if (type == "difference") {
     # Difference: Model - Direct
     if (all(is.na(matched_sf$direct))) {
@@ -691,7 +687,6 @@ map_sae.default <- function(
         subtitle = subtitle %||% "Spatial smoothing adjustments produced by small area model"
       ) +
       ggplot2::theme(axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank())
-
   } else {
     cli::cli_abort("Unknown map type: {.val {type}}.")
   }

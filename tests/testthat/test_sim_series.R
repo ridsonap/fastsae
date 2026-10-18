@@ -9,9 +9,11 @@ test_that("sim_series_data produces valid spatio-temporal panel dataset", {
 
   df <- sim$data
   expect_equal(nrow(df), 25 * 4)
-  expect_true(all(c("area", "year", "x1", "x2", "y_gaussian", "vardir",
-                    "y_poisson", "exposure", "y_binomial", "trials",
-                    "y_beta", "y_nbinomial", "y_gamma", "x_coord", "y_coord") %in% names(df)))
+  expect_true(all(c(
+    "area", "year", "x1", "x2", "y_gaussian", "vardir",
+    "y_poisson", "exposure", "y_binomial", "trials",
+    "y_beta", "y_nbinomial", "y_gamma", "x_coord", "y_coord"
+  ) %in% names(df)))
 
   # Check dimensions of random effects
   expect_equal(length(sim$u_spatial), 25)
@@ -86,8 +88,10 @@ test_that("sim_series_data handles unsampled domains and distribution bounds", {
 
 test_that("sim_series_data integrates directly with eblup_stfh", {
   # Simulate panel with no missing data for numerical stability in Fisher scoring
-  sim <- sim_series_data(D = 25, T = 4, rho_s = 0.4, rho_t = 0.4,
-                         n_unsampled = 0, prop_intermittent = 0, seed = 101)
+  sim <- sim_series_data(
+    D = 25, T = 4, rho_s = 0.4, rho_t = 0.4,
+    n_unsampled = 0, prop_intermittent = 0, seed = 101
+  )
 
   fit_stfh <- eblup_stfh(
     y_gaussian ~ x1 + x2,

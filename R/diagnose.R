@@ -141,13 +141,17 @@ diagnose <- function(object,
     mean_sae_rse = if (length(rse_clean) > 0) mean(rse_clean) else NA_real_,
     median_sae_rse = if (length(rse_clean) > 0) stats::median(rse_clean) else NA_real_,
     eff_ratio_summary = if (length(eff_clean) > 0) {
-      c(Min = min(eff_clean),
+      c(
+        Min = min(eff_clean),
         Q1 = stats::quantile(eff_clean, 0.25),
         Median = stats::median(eff_clean),
         Mean = mean(eff_clean),
         Q3 = stats::quantile(eff_clean, 0.75),
-        Max = max(eff_clean))
-    } else NULL,
+        Max = max(eff_clean)
+      )
+    } else {
+      NULL
+    },
     prop_gain = gain_pct
   )
 
@@ -236,7 +240,7 @@ diagnose <- function(object,
           kurt <- (n_spat * sum(z^4)) / (sum(z^2)^2)
 
           var_I <- (n_spat * ((n_spat^2 - 3 * n_spat + 3) * s1 - n_spat * s2 + 3 * s0^2) -
-                      kurt * ((n_spat^2 - n_spat) * s1 - 2 * n_spat * s2 + 6 * s0^2)) /
+            kurt * ((n_spat^2 - n_spat) * s1 - 2 * n_spat * s2 + 6 * s0^2)) /
             ((n_spat - 1) * (n_spat - 2) * (n_spat - 3) * s0^2) - E_I^2
 
           var_I <- max(1e-8, var_I)
@@ -274,7 +278,9 @@ diagnose <- function(object,
       has_ci <- all(c("ci_lower", "ci_upper") %in% names(df))
       cr <- if (has_ci) {
         mean(truth_vec >= df$ci_lower & truth_vec <= df$ci_upper, na.rm = TRUE) * 100
-      } else NA_real_
+      } else {
+        NA_real_
+      }
 
       sim_metrics <- list(
         mean_rb = mean(rb, na.rm = TRUE),
@@ -301,7 +307,9 @@ diagnose <- function(object,
   # hb_unit / hb_twofold: list(dic, p_eff_dic, waic, p_eff_waic, mlik)
   gd_get <- function(...) {
     for (nm in c(...)) {
-      if (!is.null(gd) && nm %in% names(gd)) return(as.numeric(unname(gd[[nm]]))[1])
+      if (!is.null(gd) && nm %in% names(gd)) {
+        return(as.numeric(unname(gd[[nm]]))[1])
+      }
     }
     NA_real_
   }

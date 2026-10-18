@@ -71,7 +71,8 @@ sim_spatial_weights <- function(D = 40,
       coords <- as.matrix(coords)
       if (nrow(coords) != D || ncol(coords) < 2L) {
         stop(sprintf("'coords' must be a matrix or data.frame with %d rows and >= 2 columns.", D),
-             call. = FALSE)
+          call. = FALSE
+        )
       }
       coords <- coords[, 1:2, drop = FALSE]
     }
@@ -91,7 +92,6 @@ sim_spatial_weights <- function(D = 40,
     # Mutual connectivity to ensure symmetry
     A <- pmax(A, t(A))
     diag(A) <- 0
-
   } else if (type == "grid") {
     r <- max(1L, as.integer(floor(sqrt(D))))
     c <- as.integer(ceiling(D / r))
@@ -105,7 +105,6 @@ sim_spatial_weights <- function(D = 40,
     A <- matrix(0, nrow = D, ncol = D)
     A[dmat_m == 1] <- 1
     diag(A) <- 0
-
   } else if (type == "ring") {
     angles <- seq(0, 2 * pi, length.out = D + 1L)[seq_len(D)]
     coords <- cbind(x = cos(angles), y = sin(angles))

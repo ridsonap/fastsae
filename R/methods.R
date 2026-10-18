@@ -6,11 +6,11 @@
 #' @noRd
 .model_type_label <- function(model) {
   switch(model %||% "FH",
-    "FH"  = "Fay-Herriot (Area-level)",
+    "FH" = "Fay-Herriot (Area-level)",
     "Log-FH" = "Fay-Herriot on the log scale (Area-level)",
     "SFH" = "Spatial Fay-Herriot (Area-level SAR)",
-    "ST"  = "Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)",
-    "S"   = "Spatio-Temporal Fay-Herriot (SAR + independent time effects)",
+    "ST" = "Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)",
+    "S" = "Spatio-Temporal Fay-Herriot (SAR + independent time effects)",
     "BHF" = "Battese-Harter-Fuller (Unit-level)",
     "TWOFOLD" = "Two-fold Fay-Herriot (Area/Subarea-level)",
     model
@@ -402,4 +402,3 @@ plot.fastsae <- function(x, y = NULL, ...) {
   }
   ggplot2::autoplot(x, ...)
 }
-

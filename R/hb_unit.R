@@ -635,12 +635,19 @@ hb_unit <- function(
 #' sits on the boundary sigma_u^2 = 0, leaving INLA's default start.
 #' @noRd
 .hb_unit_reml_start <- function(formuladata_s, term_labels, y_s, unit_dom_id, n_domains) {
-  fit <- tryCatch({
-    Xs <- stats::model.matrix(stats::reformulate(term_labels), formuladata_s)
-    .bhf_fit(Xs, y_s, unit_dom_id - 1L, n_domains, "REML")
-  }, error = function(e) NULL)
-  if (is.null(fit)) return(NULL)
+  fit <- tryCatch(
+    {
+      Xs <- stats::model.matrix(stats::reformulate(term_labels), formuladata_s)
+      .bhf_fit(Xs, y_s, unit_dom_id - 1L, n_domains, "REML")
+    },
+    error = function(e) NULL
+  )
+  if (is.null(fit)) {
+    return(NULL)
+  }
   s2 <- c(fit$sigma2_e, fit$sigma2_u)
-  if (!all(is.finite(s2) & s2 > 0)) return(NULL)
+  if (!all(is.finite(s2) & s2 > 0)) {
+    return(NULL)
+  }
   -log(s2)
 }

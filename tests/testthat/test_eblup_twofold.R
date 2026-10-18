@@ -4,8 +4,8 @@ library(fastsae)
 test_that("eblup_twofold recovers two-fold parameters from simulated data", {
   set.seed(42)
   m <- 40
-  s2v_true <- 1.0  # area variance (paper notation)
-  s2u_true <- 0.5  # subarea variance (paper notation)
+  s2v_true <- 1.0 # area variance (paper notation)
+  s2u_true <- 0.5 # subarea variance (paper notation)
   beta_true <- c(2, 1.5)
 
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
@@ -17,14 +17,16 @@ test_that("eblup_twofold recovers two-fold parameters from simulated data", {
       vardir = runif(nd, 0.2, 1.0)
     )
   }))
-  v <- rnorm(m, sd = sqrt(s2v_true))[dat$area]  # area effect
-  u <- rnorm(nrow(dat), sd = sqrt(s2u_true))    # subarea effect
+  v <- rnorm(m, sd = sqrt(s2v_true))[dat$area] # area effect
+  u <- rnorm(nrow(dat), sd = sqrt(s2u_true)) # subarea effect
   e <- rnorm(nrow(dat), sd = sqrt(dat$vardir))
   dat$y <- beta_true[1] + beta_true[2] * dat$x1 + v + u + e
   theta <- beta_true[1] + beta_true[2] * dat$x1 + v + u
 
-  fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, print_result = FALSE)
+  fit <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   expect_true(fit$convergence)
   expect_equal(class(fit), "fastsae")
@@ -52,17 +54,21 @@ test_that("eblup_twofold EBLUP matches a pure-R reference given the same paramet
   m <- 10
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
     nd <- sample(2:4, 1)
-    data.frame(area = d, subarea = seq_len(nd),
-               x1 = rnorm(nd), vardir = runif(nd, 0.3, 0.8))
+    data.frame(
+      area = d, subarea = seq_len(nd),
+      x1 = rnorm(nd), vardir = runif(nd, 0.3, 0.8)
+    )
   }))
   dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.4) +
     rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, print_result = FALSE)
+  fit <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
-  s2v <- fit$random_effect_var[["sigma2_v"]]  # area
-  s2u <- fit$random_effect_var[["sigma2_u"]]  # subarea
+  s2v <- fit$random_effect_var[["sigma2_v"]] # area
+  s2u <- fit$random_effect_var[["sigma2_u"]] # subarea
   beta <- fit$estcoef$beta
   X <- cbind(1, dat$x1)
 
@@ -84,16 +90,20 @@ test_that("eblup_twofold handles non-sampled subareas and degenerate variances",
   m <- 15
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
     nd <- sample(1:4, 1)
-    data.frame(area = d, subarea = seq_len(nd),
-               x1 = rnorm(nd), vardir = runif(nd, 0.3, 0.8))
+    data.frame(
+      area = d, subarea = seq_len(nd),
+      x1 = rnorm(nd), vardir = runif(nd, 0.3, 0.8)
+    )
   }))
   # no subarea random effect in the truth -> sigma2_v should be ~ 0
   dat$y <- 1 + dat$x1 + rnorm(m, sd = 1)[dat$area] +
     rnorm(nrow(dat), sd = sqrt(dat$vardir))
   dat$y[c(3, 10)] <- NA_real_
 
-  fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                       data = dat, print_result = FALSE)
+  fit <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   expect_true(fit$convergence)
   expect_lt(fit$random_effect_var[["sigma2_u"]], 0.2)
@@ -108,17 +118,23 @@ test_that("eblup_twofold bootstrap MSE matches analytical MSE", {
   m <- 20
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
     nd <- sample(2:4, 1)
-    data.frame(area = d, subarea = paste0(d, "-", seq_len(nd)),
-               x1 = rnorm(nd), vardir = runif(nd, 0.3, 1.0))
+    data.frame(
+      area = d, subarea = paste0(d, "-", seq_len(nd)),
+      x1 = rnorm(nd), vardir = runif(nd, 0.3, 1.0)
+    )
   }))
   dat$y <- 1 + dat$x1 + rnorm(m, sd = 1)[dat$area] +
     rnorm(nrow(dat), sd = 0.7) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit_a <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, mse_type = "analytical", print_result = FALSE)
-  fit_b <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, mse_type = "bootstrap", B = 100, seed = 123,
-                         print_result = FALSE)
+  fit_a <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, mse_type = "analytical", print_result = FALSE
+  )
+  fit_b <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, mse_type = "bootstrap", B = 100, seed = 123,
+    print_result = FALSE
+  )
 
   # EBLUP identical regardless of MSE method
   expect_equal(fit_a$df_eblup$eblup, fit_b$df_eblup$eblup)
@@ -149,8 +165,10 @@ test_that("eblup_twofold REML variance components match pure-R profile REML opti
   }))
   dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
 
-  fit_twofold <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                               data = dat, method = "REML", print_result = FALSE)
+  fit_twofold <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, method = "REML", print_result = FALSE
+  )
 
   # Exact profile REML log-likelihood
   areas <- unique(dat$area)
@@ -218,8 +236,10 @@ test_that("eblup_twofold matches Bayesian two-fold hierarchical model via INLA",
   dat$y <- 1 + dat$x1 + rnorm(m)[dat$area] + rnorm(nrow(dat), sd = 0.5) + rnorm(nrow(dat), sd = sqrt(dat$vardir))
   dat$sub_id <- seq_len(nrow(dat))
 
-  fit_twofold <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                               data = dat, print_result = FALSE)
+  fit_twofold <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   form_inla <- y ~ x1 + f(area, model = "iid") + f(sub_id, model = "iid")
   prec_obs <- 1 / dat$vardir
@@ -251,8 +271,10 @@ test_that("eblup_twofold is consistent with standard Fay-Herriot on single-subar
   dat$y <- 2 + 1.5 * dat$x1 + rnorm(n, sd = 0.6) + rnorm(n, sd = sqrt(dat$vardir))
 
   fit_fh <- eblup_fh(y ~ x1, vardir = "vardir", data = dat, print_result = FALSE)
-  fit_twofold <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                               data = dat, print_result = FALSE)
+  fit_twofold <- eblup_twofold(y ~ x1,
+    vardir = "vardir", domain = "area", subarea = "subarea",
+    data = dat, print_result = FALSE
+  )
 
   expect_gt(stats::cor(fit_fh$df_eblup$eblup, fit_twofold$df_eblup$eblup), 0.97)
   expect_lt(max(abs(fit_fh$estcoef$beta - fit_twofold$estcoef$beta)), 0.05)
@@ -309,17 +331,21 @@ test_that("eblup_twofold goodness uses the full log-likelihood", {
   m <- 25
   dat <- do.call(rbind, lapply(seq_len(m), function(d) {
     nd <- sample(2:5, 1)
-    data.frame(area = d, subarea = paste0(d, "-", seq_len(nd)), x1 = rnorm(nd),
-               vardir = runif(nd, 0.2, 0.8))
+    data.frame(
+      area = d, subarea = paste0(d, "-", seq_len(nd)), x1 = rnorm(nd),
+      vardir = runif(nd, 0.2, 0.8)
+    )
   }))
   dat$y <- 1 + dat$x1 + rnorm(m, sd = 0.8)[dat$area] + rnorm(nrow(dat), sd = 0.6) +
     rnorm(nrow(dat), sd = sqrt(dat$vardir))
-  X <- model.matrix(~ x1, dat)
+  X <- model.matrix(~x1, dat)
   n <- nrow(dat)
   p <- ncol(X)
   for (meth in c("REML", "ML")) {
-    fit <- eblup_twofold(y ~ x1, vardir = "vardir", domain = "area", subarea = "subarea",
-                         data = dat, method = meth, print_result = FALSE)
+    fit <- eblup_twofold(y ~ x1,
+      vardir = "vardir", domain = "area", subarea = "subarea",
+      data = dat, method = meth, print_result = FALSE
+    )
     s2 <- fit$random_effect_var
     V <- s2[["sigma2_v"]] * outer(dat$area, dat$area, "==") + diag(s2[["sigma2_u"]] + dat$vardir)
     ll <- .loglik_dense(dat$y, X, V)

@@ -15,7 +15,7 @@ test_that(".get_variable extracts columns accurately and handles all inputs", {
   # 2. By formula
   expect_equal(get_var(df, ~val), df$val)
   expect_error(get_var(df, ~not_existing), "formula does not reference a valid single column in data")
-  expect_error(get_var(df, ~id + val), "formula does not reference a valid single column in data")
+  expect_error(get_var(df, ~ id + val), "formula does not reference a valid single column in data")
 
   # 3. Vector input directly
   vec_matching <- c(1, 2, 3, 4, 5)

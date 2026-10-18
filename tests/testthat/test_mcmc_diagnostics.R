@@ -81,7 +81,8 @@ test_that("jax fits warn about R-hat, low ESS and divergent transitions", {
 test_that("autoplot() draws trace and rank plots of a jax fit", {
   mc <- .mcmc_summary(fake_diag_fit(), c("(Intercept)", "x1"), 2)
   fit <- structure(c(list(engine = "jax", draws = matrix(rnorm(4 * 100), 4, 100)), .mcmc_fields(list(mcmc = mc))),
-                   class = c("fastsae_hb_area", "fastsae_hb", "fastsae"))
+    class = c("fastsae_hb_area", "fastsae_hb", "fastsae")
+  )
   p <- autoplot(fit, type = "trace")
   expect_s3_class(p, "ggplot")
   expect_equal(nrow(p$data), 50 * 2 * 3)

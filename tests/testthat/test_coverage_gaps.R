@@ -43,8 +43,8 @@ test_that("benchmark finds weight in df_eblup when not in object$data", {
   fit <- eblup_fh(y ~ x1, vardir = "vardir", data = mys, print_result = FALSE)
   # "n" is in mys (object$data) but also exists in df_eblup if we add it
   # To hit L161 we need weight col NOT in object$data but IN df_eblup
-  fit$data <- NULL          # remove data so first branch is skipped
-  fit$df_eblup$my_wt <- 1  # add weight to df_eblup
+  fit$data <- NULL # remove data so first branch is skipped
+  fit$df_eblup$my_wt <- 1 # add weight to df_eblup
   bm <- benchmark_sae(fit, target = 7.0, weight = "my_wt")
   expect_s3_class(bm, "fastsae_benchmark")
 })
@@ -83,8 +83,10 @@ test_that("hb_area slm with prior_phi non-pc", {
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
   data(mys, package = "fastsae")
   data(mys_proxmat, package = "fastsae")
-  fit <- hb_area(y ~ x1, data = mys, W = mys_proxmat, spatial = "slm",
-                 engine = inla_engine(prior_phi = list(prior = "normal", param = c(0, 1))))
+  fit <- hb_area(y ~ x1,
+    data = mys, W = mys_proxmat, spatial = "slm",
+    engine = inla_engine(prior_phi = list(prior = "normal", param = c(0, 1)))
+  )
   expect_s3_class(fit, "fastsae")
 })
 
@@ -110,7 +112,7 @@ test_that(".extract_model_data_for_map errors when no table in object", {
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1), what = "polygons"
   )[seq_len(nrow(mys))]
   sf_geom <- sf::st_sf(domain = mys$area, geometry = grid_sf)
@@ -135,7 +137,7 @@ test_that("print.summary.fastsae falls back to eblup-only columns", {
 
 # ── benchmark.R L366 (single numeric target with n_groups > 1, not hierarchical)
 test_that("benchmark single numeric target broadcast to all groups", {
-  y  <- runif(20, 0.2, 0.8)
+  y <- runif(20, 0.2, 0.8)
   grp <- rep(c("A", "B"), each = 10)
   bm <- benchmark_sae(y, target = 0.5, group = grp, method = "ratio")
   expect_s3_class(bm, "fastsae_benchmark")
@@ -147,7 +149,7 @@ test_that("benchmark single numeric target broadcast to all groups", {
 
 # ── benchmark.R L375 (unnamed numeric vector of wrong length)
 test_that("benchmark errors on unnamed numeric vector length != n_groups", {
-  y  <- runif(20, 0.2, 0.8)
+  y <- runif(20, 0.2, 0.8)
   grp <- rep(c("A", "B"), each = 10)
   expect_error(
     benchmark_sae(y, target = c(0.4, 0.5, 0.6), group = grp, method = "ratio"),
@@ -157,9 +159,9 @@ test_that("benchmark errors on unnamed numeric vector length != n_groups", {
 
 # ── benchmark.R L389-390 (hierarchical + national_target, n_groups == 1)
 test_that("benchmark single-group fallback with national_target only", {
-  y   <- runif(10, 0.2, 0.8)
+  y <- runif(10, 0.2, 0.8)
   grp <- rep("All", 10)
-  bm  <- benchmark_sae(y, national_target = 0.5, group = grp, method = "ratio")
+  bm <- benchmark_sae(y, national_target = 0.5, group = grp, method = "ratio")
   expect_s3_class(bm, "fastsae_benchmark")
   expect_equal(mean(bm$benchmarked), 0.5, tolerance = 1e-6)
 })
@@ -202,21 +204,27 @@ test_that("diagnose status branches: CAUTION(!is_fit) and WARNING(!precision)", 
   make_diag <- function(status_str, gof_good = FALSE) {
     obj <- structure(
       list(
-        status      = status_str,
-        model_info  = list(model = "FH", n_sampled = 10L, n_unsampled = 0L),
-        precision   = list(prop_reliable = 50, rse_threshold = 25,
-                           mean_direct_rse = 30, mean_sae_rse = 20,
-                           eff_ratio_summary = NULL),
-        calibration = list(
-          wald_test        = list(is_unbiased = TRUE, alpha = 0, beta = 1,
-                                  f_stat = 0.1, df1 = 2, df2 = 8, p_value = 0.9),
-          goodness_of_fit  = list(is_good_fit = gof_good, w_stat = 30, df = 10, p_value = 0.001)
+        status = status_str,
+        model_info = list(model = "FH", n_sampled = 10L, n_unsampled = 0L),
+        precision = list(
+          prop_reliable = 50, rse_threshold = 25,
+          mean_direct_rse = 30, mean_sae_rse = 20,
+          eff_ratio_summary = NULL
         ),
-        spatial     = NULL,
-        simulation  = NULL,
-        bayesian    = NULL,
-        df_diag     = data.frame(domain = 1:10, direct_y = runif(10),
-                                  sae_pred = runif(10))
+        calibration = list(
+          wald_test = list(
+            is_unbiased = TRUE, alpha = 0, beta = 1,
+            f_stat = 0.1, df1 = 2, df2 = 8, p_value = 0.9
+          ),
+          goodness_of_fit = list(is_good_fit = gof_good, w_stat = 30, df = 10, p_value = 0.001)
+        ),
+        spatial = NULL,
+        simulation = NULL,
+        bayesian = NULL,
+        df_diag = data.frame(
+          domain = 1:10, direct_y = runif(10),
+          sae_pred = runif(10)
+        )
       ),
       class = "fastsae_diagnose"
     )
@@ -226,7 +234,7 @@ test_that("diagnose status branches: CAUTION(!is_fit) and WARNING(!precision)", 
   # CAUTION from !is_fit (gof not good)
   obj1 <- make_diag("CAUTION: Model goodness-of-fit indicates notable deviation.", gof_good = FALSE)
   out1 <- capture.output(print(obj1), type = "message")
-  expect_true(length(out1) >= 0)  # just check it runs
+  expect_true(length(out1) >= 0) # just check it runs
 
   # WARNING from !has_high_precision (gof good but prop_reliable < 80)
   obj2 <- make_diag("WARNING: High proportions of domains with RSE >= threshold.", gof_good = TRUE)
@@ -253,10 +261,12 @@ test_that("diagnose computes low prop_reliable path (rse_threshold very low)", {
 test_that("diagnose handles spatial model Moran's I and sim truth paths", {
   data(mys, package = "fastsae")
   data(mys_proxmat, package = "fastsae")
-  fit_sfh <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat,
-                        print_result = FALSE)
+  fit_sfh <- eblup_sfh(y ~ x1 + x2,
+    vardir = "vardir", data = mys, W = mys_proxmat,
+    print_result = FALSE
+  )
   truth <- mys$y * runif(nrow(mys), 0.9, 1.1)
-  diag  <- diagnose(fit_sfh, truth = truth)
+  diag <- diagnose(fit_sfh, truth = truth)
   # Verify Moran and simulation slots are populated
   expect_false(is.null(diag$spatial))
   expect_false(is.null(diag$simulation))
@@ -265,7 +275,7 @@ test_that("diagnose handles spatial model Moran's I and sim truth paths", {
 # ── diagnose.R L516 (PASS: cli_alert_success for final status)
 test_that("diagnose prints PASS status correctly", {
   data(mys, package = "fastsae")
-  fit  <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, print_result = FALSE)
+  fit <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, print_result = FALSE)
   diag <- diagnose(fit)
   # print returns invisibly; redirect cli output via capture.output
   out <- capture.output(print(diag), type = "message")
@@ -280,15 +290,20 @@ test_that("eblup_bhf trims domain vector when formula has NA rows", {
   data(cornsoybeanmeans, package = "sae")
   # Prepare Xpop matching what the existing tests use
   Xpop <- merge(
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
-               SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg),
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               PopnSegments = cornsoybeanmeans$PopnSegments),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
+      SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg
+    ),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      PopnSegments = cornsoybeanmeans$PopnSegments
+    ),
     by = "CountyIndex"
   )
   df <- cornsoybean
-  df$CountyIndex <- df$County; df$County <- NULL
+  df$CountyIndex <- df$County
+  df$County <- NULL
   # inject NA in predictor -> na.omit removes row -> dom trimmed at L64
   df$CornPix[1] <- NA
   fit <- eblup_bhf(
@@ -308,23 +323,30 @@ test_that("eblup_bhf warns on domains with no sample units", {
   data(cornsoybean, package = "sae")
   data(cornsoybeanmeans, package = "sae")
   Xpop <- merge(
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
-               SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg),
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               PopnSegments = cornsoybeanmeans$PopnSegments),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
+      SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg
+    ),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      PopnSegments = cornsoybeanmeans$PopnSegments
+    ),
     by = "CountyIndex"
   )
   df <- cornsoybean
-  df$CountyIndex <- df$County; df$County <- NULL
+  df$CountyIndex <- df$County
+  df$County <- NULL
   # Add an extra domain (CountyIndex=99) in Xpop not in unit data -> warn
-  extra <- Xpop[1, ]; extra$CountyIndex <- 99L
+  extra <- Xpop[1, ]
+  extra$CountyIndex <- 99L
   Xpop_extra <- rbind(Xpop, extra)
   expect_warning(
     eblup_bhf(CornHec ~ CornPix + SoyBeansPix,
-              domain_var = "CountyIndex", unit_data = df,
-              Xpop = Xpop_extra, popsize_var = "PopnSegments",
-              print_result = FALSE),
+      domain_var = "CountyIndex", unit_data = df,
+      Xpop = Xpop_extra, popsize_var = "PopnSegments",
+      print_result = FALSE
+    ),
     "domain"
   )
 })
@@ -336,18 +358,25 @@ test_that("eblup_bhf bootstrap mse runs", {
   data(cornsoybean, package = "sae")
   data(cornsoybeanmeans, package = "sae")
   Xpop <- merge(
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
-               SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg),
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               PopnSegments = cornsoybeanmeans$PopnSegments),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
+      SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg
+    ),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      PopnSegments = cornsoybeanmeans$PopnSegments
+    ),
     by = "CountyIndex"
   )
-  df <- cornsoybean; df$CountyIndex <- df$County; df$County <- NULL
+  df <- cornsoybean
+  df$CountyIndex <- df$County
+  df$County <- NULL
   fit <- eblup_bhf(CornHec ~ CornPix + SoyBeansPix,
-                   domain_var = "CountyIndex", unit_data = df,
-                   Xpop = Xpop, popsize_var = "PopnSegments",
-                   mse_type = "bootstrap", B = 5, print_result = FALSE)
+    domain_var = "CountyIndex", unit_data = df,
+    Xpop = Xpop, popsize_var = "PopnSegments",
+    mse_type = "bootstrap", B = 5, print_result = FALSE
+  )
   expect_true(all(fit$df_eblup$mse > 0))
 })
 
@@ -358,22 +387,29 @@ test_that("eblup_bhf bootstrap covers full-enumeration branch (rd==0)", {
   data(cornsoybean, package = "sae")
   data(cornsoybeanmeans, package = "sae")
   Xpop <- merge(
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
-               SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg),
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               PopnSegments = cornsoybeanmeans$PopnSegments),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
+      SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg
+    ),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      PopnSegments = cornsoybeanmeans$PopnSegments
+    ),
     by = "CountyIndex"
   )
-  df <- cornsoybean; df$CountyIndex <- df$County; df$County <- NULL
+  df <- cornsoybean
+  df$CountyIndex <- df$County
+  df$County <- NULL
   # Set popsize for first county == sample count -> rd = 0 (full enumeration)
   samp_n <- sum(df$CountyIndex == df$CountyIndex[1])
   Xpop2 <- Xpop
   Xpop2$PopnSegments[1] <- samp_n
   fit <- eblup_bhf(CornHec ~ CornPix + SoyBeansPix,
-                   domain_var = "CountyIndex", unit_data = df,
-                   Xpop = Xpop2, popsize_var = "PopnSegments",
-                   mse_type = "bootstrap", B = 5, print_result = FALSE)
+    domain_var = "CountyIndex", unit_data = df,
+    Xpop = Xpop2, popsize_var = "PopnSegments",
+    mse_type = "bootstrap", B = 5, print_result = FALSE
+  )
   expect_s3_class(fit, "fastsae")
 })
 
@@ -405,8 +441,10 @@ test_that("eblup_stfh errors on vardir length mismatch", {
   complete_areas <- names(which(tapply(!is.na(mys_panel$y), mys_panel$area, all)))
   df <- mys_panel[mys_panel$area %in% complete_areas, ]
   expect_error(
-    eblup_stfh(y ~ x1, vardir = rep(0.1, nrow(df) + 1),
-               domain = "area", time = "year", data = df, W = mys_proxmat[as.integer(complete_areas), as.integer(complete_areas)]),
+    eblup_stfh(y ~ x1,
+      vardir = rep(0.1, nrow(df) + 1),
+      domain = "area", time = "year", data = df, W = mys_proxmat[as.integer(complete_areas), as.integer(complete_areas)]
+    ),
     "length does not match"
   )
 })
@@ -417,8 +455,10 @@ test_that("eblup_twofold errors on vardir length mismatch", {
   mys2 <- mys
   mys2$subarea <- paste0(mys2$area, "_1")
   expect_error(
-    eblup_twofold(y ~ x1, vardir = rep(0.1, nrow(mys2) + 1),
-                  domain = "area", subarea = "subarea", data = mys2),
+    eblup_twofold(y ~ x1,
+      vardir = rep(0.1, nrow(mys2) + 1),
+      domain = "area", subarea = "subarea", data = mys2
+    ),
     "length does not match"
   )
 })
@@ -432,8 +472,10 @@ test_that("hb_area generic1 with prior_rho and bym separable paths", {
   data(mys_proxmat, package = "fastsae")
 
   # L444: prior_rho passed to generic1 (hits hyper_generic1$beta <- prior_rho)
-  fit_g1 <- hb_area(y ~ x1, data = mys, W = mys_knn, spatial = "generic1",
-                    engine = inla_engine(prior_rho = list(prior = "normal", param = c(0, 1))))
+  fit_g1 <- hb_area(y ~ x1,
+    data = mys, W = mys_knn, spatial = "generic1",
+    engine = inla_engine(prior_rho = list(prior = "normal", param = c(0, 1)))
+  )
   expect_s3_class(fit_g1, "fastsae")
 
   # L424-428: bym + separable ST interaction (bym, separable)
@@ -441,9 +483,11 @@ test_that("hb_area generic1 with prior_rho and bym separable paths", {
   mys_t$time <- rep(1:2, each = 10)
   mys_t$domain <- rep(1:10, 2)
   W_sub <- create_weights(cbind(sim_area$x_coord, sim_area$y_coord)[1:10, ], method = "knn", k = 3, style = "B")
-  fit_bym_sep <- hb_area(y ~ x1, data = mys_t, W = W_sub,
-                          spatial = "bym", temporal = "ar1", st_interaction = "separable",
-                          domain = "domain", time = "time")
+  fit_bym_sep <- hb_area(y ~ x1,
+    data = mys_t, W = W_sub,
+    spatial = "bym", temporal = "ar1", st_interaction = "separable",
+    domain = "domain", time = "time"
+  )
   expect_s3_class(fit_bym_sep, "fastsae")
 })
 
@@ -452,8 +496,10 @@ test_that("hb_area generic1 prior_phi fallback to beta hyper", {
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
   data(mys, package = "fastsae")
   data(mys_proxmat, package = "fastsae")
-  fit <- hb_area(y ~ x1, data = mys, W = mys_knn, spatial = "generic1",
-                 engine = inla_engine(prior_phi = list(prior = "normal", param = c(0, 1))))
+  fit <- hb_area(y ~ x1,
+    data = mys, W = mys_knn, spatial = "generic1",
+    engine = inla_engine(prior_phi = list(prior = "normal", param = c(0, 1)))
+  )
   expect_s3_class(fit, "fastsae")
 })
 
@@ -474,9 +520,11 @@ test_that("hb_area domain-specific temporal with none spatial works", {
   mys_t <- mys[seq_len(20), ]
   mys_t$time <- rep(1:2, each = 10)
   mys_t$domain <- rep(1:10, 2)
-  fit <- hb_area(y ~ x1, data = mys_t, spatial = "none",
-                 temporal = "ar1", st_interaction = "domain-specific",
-                 domain = "domain", time = "time")
+  fit <- hb_area(y ~ x1,
+    data = mys_t, spatial = "none",
+    temporal = "ar1", st_interaction = "domain-specific",
+    domain = "domain", time = "time"
+  )
   expect_s3_class(fit, "fastsae")
 })
 
@@ -509,8 +557,10 @@ test_that("hb_twofold cli_abort on INLA failure (bad formula)", {
   mys2$subarea <- paste0(mys2$area, "_s")
   # nonexistent predictor -> INLA formula build fails or model.matrix fails first
   expect_error(
-    hb_twofold(y ~ this_col_doesnt_exist, vardir = "vardir",
-               domain = "area", subarea = "subarea", data = mys2)
+    hb_twofold(y ~ this_col_doesnt_exist,
+      vardir = "vardir",
+      domain = "area", subarea = "subarea", data = mys2
+    )
   )
 })
 
@@ -520,9 +570,11 @@ test_that("hb_twofold fallback aggregation when n_samples=0", {
   data(mys, package = "fastsae")
   mys2 <- mys
   mys2$subarea <- paste0(mys2$area, "_s")
-  fit <- hb_twofold(y ~ x1, vardir = "vardir",
-                    domain = "area", subarea = "subarea", data = mys2,
-                    engine = inla_engine(draws = 0))
+  fit <- hb_twofold(y ~ x1,
+    vardir = "vardir",
+    domain = "area", subarea = "subarea", data = mys2,
+    engine = inla_engine(draws = 0)
+  )
   expect_s3_class(fit, "fastsae")
   expect_false(any(is.na(fit$df_area$hb)))
 })
@@ -539,11 +591,15 @@ test_that("hb_unit cli_abort on INLA failure (bad formula)", {
     SoyBeansPix  = cornsoybeanmeans$MeanSoyBeansPixPerSeg,
     PopnSegments = cornsoybeanmeans$PopnSegments
   )
-  df <- cornsoybean; df$CountyIndex <- df$County; df$County <- NULL
+  df <- cornsoybean
+  df$CountyIndex <- df$County
+  df$County <- NULL
   # nonexistent column -> error before or during INLA
   expect_error(
-    hb_unit(CornHec ~ this_col_doesnt_exist, domain_var = "CountyIndex",
-            unit_data = df, Xpop = Xpop, popsize_var = "PopnSegments")
+    hb_unit(CornHec ~ this_col_doesnt_exist,
+      domain_var = "CountyIndex",
+      unit_data = df, Xpop = Xpop, popsize_var = "PopnSegments"
+    )
   )
 })
 
@@ -557,13 +613,17 @@ test_that("hb_unit without popsize_var has no estimated_total column", {
   data(cornsoybeanmeans, package = "sae")
   Xpop <- data.frame(
     CountyIndex = cornsoybeanmeans$CountyIndex,
-    CornPix     = cornsoybeanmeans$MeanCornPixPerSeg,
+    CornPix = cornsoybeanmeans$MeanCornPixPerSeg,
     SoyBeansPix = cornsoybeanmeans$MeanSoyBeansPixPerSeg,
     PopnSegments = cornsoybeanmeans$PopnSegments
   )
-  df <- cornsoybean; df$CountyIndex <- df$County; df$County <- NULL
-  fit <- hb_unit(CornHec ~ CornPix + SoyBeansPix, domain_var = "CountyIndex",
-                 unit_data = df, Xpop = Xpop)
+  df <- cornsoybean
+  df$CountyIndex <- df$County
+  df$County <- NULL
+  fit <- hb_unit(CornHec ~ CornPix + SoyBeansPix,
+    domain_var = "CountyIndex",
+    unit_data = df, Xpop = Xpop
+  )
   # No popsize_var -> no estimated_total
   expect_false("estimated_total" %in% names(fit$df_hb))
 })
@@ -582,7 +642,7 @@ test_that(".check_inla_installed errors informatively when INLA missing", {
 test_that(".convert_spatial_weights errors when spdep missing for listw/nb", {
   skip_if_not(requireNamespace("spdep", quietly = TRUE), "spdep not installed")
   conv_fn <- fastsae:::.convert_spatial_weights
-  W_mat <- matrix(c(0,1,0,1,0,1,0,1,0), 3, 3)
+  W_mat <- matrix(c(0, 1, 0, 1, 0, 1, 0, 1, 0), 3, 3)
 
   # listw object
   listw_obj <- spdep::mat2listw(W_mat, style = "W")
@@ -594,7 +654,7 @@ test_that(".convert_spatial_weights errors when spdep missing for listw/nb", {
     .package = "base",
     {
       expect_error(conv_fn(listw_obj, n_domains = 3, spatial = "bym2"), "spdep")
-      expect_error(conv_fn(nb_obj,    n_domains = 3, spatial = "bym2"), "spdep")
+      expect_error(conv_fn(nb_obj, n_domains = 3, spatial = "bym2"), "spdep")
     }
   )
 })
@@ -605,8 +665,10 @@ test_that(".convert_spatial_weights errors when spdep missing for listw/nb", {
 # and via hb_validation tests. The following ensures the simple IID path runs:
 test_that("hb_area gaussian IID triggers simple prec fallback path", {
   skip_if_not(requireNamespace("INLA", quietly = TRUE), "INLA not installed")
-  df <- data.frame(domain = 1:15, y = rnorm(15, 5, 1),
-                   vardir = runif(15, 0.1, 0.3), x1 = rnorm(15))
+  df <- data.frame(
+    domain = 1:15, y = rnorm(15, 5, 1),
+    vardir = runif(15, 0.1, 0.3), x1 = rnorm(15)
+  )
   fit <- hb_area(y ~ x1, data = df, vardir = "vardir", spatial = "none", temporal = "none")
   expect_false(is.null(fit$random_effect_var))
 })
@@ -622,22 +684,24 @@ test_that("map_sae.fastsae errors when sf not available", {
     .package = "base",
     expect_error(map_sae(fit, sf_geom = NULL), "sf")
   )
-})# ── map_sae.R (embedded sf in df_hb / df_eblup)
+}) # ── map_sae.R (embedded sf in df_hb / df_eblup)
 test_that("map_sae uses embedded sf geometry from df_hb, df_eblup", {
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
 
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1), what = "polygons"
   )[seq_len(nrow(mys))]
 
   # L144: df_hb is sf
   fit_hb <- structure(
     list(
-      model  = "HB",
-      df_hb  = sf::st_sf(domain = mys$area, hb = mys$y, mse = mys$vardir,
-                          rse = 10, geometry = grid_sf)
+      model = "HB",
+      df_hb = sf::st_sf(
+        domain = mys$area, hb = mys$y, mse = mys$vardir,
+        rse = 10, geometry = grid_sf
+      )
     ),
     class = c("fastsae_hb_area", "fastsae")
   )
@@ -647,9 +711,11 @@ test_that("map_sae uses embedded sf geometry from df_hb, df_eblup", {
   # L148: df_eblup is sf (no df_hb)
   fit_ebl <- structure(
     list(
-      model     = "FH",
-      df_eblup  = sf::st_sf(domain = mys$area, eblup = mys$y, mse = mys$vardir,
-                              rse = 10, geometry = grid_sf)
+      model = "FH",
+      df_eblup = sf::st_sf(
+        domain = mys$area, eblup = mys$y, mse = mys$vardir,
+        rse = 10, geometry = grid_sf
+      )
     ),
     class = "fastsae"
   )
@@ -672,7 +738,7 @@ test_that("map_sae.default uses sequential domain when no domain col found", {
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1), what = "polygons"
   )[seq_len(nrow(mys))]
   sf_geom <- sf::st_sf(mykey = mys$area, geometry = grid_sf)
@@ -688,11 +754,11 @@ test_that("map_sae.default sets rse to NA when neither rse nor mse column presen
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1), what = "polygons"
   )[seq_len(nrow(mys))]
   sf_geom <- sf::st_sf(domain = mys$area, geometry = grid_sf)
-  df_norse <- data.frame(domain = mys$area, eblup = mys$y)  # no rse, no mse
+  df_norse <- data.frame(domain = mys$area, eblup = mys$y) # no rse, no mse
   p <- map_sae(df_norse, sf_geom = sf_geom)
   expect_s3_class(p, "ggplot")
 })
@@ -702,7 +768,7 @@ test_that(".map_two_models picks sf_obj from model data when sf_geom NULL", {
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1), what = "polygons"
   )[seq_len(nrow(mys))]
   mys_sf <- sf::st_sf(area = mys$area, geometry = grid_sf)
@@ -728,7 +794,7 @@ test_that(".extract_model_data_for_map family label and sd->rse path", {
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1), what = "polygons"
   )[seq_len(nrow(mys))]
   sf_geom <- sf::st_sf(domain = mys$area, geometry = grid_sf)
@@ -736,10 +802,12 @@ test_that(".extract_model_data_for_map family label and sd->rse path", {
   # Model with sd instead of mse/rse (L469: sd^2 as mse_val)
   fit_sd <- structure(
     list(
-      model    = "HB",
-      family   = "poisson",
-      df_hb    = data.frame(domain = mys$area, hb = mys$y,
-                             sd = sqrt(mys$vardir), stringsAsFactors = FALSE)
+      model = "HB",
+      family = "poisson",
+      df_hb = data.frame(
+        domain = mys$area, hb = mys$y,
+        sd = sqrt(mys$vardir), stringsAsFactors = FALSE
+      )
     ),
     class = c("fastsae_hb_area", "fastsae")
   )
@@ -758,7 +826,7 @@ test_that(".generate_sae_map errors on unknown type via indicator", {
   skip_if_not(requireNamespace("sf", quietly = TRUE), "sf not installed")
   data(mys, package = "fastsae")
   grid_sf <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0,7,0,7,6,0,6,0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 7, 0, 7, 6, 0, 6, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1), what = "polygons"
   )[seq_len(nrow(mys))]
   sf_geom <- sf::st_sf(domain = mys$area, geometry = grid_sf)
@@ -774,7 +842,7 @@ test_that(".generate_sae_map errors on unknown type via indicator", {
 test_that("print.fastsae uses all estcoef cols when no standard names match", {
   fit <- structure(
     list(
-      model   = "FH",
+      model = "FH",
       estcoef = data.frame(alpha = c(1.0, 0.5), se_alpha = c(0.1, 0.05)),
       df_eblup = data.frame(domain = 1:3, eblup = 1:3)
     ),
@@ -800,7 +868,7 @@ test_that("print.summary.fastsae uses all coefficient cols when no standard matc
 test_that("print.summary.fastsae falls back to eblup cols when hb/ebp absent", {
   obj <- structure(
     list(
-      model    = "FH",
+      model = "FH",
       coefficients = data.frame(beta = 1, std.error = 0.1),
       df_eblup = data.frame(domain = 1:5, eblup = rnorm(5), mse = runif(5, 0.1, 0.3))
     ),
@@ -863,10 +931,14 @@ test_that(".pbmse_unit prepends intercept when Xpop drops a factor level", {
   data(cornsoybean, package = "sae")
   data(cornsoybeanmeans, package = "sae")
   Xpop <- merge(
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               CornPix = cornsoybeanmeans$MeanCornPixPerSeg),
-    data.frame(CountyIndex = cornsoybeanmeans$CountyIndex,
-               PopnSegments = cornsoybeanmeans$PopnSegments),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      CornPix = cornsoybeanmeans$MeanCornPixPerSeg
+    ),
+    data.frame(
+      CountyIndex = cornsoybeanmeans$CountyIndex,
+      PopnSegments = cornsoybeanmeans$PopnSegments
+    ),
     by = "CountyIndex"
   )
   df <- cornsoybean
@@ -879,7 +951,8 @@ test_that(".pbmse_unit prepends intercept when Xpop drops a factor level", {
   # level "c" and has one column fewer than Xs, triggering the cbind
   Xpop$f <- factor(rep(c("a", "b"), length.out = nrow(Xpop)))
   res <- fastsae:::.pbmse_unit(
-    CornHec ~ CornPix + f, unit_data = df, Xpop = Xpop,
+    CornHec ~ CornPix + f,
+    unit_data = df, Xpop = Xpop,
     domain_var = "CountyIndex", popsize_var = "PopnSegments",
     method = "REML", B = 3, seed = 1
   )
@@ -899,13 +972,17 @@ test_that("hb_twofold falls back when posterior latent names mismatch", {
   )
   testthat::with_mocked_bindings(
     `inla.posterior.sample` = function(n, fit, ...) {
-      lapply(seq_len(n), function(i) list(latent = matrix(rnorm(3), 3, 1,
-        dimnames = list(paste0("wrong:", 1:3), NULL))))
+      lapply(seq_len(n), function(i) {
+        list(latent = matrix(rnorm(3), 3, 1,
+          dimnames = list(paste0("wrong:", 1:3), NULL)
+        ))
+      })
     },
     .package = "INLA",
     {
       fit <- hb_twofold(
-        y ~ x, vardir = "vardir", domain = "area", subarea = "subarea",
+        y ~ x,
+        vardir = "vardir", domain = "area", subarea = "subarea",
         data = dat, compute_area = TRUE, engine = inla_engine(draws = 5), print_result = FALSE
       )
       expect_s3_class(fit, "fastsae_hb_twofold")
@@ -937,18 +1014,24 @@ test_that("hb_unit vardir falls back to NA when residual variance is missing", {
       dat <- list(...)$data
       n <- nrow(dat)
       mk_q <- function(v, s) {
-        data.frame(mean = v, sd = s, "0.025quant" = v - 1.96 * s,
-                   "0.975quant" = v + 1.96 * s, check.names = FALSE)
+        data.frame(
+          mean = v, sd = s, "0.025quant" = v - 1.96 * s,
+          "0.975quant" = v + 1.96 * s, check.names = FALSE
+        )
       }
       list(
         summary.fitted.values = mk_q(rep(50, n), rep(1, n)),
         summary.linear.predictor = mk_q(rep(3, n), rep(0.5, n)),
         summary.random = list(`..dom_id..` = data.frame(mean = rep(0.1, n))),
-        summary.fixed = data.frame(mean = c(10, 0.5), sd = c(1, 0.1),
+        summary.fixed = data.frame(
+          mean = c(10, 0.5), sd = c(1, 0.1),
           "0.025quant" = c(8, 0.3), "0.975quant" = c(12, 0.7),
-          row.names = c("(Intercept)", "CornPix"), check.names = FALSE),
-        summary.hyperpar = data.frame(mean = 2,
-          row.names = "Precision for ..dom_id.."),
+          row.names = c("(Intercept)", "CornPix"), check.names = FALSE
+        ),
+        summary.hyperpar = data.frame(
+          mean = 2,
+          row.names = "Precision for ..dom_id.."
+        ),
         dic = list(dic = 100, p.eff = 5),
         waic = list(waic = 101, p.eff = 5),
         mlik = matrix(-50, 1, 1)
@@ -957,7 +1040,8 @@ test_that("hb_unit vardir falls back to NA when residual variance is missing", {
     .package = "INLA",
     {
       fit <- hb_unit(
-        CornHec ~ CornPix, unit_data = df_cs, Xpop = df_pop,
+        CornHec ~ CornPix,
+        unit_data = df_cs, Xpop = df_pop,
         domain_var = "CountyIndex", print_result = FALSE
       )
       expect_s3_class(fit, "fastsae")

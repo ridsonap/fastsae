@@ -256,8 +256,12 @@ print.fastsae_engine <- function(x, ...) {
         "i" = "Use {.code engine = inla_engine(strategy = \"laplace\")}."
       ))
     }
-    if (name == "inla") return(inla_engine())
-    if (name == "jax") return(jax_engine())
+    if (name == "inla") {
+      return(inla_engine())
+    }
+    if (name == "jax") {
+      return(jax_engine())
+    }
   }
   cli::cli_abort(c(
     "{.arg engine} must be {.val inla}, {.val jax}, or an object from {.fn inla_engine} or {.fn jax_engine}.",
@@ -366,8 +370,10 @@ print.fastsae_engine <- function(x, ...) {
 #'   `seed` and `inla_args`).
 #' @noRd
 .resolve_inla_engine <- function(engine, engine_missing, dots, fun, defaults, used, method = NULL) {
-  engine <- .legacy_engine_args(engine, engine_missing, method = method, dots = dots,
-                                renamed = .legacy_inla_args[[fun]], fun = fun)
+  engine <- .legacy_engine_args(engine, engine_missing,
+    method = method, dots = dots,
+    renamed = .legacy_inla_args[[fun]], fun = fun
+  )
   if (engine$name != "inla") {
     return(engine)
   }

@@ -3,12 +3,16 @@ title: "hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae"
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
-                      fig.width = 8, fig.height = 4.6, dpi = 110)
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.width = 8, fig.height = 4.6, dpi = 110
+)
 library(ggplot2)
 
-bench_dir <- Filter(dir.exists, c(file.path("..", "..", "inst", "extdata"),
-                                  file.path("inst", "extdata")))[1]
+bench_dir <- Filter(dir.exists, c(
+  file.path("..", "..", "inst", "extdata"),
+  file.path("inst", "extdata")
+))[1]
 bench_files <- list.files(bench_dir, pattern = "^hb_engine_benchmark.*\\.rds$", full.names = TRUE)
 bench <- lapply(bench_files, readRDS)
 tm <- do.call(rbind, lapply(bench, `[[`, "timings"))
@@ -20,13 +24,17 @@ cloud <- grepl("Colab|Kaggle", machines)
 machines <- c(machines[!cloud], machines[cloud])
 has_cuda <- "cuda" %in% tm$engine
 
-engine_labels <- c(inla = "INLA (inla_engine)",
-                   cpu = "JAX NUTS, CPU",
-                   metal = "JAX NUTS, Apple GPU (Metal)",
-                   cuda = "JAX NUTS, NVIDIA GPU (CUDA)",
-                   tipsae = "tipsae (Stan NUTS)")
-engine_colours <- c(inla = "#1D6A5C", cpu = "#E69F00", metal = "#7B5EA7",
-                    cuda = "#76B900", tipsae = "#C0392B")
+engine_labels <- c(
+  inla = "INLA (inla_engine)",
+  cpu = "JAX NUTS, CPU",
+  metal = "JAX NUTS, Apple GPU (Metal)",
+  cuda = "JAX NUTS, NVIDIA GPU (CUDA)",
+  tipsae = "tipsae (Stan NUTS)"
+)
+engine_colours <- c(
+  inla = "#1D6A5C", cpu = "#E69F00", metal = "#7B5EA7",
+  cuda = "#76B900", tipsae = "#C0392B"
+)
 design_labels <- c(gaussian = "Spatial Fay-Herriot (Gaussian)", beta = "Spatial Beta (proportions)")
 short_labels <- c(gaussian = "Gaussian", beta = "Beta")
 
@@ -70,8 +78,10 @@ same model by MCMC in Stan.
 
 ```{r pending, results = "asis"}
 if (!has_cuda) {
-  cat("> **NVIDIA GPU (CUDA) results pending.** They will be added here. They can be reproduced",
-      "with the notebooks linked at the end of this page.\n")
+  cat(
+    "> **NVIDIA GPU (CUDA) results pending.** They will be added here. They can be reproduced",
+    "with the notebooks linked at the end of this page.\n"
+  )
 }
 ```
 
@@ -92,19 +102,25 @@ $D = `r fmt_n(max(tm$n[tm$engine == "tipsae"]))`$.
 
 ```{r setup-table}
 py_txt <- function(py) {
-  if (is.null(py)) return("-")
+  if (is.null(py)) {
+    return("-")
+  }
   py <- py[!is.na(py)]
   paste(sprintf("%s %s", names(py), py), collapse = ", ")
 }
-knitr::kable(do.call(rbind, lapply(metas, function(m) data.frame(
-  Machine = m$machine,
-  CPU = sprintf("%s (%d cores, %.0f GB RAM)", m$cpu, m$cpu_cores, m$ram_gb),
-  GPU = ifelse(is.na(m$gpu), "-", m$gpu),
-  Software = sprintf("R %s; fastsae %s; INLA %s; tipsae %s; %s",
-                     sub("R version ([0-9.]+).*", "\\1", m$r_version), m$fastsae, m$inla,
-                     ifelse(is.na(m$tipsae), "-", m$tipsae), py_txt(m$python)),
-  Date = m$date
-))))
+knitr::kable(do.call(rbind, lapply(metas, function(m) {
+  data.frame(
+    Machine = m$machine,
+    CPU = sprintf("%s (%d cores, %.0f GB RAM)", m$cpu, m$cpu_cores, m$ram_gb),
+    GPU = ifelse(is.na(m$gpu), "-", m$gpu),
+    Software = sprintf(
+      "R %s; fastsae %s; INLA %s; tipsae %s; %s",
+      sub("R version ([0-9.]+).*", "\\1", m$r_version), m$fastsae, m$inla,
+      ifelse(is.na(m$tipsae), "-", m$tipsae), py_txt(m$python)
+    ),
+    Date = m$date
+  )
+})))
 ```
 
 Each engine runs in a separate R process, because JAX fixes its device at
@@ -126,13 +142,19 @@ time, the device and the R-hat of the fit.
 ```{r explorer-data, results = "asis"}
 js_rows <- tm[, c("machine", "design", "engine", "n", "time_warm", "time_first", "device", "rhat_max")]
 cat("<script>\nwindow.ENGINE_BENCH = ",
-    # I(): keep length-1 vectors as JSON arrays (auto_unbox would turn them into scalars)
-    jsonlite::toJSON(list(rows = js_rows, machines = I(machines), engines = I(used),
-                          labels = as.list(engine_labels[used]),
-                          colours = as.list(engine_colours[used]),
-                          designs = as.list(short_labels)),
-                     dataframe = "rows", auto_unbox = TRUE, digits = 6, na = "null"),
-    ";\n</script>\n", sep = "")
+  # I(): keep length-1 vectors as JSON arrays (auto_unbox would turn them into scalars)
+  jsonlite::toJSON(
+    list(
+      rows = js_rows, machines = I(machines), engines = I(used),
+      labels = as.list(engine_labels[used]),
+      colours = as.list(engine_colours[used]),
+      designs = as.list(short_labels)
+    ),
+    dataframe = "rows", auto_unbox = TRUE, digits = 6, na = "null"
+  ),
+  ";\n</script>\n",
+  sep = ""
+)
 ```
 
 ```{=html}
@@ -299,9 +321,11 @@ ggplot(tm, aes(n, time_warm, colour = engine_f)) +
   guides(colour = guide_legend(nrow = 2)) +
   labs(x = "Number of domains (D)", y = "Time (seconds)") +
   theme_minimal(base_size = 12) +
-  theme(legend.position = "bottom", panel.grid.minor = element_blank(),
-        panel.spacing = grid::unit(1.2, "lines"),
-        strip.text.y = element_text(angle = 0, hjust = 0))
+  theme(
+    legend.position = "bottom", panel.grid.minor = element_blank(),
+    panel.spacing = grid::unit(1.2, "lines"),
+    strip.text.y = element_text(angle = 0, hjust = 0)
+  )
 ```
 
 ```{=html}
@@ -326,8 +350,10 @@ tab <- do.call(rbind, lapply(seq_len(nrow(keys)), function(i) {
     `JAX CPU` = fmt_s(t_cpu),
     `JAX GPU` = if (is.na(gpu)) "-" else paste0(fmt_s(t_gpu), " (", gpu, ")"),
     `GPU vs CPU` = ifelse(is.na(t_gpu) | is.na(t_cpu), "-",
-                          ifelse(t_gpu > t_cpu, sprintf("%.1fx slower", t_gpu / t_cpu),
-                                 sprintf("**%.1fx faster**", t_cpu / t_gpu))),
+      ifelse(t_gpu > t_cpu, sprintf("%.1fx slower", t_gpu / t_cpu),
+        sprintf("**%.1fx faster**", t_cpu / t_gpu)
+      )
+    ),
     tipsae = fmt_s(t_tip),
     `INLA vs tipsae` = ifelse(is.na(t_tip), "-", sprintf("%sx faster", fmt_n(round(t_tip / t_inla)))),
     check.names = FALSE
@@ -339,7 +365,9 @@ knitr::kable(tab, row.names = FALSE, align = "lllrrrrrr")
 ```{r findings}
 crossover <- function(machine, design) {
   gpu <- gpu_of(machine)
-  if (is.na(gpu)) return(NA_character_)
+  if (is.na(gpu)) {
+    return(NA_character_)
+  }
   ns <- sort(unique(tm$n[tm$machine == machine & tm$design == design & tm$engine == gpu]))
   wins <- ns[vapply(ns, function(n) {
     isTRUE(time_of(machine, design, gpu, n) < time_of(machine, design, "cpu", n))
@@ -352,27 +380,40 @@ crossover <- function(machine, design) {
 }
 gpu_txt <- vapply(machines, function(m) {
   gpu <- gpu_of(m)
-  if (is.na(gpu)) return(NA_character_)
-  sprintf("On %s (%s): %s.", m, c(metal = "Metal", cuda = "CUDA")[[gpu]],
-          paste(vapply(names(design_labels), function(d) crossover(m, d), character(1)),
-                collapse = ", and "))
+  if (is.na(gpu)) {
+    return(NA_character_)
+  }
+  sprintf(
+    "On %s (%s): %s.", m, c(metal = "Metal", cuda = "CUDA")[[gpu]],
+    paste(vapply(names(design_labels), function(d) crossover(m, d), character(1)),
+      collapse = ", and "
+    )
+  )
 }, character(1))
 gpu_txt <- paste(gpu_txt[!is.na(gpu_txt)], collapse = " ")
 
 tip <- tm[tm$engine == "tipsae", ]
-tip_txt <- if (nrow(tip) == 0) "" else {
+tip_txt <- if (nrow(tip) == 0) {
+  ""
+} else {
   m <- machines[machines %in% tip$machine][1]
   n_tip <- max(tip$n[tip$machine == m])
   both <- tip[tip$machine == m, "n"]
   r <- vapply(both, function(n) time_of(m, "beta", "tipsae", n) / time_of(m, "beta", "cpu", n), numeric(1))
-  s <- sprintf(paste0("At $D = %s$ on %s, tipsae takes %s for the spatial Beta model, ",
-                 "INLA takes %s (%sx faster), and JAX on the CPU takes %s."),
-          fmt_n(n_tip), m, fmt_s(time_of(m, "beta", "tipsae", n_tip)),
-          fmt_s(time_of(m, "beta", "inla", n_tip)),
-          fmt_n(round(time_of(m, "beta", "tipsae", n_tip) / time_of(m, "beta", "inla", n_tip))),
-          fmt_s(time_of(m, "beta", "cpu", n_tip)))
-  sprintf("%s So the JAX engine on the CPU is %.0fx to %.0fx faster than tipsae on the sizes both ran.",
-          s, min(r), max(r))
+  s <- sprintf(
+    paste0(
+      "At $D = %s$ on %s, tipsae takes %s for the spatial Beta model, ",
+      "INLA takes %s (%sx faster), and JAX on the CPU takes %s."
+    ),
+    fmt_n(n_tip), m, fmt_s(time_of(m, "beta", "tipsae", n_tip)),
+    fmt_s(time_of(m, "beta", "inla", n_tip)),
+    fmt_n(round(time_of(m, "beta", "tipsae", n_tip) / time_of(m, "beta", "inla", n_tip))),
+    fmt_s(time_of(m, "beta", "cpu", n_tip))
+  )
+  sprintf(
+    "%s So the JAX engine on the CPU is %.0fx to %.0fx faster than tipsae on the sizes both ran.",
+    s, min(r), max(r)
+  )
 }
 m1 <- machines[1]
 n_max <- max(tm$n[tm$machine == m1])
@@ -403,8 +444,10 @@ difference between them, and `sd ratio` is the median ratio of the
 posterior standard deviations (engine / INLA).
 
 ```{r agreement}
-ag <- ag[order(match(ag$machine, machines), match(ag$design, names(design_labels)),
-               match(ag$engine, names(engine_labels)), ag$n), ]
+ag <- ag[order(
+  match(ag$machine, machines), match(ag$design, names(design_labels)),
+  match(ag$engine, names(engine_labels)), ag$n
+), ]
 knitr::kable(data.frame(
   Machine = ag$machine,
   Model = short_labels[ag$design],

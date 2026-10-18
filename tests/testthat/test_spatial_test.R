@@ -36,11 +36,15 @@ test_that("spatial_test works with standard data and returns expected structure"
   expect_identical(st$model_comparison$method, "ML")
   # the likelihood ratio uses the ML fits of FH and SFH
   fh_ml <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, method = "ML", print_result = FALSE)
-  sfh_ml <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat, method = "ML",
-                      print_result = FALSE)
+  sfh_ml <- eblup_sfh(y ~ x1 + x2,
+    vardir = "vardir", data = mys, W = mys_proxmat, method = "ML",
+    print_result = FALSE
+  )
   expect_equal(st$model_comparison$ll_fh, unname(fh_ml$goodness["loglikelihood"]))
-  expect_equal(st$model_comparison$lrt_stat,
-               max(0, 2 * unname(sfh_ml$goodness["loglikelihood"] - fh_ml$goodness["loglikelihood"])))
+  expect_equal(
+    st$model_comparison$lrt_stat,
+    max(0, 2 * unname(sfh_ml$goodness["loglikelihood"] - fh_ml$goodness["loglikelihood"]))
+  )
   # one decision test: the LRT when vardir is given
   expect_identical(st$decision_test, "lrt")
   expect_identical(st$spatial_recommended, st$model_comparison$lrt_pval < st$alpha)
@@ -75,7 +79,7 @@ test_that("spatial_test auto-constructs W when data is sf and W is NULL", {
 
   # Create small 9-polygon grid
   grid_geom <- sf::st_make_grid(
-    sf::st_polygon(list(matrix(c(0,0, 3,0, 3,3, 0,3, 0,0), ncol = 2, byrow = TRUE))),
+    sf::st_polygon(list(matrix(c(0, 0, 3, 0, 3, 3, 0, 3, 0, 0), ncol = 2, byrow = TRUE))),
     cellsize = c(1, 1)
   )
   set.seed(42)
@@ -104,7 +108,7 @@ test_that("spatial_test handles collinear covariates without crashing in LM-lag"
   n <- 25
   x1 <- runif(n, 1, 5)
   x2 <- runif(n, 2, 8)
-  x3 <- x1 * 2  # exactly collinear
+  x3 <- x1 * 2 # exactly collinear
   y <- 3 + 1.2 * x1 - 0.5 * x2 + rnorm(n, 0, 0.5)
   coords <- matrix(runif(n * 2), ncol = 2)
   W <- create_weights(coords, method = "knn", k = 3, style = "W")
@@ -122,7 +126,7 @@ test_that("spatial_test throws informative error when auxiliary variables contai
   set.seed(42)
   n <- 20
   x1 <- runif(n)
-  x1[3] <- NA  # NA in sampled area
+  x1[3] <- NA # NA in sampled area
   y <- rnorm(n)
   coords <- matrix(runif(n * 2), ncol = 2)
   W <- create_weights(coords, method = "knn", k = 3, style = "W")
@@ -144,19 +148,25 @@ test_that("spatial_test agrees with spdep and keeps its size under no spatial ef
   W <- spdep::nb2mat(nb, style = "W")
   lw <- spdep::nb2listw(nb, style = "W")
 
-  x1 <- rnorm(D); psi <- runif(D, 0.3, 1.5)
+  x1 <- rnorm(D)
+  psi <- runif(D, 0.3, 1.5)
   dat <- data.frame(y = 1 + x1 + rnorm(D, sd = 0.8) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
   st <- spatial_test(y ~ x1, data = dat, W = W)
   ols <- lm(y ~ x1, data = dat)
   expect_equal(st$residual_test$moran$I, unname(spdep::lm.morantest(ols, lw)$estimate[1]))
-  expect_equal(st$residual_test$lm_error$statistic,
-               unname(spdep::lm.RStests(ols, lw, test = "LMerr")[[1]]$statistic))
-  expect_equal(st$residual_test$lm_lag$statistic,
-               unname(spdep::lm.RStests(ols, lw, test = "LMlag")[[1]]$statistic))
+  expect_equal(
+    st$residual_test$lm_error$statistic,
+    unname(spdep::lm.RStests(ols, lw, test = "LMerr")[[1]]$statistic)
+  )
+  expect_equal(
+    st$residual_test$lm_lag$statistic,
+    unname(spdep::lm.RStests(ols, lw, test = "LMlag")[[1]]$statistic)
+  )
 
   # false recommendation rate of the single decision test stays near alpha
   rec <- vapply(1:40, function(r) {
-    x1 <- rnorm(D); psi <- runif(D, 0.3, 1.5)
+    x1 <- rnorm(D)
+    psi <- runif(D, 0.3, 1.5)
     dat <- data.frame(y = 1 + x1 + rnorm(D, sd = 0.8) + rnorm(D, sd = sqrt(psi)), x1 = x1, psi = psi)
     suppressMessages(spatial_test(y ~ x1, vardir = "psi", data = dat, W = W))$spatial_recommended
   }, logical(1))

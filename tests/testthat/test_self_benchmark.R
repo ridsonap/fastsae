@@ -355,8 +355,10 @@ test_that("eblup_stfh self-benchmarking works for Spatio-Temporal models", {
 
 test_that("Log-FH self-benchmarking holds exactly on the original scale", {
   data(mys, package = "fastsae")
-  fit <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys, transform = "log",
-                  self_benchmark = TRUE, benchmark_weight = "n", print_result = FALSE)
+  fit <- eblup_fh(y ~ x1 + x2,
+    vardir = "vardir", data = mys, transform = "log",
+    self_benchmark = TRUE, benchmark_weight = "n", print_result = FALSE
+  )
   expect_lt(max(abs(fit$benchmark_summary$discrepancy)), 1e-10)
   expect_true("eblup_unbenchmarked" %in% names(fit$df_eblup))
   ratio <- fit$df_eblup$eblup / fit$df_eblup$eblup_unbenchmarked
@@ -382,10 +384,12 @@ test_that("hb_area posterior self-benchmarking is exact for every family", {
     list(f = y_p ~ x1, family = "poisson", args = list(exposure = "trials"))
   )
   for (cs in cases) {
-    fit <- do.call(hb_area, c(list(formula = cs$f, data = d, domain = "area", family = cs$family,
-                                   self_benchmark = TRUE, benchmark_weight = "w",
-                                   engine = inla_engine(draws = 200, seed = 1L),
-                                   print_result = FALSE), cs$args))
+    fit <- do.call(hb_area, c(list(
+      formula = cs$f, data = d, domain = "area", family = cs$family,
+      self_benchmark = TRUE, benchmark_weight = "w",
+      engine = inla_engine(draws = 200, seed = 1L),
+      print_result = FALSE
+    ), cs$args))
     expect_equal(fit$benchmark_method, "posterior")
     expect_lt(max(abs(fit$benchmark_summary$discrepancy)), 1e-8)
     expect_true(all(fit$df_hb$ci_lower <= fit$df_hb$hb & fit$df_hb$hb <= fit$df_hb$ci_upper))
@@ -400,8 +404,10 @@ test_that("hb_area falls back to WFQ benchmarking when 'sn' is not installed", {
   d$y <- 1 + d$x1 + rnorm(n, sd = 0.3) + rnorm(n, sd = sqrt(d$vardir))
   testthat::local_mocked_bindings(.has_sn = function() FALSE)
   expect_warning(
-    fit <- hb_area(y ~ x1, data = d, domain = "area", vardir = "vardir", family = "gaussian",
-                   self_benchmark = TRUE, benchmark_weight = "w", print_result = FALSE),
+    fit <- hb_area(y ~ x1,
+      data = d, domain = "area", vardir = "vardir", family = "gaussian",
+      self_benchmark = TRUE, benchmark_weight = "w", print_result = FALSE
+    ),
     "sn"
   )
   expect_equal(fit$benchmark_method, "wfq")
