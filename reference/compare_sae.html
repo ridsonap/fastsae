@@ -222,26 +222,26 @@ for the models. Default is inferred from model types or call arguments.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_sfh(formula = y ~ x1 + x2, vardir = "vardir", data = mys, W =</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> mys_proxmat)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 10 iterations)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 23 iterations)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatial Fay-Herriot (Area-level SAR)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: REML</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 1.467999 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 0.980871 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Spatial autocorrelation (rho): -1 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   beta  std.error     zvalue pvalue</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  2.9786076  0.6242220  4.7717123 0.0000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.0033919  0.0075283 -0.4505566 0.6523</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.0857371  0.0261402  3.2799004 0.0010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1958831  0.6144952  5.2008269 0.0000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.0035203  0.0075141 -0.4684949 0.6394</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.0801807  0.0254664  3.1484875 0.0016</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y    vardir    eblup random_effect       mse       rse</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 0.6618838 7.253737    2.63803919 0.5206791  9.947713</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 0.8374691 6.415275    2.19528212 0.6143184 12.217475</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 0.8822257 5.121070    0.70679774 0.6380642 15.598092</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 0.6581716 4.399165   -1.28175155 0.5163702 16.334669</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 1.2788021 6.393072   -0.05118048 0.8064653 14.046990</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 0.3878004 4.159058   -0.98030040 0.3349916 13.916243</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y    vardir    eblup random_effect       mse      rse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 0.6618838 7.526578     2.8428783 0.4976814  9.37299</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 0.8374691 6.568449     2.2426219 0.5795629 11.59011</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 0.8822257 5.161577     0.6429192 0.5946117 14.93944</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 0.6581716 4.315257    -1.3771626 0.4936622 16.28202</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 1.2788021 6.857796     0.4699659 0.7434759 12.57329</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 0.3878004 4.063760    -1.1194128 0.3305229 14.14727</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
@@ -258,17 +258,17 @@ for the models. Default is inferred from model types or call arguments.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Key Concordance &amp; Efficiency Metrics:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                        Metric   Value</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                               Matched Domains      42</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Pearson Correlation (r)  0.9959</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                    Spearman Correlation (rho)  0.9948</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                Mean Absolute Difference (MAE)  0.1347</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                           Root Mean Squared Difference (RMSD)  0.1668</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                              Mean MSE Ratio (FH / Spatial FH)  1.2766</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                            Median MSE Ratio (FH / Spatial FH)  1.1561</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                        Domains where Spatial FH has lower MSE 41 / 42</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Percentage of domains where Spatial FH is more efficient (%)   97.6%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Pearson Correlation (r)  0.9754</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                    Spearman Correlation (rho)  0.9671</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                Mean Absolute Difference (MAE)  0.2866</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                           Root Mean Squared Difference (RMSD)  0.3692</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              Mean MSE Ratio (FH / Spatial FH)  1.3758</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                            Median MSE Ratio (FH / Spatial FH)  1.2606</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                        Domains where Spatial FH has lower MSE 42 / 42</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Percentage of domains where Spatial FH is more efficient (%)  100.0%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                               Mean RSE % (FH)  25.59%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Mean RSE % (Spatial FH)  22.16%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                     Average RSE Reduction (%)   3.42%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Mean RSE % (Spatial FH)  21.64%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                     Average RSE Reduction (%)   3.95%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">comp</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -281,33 +281,33 @@ for the models. Default is inferred from model types or call arguments.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Key Concordance &amp; Efficiency Metrics:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                        Metric   Value</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                               Matched Domains      42</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Pearson Correlation (r)  0.9959</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                    Spearman Correlation (rho)  0.9948</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                Mean Absolute Difference (MAE)  0.1347</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                           Root Mean Squared Difference (RMSD)  0.1668</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                              Mean MSE Ratio (FH / Spatial FH)  1.2766</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                            Median MSE Ratio (FH / Spatial FH)  1.1561</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                        Domains where Spatial FH has lower MSE 41 / 42</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Percentage of domains where Spatial FH is more efficient (%)   97.6%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Pearson Correlation (r)  0.9754</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                    Spearman Correlation (rho)  0.9671</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                Mean Absolute Difference (MAE)  0.2866</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                           Root Mean Squared Difference (RMSD)  0.3692</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              Mean MSE Ratio (FH / Spatial FH)  1.3758</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                            Median MSE Ratio (FH / Spatial FH)  1.2606</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                        Domains where Spatial FH has lower MSE 42 / 42</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Percentage of domains where Spatial FH is more efficient (%)  100.0%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                               Mean RSE % (FH)  25.59%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Mean RSE % (Spatial FH)  22.16%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                     Average RSE Reduction (%)   3.42%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Mean RSE % (Spatial FH)  21.64%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                     Average RSE Reduction (%)   3.95%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Distribution of Domain Point Estimates:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          FH Spatial FH Difference</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 0%   0.8555     0.9823    -0.4212</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25%  4.2455     4.2158    -0.1033</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 50%  5.1879     4.9815    -0.0666</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 75%  6.1655     6.2119     0.0704</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 100% 9.0169     8.7804     0.2663</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0%   0.8555     0.9533    -0.8730</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25%  4.2455     4.0094    -0.1846</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 50%  5.1879     5.1083     0.0030</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 75%  6.1655     6.3740     0.2818</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 100% 9.0169     8.4950     0.7744</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Distribution of Relative Standard Error (RSE %):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         FH Spatial FH RSE Diff (1 - 2)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 0%    9.86       9.95            -0.09</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25%  14.83      13.95             0.73</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 50%  21.85      20.22             1.73</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 75%  34.76      28.18             6.40</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 100% 52.75      45.59             9.81</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0%    9.86       9.37            -1.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25%  14.83      13.52             0.76</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 50%  21.85      18.23             2.20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 75%  34.76      26.03             6.15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 100% 52.75      46.45            17.39</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Plot comparison</span></span></span>

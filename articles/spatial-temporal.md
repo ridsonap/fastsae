@@ -62,35 +62,35 @@ summary(fit_sfh)
 #> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, method =
 #> "REML", W = mys_proxmat, print_result = FALSE)
 #> 
-#> ✔ Convergence: Yes (in 9 iterations)
+#> ✔ Convergence: Yes (in 18 iterations)
 #> Model: Spatial Fay-Herriot (Area-level SAR)
 #> Method: REML
 #> 
 #> Variance & Correlation Components:
-#>  parameter  estimate std.error
-#>   sigma2_u  1.396229 0.6748491
-#>        rho -1.000000        NA
+#>  parameter   estimate std.error
+#>   sigma2_u  0.9892261 0.4797447
+#>        rho -1.0000000        NA
 #> rho (spatial): -1 
 #> 
 #> Coefficients:
-#>                    beta   std.error      zvalue pvalue
-#> (Intercept)  3.02111730  0.61861801  4.88365555 0.0000
-#> x1          -0.00072863  0.00805609 -0.09044507 0.9279
-#> x2           0.04916379  0.05175135  0.95000019 0.3421
-#> x3           0.04007654  0.04917325  0.81500691 0.4151
+#>                   beta  std.error     zvalue pvalue
+#> (Intercept)  3.2570714  0.6265689  5.1982651 0.0000
+#> x1          -0.0020340  0.0080925 -0.2513457 0.8015
+#> x2           0.0568516  0.0525488  1.0818827 0.2793
+#> x3           0.0252179  0.0497283  0.5071123 0.6121
 #> 
 #> Goodness of Fit:
 #> loglikelihood           AIC           BIC 
-#>     -65.25028     142.50056     151.29498 
+#>     -62.58874     137.17748     145.97189 
 #> 
 #> EBLUP Summary Statistics:
 #>       mse              rse        
-#>  Min.   :0.2006   Min.   : 9.955  
-#>  1st Qu.:0.6195   1st Qu.:14.123  
-#>  Median :0.8687   Median :20.411  
-#>  Mean   :1.0842   Mean   :22.426  
-#>  3rd Qu.:1.6293   3rd Qu.:29.634  
-#>  Max.   :2.2268   Max.   :45.090
+#>  Min.   :0.1966   Min.   : 9.384  
+#>  1st Qu.:0.5897   1st Qu.:13.643  
+#>  Median :0.8169   Median :19.046  
+#>  Mean   :1.0420   Mean   :22.242  
+#>  3rd Qu.:1.4214   3rd Qu.:27.305  
+#>  Max.   :2.1610   Max.   :46.894
 ```
 
 ### Unsampled Domains and Spatial Kriging
@@ -111,12 +111,12 @@ table(is.na(mys$y))
 # Inspect estimates for unsampled domains
 head(fit_sfh$df_eblup[is.na(mys$y), ])
 #>    domain  y vardir    eblup random_effect      mse      rse
-#> 21     21 NA      0 3.649858   -0.01707331 1.798100 36.73931
-#> 25     25 NA      0 4.148486   -0.03953465 1.754488 31.92902
-#> 26     26 NA      0 5.293005   -0.01455237 2.086796 27.29214
-#> 27     27 NA      0 4.283739   -0.01062303 1.766047 31.02260
-#> 28     28 NA      0 5.024852   -0.01952204 1.718356 26.08755
-#> 34     34 NA      0 3.479814   -0.01480941 1.748554 37.99999
+#> 21     21 NA      0 4.136624    0.33273263 1.773635 32.19482
+#> 25     25 NA      0 3.666578   -0.63352730 1.606281 34.56606
+#> 26     26 NA      0 6.293404    0.82251711 1.962186 22.25792
+#> 27     27 NA      0 5.185438    0.66260236 1.879788 26.44046
+#> 28     28 NA      0 5.159499   -0.02771458 1.448608 23.32748
+#> 34     34 NA      0 3.834916    0.17166576 1.587847 32.85856
 ```
 
 For unsampled areas, prediction borrows strength from both the
@@ -149,12 +149,12 @@ fit_sfh_pb <- eblup_sfh(
 
 head(fit_sfh_pb$df_eblup[, c("domain", "y", "eblup", "mse", "mse_pb", "mse_pbbc")])
 #>   domain        y    eblup       mse    mse_pb  mse_pbbc
-#> 1      1 8.359527 7.229608 0.5180135 0.5500837 0.5912158
-#> 2      2 7.599650 6.369903 0.6092215 0.6103917 0.6867114
-#> 3      3 5.514137 4.996497 0.6504225 0.8841162 0.7758816
-#> 4      4 3.869326 4.343987 0.5213006 0.5271967 0.5896981
-#> 5      5 6.305063 6.344684 0.7994159 0.7407657 0.9094689
-#> 6      6 3.926807 4.094482 0.3422232 0.4123618 0.4430582
+#> 1      1 8.359527 7.535193 0.4999462 0.5838185 0.5822064
+#> 2      2 7.599650 6.564385 0.5831410 0.7059036 0.6571795
+#> 3      3 5.514137 5.109460 0.6095214 0.7555265 0.6814817
+#> 4      4 3.869326 4.273391 0.5018535 0.5742035 0.5552008
+#> 5      5 6.305063 6.791422 0.7644430 0.7705470 0.8859110
+#> 6      6 3.926807 4.016701 0.3398919 0.3798275 0.3712704
 ```
 
 ------------------------------------------------------------------------
@@ -215,37 +215,37 @@ summary(fit_stfh)
 #> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =
 #> "analytical", print_result = FALSE)
 #> 
-#> ✔ Convergence: Yes (in 6 iterations)
+#> ✔ Convergence: Yes (in 11 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
 #> Cells without a direct estimate: 22 of 462 (predicted from the model)
 #> 
 #> Variance & Correlation Components:
 #>    estimate  std.error
-#>   3.0097493 0.73927860
-#>  -0.9990000         NA
-#>   0.0000000 0.02919626
-#>   0.6990148         NA
+#>   2.2066952 0.64896010
+#>  -0.9011506 0.31237444
+#>   0.0000000 0.02602554
+#>   0.7526384         NA
 #> 
 #> Coefficients:
-#>                  beta std.error    zvalue pvalue
-#> (Intercept) 3.7678722 0.5081862 7.4143538 0.0000
-#> x1          0.0043437 0.0064446 0.6739969 0.5003
-#> x2          0.0295089 0.0285202 1.0346694 0.3008
-#> x3          0.0170470 0.0277773 0.6137011 0.5394
+#>                   beta  std.error     zvalue pvalue
+#> (Intercept)  4.4442780  0.4445132  9.9980779 0.0000
+#> x1          -0.0008817  0.0060240 -0.1463646 0.8836
+#> x2           0.0254871  0.0277726  0.9177081 0.3588
+#> x3           0.0163716  0.0256365  0.6386035 0.5231
 #> 
 #> Goodness of Fit:
 #> loglikelihood           AIC           BIC 
-#>     -599.5698     1215.1395     1247.8337 
+#>     -597.2647     1210.5294     1243.2236 
 #> 
 #> EBLUP Summary Statistics:
 #>       mse               rse          
-#>  Min.   :0.03419   Min.   :   3.025  
-#>  1st Qu.:0.08203   1st Qu.:   5.250  
-#>  Median :0.11194   Median :   6.135  
-#>  Mean   :0.30853   Mean   :  33.247  
-#>  3rd Qu.:0.16274   3rd Qu.:   9.442  
-#>  Max.   :3.49903   Max.   :4158.617
+#>  Min.   :0.03199   Min.   :   2.997  
+#>  1st Qu.:0.08171   1st Qu.:   5.256  
+#>  Median :0.11107   Median :   6.117  
+#>  Mean   :0.25728   Mean   :  29.722  
+#>  3rd Qu.:0.16233   3rd Qu.:   9.613  
+#>  Max.   :2.47830   Max.   :2521.153
 ```
 
 The estimated variance and correlation components include: - `sigma21`:
@@ -281,17 +281,17 @@ est <- fit_stfh$df_eblup
 # Cells predicted without a direct estimate
 head(est[!est$sampled, c("domain", "time", "eblup", "mse", "rse")])
 #>     domain time    eblup      mse      rse
-#> 21      21 2016 4.272921 3.387713 43.07531
-#> 25      25 2016 5.068564 3.392035 36.33668
-#> 63      21 2017 4.288377 3.373262 42.82842
-#> 67      25 2017 5.090982 3.425226 36.35323
-#> 105     21 2018 4.291477 3.383788 42.86421
-#> 109     25 2018 5.061127 3.456327 36.73331
+#> 21      21 2016 6.356729 2.389320 24.31664
+#> 25      25 2016 3.225462 2.405876 48.08889
+#> 63      21 2017 6.367907 2.385248 24.25326
+#> 67      25 2017 3.213502 2.416602 48.37534
+#> 105     21 2018 6.361026 2.389905 24.30319
+#> 109     25 2018 3.174470 2.438947 49.19602
 
 # Their MSE is larger: no direct estimate, only borrowed strength
 tapply(est$mse, ifelse(est$sampled, "sampled", "unsampled"), median)
 #>   sampled unsampled 
-#> 0.1097652 3.3971235
+#> 0.1084668 2.4016341
 ```
 
 For these cells the analytical MSE is $`g_1 + g_2 + g_3`$ ($`g_3`$ from

@@ -96,6 +96,20 @@
   [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md))
   used the posterior mean of the residual SD in every draw; it now uses
   the SD of each draw (on `mys`: 129.3 instead of 135.9).
+- [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md):
+  the `temporal = "ar1"` effect sums to zero over the periods (as
+  `"rw1"` already did) when the model has an intercept, which then
+  carries the mean level. Over a few periods the level of a stationary
+  AR(1) effect traded off against the intercept along a ridge whose
+  width depends on rho, and NUTS reported divergent transitions: on
+  `sim_panel` (5 years, 4 x 1000 draws, 4 seeds) 30-201 before and 1-6
+  after, with the area estimates 0.11 instead of 0.21 posterior SD from
+  INLA; with `st_interaction = "type2"`, 14-57 before and 0 after. With
+  `spatial = "bym2"` one of 4 seeds still gave 38 (3-4 for the others;
+  30-154 before), which a longer `warmup` reduces. The INLA engine keeps
+  its unconstrained AR(1) effect, so the intercepts of the two engines
+  differ by the mean of the time effects (the area estimates are not
+  affected by this).
 - [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
   checks that the unit responses are 0 or 1 for `family = "binomial"`
   and non-negative integers for `"poisson"`.
@@ -711,6 +725,19 @@
 
 #### Breaking changes and clean-up
 
+- `mys_proxmat` is now the row-standardised 4-nearest-neighbour graph of
+  the 42 areas (symmetric, 4 to 8 neighbours per area, built from the
+  `sim_area` centroids by `data-raw/mys_proxmat.R`). It was a dense
+  distance-decay matrix with almost equal weights (largest weight per
+  row 0.03-0.04, against 1/41 = 0.024 for equal weights), which the CAR
+  models of
+  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  read as a complete graph. Results that use `mys_proxmat` change. On
+  `mys` the SAR correlation of
+  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+  stays at its bound -1 with either matrix: the residuals of `mys` have
+  no positive spatial autocorrelation. `sim_area` and `sim_panel` are
+  unchanged (simulated with the old matrix).
 - [`benchmark()`](https://rdrr.io/pkg/tipsae/man/benchmark.html), a
   plain alias of
   [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md),

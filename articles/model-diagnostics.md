@@ -162,19 +162,19 @@ diag_fh$brown_test
 # Moran's I spatial test on residuals
 diag_fh$spatial_test
 #> $moran_I
-#> [1] -0.03722123
+#> [1] -0.1196823
 #> 
 #> $expected_I
 #> [1] -0.03225806
 #> 
 #> $sd_I
-#> [1] 0.007601702
+#> [1] 0.1105189
 #> 
 #> $z_stat
-#> [1] -0.6529014
+#> [1] -0.7910343
 #> 
 #> $p_value
-#> [1] 0.5138198
+#> [1] 0.428924
 #> 
 #> $no_residual_autocorrelation
 #> [1] TRUE
@@ -280,14 +280,14 @@ diag_hb$precision
 #> [1] 17.64954
 #> 
 #> $mean_sae_rse
-#> [1] 68.8562
+#> [1] 68.87353
 #> 
 #> $median_sae_rse
-#> [1] 18.67815
+#> [1] 18.68634
 #> 
 #> $eff_ratio_summary
 #>      Min   Q1.25%   Median     Mean   Q3.75%      Max 
-#> 1.127812 1.272777 1.319573 1.328886 1.406513 1.521004 
+#> 1.127102 1.272360 1.319190 1.328499 1.405808 1.520563 
 #> 
 #> $prop_gain
 #> [1] 100

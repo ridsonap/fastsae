@@ -89,6 +89,8 @@
 <li>
 <code><a href="../reference/hb_engine.html">jax_engine()</a></code>: the WAIC of a Gaussian model with an unknown residual variance (<code><a href="../reference/hb_area.html">hb_area()</a></code> without <code>vardir</code>, <code><a href="../reference/hb_unit.html">hb_unit()</a></code>) used the posterior mean of the residual SD in every draw; it now uses the SD of each draw (on <code>mys</code>: 129.3 instead of 135.9).</li>
 <li>
+<code><a href="../reference/hb_engine.html">jax_engine()</a></code>: the <code>temporal = "ar1"</code> effect sums to zero over the periods (as <code>"rw1"</code> already did) when the model has an intercept, which then carries the mean level. Over a few periods the level of a stationary AR(1) effect traded off against the intercept along a ridge whose width depends on rho, and NUTS reported divergent transitions: on <code>sim_panel</code> (5 years, 4 x 1000 draws, 4 seeds) 30-201 before and 1-6 after, with the area estimates 0.11 instead of 0.21 posterior SD from INLA; with <code>st_interaction = "type2"</code>, 14-57 before and 0 after. With <code>spatial = "bym2"</code> one of 4 seeds still gave 38 (3-4 for the others; 30-154 before), which a longer <code>warmup</code> reduces. The INLA engine keeps its unconstrained AR(1) effect, so the intercepts of the two engines differ by the mean of the time effects (the area estimates are not affected by this).</li>
+<li>
 <code><a href="../reference/hb_unit.html">hb_unit()</a></code> checks that the unit responses are 0 or 1 for <code>family = "binomial"</code> and non-negative integers for <code>"poisson"</code>.</li>
 <li>
 <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> failed on a fit whose call holds braces, e.g. from <code><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call()</a></code> with a function object: the call was read as cli markup.</li>
@@ -217,6 +219,8 @@
 <div class="section level4">
 <h4 id="breaking-changes-and-clean-up-1-0-0">Breaking changes and clean-up<a class="anchor" aria-label="anchor" href="#breaking-changes-and-clean-up-1-0-0"></a></h4>
 <ul><li>
+<code>mys_proxmat</code> is now the row-standardised 4-nearest-neighbour graph of the 42 areas (symmetric, 4 to 8 neighbours per area, built from the <code>sim_area</code> centroids by <code>data-raw/mys_proxmat.R</code>). It was a dense distance-decay matrix with almost equal weights (largest weight per row 0.03-0.04, against 1/41 = 0.024 for equal weights), which the CAR models of <code><a href="../reference/hb_area.html">hb_area()</a></code> read as a complete graph. Results that use <code>mys_proxmat</code> change. On <code>mys</code> the SAR correlation of <code><a href="../reference/eblup_sfh.html">eblup_sfh()</a></code> stays at its bound -1 with either matrix: the residuals of <code>mys</code> have no positive spatial autocorrelation. <code>sim_area</code> and <code>sim_panel</code> are unchanged (simulated with the old matrix).</li>
+<li>
 <code><a href="https://rdrr.io/pkg/tipsae/man/benchmark.html" class="external-link">benchmark()</a></code>, a plain alias of <code><a href="../reference/benchmark_sae.html">benchmark_sae()</a></code>, is removed; use <code><a href="../reference/benchmark_sae.html">benchmark_sae()</a></code>.</li>
 <li>The leftover handling of <code>df_ebp</code>/<code>ebp</code> result tables (from the removed <code>ebp_area()</code>) is removed from the methods and utilities; results are in <code>df_hb</code> (HB) or <code>df_eblup</code> (EBLUP).</li>
 <li>

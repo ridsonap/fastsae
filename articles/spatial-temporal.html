@@ -171,35 +171,35 @@ is sampling error with diagonal matrix
 <span><span class="co">#&gt; eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, method =</span></span>
 <span><span class="co">#&gt; "REML", W = mys_proxmat, print_result = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 9 iterations)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 18 iterations)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model</span>: Spatial Fay-Herriot (Area-level SAR)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Method</span>: REML</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance &amp; Correlation Components:</span></span>
-<span><span class="co">#&gt;  parameter  estimate std.error</span></span>
-<span><span class="co">#&gt;   sigma2_u  1.396229 0.6748491</span></span>
-<span><span class="co">#&gt;        rho -1.000000        NA</span></span>
+<span><span class="co">#&gt;  parameter   estimate std.error</span></span>
+<span><span class="co">#&gt;   sigma2_u  0.9892261 0.4797447</span></span>
+<span><span class="co">#&gt;        rho -1.0000000        NA</span></span>
 <span><span class="co">#&gt; rho (spatial): -1 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;                    beta   std.error      zvalue pvalue</span></span>
-<span><span class="co">#&gt; (Intercept)  3.02111730  0.61861801  4.88365555 0.0000</span></span>
-<span><span class="co">#&gt; x1          -0.00072863  0.00805609 -0.09044507 0.9279</span></span>
-<span><span class="co">#&gt; x2           0.04916379  0.05175135  0.95000019 0.3421</span></span>
-<span><span class="co">#&gt; x3           0.04007654  0.04917325  0.81500691 0.4151</span></span>
+<span><span class="co">#&gt;                   beta  std.error     zvalue pvalue</span></span>
+<span><span class="co">#&gt; (Intercept)  3.2570714  0.6265689  5.1982651 0.0000</span></span>
+<span><span class="co">#&gt; x1          -0.0020340  0.0080925 -0.2513457 0.8015</span></span>
+<span><span class="co">#&gt; x2           0.0568516  0.0525488  1.0818827 0.2793</span></span>
+<span><span class="co">#&gt; x3           0.0252179  0.0497283  0.5071123 0.6121</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt; loglikelihood           AIC           BIC </span></span>
-<span><span class="co">#&gt;     -65.25028     142.50056     151.29498 </span></span>
+<span><span class="co">#&gt;     -62.58874     137.17748     145.97189 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBLUP Summary Statistics:</span></span>
 <span><span class="co">#&gt;       mse              rse        </span></span>
-<span><span class="co">#&gt;  Min.   :0.2006   Min.   : 9.955  </span></span>
-<span><span class="co">#&gt;  1st Qu.:0.6195   1st Qu.:14.123  </span></span>
-<span><span class="co">#&gt;  Median :0.8687   Median :20.411  </span></span>
-<span><span class="co">#&gt;  Mean   :1.0842   Mean   :22.426  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:1.6293   3rd Qu.:29.634  </span></span>
-<span><span class="co">#&gt;  Max.   :2.2268   Max.   :45.090</span></span></code></pre></div>
+<span><span class="co">#&gt;  Min.   :0.1966   Min.   : 9.384  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.5897   1st Qu.:13.643  </span></span>
+<span><span class="co">#&gt;  Median :0.8169   Median :19.046  </span></span>
+<span><span class="co">#&gt;  Mean   :1.0420   Mean   :22.242  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:1.4214   3rd Qu.:27.305  </span></span>
+<span><span class="co">#&gt;  Max.   :2.1610   Max.   :46.894</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="unsampled-domains-and-spatial-kriging">Unsampled Domains and Spatial Kriging<a class="anchor" aria-label="anchor" href="#unsampled-domains-and-spatial-kriging"></a>
@@ -219,12 +219,12 @@ performs <strong>full-spatial kriging</strong>:</p>
 <span><span class="co"># Inspect estimates for unsampled domains</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_sfh</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys</span><span class="op">$</span><span class="va">y</span><span class="op">)</span>, <span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    domain  y vardir    eblup random_effect      mse      rse</span></span>
-<span><span class="co">#&gt; 21     21 NA      0 3.649858   -0.01707331 1.798100 36.73931</span></span>
-<span><span class="co">#&gt; 25     25 NA      0 4.148486   -0.03953465 1.754488 31.92902</span></span>
-<span><span class="co">#&gt; 26     26 NA      0 5.293005   -0.01455237 2.086796 27.29214</span></span>
-<span><span class="co">#&gt; 27     27 NA      0 4.283739   -0.01062303 1.766047 31.02260</span></span>
-<span><span class="co">#&gt; 28     28 NA      0 5.024852   -0.01952204 1.718356 26.08755</span></span>
-<span><span class="co">#&gt; 34     34 NA      0 3.479814   -0.01480941 1.748554 37.99999</span></span></code></pre></div>
+<span><span class="co">#&gt; 21     21 NA      0 4.136624    0.33273263 1.773635 32.19482</span></span>
+<span><span class="co">#&gt; 25     25 NA      0 3.666578   -0.63352730 1.606281 34.56606</span></span>
+<span><span class="co">#&gt; 26     26 NA      0 6.293404    0.82251711 1.962186 22.25792</span></span>
+<span><span class="co">#&gt; 27     27 NA      0 5.185438    0.66260236 1.879788 26.44046</span></span>
+<span><span class="co">#&gt; 28     28 NA      0 5.159499   -0.02771458 1.448608 23.32748</span></span>
+<span><span class="co">#&gt; 34     34 NA      0 3.834916    0.17166576 1.587847 32.85856</span></span></code></pre></div>
 <p>For unsampled areas, prediction borrows strength from both the
 regression synthetic component
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mover><mi>β</mi><mo accent="true">̂</mo></mover></mrow><annotation encoding="application/x-tex">x_d^\top \hat{\beta}</annotation></semantics></math>
@@ -259,12 +259,12 @@ estimation:</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_sfh_pb</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"y"</span>, <span class="st">"eblup"</span>, <span class="st">"mse"</span>, <span class="st">"mse_pb"</span>, <span class="st">"mse_pbbc"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain        y    eblup       mse    mse_pb  mse_pbbc</span></span>
-<span><span class="co">#&gt; 1      1 8.359527 7.229608 0.5180135 0.5500837 0.5912158</span></span>
-<span><span class="co">#&gt; 2      2 7.599650 6.369903 0.6092215 0.6103917 0.6867114</span></span>
-<span><span class="co">#&gt; 3      3 5.514137 4.996497 0.6504225 0.8841162 0.7758816</span></span>
-<span><span class="co">#&gt; 4      4 3.869326 4.343987 0.5213006 0.5271967 0.5896981</span></span>
-<span><span class="co">#&gt; 5      5 6.305063 6.344684 0.7994159 0.7407657 0.9094689</span></span>
-<span><span class="co">#&gt; 6      6 3.926807 4.094482 0.3422232 0.4123618 0.4430582</span></span></code></pre></div>
+<span><span class="co">#&gt; 1      1 8.359527 7.535193 0.4999462 0.5838185 0.5822064</span></span>
+<span><span class="co">#&gt; 2      2 7.599650 6.564385 0.5831410 0.7059036 0.6571795</span></span>
+<span><span class="co">#&gt; 3      3 5.514137 5.109460 0.6095214 0.7555265 0.6814817</span></span>
+<span><span class="co">#&gt; 4      4 3.869326 4.273391 0.5018535 0.5742035 0.5552008</span></span>
+<span><span class="co">#&gt; 5      5 6.305063 6.791422 0.7644430 0.7705470 0.8859110</span></span>
+<span><span class="co">#&gt; 6      6 3.926807 4.016701 0.3398919 0.3798275 0.3712704</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -336,37 +336,37 @@ on all periods.</p>
 <span><span class="co">#&gt; domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =</span></span>
 <span><span class="co">#&gt; "analytical", print_result = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 6 iterations)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 11 iterations)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Method</span>: REML</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Cells without a direct estimate</span>: 22 of 462 (predicted from the model)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance &amp; Correlation Components:</span></span>
 <span><span class="co">#&gt;    estimate  std.error</span></span>
-<span><span class="co">#&gt;   3.0097493 0.73927860</span></span>
-<span><span class="co">#&gt;  -0.9990000         NA</span></span>
-<span><span class="co">#&gt;   0.0000000 0.02919626</span></span>
-<span><span class="co">#&gt;   0.6990148         NA</span></span>
+<span><span class="co">#&gt;   2.2066952 0.64896010</span></span>
+<span><span class="co">#&gt;  -0.9011506 0.31237444</span></span>
+<span><span class="co">#&gt;   0.0000000 0.02602554</span></span>
+<span><span class="co">#&gt;   0.7526384         NA</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;                  beta std.error    zvalue pvalue</span></span>
-<span><span class="co">#&gt; (Intercept) 3.7678722 0.5081862 7.4143538 0.0000</span></span>
-<span><span class="co">#&gt; x1          0.0043437 0.0064446 0.6739969 0.5003</span></span>
-<span><span class="co">#&gt; x2          0.0295089 0.0285202 1.0346694 0.3008</span></span>
-<span><span class="co">#&gt; x3          0.0170470 0.0277773 0.6137011 0.5394</span></span>
+<span><span class="co">#&gt;                   beta  std.error     zvalue pvalue</span></span>
+<span><span class="co">#&gt; (Intercept)  4.4442780  0.4445132  9.9980779 0.0000</span></span>
+<span><span class="co">#&gt; x1          -0.0008817  0.0060240 -0.1463646 0.8836</span></span>
+<span><span class="co">#&gt; x2           0.0254871  0.0277726  0.9177081 0.3588</span></span>
+<span><span class="co">#&gt; x3           0.0163716  0.0256365  0.6386035 0.5231</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt; loglikelihood           AIC           BIC </span></span>
-<span><span class="co">#&gt;     -599.5698     1215.1395     1247.8337 </span></span>
+<span><span class="co">#&gt;     -597.2647     1210.5294     1243.2236 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; EBLUP Summary Statistics:</span></span>
 <span><span class="co">#&gt;       mse               rse          </span></span>
-<span><span class="co">#&gt;  Min.   :0.03419   Min.   :   3.025  </span></span>
-<span><span class="co">#&gt;  1st Qu.:0.08203   1st Qu.:   5.250  </span></span>
-<span><span class="co">#&gt;  Median :0.11194   Median :   6.135  </span></span>
-<span><span class="co">#&gt;  Mean   :0.30853   Mean   :  33.247  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:0.16274   3rd Qu.:   9.442  </span></span>
-<span><span class="co">#&gt;  Max.   :3.49903   Max.   :4158.617</span></span></code></pre></div>
+<span><span class="co">#&gt;  Min.   :0.03199   Min.   :   2.997  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.08171   1st Qu.:   5.256  </span></span>
+<span><span class="co">#&gt;  Median :0.11107   Median :   6.117  </span></span>
+<span><span class="co">#&gt;  Mean   :0.25728   Mean   :  29.722  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:0.16233   3rd Qu.:   9.613  </span></span>
+<span><span class="co">#&gt;  Max.   :2.47830   Max.   :2521.153</span></span></code></pre></div>
 <p>The estimated variance and correlation components include: -
 <code>sigma21</code>: Spatial random effect variance
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>σ</mi><mrow><mi>u</mi><mn>1</mn></mrow><mn>2</mn></msubsup><annotation encoding="application/x-tex">\sigma_{u1}^2</annotation></semantics></math>).
@@ -412,17 +412,17 @@ it.</li>
 <span><span class="co"># Cells predicted without a direct estimate</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">est</span><span class="op">[</span><span class="op">!</span><span class="va">est</span><span class="op">$</span><span class="va">sampled</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"eblup"</span>, <span class="st">"mse"</span>, <span class="st">"rse"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     domain time    eblup      mse      rse</span></span>
-<span><span class="co">#&gt; 21      21 2016 4.272921 3.387713 43.07531</span></span>
-<span><span class="co">#&gt; 25      25 2016 5.068564 3.392035 36.33668</span></span>
-<span><span class="co">#&gt; 63      21 2017 4.288377 3.373262 42.82842</span></span>
-<span><span class="co">#&gt; 67      25 2017 5.090982 3.425226 36.35323</span></span>
-<span><span class="co">#&gt; 105     21 2018 4.291477 3.383788 42.86421</span></span>
-<span><span class="co">#&gt; 109     25 2018 5.061127 3.456327 36.73331</span></span>
+<span><span class="co">#&gt; 21      21 2016 6.356729 2.389320 24.31664</span></span>
+<span><span class="co">#&gt; 25      25 2016 3.225462 2.405876 48.08889</span></span>
+<span><span class="co">#&gt; 63      21 2017 6.367907 2.385248 24.25326</span></span>
+<span><span class="co">#&gt; 67      25 2017 3.213502 2.416602 48.37534</span></span>
+<span><span class="co">#&gt; 105     21 2018 6.361026 2.389905 24.30319</span></span>
+<span><span class="co">#&gt; 109     25 2018 3.174470 2.438947 49.19602</span></span>
 <span></span>
 <span><span class="co"># Their MSE is larger: no direct estimate, only borrowed strength</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">est</span><span class="op">$</span><span class="va">mse</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">est</span><span class="op">$</span><span class="va">sampled</span>, <span class="st">"sampled"</span>, <span class="st">"unsampled"</span><span class="op">)</span>, <span class="va">median</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   sampled unsampled </span></span>
-<span><span class="co">#&gt; 0.1097652 3.3971235</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.1084668 2.4016341</span></span></code></pre></div>
 <p>For these cells the analytical MSE is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mn>1</mn></msub><mo>+</mo><msub><mi>g</mi><mn>2</mn></msub><mo>+</mo><msub><mi>g</mi><mn>3</mn></msub></mrow><annotation encoding="application/x-tex">g_1 + g_2 + g_3</annotation></semantics></math>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>g</mi><mn>3</mn></msub><annotation encoding="application/x-tex">g_3</annotation></semantics></math>

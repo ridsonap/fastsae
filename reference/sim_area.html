@@ -3,11 +3,11 @@
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma). Designed for testing and benchmarking
 generalized linear and spatial small area estimation models (HB / INLA).
-It shares the 42-domain spatial structure of mys_proxmat."><meta property="og:description" content="A synthetic dataset containing 42 domains with multiple response variables
+Its centroids give the neighbourhood graph of mys_proxmat."><meta property="og:description" content="A synthetic dataset containing 42 domains with multiple response variables
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma). Designed for testing and benchmarking
 generalized linear and spatial small area estimation models (HB / INLA).
-It shares the 42-domain spatial structure of mys_proxmat."><meta property="og:image" content="https://ridsonap.github.io/fastsae/logo.png"><script>
+Its centroids give the neighbourhood graph of mys_proxmat."><meta property="og:image" content="https://ridsonap.github.io/fastsae/logo.png"><script>
   // Force light mode as default for first-time visitors
   if (!localStorage.getItem('theme')) {
     localStorage.setItem('theme', 'light');
@@ -80,7 +80,7 @@ It shares the 42-domain spatial structure of mys_proxmat."><meta property="og:im
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma). Designed for testing and benchmarking
 generalized linear and spatial small area estimation models (HB / INLA).
-It shares the 42-domain spatial structure of <code><a href="mys_proxmat.html">mys_proxmat</a></code>.</p>
+Its centroids give the neighbourhood graph of <code><a href="mys_proxmat.html">mys_proxmat</a></code>.</p>
     </div>
 
     <div class="section level2">
@@ -136,8 +136,9 @@ It shares the 42-domain spatial structure of <code><a href="mys_proxmat.html">my
 </dl></div>
     <div class="section level2">
     <h2 id="source">Source<a class="anchor" aria-label="anchor" href="#source"></a></h2>
-    <p>Simulated using <code><a href="sim_area_data.html">sim_area_data</a></code> based on the spatial
-  proximity structure of <code><a href="mys_proxmat.html">mys_proxmat</a></code>.</p>
+    <p>Simulated using <code><a href="sim_area_data.html">sim_area_data</a></code> with the dense distance-decay
+  weights that <code><a href="mys_proxmat.html">mys_proxmat</a></code> held until fastsae 1.0.0; the centroids are a
+  two-dimensional scaling of those weights.</p>
     </div>
 
     <div class="section level2">

@@ -3,14 +3,14 @@
 (2022 to 2026, total 210 observations). Features multiple response variables
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma) driven by domain-level spatial autocorrelation
-and first-order autoregressive AR(1) temporal dynamics. It shares the 42-domain
-spatial structure of mys_proxmat and is formatted in domain-major order
+and first-order autoregressive AR(1) temporal dynamics. Its 42 areas and centroids are
+those of sim_area (see mys_proxmat), in domain-major order
 for direct use in eblup_stfh."><meta property="og:description" content="A synthetic panel dataset containing 42 domains observed over 5 time periods
 (2022 to 2026, total 210 observations). Features multiple response variables
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma) driven by domain-level spatial autocorrelation
-and first-order autoregressive AR(1) temporal dynamics. It shares the 42-domain
-spatial structure of mys_proxmat and is formatted in domain-major order
+and first-order autoregressive AR(1) temporal dynamics. Its 42 areas and centroids are
+those of sim_area (see mys_proxmat), in domain-major order
 for direct use in eblup_stfh."><meta property="og:image" content="https://ridsonap.github.io/fastsae/logo.png"><script>
   // Force light mode as default for first-time visitors
   if (!localStorage.getItem('theme')) {
@@ -84,8 +84,8 @@ for direct use in eblup_stfh."><meta property="og:image" content="https://ridson
 (2022 to 2026, total 210 observations). Features multiple response variables
 representing various probability distributions (Gaussian, Poisson, Binomial,
 Beta, Negative Binomial, and Gamma) driven by domain-level spatial autocorrelation
-and first-order autoregressive AR(1) temporal dynamics. It shares the 42-domain
-spatial structure of <code><a href="mys_proxmat.html">mys_proxmat</a></code> and is formatted in domain-major order
+and first-order autoregressive AR(1) temporal dynamics. Its 42 areas and centroids are
+those of <code><a href="sim_area.html">sim_area</a></code> (see <code><a href="mys_proxmat.html">mys_proxmat</a></code>), in domain-major order
 for direct use in <code><a href="eblup_stfh.html">eblup_stfh</a></code>.</p>
     </div>
 
@@ -145,8 +145,8 @@ for direct use in <code><a href="eblup_stfh.html">eblup_stfh</a></code>.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="source">Source<a class="anchor" aria-label="anchor" href="#source"></a></h2>
-    <p>Simulated using <code><a href="sim_series_data.html">sim_series_data</a></code> based on the spatial
-  proximity structure of <code><a href="mys_proxmat.html">mys_proxmat</a></code>.</p>
+    <p>Simulated using <code><a href="sim_series_data.html">sim_series_data</a></code> with the dense distance-decay
+  weights that <code><a href="mys_proxmat.html">mys_proxmat</a></code> held until fastsae 1.0.0.</p>
     </div>
 
     <div class="section level2">

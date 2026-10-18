@@ -158,26 +158,26 @@ fit_sfh <- eblup_sfh(y ~ x1 + x2, vardir = "vardir", data = mys, W = mys_proxmat
 #> eblup_sfh(formula = y ~ x1 + x2, vardir = "vardir", data = mys, W =
 #> mys_proxmat)
 #> 
-#> ✔ Convergence: Yes (in 10 iterations)
+#> ✔ Convergence: Yes (in 23 iterations)
 #> Model: Spatial Fay-Herriot (Area-level SAR)
 #> Method: REML
-#> Random effect variance (sigma2_u): 1.467999 
+#> Random effect variance (sigma2_u): 0.980871 
 #> Spatial autocorrelation (rho): -1 
 #> 
 #> Fixed Effects Coefficients:
 #>                   beta  std.error     zvalue pvalue
-#> (Intercept)  2.9786076  0.6242220  4.7717123 0.0000
-#> x1          -0.0033919  0.0075283 -0.4505566 0.6523
-#> x2           0.0857371  0.0261402  3.2799004 0.0010
+#> (Intercept)  3.1958831  0.6144952  5.2008269 0.0000
+#> x1          -0.0035203  0.0075141 -0.4684949 0.6394
+#> x2           0.0801807  0.0254664  3.1484875 0.0016
 #> 
 #> EBLUP Estimates (First 6 domains):
-#>   domain        y    vardir    eblup random_effect       mse       rse
-#> 1      1 8.359527 0.6618838 7.253737    2.63803919 0.5206791  9.947713
-#> 2      2 7.599650 0.8374691 6.415275    2.19528212 0.6143184 12.217475
-#> 3      3 5.514137 0.8822257 5.121070    0.70679774 0.6380642 15.598092
-#> 4      4 3.869326 0.6581716 4.399165   -1.28175155 0.5163702 16.334669
-#> 5      5 6.305063 1.2788021 6.393072   -0.05118048 0.8064653 14.046990
-#> 6      6 3.926807 0.3878004 4.159058   -0.98030040 0.3349916 13.916243
+#>   domain        y    vardir    eblup random_effect       mse      rse
+#> 1      1 8.359527 0.6618838 7.526578     2.8428783 0.4976814  9.37299
+#> 2      2 7.599650 0.8374691 6.568449     2.2426219 0.5795629 11.59011
+#> 3      3 5.514137 0.8822257 5.161577     0.6429192 0.5946117 14.93944
+#> 4      4 3.869326 0.6581716 4.315257    -1.3771626 0.4936622 16.28202
+#> 5      5 6.305063 1.2788021 6.857796     0.4699659 0.7434759 12.57329
+#> 6      6 3.926807 0.3878004 4.063760    -1.1194128 0.3305229 14.14727
 #> ... and 36 more rows.
 #> 
 
@@ -194,17 +194,17 @@ print(comp)
 #> Key Concordance & Efficiency Metrics:
 #>                                                        Metric   Value
 #>                                               Matched Domains      42
-#>                                       Pearson Correlation (r)  0.9959
-#>                                    Spearman Correlation (rho)  0.9948
-#>                                Mean Absolute Difference (MAE)  0.1347
-#>                           Root Mean Squared Difference (RMSD)  0.1668
-#>                              Mean MSE Ratio (FH / Spatial FH)  1.2766
-#>                            Median MSE Ratio (FH / Spatial FH)  1.1561
-#>                        Domains where Spatial FH has lower MSE 41 / 42
-#>  Percentage of domains where Spatial FH is more efficient (%)   97.6%
+#>                                       Pearson Correlation (r)  0.9754
+#>                                    Spearman Correlation (rho)  0.9671
+#>                                Mean Absolute Difference (MAE)  0.2866
+#>                           Root Mean Squared Difference (RMSD)  0.3692
+#>                              Mean MSE Ratio (FH / Spatial FH)  1.3758
+#>                            Median MSE Ratio (FH / Spatial FH)  1.2606
+#>                        Domains where Spatial FH has lower MSE 42 / 42
+#>  Percentage of domains where Spatial FH is more efficient (%)  100.0%
 #>                                               Mean RSE % (FH)  25.59%
-#>                                       Mean RSE % (Spatial FH)  22.16%
-#>                                     Average RSE Reduction (%)   3.42%
+#>                                       Mean RSE % (Spatial FH)  21.64%
+#>                                     Average RSE Reduction (%)   3.95%
 #> 
 summary(comp)
 #> 
@@ -217,33 +217,33 @@ summary(comp)
 #> Key Concordance & Efficiency Metrics:
 #>                                                        Metric   Value
 #>                                               Matched Domains      42
-#>                                       Pearson Correlation (r)  0.9959
-#>                                    Spearman Correlation (rho)  0.9948
-#>                                Mean Absolute Difference (MAE)  0.1347
-#>                           Root Mean Squared Difference (RMSD)  0.1668
-#>                              Mean MSE Ratio (FH / Spatial FH)  1.2766
-#>                            Median MSE Ratio (FH / Spatial FH)  1.1561
-#>                        Domains where Spatial FH has lower MSE 41 / 42
-#>  Percentage of domains where Spatial FH is more efficient (%)   97.6%
+#>                                       Pearson Correlation (r)  0.9754
+#>                                    Spearman Correlation (rho)  0.9671
+#>                                Mean Absolute Difference (MAE)  0.2866
+#>                           Root Mean Squared Difference (RMSD)  0.3692
+#>                              Mean MSE Ratio (FH / Spatial FH)  1.3758
+#>                            Median MSE Ratio (FH / Spatial FH)  1.2606
+#>                        Domains where Spatial FH has lower MSE 42 / 42
+#>  Percentage of domains where Spatial FH is more efficient (%)  100.0%
 #>                                               Mean RSE % (FH)  25.59%
-#>                                       Mean RSE % (Spatial FH)  22.16%
-#>                                     Average RSE Reduction (%)   3.42%
+#>                                       Mean RSE % (Spatial FH)  21.64%
+#>                                     Average RSE Reduction (%)   3.95%
 #> 
 #> Distribution of Domain Point Estimates:
 #>          FH Spatial FH Difference
-#> 0%   0.8555     0.9823    -0.4212
-#> 25%  4.2455     4.2158    -0.1033
-#> 50%  5.1879     4.9815    -0.0666
-#> 75%  6.1655     6.2119     0.0704
-#> 100% 9.0169     8.7804     0.2663
+#> 0%   0.8555     0.9533    -0.8730
+#> 25%  4.2455     4.0094    -0.1846
+#> 50%  5.1879     5.1083     0.0030
+#> 75%  6.1655     6.3740     0.2818
+#> 100% 9.0169     8.4950     0.7744
 #> 
 #> Distribution of Relative Standard Error (RSE %):
 #>         FH Spatial FH RSE Diff (1 - 2)
-#> 0%    9.86       9.95            -0.09
-#> 25%  14.83      13.95             0.73
-#> 50%  21.85      20.22             1.73
-#> 75%  34.76      28.18             6.40
-#> 100% 52.75      45.59             9.81
+#> 0%    9.86       9.37            -1.98
+#> 25%  14.83      13.52             0.76
+#> 50%  21.85      18.23             2.20
+#> 75%  34.76      26.03             6.15
+#> 100% 52.75      46.45            17.39
 #> 
 
 # Plot comparison

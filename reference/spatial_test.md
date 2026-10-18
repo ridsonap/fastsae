@@ -134,29 +134,30 @@ print(st)
 #> 
 #> ── 1. Direct Response Variable (ESDA) ──
 #> 
-#> • Global Moran's I: -0.0404 (Expected: -0.0323, z-stat: -1.002)
-#> • p-value: "0.8417" [ns]
+#> • Global Moran's I: -0.2773 (Expected: -0.0323, z-stat: -2.049)
+#> • p-value: "0.9798" [ns]
 #> ℹ Direct estimates show no significant spatial clustering.
 #> 
 #> ── 2. Regression Residuals (Controlling for Auxiliary Variables) ──
 #> 
-#> • Residual Moran's I: -0.0418 (z-stat: -1.165, p-value: "0.878") [ns]
-#> • Anselin LM-Error Test: 0.835 (df = 1, p-value: "0.3608") [ns]
-#> • Anselin LM-Lag Test: 0.826 (df = 1, p-value: "0.3633")
+#> • Residual Moran's I: -0.2577 (z-stat: -1.875, p-value: "0.9696") [ns]
+#> • Anselin LM-Error Test: 3.967 (df = 1, p-value: "0.0464") [*]
+#> • Anselin LM-Lag Test: 2.055 (df = 1, p-value: "0.1517")
 #> 
 #> ── 3. Model Comparison (Standard FH vs Spatial FH) ──
 #> 
 #> • Standard FH: sigma2_u = 2.2353, ML LogLik = -65.22, AIC = 138.44
-#> • Spatial FH (SAR): sigma2_u = 1.552, rho = -1, ML LogLik = -65.28, AIC =
-#>   140.56
-#> • Likelihood Ratio: Chisq = 0 (df = 1, p-value = "1") [ns]
-#> • Information Delta: Delta AIC = 2.13, Delta BIC = 3.59
+#> • Spatial FH (SAR): sigma2_u = 0.8462, rho = -1, ML LogLik = -63.12, AIC =
+#>   136.23
+#> • Likelihood Ratio: Chisq = 4.2 (df = 1, p-value = "0.04042") [*]
+#> • Information Delta: Delta AIC = -2.2, Delta BIC = -0.73
 #> 
 #> ── 4. Final Recommendation ──
 #> 
 #> Decision test: likelihood ratio test (FH vs Spatial FH) at alpha = 0.05.
-#> ℹ STANDARD MODEL SUFFICIENT: No significant spatial spillover.
-#> ✔ The likelihood ratio test of rho = 0 does not reject the standard Fay-Herriot
-#>   model. A standard model is sufficient.
-#> ℹ Recommended function: `eblup_fh()` (avoids unnecessary g3 MSE inflation).
+#> ✔ SPATIAL MODEL RECOMMENDED: Significant spatial spillover detected.
+#> ✔ The likelihood ratio test of rho = 0 rejects the standard Fay-Herriot model
+#>   in favour of the Spatial Fay-Herriot model.
+#> ℹ Recommended functions: `eblup_sfh()` (Frequentist) or `hb_area(..., spatial =
+#>   'bym2')` (Bayesian).
 ```

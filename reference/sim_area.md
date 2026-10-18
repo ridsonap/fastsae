@@ -4,8 +4,8 @@ A synthetic dataset containing 42 domains with multiple response
 variables representing various probability distributions (Gaussian,
 Poisson, Binomial, Beta, Negative Binomial, and Gamma). Designed for
 testing and benchmarking generalized linear and spatial small area
-estimation models (HB / INLA). It shares the 42-domain spatial structure
-of
+estimation models (HB / INLA). Its centroids give the neighbourhood
+graph of
 [`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md).
 
 ## Usage
@@ -78,8 +78,10 @@ A data frame with 42 rows and 14 variables:
 
 Simulated using
 [`sim_area_data`](https://ridsonap.github.io/fastsae/reference/sim_area_data.md)
-based on the spatial proximity structure of
-[`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md).
+with the dense distance-decay weights that
+[`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md)
+held until fastsae 1.0.0; the centroids are a two-dimensional scaling of
+those weights.
 
 ## Examples
 
