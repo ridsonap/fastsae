@@ -145,9 +145,10 @@ print(x, ...)
 
 - chains:
 
-  Number of MCMC chains. Default 2. With more than one chain, the fit
-  reports the largest split R-hat and `convergence` is
-  `rhat_max < 1.05`.
+  Number of MCMC chains. Default 2; 4 is recommended for checking
+  convergence. With more than one chain, the fit reports the largest
+  rank-normalized split R-hat and `convergence` is `rhat_max < 1.05`
+  (see the section MCMC convergence).
 
 - device:
 
@@ -212,9 +213,34 @@ The fixed effects get a normal or a regularized horseshoe prior
 (Piironen and Vehtari 2017), and the variance components half-normal
 priors. `spatial = "slm"` and `temporal = "rw2"` are not available.
 `jax_engine()` is available for
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
+[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
 and
 [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+
+## MCMC convergence
+
+A `jax_engine()` fit carries the diagnostics of Vehtari et al. (2021),
+computed as the R package posterior does: `mcmc_diagnostics`, a table of
+the rank-normalized split R-hat and the bulk and tail effective sample
+sizes (ESS) of every hyperparameter (variances, `phi`, `rho`, ...),
+coefficient and area or domain parameter (`hb[j]`, row `j` of `df_hb`);
+`rhat_max` and `ess_min`, their extremes; `divergences`, the number of
+divergent transitions after warmup; `treedepth_hits`, the iterations
+that reached the maximum tree depth; and `trace`, the per-chain draws
+(iterations x chains x parameters) of the hyperparameters, up to eight
+coefficients and the area with the largest R-hat. `convergence` is
+`rhat_max < 1.05`, as before. A fit warns when R-hat is at least 1.05,
+when the bulk or tail ESS is below 100 per chain or when there are
+divergent transitions (warning class `fastsae_mcmc_warning`), and
+informs when R-hat is between 1.01 and 1.05; Vehtari et al. recommend
+R-hat \< 1.01 and ESS \> 100 per chain. `autoplot(fit, type = "trace")`
+and `type = "rank"` plot the chains; see
+[`autoplot.fastsae`](https://ridsonap.github.io/fastsae/reference/autoplot.fastsae.md).
+
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C.
+(2021). Rank-normalization, folding, and localization: An improved R-hat
+for assessing convergence of MCMC. *Bayesian Analysis*, 16(2), 667-718.
 
 ## References
 

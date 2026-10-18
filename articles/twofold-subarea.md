@@ -268,30 +268,30 @@ fit_hb <- hb_twofold(
 
 fit_hb$random_effect_var
 #>   sigma2_v   sigma2_u 
-#> 0.97986814 0.04386141
+#> 0.98042752 0.04514054
 head(fit_hb$df_hb)
 #>   domain subarea        y       hb linear_pred   vardir        sd       mse
-#> 1    A01   A01-1 12.20118 12.42233    12.42233 1.663801 0.5516197 0.3042843
-#> 2    A01   A01-2 14.48113 14.50147    14.50147 1.105026 0.5409287 0.2926038
-#> 3    A01   A01-3 15.01471 14.54519    14.54519 1.301555 0.5464571 0.2986154
-#> 4    A01   A01-4 11.36094 12.28393    12.28393 1.406429 0.5504568 0.3030027
-#> 5    A02   A02-1 12.02304 12.72641    12.72641 1.986447 0.5711599 0.3262236
-#> 6    A02   A02-2       NA 10.43972    10.43972 1.268523 0.5990013 0.3588025
-#>        rse  ci_lower ci_upper random_effect_area random_effect_subarea
-#> 1 4.440548 11.332457 13.50408         -0.4072266         -9.503558e-03
-#> 2 3.730163 13.435841 15.56330         -0.4072266         -1.661182e-03
-#> 3 3.756961 13.476137 15.62668         -0.4072266          2.343087e-02
-#> 4 4.481112 11.185041 13.35175         -0.4072266         -4.305088e-02
-#> 5 4.487987 11.590250 13.83862         -0.8003610         -2.456775e-02
-#> 6 5.737717  9.257295 11.62023         -0.8003610          8.403760e-12
+#> 1    A01   A01-1 12.20118 12.42216    12.42216 1.663801 0.5507614 0.3033381
+#> 2    A01   A01-2 14.48113 14.50121    14.50121 1.105026 0.5402938 0.2919174
+#> 3    A01   A01-3 15.01471 14.54443    14.54443 1.301555 0.5456819 0.2977687
+#> 4    A01   A01-4 11.36094 12.28444    12.28444 1.406429 0.5495778 0.3020357
+#> 5    A02   A02-1 12.02304 12.72627    12.72627 1.986447 0.5702496 0.3251847
+#> 6    A02   A02-2       NA 10.43896    10.43896 1.268523 0.5975203 0.3570305
+#>        rse ci_lower ci_upper random_effect_area random_effect_subarea
+#> 1 4.433700 11.33418 13.50220         -0.4076506         -9.329018e-03
+#> 2 3.725854 13.43691 15.56170         -0.4076506         -1.610113e-03
+#> 3 3.751826 13.47666 15.62394         -0.4076506          2.312350e-02
+#> 4 4.473770 11.18800 13.35101         -0.4076506         -4.243916e-02
+#> 5 4.480885 11.59235 13.83691         -0.8011043         -2.417371e-02
+#> 6 5.723944  9.25947 11.61621         -0.8011043         -1.080782e-11
 head(fit_hb$df_area)
 #>   domain  hb_area   sd_area  mse_area rse_area ci_lower_area ci_upper_area
-#> 1    A01 13.45508 0.4859232 0.2361213 3.611447      12.57699      14.47076
-#> 2    A02 11.25373 0.5344077 0.2855916 4.748716      10.27545      12.21065
-#> 3    A03 14.05236 0.4512559 0.2036319 3.211247      13.14898      14.86696
-#> 4    A04 16.55432 0.5257501 0.2764132 3.175909      15.43263      17.40713
-#> 5    A05 13.31339 0.5483708 0.3007105 4.118943      12.29761      14.35282
-#> 6    A06 12.79479 0.4719789 0.2227641 3.688838      11.85586      13.54948
+#> 1    A01 13.45490 0.4908445 0.2409284 3.648072      12.53683      14.48164
+#> 2    A02 11.25353 0.5329704 0.2840575 4.736029      10.25695      12.21224
+#> 3    A03 14.05266 0.4416122 0.1950213 3.142553      13.17667      14.96141
+#> 4    A04 16.55565 0.5186690 0.2690175 3.132883      15.43037      17.40842
+#> 5    A05 13.31399 0.5457555 0.2978491 4.099113      12.29381      14.41104
+#> 6    A06 12.79458 0.4726022 0.2233529 3.693768      11.74917      13.57948
 #>   n_subareas
 #> 1          4
 #> 2          5
@@ -307,7 +307,7 @@ EBLUP:
 ``` r
 
 cor(fit_tf$df_eblup$eblup, fit_hb$df_hb$hb)
-#> [1] 0.9996145
+#> [1] 0.9996075
 compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 #> 
 #> ── Small Area Estimation Model Concordance & Comparison ────────────────────────
@@ -321,14 +321,14 @@ compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 #>                                           Matched Domains       131
 #>                                   Pearson Correlation (r)    0.9996
 #>                                Spearman Correlation (rho)    0.9995
-#>                            Mean Absolute Difference (MAE)    0.0523
-#>                       Root Mean Squared Difference (RMSD)    0.0692
-#>             Mean MSE Ratio (EBLUP two-fold / HB two-fold)    1.3581
-#>           Median MSE Ratio (EBLUP two-fold / HB two-fold)    1.3542
+#>                            Mean Absolute Difference (MAE)    0.0526
+#>                       Root Mean Squared Difference (RMSD)    0.0698
+#>             Mean MSE Ratio (EBLUP two-fold / HB two-fold)    1.3631
+#>           Median MSE Ratio (EBLUP two-fold / HB two-fold)    1.3586
 #>       Domains where HB two-fold reports lower uncertainty 131 / 131
 #>  % of domains where HB two-fold reports lower uncertainty    100.0%
 #>                               Mean RSE % (EBLUP two-fold)     4.97%
-#>                                  Mean RSE % (HB two-fold)     4.28%
+#>                                  Mean RSE % (HB two-fold)     4.27%
 #>                                 Average RSE Reduction (%)     0.69%
 #> ℹ One model is Hierarchical Bayes: its posterior variance and the frequentist MSE of the other are not the same quantity, so a smaller value does not show a more accurate estimator.
 ```
@@ -347,7 +347,7 @@ here the two are practically equal:
 c(eblup_two_fold = emp_mse(fit_tf$df_eblup$eblup, sampled | in_sampled_area),
   hb_two_fold = emp_mse(fit_hb$df_hb$hb, sampled | in_sampled_area))
 #> eblup_two_fold    hb_two_fold 
-#>      0.5583827      0.5686237
+#>      0.5583827      0.5692370
 ```
 
 For counts or proportions, use `family = "poisson"` with `exposure` or

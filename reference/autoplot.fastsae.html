@@ -82,7 +82,8 @@ models fitted with <span class="pkg">fastsae</span>. This extends the generic
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'fastsae'</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
-<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"comparison"</span>, <span class="st">"ribbon"</span>, <span class="st">"mse"</span>, <span class="st">"estimates"</span>, <span class="st">"scatter"</span>, <span class="st">"rse"</span>, <span class="st">"map"</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"comparison"</span>, <span class="st">"ribbon"</span>, <span class="st">"mse"</span>, <span class="st">"estimates"</span>, <span class="st">"scatter"</span>, <span class="st">"rse"</span>, <span class="st">"map"</span>, <span class="st">"trace"</span>,</span>
+<span>    <span class="st">"rank"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -101,7 +102,9 @@ models fitted with <span class="pkg">fastsae</span>. This extends the generic
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
 <dd><p>Type of plot to create.</p><ul><li><p>For a single <code>fastsae</code> object: <code>"comparison"</code>, <code>"ribbon"</code>,
-    <code>"mse"</code>, <code>"estimates"</code>, <code>"scatter"</code>, <code>"rse"</code>, or <code>"map"</code>.</p></li>
+    <code>"mse"</code>, <code>"estimates"</code>, <code>"scatter"</code>, <code>"rse"</code>, or <code>"map"</code>;
+    for a fit with <code><a href="hb_engine.html">jax_engine()</a></code> also <code>"trace"</code> and <code>"rank"</code>,
+    the MCMC convergence plots (see Details).</p></li>
 <li><p>For a list of <code>fastsae</code> objects: <code>"comparison"</code>,
     <code>"mse"</code>, <code>"scatter"</code>, or <code>"map"</code>.</p></li>
 </ul></dd>
@@ -109,12 +112,33 @@ models fitted with <span class="pkg">fastsae</span>. This extends the generic
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed to internal plotting helpers
-(e.g. <code>title</code>) or to <span class="pkg">ggplot2</span> layers.</p></dd>
+(e.g. <code>title</code>) or to <span class="pkg">ggplot2</span> layers. For <code>"trace"</code> and <code>"rank"</code>:
+<code>pars</code>, the parameters to show (names in <code>fit$mcmc_diagnostics$parameter</code>,
+such as <code>"sigma2_u"</code>, a coefficient name or <code>"hb[5]"</code> for row 5 of
+<code>df_hb</code>), and for <code>"rank"</code> <code>bins</code> (default 20).</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>ggplot</code> object.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p><strong>MCMC convergence plots.</strong> <code>"trace"</code> draws each chain's sampled values against
+the iteration; <code>"rank"</code> the rank plot of Vehtari et al. (2021): the draws of all chains
+are ranked together and each chain's ranks are counted in <code>bins</code> bins. If the chains
+sample the same distribution each chain's counts lie near the dashed line (an equal share);
+a chain stuck in one region has too many low or high ranks. The facet labels give the
+rank-normalized R-hat and bulk ESS. By default the plots show the variance and other
+hyperparameters, up to eight coefficients and the area or domain with the largest R-hat;
+all R-hats and ESSs are in <code>fit$mcmc_diagnostics</code>. The numbers, not the plots, are the
+check (R-hat &lt; 1.01 and ESS &gt; 100 per chain); the plots show why a check fails.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
+    <p>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P.-C.
+  (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing
+  convergence of MCMC. <em>Bayesian Analysis</em>, 16(2), 667-718.</p>
     </div>
 
     <div class="section level2">

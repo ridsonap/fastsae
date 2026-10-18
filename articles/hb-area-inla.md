@@ -123,6 +123,23 @@ takes the priors and any further
 The same models can be fitted by MCMC on CPU or GPU with
 `engine = jax_engine()` (NumPyro NUTS on JAX; see
 [`?jax_engine`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)).
+An MCMC fit is only usable when its chains have converged. The fit
+reports the rank-normalized R-hat and the effective sample size (ESS) of
+every parameter (Vehtari et al., 2021) and warns when R-hat is at least
+1.05, the ESS is below 100 per chain, or there are divergent
+transitions; the trace and rank plots show which parameter is the
+problem:
+
+``` r
+
+fit_jax <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir",
+                   engine = jax_engine(chains = 4, samples = 1000))
+fit_jax$rhat_max                   # below 1.01 is recommended
+fit_jax$ess_min                    # above 100 per chain
+head(fit_jax$mcmc_diagnostics)     # R-hat and ESS of each parameter
+autoplot(fit_jax, type = "rank")   # chains near the dashed line: mixed
+autoplot(fit_jax, type = "trace", pars = c("sigma2_u", "hb[5]"))
+```
 
 ------------------------------------------------------------------------
 
@@ -246,52 +263,52 @@ fit_beta_st <- hb_area(
 summary(fit_beta_st)
 #> 
 #> Variance Components:
-#> sigma2_u: 0.062051 
+#> sigma2_u: 0.062058 
 #> sigma2_t (temporal): 0.006912 
 #> 
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept) -2.2517e+00  1.5232e-02 -1.4783e+02  0.0000e+00 -2.2815e+00
-#> x            4.0612e-01  6.4372e-02  6.3090e+00  2.8082e-10  2.7947e-01
+#> x            4.0614e-01  6.4366e-02  6.3099e+00  2.7927e-10  2.7950e-01
 #>             ci_upper
 #> (Intercept)  -2.2218
 #> x             0.5321
 #> 
 #> Hyperparameters:
 #>                                  mean        sd 0.025quant  0.5quant 0.975quant
-#> Precision for ..domain_id..  18.22299  6.626432   8.634559  17.10216   34.35011
-#> Precision for ..time_id..   172.31370 78.437762  72.151914 155.44987  373.05915
-#>                                 mode
-#> Precision for ..domain_id..  15.0636
-#> Precision for ..time_id..   127.0822
+#> Precision for ..domain_id..  18.22102  6.623933   8.631283  17.10209   34.33736
+#> Precision for ..time_id..   172.32071 78.428679  72.079491 155.47931  372.98168
+#>                                  mode
+#> Precision for ..domain_id..  15.06674
+#> Precision for ..time_id..   127.14692
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -976.34167 
+#>                                            -976.34103 
 #>                                                    pD 
-#>                                              56.02369 
+#>                                              56.00813 
 #>                                                  WAIC 
-#>                                            -984.78978 
+#>                                            -984.77952 
 #>                                                 pWAIC 
-#>                                              38.70811 
+#>                                              38.70464 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                             439.32543 
+#>                                             439.32584 
 #> 
 #> HB Summary Statistics:
 #>        hb           linear_pred           sd                mse           
-#>  Min.   :0.05270   Min.   :-2.894   Min.   :0.005185   Min.   :2.688e-05  
-#>  1st Qu.:0.08271   1st Qu.:-2.413   1st Qu.:0.007702   1st Qu.:5.932e-05  
-#>  Median :0.09635   Median :-2.244   Median :0.009371   Median :8.781e-05  
-#>  Mean   :0.09802   Mean   :-2.251   Mean   :0.009566   Mean   :9.767e-05  
-#>  3rd Qu.:0.11011   3rd Qu.:-2.095   3rd Qu.:0.011051   3rd Qu.:1.221e-04  
-#>  Max.   :0.15657   Max.   :-1.687   Max.   :0.016768   Max.   :2.812e-04  
+#>  Min.   :0.05271   Min.   :-2.894   Min.   :0.005184   Min.   :2.687e-05  
+#>  1st Qu.:0.08271   1st Qu.:-2.413   1st Qu.:0.007701   1st Qu.:5.930e-05  
+#>  Median :0.09635   Median :-2.244   Median :0.009369   Median :8.778e-05  
+#>  Mean   :0.09802   Mean   :-2.251   Mean   :0.009565   Mean   :9.764e-05  
+#>  3rd Qu.:0.11011   3rd Qu.:-2.095   3rd Qu.:0.011049   3rd Qu.:1.221e-04  
+#>  Max.   :0.15656   Max.   :-1.687   Max.   :0.016765   Max.   :2.811e-04  
 #>       rse        
-#>  Min.   : 6.370  
-#>  1st Qu.: 8.725  
-#>  Median : 9.813  
-#>  Mean   : 9.827  
-#>  3rd Qu.:10.979  
-#>  Max.   :13.670
+#>  Min.   : 6.369  
+#>  1st Qu.: 8.724  
+#>  Median : 9.811  
+#>  Mean   : 9.826  
+#>  3rd Qu.:10.977  
+#>  Max.   :13.668
 ```
 
 ### 3. Inspect Posterior Predictions and Uncertainty
@@ -303,19 +320,19 @@ standard errors, and 95% Credible Intervals:
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 #>                domain time      y         hb          sd       rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05554644 0.006127590 11.031473 0.04408733
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08225896 0.006131560  7.453972 0.07068303
-#> 3               IMOLA 2014 0.1033 0.09343257 0.010214722 10.932720 0.07511423
-#> 4         PIANURA EST 2014 0.0633 0.06509828 0.006294784  9.669664 0.05342025
-#> 5       PIANURA OVEST 2014 0.0625 0.07112655 0.007870658 11.065711 0.05671273
-#> 6      PORRETTA TERME 2014 0.1276 0.09608735 0.012916460 13.442415 0.07314333
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05555052 0.006126913 11.029444 0.04409219
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08226030 0.006130869  7.453011 0.07068555
+#> 3               IMOLA 2014 0.1033 0.09342931 0.010212723 10.930962 0.07511436
+#> 4         PIANURA EST 2014 0.0633 0.06509960 0.006293809  9.667969 0.05342322
+#> 5       PIANURA OVEST 2014 0.0625 0.07112773 0.007869519 11.063926 0.05671576
+#> 6      PORRETTA TERME 2014 0.1276 0.09608202 0.012913997 13.440596 0.07314270
 #>     ci_upper
-#> 1 0.06810568
-#> 2 0.09473235
-#> 3 0.11517432
-#> 4 0.07814089
-#> 5 0.08759939
-#> 6 0.12376148
+#> 1 0.06810806
+#> 2 0.09473220
+#> 3 0.11516671
+#> 4 0.07814003
+#> 5 0.08759797
+#> 6 0.12375123
 ```
 
 ------------------------------------------------------------------------
@@ -426,20 +443,20 @@ summary(fit_pois)
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  1.4181e-01  1.3561e-01  1.0457e+00  2.9568e-01 -1.2540e-01
-#> x1           3.8630e-01  4.9075e-02  7.8717e+00  3.4985e-15  2.8963e-01
-#> x2          -2.9856e-01  3.2989e-02 -9.0505e+00  1.4231e-19 -3.6392e-01
+#> x1           3.8630e-01  4.9075e-02  7.8717e+00  3.4990e-15  2.8963e-01
+#> x2          -2.9856e-01  3.2989e-02 -9.0505e+00  1.4234e-19 -3.6392e-01
 #>             ci_upper
 #> (Intercept)   0.4094
 #> x1            0.4831
 #> x2           -0.2339
 #> 
 #> Hyperparameters:
-#>                                   mean        sd 0.025quant   0.5quant
-#> Precision for ..domain_id.. 16.3145901 4.5697522 9.02184277 15.7497991
-#> Phi for ..domain_id..        0.1519777 0.1493143 0.00706661  0.1005521
+#>                                   mean        sd  0.025quant   0.5quant
+#> Precision for ..domain_id.. 16.3145927 4.5697796 9.021870701 15.7497765
+#> Phi for ..domain_id..        0.1519778 0.1493137 0.007066568  0.1005526
 #>                             0.975quant        mode
-#> Precision for ..domain_id.. 26.8614058 14.70838899
-#> Phi for ..domain_id..        0.5681212  0.01687678
+#> Precision for ..domain_id.. 26.8615404 14.70830418
+#> Phi for ..domain_id..        0.5681185  0.01687659
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
@@ -447,9 +464,9 @@ summary(fit_pois)
 #>                                                    pD 
 #>                                              31.80734 
 #>                                                  WAIC 
-#>                                             309.86463 
+#>                                             309.86461 
 #>                                                 pWAIC 
-#>                                              17.22845 
+#>                                              17.22844 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
 #>                                            -185.30443 
 #> 
@@ -458,9 +475,9 @@ summary(fit_pois)
 #>  Min.   :0.3072   Min.   :-1.1919   Min.   :0.02957   Min.   :0.0008745  
 #>  1st Qu.:0.7646   1st Qu.:-0.2790   1st Qu.:0.05802   1st Qu.:0.0033665  
 #>  Median :1.3848   Median : 0.3238   Median :0.07676   Median :0.0058921  
-#>  Mean   :1.5290   Mean   : 0.2384   Mean   :0.16054   Mean   :0.0659998  
+#>  Mean   :1.5290   Mean   : 0.2384   Mean   :0.16054   Mean   :0.0660001  
 #>  3rd Qu.:2.2984   3rd Qu.: 0.8022   3rd Qu.:0.12181   3rd Qu.:0.0148494  
-#>  Max.   :3.6013   Max.   : 1.2809   Max.   :0.74698   Max.   :0.5579864  
+#>  Max.   :3.6013   Max.   : 1.2809   Max.   :0.74699   Max.   :0.5579887  
 #>       rse        
 #>  Min.   : 2.790  
 #>  1st Qu.: 5.159  
@@ -489,3 +506,7 @@ summary(fit_pois)
 - Simpson, D., Rue, H., Riebler, A., Martins, T. G., & Sørbye, S. H.
   (2017). Penalising model component complexity: A principled, practical
   approach to constructing priors. *Statistical Science*, 32(1), 1–28.
+- Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C.
+  (2021). Rank-normalization, folding, and localization: An improved
+  R-hat for assessing convergence of MCMC. *Bayesian Analysis*, 16(2),
+  667–718.

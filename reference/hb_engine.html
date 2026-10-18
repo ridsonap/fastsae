@@ -211,9 +211,10 @@ approximates the aggregate uncertainty from independent sub-area effects).</p></
 
 
 <dt id="arg-chains">chains<a class="anchor" aria-label="anchor" href="#arg-chains"></a></dt>
-<dd><p>Number of MCMC chains. Default 2. With more than one chain,
-the fit reports the largest split R-hat and <code>convergence</code> is
-<code>rhat_max &lt; 1.05</code>.</p></dd>
+<dd><p>Number of MCMC chains. Default 2; 4 is recommended for checking
+convergence. With more than one chain, the fit reports the largest
+rank-normalized split R-hat and <code>convergence</code> is <code>rhat_max &lt; 1.05</code>
+(see the section MCMC convergence).</p></dd>
 
 
 <dt id="arg-device">device<a class="anchor" aria-label="anchor" href="#arg-device"></a></dt>
@@ -277,7 +278,30 @@ JAX, Phan et al. 2019) on CPU, CUDA GPU or Apple Metal, through
 The fixed effects get a normal or a regularized horseshoe prior (Piironen
 and Vehtari 2017), and the variance components half-normal priors.
 <code>spatial = "slm"</code> and <code>temporal = "rw2"</code> are not available.
-<code>jax_engine()</code> is available for <code><a href="hb_area.html">hb_area()</a></code> and <code><a href="hb_twofold.html">hb_twofold()</a></code>.</p>
+<code>jax_engine()</code> is available for <code><a href="hb_area.html">hb_area()</a></code>, <code><a href="hb_unit.html">hb_unit()</a></code> and <code><a href="hb_twofold.html">hb_twofold()</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="mcmc-convergence">MCMC convergence<a class="anchor" aria-label="anchor" href="#mcmc-convergence"></a></h2>
+
+
+<p>A <code>jax_engine()</code> fit carries the diagnostics of Vehtari et al. (2021), computed as
+the R package <span class="pkg">posterior</span> does: <code>mcmc_diagnostics</code>, a table of the
+rank-normalized split R-hat and the bulk and tail effective sample sizes (ESS) of every
+hyperparameter (variances, <code>phi</code>, <code>rho</code>, ...), coefficient and area or domain
+parameter (<code>hb[j]</code>, row <code>j</code> of <code>df_hb</code>); <code>rhat_max</code> and
+<code>ess_min</code>, their extremes; <code>divergences</code>, the number of divergent transitions
+after warmup; <code>treedepth_hits</code>, the iterations that reached the maximum tree depth;
+and <code>trace</code>, the per-chain draws (iterations x chains x parameters) of the
+hyperparameters, up to eight coefficients and the area with the largest R-hat.
+<code>convergence</code> is <code>rhat_max &lt; 1.05</code>, as before. A fit warns when R-hat is at
+least 1.05, when the bulk or tail ESS is below 100 per chain or when there are divergent
+transitions (warning class <code>fastsae_mcmc_warning</code>), and informs when R-hat is
+between 1.01 and 1.05; Vehtari et al. recommend R-hat &lt; 1.01 and ESS &gt; 100 per chain.
+<code>autoplot(fit, type = "trace")</code> and <code>type = "rank"</code> plot the chains; see
+<code><a href="autoplot.fastsae.html">autoplot.fastsae</a></code>.</p>
+<p>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P.-C. (2021).
+Rank-normalization, folding, and localization: An improved R-hat for assessing
+convergence of MCMC. <em>Bayesian Analysis</em>, 16(2), 667-718.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

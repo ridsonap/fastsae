@@ -200,12 +200,12 @@ fit_hbu <- hb_unit(
 
 head(fit_hbu$df_hb[, c("domain", "samp_size", "hb", "sd", "ci_lower", "ci_upper")])
 #>   domain samp_size       hb       sd  ci_lower ci_upper
-#> 1      1         1 122.0318 7.382956 107.56120 136.5024
-#> 2      2         1 123.1465 7.244519 108.94729 137.3458
-#> 3      3         1 113.7472 7.973760  98.11867 129.3758
-#> 4      4         2 115.4984 6.801739 102.16703 128.8298
-#> 5      5         3 134.8681 7.748097 119.68185 150.0544
-#> 6      6         3 107.8245 6.527383  95.03085 120.6182
+#> 1      1         1 121.3256 6.358679 108.86258 133.7886
+#> 2      2         1 122.6207 6.192291 110.48386 134.7576
+#> 3      3         1 114.9777 6.930166 101.39462 128.5609
+#> 4      4         2 116.1428 5.921748 104.53616 127.7494
+#> 5      5         3 132.7227 7.283982 118.44609 146.9993
+#> 6      6         3 106.7526 5.954208  95.08232 118.4228
 ```
 
 County by county, the posterior means are close to the EBLUP:
@@ -221,18 +221,18 @@ data.frame(
   sd_hb = round(fit_hbu$df_hb$sd, 1)
 )
 #>    County n eblup    hb rmse_eblup sd_hb
-#> 1       1 1 122.6 122.0        9.0   7.4
-#> 2       2 1 123.5 123.1        8.4   7.2
-#> 3       3 1 113.0 113.7        9.0   8.0
-#> 4       4 2 115.0 115.5        7.3   6.8
-#> 5       5 3 137.3 134.9        5.7   7.7
-#> 6       6 3 109.0 107.8        7.7   6.5
-#> 7       7 3 116.5 117.1        7.0   6.0
-#> 8       8 3 122.8 122.3        6.6   6.0
-#> 9       9 4 111.6 110.1        6.2   6.2
-#> 10     10 5 124.2 124.8        6.2   5.4
-#> 11     11 5 112.5 114.8        5.0   6.7
-#> 12     12 6 131.3 131.3        5.3   5.1
+#> 1       1 1 122.6 121.3        9.0   6.4
+#> 2       2 1 123.5 122.6        8.4   6.2
+#> 3       3 1 113.0 115.0        9.0   6.9
+#> 4       4 2 115.0 116.1        7.3   5.9
+#> 5       5 3 137.3 132.7        5.7   7.3
+#> 6       6 3 109.0 106.8        7.7   6.0
+#> 7       7 3 116.5 117.6        7.0   5.4
+#> 8       8 3 122.8 122.0        6.6   5.3
+#> 9       9 4 111.6 108.9        6.2   5.8
+#> 10     10 5 124.2 125.4        6.2   4.8
+#> 11     11 5 112.5 116.8        5.0   6.4
+#> 12     12 6 131.3 131.3        5.3   4.6
 ```
 
 The two sets of estimates differ by less than 5 hectares (about 4% of
@@ -252,6 +252,39 @@ The county estimates in `df_hb` are reliable:
 fits in INLA’s `"classic"` mode, which on these data matches the exact
 posterior (computed by numerical integration over the two variances) and
 is stable from call to call.
+
+### MCMC with `engine = jax_engine()`
+
+`hb_unit(engine = jax_engine())` samples the same model with NumPyro’s
+NUTS sampler instead of INLA (it needs Python with ‘jax’ and ‘numpyro’;
+see
+[`setup_numpyro_env()`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)),
+and summarises the county means from the MCMC draws:
+
+``` r
+
+fit_hbu_jax <- hb_unit(
+  CornHec ~ CornPix + SoyBeansPix,
+  unit_data = cornsoybean,
+  Xpop = df_pop,
+  domain_var = "County",
+  popsize_var = "PopnSegments",
+  engine = jax_engine(chains = 4, samples = 2000),
+  print_result = FALSE
+)
+fit_hbu_jax$rhat_max
+```
+
+Its priors are half-normal on the standard deviations of the county
+effect and of the unit errors (on the standardised response scale). With
+12 counties the prior of $`\sigma_u^2`$ shapes its posterior, so the
+county SDs differ between engines: on these data they are 1.1-1.4 times
+those of INLA, whose log-gamma prior puts more mass near
+$`\sigma_u^2 = 0`$, and 0.8-1.0 times those of
+`hbsae::fSAE(method = "HB")`, with its flat prior on the variance ratio.
+With more domains the data dominate: for 30 simulated domains the three
+agreed within 0.1 posterior SD, and a Stan fit with the same priors as
+the JAX engine agreed within Monte Carlo error.
 
 ### Counties without a sample
 
@@ -274,7 +307,7 @@ fit_hbu1$unsampled_domains
 #> [1] 1
 fit_hbu1$df_hb[fit_hbu1$df_hb$domain == 1, c("domain", "samp_size", "hb", "sd")]
 #>   domain samp_size       hb       sd
-#> 1      1         0 119.3413 7.169549
+#> 1      1         0 119.4646 9.263469
 ```
 
 The population means in `Xpop` must be complete: a missing mean is an

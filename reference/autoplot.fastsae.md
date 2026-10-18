@@ -11,7 +11,8 @@ ggplot2.
 # S3 method for class 'fastsae'
 autoplot(
   object,
-  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map"),
+  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map", "trace",
+    "rank"),
   ...
 )
 
@@ -30,7 +31,10 @@ autoplot(object, type = c("comparison", "mse", "scatter", "map"), ...)
   Type of plot to create.
 
   - For a single `fastsae` object: `"comparison"`, `"ribbon"`, `"mse"`,
-    `"estimates"`, `"scatter"`, `"rse"`, or `"map"`.
+    `"estimates"`, `"scatter"`, `"rse"`, or `"map"`; for a fit with
+    [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+    also `"trace"` and `"rank"`, the MCMC convergence plots (see
+    Details).
 
   - For a list of `fastsae` objects: `"comparison"`, `"mse"`,
     `"scatter"`, or `"map"`.
@@ -38,11 +42,34 @@ autoplot(object, type = c("comparison", "mse", "scatter", "map"), ...)
 - ...:
 
   Additional arguments passed to internal plotting helpers (e.g.
-  `title`) or to ggplot2 layers.
+  `title`) or to ggplot2 layers. For `"trace"` and `"rank"`: `pars`, the
+  parameters to show (names in `fit$mcmc_diagnostics$parameter`, such as
+  `"sigma2_u"`, a coefficient name or `"hb[5]"` for row 5 of `df_hb`),
+  and for `"rank"` `bins` (default 20).
 
 ## Value
 
 A `ggplot` object.
+
+## Details
+
+**MCMC convergence plots.** `"trace"` draws each chain's sampled values
+against the iteration; `"rank"` the rank plot of Vehtari et al. (2021):
+the draws of all chains are ranked together and each chain's ranks are
+counted in `bins` bins. If the chains sample the same distribution each
+chain's counts lie near the dashed line (an equal share); a chain stuck
+in one region has too many low or high ranks. The facet labels give the
+rank-normalized R-hat and bulk ESS. By default the plots show the
+variance and other hyperparameters, up to eight coefficients and the
+area or domain with the largest R-hat; all R-hats and ESSs are in
+`fit$mcmc_diagnostics`. The numbers, not the plots, are the check (R-hat
+\< 1.01 and ESS \> 100 per chain); the plots show why a check fails.
+
+## References
+
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C.
+(2021). Rank-normalization, folding, and localization: An improved R-hat
+for assessing convergence of MCMC. *Bayesian Analysis*, 16(2), 667-718.
 
 ## Examples
 
