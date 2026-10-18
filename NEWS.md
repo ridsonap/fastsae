@@ -57,6 +57,16 @@
 * `jax_engine()`: the WAIC of a Gaussian model with an unknown residual variance (`hb_area()`
   without `vardir`, `hb_unit()`) used the posterior mean of the residual SD in every draw; it
   now uses the SD of each draw (on `mys`: 129.3 instead of 135.9).
+* `jax_engine()`: the `temporal = "ar1"` effect sums to zero over the periods (as `"rw1"` already
+  did) when the model has an intercept, which then carries the mean level. Over a few periods
+  the level of a stationary AR(1) effect traded off against the intercept along a ridge whose
+  width depends on rho, and NUTS reported divergent transitions: on `sim_panel` (5 years,
+  4 x 1000 draws, 4 seeds) 30-201 before and 1-6 after, with the area estimates 0.11 instead of
+  0.21 posterior SD from INLA; with `st_interaction = "type2"`, 14-57 before and 0 after. With
+  `spatial = "bym2"` one of 4 seeds still gave 38 (3-4 for the others; 30-154 before), which a
+  longer `warmup` reduces. The INLA engine keeps its unconstrained AR(1) effect, so the
+  intercepts of the two engines differ by the mean of the time effects (the area estimates are
+  not affected by this).
 * `hb_unit()` checks that the unit responses are 0 or 1 for `family = "binomial"` and non-negative
   integers for `"poisson"`.
 * `print()` failed on a fit whose call holds braces, e.g. from `do.call()` with a function object:

@@ -494,6 +494,12 @@ def fit_numpyro_hb(
             C_T = build_temporal_operator(T, temporal, rho_t, jnp)
             z_t = numpyro.sample("z_t", dist.Normal(0.0, 1.0).expand([T]))
             u_temporal = sigma_t * jnp.dot(C_T, z_t)
+            if temporal == "ar1" and len(int_cols) > 0:
+                # Sum-to-zero, as for rw1: the level of a stationary AR(1) over a few
+                # periods trades off against the intercept along a ridge whose width
+                # depends on rho, which NUTS cannot adapt to (divergent transitions).
+                # The intercept then carries the mean level over the periods.
+                u_temporal = u_temporal - jnp.mean(u_temporal)
 
         # 3. Spatio-Temporal Interaction
         u_st = jnp.zeros(N)

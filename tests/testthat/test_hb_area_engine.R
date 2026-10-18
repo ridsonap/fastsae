@@ -407,3 +407,24 @@ test_that("engine = 'jax' fits count, spatial, and temporal models end to end", 
                                      print_result = FALSE))
   expect_equal(fit_bm$benchmark_summary$discrepancy, 0, tolerance = 1e-8)
 })
+
+test_that("engine = 'jax' samples an AR(1) time effect without divergent transitions", {
+  skip_if_no_numpyro()
+  data("sim_panel", package = "fastsae")
+  # With 5 periods the level of a stationary AR(1) effect trades off against the
+  # intercept along a ridge whose width depends on rho: NUTS used to report 30-200
+  # divergent transitions of 4000 here (R-hat up to 1.04, 0.2 posterior SD from INLA)
+  eng <- jax_engine(warmup = 500, samples = 1000, chains = 4, seed = 42, device = "cpu", progress = FALSE)
+  fit <- quiet_mcmc(hb_area(y_gaussian ~ x1 + x2, vardir = "vardir", data = sim_panel,
+                            domain = "area", time = "year", temporal = "ar1",
+                            engine = eng, print_result = FALSE))
+  expect_lte(fit$divergences, 20)
+  # 1.01 is within Monte Carlo noise of the intercept at ESS ~ 500 (as for temporal = "iid")
+  expect_lt(fit$rhat_max, 1.02)
+
+  skip_if_not_installed("INLA")
+  ref <- suppressWarnings(hb_area(y_gaussian ~ x1 + x2, vardir = "vardir", data = sim_panel,
+                                  domain = "area", time = "year", temporal = "ar1",
+                                  print_result = FALSE))
+  expect_lt(max(abs(fit$df_hb$hb - ref$df_hb$hb) / ref$df_hb$sd), 0.15)
+})

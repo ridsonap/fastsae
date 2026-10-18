@@ -130,6 +130,11 @@
 #'     \item \code{"ar1"}: First-order autoregressive process across time periods.
 #'     \item \code{"iid"}: Unstructured independent time effects.
 #'   }
+#'   With \code{engine = jax_engine()}, the \code{"rw1"} and \code{"ar1"} effects sum to zero over
+#'   the periods (\code{"ar1"} only when the model has an intercept), so the intercept is the
+#'   mean level: over a few periods the level of an AR(1) effect otherwise trades off against
+#'   the intercept and NUTS diverges. INLA fits \code{"ar1"} without this constraint, so the
+#'   intercepts of the two engines differ by the mean of the time effects.
 #' @param st_interaction Character string specifying the spatio-temporal structure:
 #'   \itemize{
 #'     \item \code{"none"}: Additive main spatial and temporal effects (default).
