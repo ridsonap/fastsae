@@ -257,8 +257,7 @@ with either. Feature support:
 }
 By default both engines use the same priors (see \code{prior_prec} of
 \code{\link{inla_engine}()} and \code{priors} of \code{\link{jax_engine}()}), so their estimates
-differ only by the INLA approximation and the Monte Carlo error. For \code{family = "gamma"}
-the \code{"jax"} engine estimates a common shape and does not use \code{vardir}.
+differ only by the INLA approximation and the Monte Carlo error.
 
 With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of any family are
 fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use

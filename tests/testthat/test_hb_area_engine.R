@@ -462,3 +462,37 @@ test_that("engine = 'jax' samples an AR(1) time effect without divergent transit
   ))
   expect_lt(max(abs(fit$df_hb$hb - ref$df_hb$hb) / ref$df_hb$sd), 0.15)
 })
+
+test_that("engine = 'jax' passes vardir of a gamma model to the backend", {
+  env <- new.env()
+  local_fake_backend(env)
+  df <- sim_engine_df()
+  df$y <- exp(df$y)
+  df$v <- (0.2 * df$y)^2
+  fit <- hb_area(y ~ x,
+    data = df, domain = "area", vardir = "v", family = "gamma",
+    engine = jax_engine(samples = 50, device = "cpu"), print_result = FALSE
+  )
+  expect_equal(env$args$vardir, df$v)
+})
+
+test_that("engine = 'jax' gamma model with vardir agrees with INLA", {
+  skip_if_no_numpyro()
+  skip_if_not_installed("INLA")
+  set.seed(11)
+  m <- 40
+  d <- data.frame(x = rnorm(m))
+  mu <- exp(0.5 + 0.4 * d$x + rnorm(m, sd = 0.5))
+  d$y <- rgamma(m, shape = 20, rate = 20 / mu)
+  d$v <- mu^2 / 20
+  d$y[1:4] <- NA
+  fj <- quiet_mcmc(hb_area(y ~ x,
+    data = d, vardir = "v", family = "gamma",
+    engine = jax_engine(warmup = 1000, samples = 1000, chains = 4, device = "cpu", seed = 1),
+    print_result = FALSE
+  ))
+  fi <- hb_area(y ~ x, data = d, vardir = "v", family = "gamma", print_result = FALSE)
+  z <- abs(fj$df_hb$hb - fi$df_hb$hb) / fi$df_hb$sd
+  expect_lt(max(z), 0.15)
+  expect_lt(max(abs(fj$df_hb$sd / fi$df_hb$sd - 1)), 0.15)
+})

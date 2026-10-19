@@ -129,6 +129,16 @@
   SAR example of `test_hb_area_sar.R` within 0.05 SD, 0.22 before.
   `priors = "weakly_informative"` keeps the previous priors.
 
+### Gamma and negative binomial dispersion
+* `hb_area(family = "gamma", engine = jax_engine())` uses `vardir` as the INLA engine does: the
+  shape of each area is $y^2/V$. Before, `vardir` was ignored with a message and a common shape
+  was estimated, so the two engines fitted different models (estimates up to 2.6 posterior SD
+  apart on a test example; now within 0.15 SD).
+* `jax_engine()` starts the regression coefficients at 0 instead of the median of 15 draws of
+  their prior: with the $N(0, 1000)$ prior that median can lie far out on a log or logit scale,
+  where chains of a model with a sharp likelihood (the gamma model above) got stuck (R-hat 1.6-3.4
+  in 3 of 4 seeds; now at most 1.013 in 6 of 6).
+
 ### SAR area effect in `hb_area()`
 * `hb_area(spatial = "sar")`: the simultaneous autoregressive area effect
   $u = (I - \rho W)^{-1}\varepsilon$ of `eblup_sfh()`, i.e. its Bayesian counterpart (`"slm"`

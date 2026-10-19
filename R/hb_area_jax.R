@@ -264,15 +264,11 @@
   obs <- !is.na(y_fit)
 
   vardir_num <- if (!is.null(vardir)) as.numeric(vardir) else NULL
-  if (!is.null(vardir_num) && family %in% c("gaussian", "beta")) {
+  if (!is.null(vardir_num) && family %in% c("gaussian", "beta", "gamma")) {
     bad <- obs & !(is.finite(vardir_num) & vardir_num > 0)
     if (any(bad)) {
       cli::cli_abort("{.arg vardir} must be finite and strictly positive for sampled domains ({sum(bad)} invalid).")
     }
-  }
-  if (family == "gamma" && !is.null(vardir_num)) {
-    cli::cli_alert_info("{.code engine = \"jax\"} estimates a common Gamma shape; {.arg vardir} is not used for {.code family = \"gamma\"}.")
-    vardir_num <- NULL
   }
   if (family %in% c("binomial", "poisson", "nbinomial") && any(y_fit[obs] < 0 | y_fit[obs] %% 1 != 0)) {
     cli::cli_abort("For {.code family = \"{family}\"}, the response must be non-negative integer counts.")
