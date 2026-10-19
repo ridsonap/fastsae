@@ -143,3 +143,25 @@ test_that("with the default priors JAX and INLA fit the same model", {
     expect_lt(fj$rhat_max, 1.02)
   }
 })
+
+test_that("a gamma model without vardir warns that its intervals are too short", {
+  skip_if_not_installed("INLA")
+  set.seed(4)
+  d <- data.frame(x = rnorm(20))
+  d$mu <- exp(0.5 + 0.3 * d$x + rnorm(20, sd = 0.5))
+  d$y <- rgamma(20, shape = 20, rate = 20 / d$mu)
+  d$v <- d$mu^2 / 20
+  expect_warning(
+    hb_area(y ~ x, data = d, family = "gamma", print_result = FALSE),
+    "weakly identified"
+  )
+  w <- character(0)
+  withCallingHandlers(
+    hb_area(y ~ x, data = d, family = "gamma", vardir = "v", print_result = FALSE),
+    warning = function(cnd) {
+      w <<- c(w, conditionMessage(cnd))
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_false(any(grepl("weakly identified", w)))
+})

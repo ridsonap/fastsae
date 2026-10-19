@@ -87,7 +87,11 @@
 #'       is provided, area-specific precision is calculated via Janicki (2020) formula
 #'       \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
 #'       If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
-#'     \item \code{"gamma"}: Skewed positive continuous response.
+#'     \item \code{"gamma"}: Skewed positive continuous response. If \code{vardir} is
+#'       provided, the precision of each area is scaled as \eqn{y_i^2 / V_i}; without it
+#'       the precision is estimated from one observation per area, which is weakly
+#'       identified against the area effect (a warning; with INLA the 95\% intervals
+#'       covered 83-88\% of the true means in a simulation, 91-95\% with \code{vardir}).
 #'   }
 #' @param spatial Character string specifying the spatial random effect structure:
 #'   \itemize{
@@ -475,6 +479,17 @@ hb_area <- function(
     if (any(y_non_na <= 0, na.rm = TRUE)) {
       cli::cli_abort("For {.code family = 'gamma'}, response {.arg y} must be strictly positive (> 0).")
     }
+  }
+  if (family == "gamma" && is.null(vardir) && engine$name == "inla") {
+    # Without vardir the gamma precision is estimated from one observation per area
+    # and trades off against the area effect: in a simulation (15-60 areas,
+    # benchmarks/validation/gamma_vardir.R) the 95% intervals covered 83-88% of the
+    # true means, 91-95% with vardir; the PC and half-normal priors on the area SD did
+    # not change this (benchmarks/validation/default_sd_prior_glm_more.R).
+    cli::cli_warn(c(
+      "With one observation per area and no {.arg vardir}, the gamma precision and the area random effect are only weakly identified, and the intervals are too short (83-88% coverage of 95% intervals in a simulation).",
+      "i" = "Give the sampling variances in {.arg vardir}: they fix the precision of each area (91-95% coverage)."
+    ))
   }
 
   # INLA treats a missing covariate as 0, so every row needs complete

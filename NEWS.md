@@ -111,6 +111,15 @@
   families get a half-normal(1) prior on the link scale instead of the PC prior: for binomial
   and beta responses the intervals covered 93-95% against 92-94%, and the PC prior
   underestimated the area SD by up to 18% (`benchmarks/validation/default_sd_prior_glm.R`).
+  With small samples (binomial and beta, 5-20 units per area) the PC prior covered 86-94% and
+  estimated an area SD of 0.8 as 0.45; Poisson and binomial BYM2 models behaved as binomial
+  and beta (`benchmarks/validation/default_sd_prior_glm_more.R`).
+* `hb_area(family = "gamma")` without `vardir` warns that its intervals are too short: the gamma
+  precision is then estimated from one observation per area and trades off against the area
+  effect. In a simulation (`benchmarks/validation/gamma_vardir.R`) the 95% intervals covered
+  83-88% of the true means without `vardir` and 91-95% with it; no prior on the area SD changed
+  this. The negative binomial model has the same problem (87-93% coverage) and already warned
+  about it.
   Leroux's $\lambda$ gets a uniform prior.
   `inla_engine(prior_prec = )` overrides the default as before.
 * `jax_engine(priors = "inla")`, the new default, gives the NumPyro engine the priors of

@@ -58,7 +58,11 @@ Options:
     is provided, area-specific precision is calculated via Janicki (2020) formula
     \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
     If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
-  \item \code{"gamma"}: Skewed positive continuous response.
+  \item \code{"gamma"}: Skewed positive continuous response. If \code{vardir} is
+    provided, the precision of each area is scaled as \eqn{y_i^2 / V_i}; without it
+    the precision is estimated from one observation per area, which is weakly
+    identified against the area effect (a warning; with INLA the 95\% intervals
+    covered 83-88\% of the true means in a simulation, 91-95\% with \code{vardir}).
 }}
 
 \item{spatial}{Character string specifying the spatial random effect structure:
