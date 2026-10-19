@@ -243,29 +243,33 @@ randomisation variance of Cliff and Ord (1981), two-sided.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (INLA mode status 0)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (Non-spatial)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.829985 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.829982 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                   beta  std.error     zvalue     pvalue   ci_lower ci_upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.0715572  0.7909887  3.8831870  0.0001031  1.5330615   4.6544</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.0041512  0.0094343 -0.4400155  0.6599259 -0.0229833   0.0143</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.0862090  0.0320401  2.6906581  0.0071311  0.0230295   0.1495</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.07155706  0.79098782  3.88319134  0.00010309  1.53306278</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.00415124  0.00943430 -0.44001600  0.65992552 -0.02298330</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.08620897  0.03204007  2.69066112  0.00713106  0.02302954</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.6544</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1            0.0143</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2            0.1495</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.590846    7.590846 0.7640230 0.5837311 10.06506 6.107741</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.775392    6.775392 0.8337953 0.6952147 12.30623 5.161056</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.245482    5.245482 0.8229081 0.6771777 15.68794 3.640202</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.247402    4.247402 0.7360699 0.5417989 17.32989 2.794586</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.352990    6.352990 0.9388750 0.8814862 14.77847 4.508182</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.590846    7.590846 0.7640224 0.5837303 10.06505 6.107741</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.775392    6.775392 0.8337948 0.6952138 12.30622 5.161056</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.245482    5.245482 0.8229080 0.6771775 15.68794 3.640202</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.247402    4.247402 0.7360698 0.5417987 17.32988 2.794586</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.352990    6.352990 0.9388749 0.8814860 14.77847 4.508182</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.091352    4.091352 0.5837763 0.3407948 14.26854 2.943485</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.103079    2.96522717 0.6618838</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.430374    2.52170402 0.8374691</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.869508    0.77265156 0.8822257</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.682178   -1.47620955 0.6581716</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.195014   -0.09886316 1.2788021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.233334   -1.08175993 0.3878004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.103078    2.96522702 0.6618838</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.430372    2.52170388 0.8374691</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.869507    0.77265159 0.8822257</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.682178   -1.47620938 0.6581716</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.195014   -0.09886313 1.2788021</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.233334   -1.08175985 0.3878004</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">fastsae Small Area Estimation Diagnostic Report</span> ─────────────────────────────</span>

@@ -299,12 +299,12 @@ only run when INLA is installed. The arguments are those of
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_hbu</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"samp_size"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain samp_size       hb       sd  ci_lower ci_upper</span></span>
-<span><span class="co">#&gt; 1      1         1 123.2393 9.029869 105.54077 140.9379</span></span>
-<span><span class="co">#&gt; 2      2         1 124.0670 8.879435 106.66330 141.4707</span></span>
-<span><span class="co">#&gt; 3      3         1 111.3807 9.717040  92.33535 130.4261</span></span>
-<span><span class="co">#&gt; 4      4         2 114.3514 8.065070  98.54389 130.1590</span></span>
-<span><span class="co">#&gt; 5      5         3 137.9634 8.504381 121.29477 154.6319</span></span>
-<span><span class="co">#&gt; 6      6         3 109.4054 7.343275  95.01261 123.7983</span></span></code></pre></div>
+<span><span class="co">#&gt; 1      1         1 123.0860 8.879789 105.68161 140.4904</span></span>
+<span><span class="co">#&gt; 2      2         1 123.9516 8.721545 106.85736 141.0458</span></span>
+<span><span class="co">#&gt; 3      3         1 111.6640 9.596666  92.85449 130.4734</span></span>
+<span><span class="co">#&gt; 4      4         2 114.4947 7.943985  98.92446 130.0649</span></span>
+<span><span class="co">#&gt; 5      5         3 137.5321 8.556642 120.76111 154.3031</span></span>
+<span><span class="co">#&gt; 6      6         3 109.1875 7.290662  94.89785 123.4772</span></span></code></pre></div>
 <p>County by county, the posterior means are close to the EBLUP:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -316,17 +316,17 @@ only run when INLA is installed. The arguments are those of
 <span>  sd_hb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fit_hbu</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">sd</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;    County n eblup    hb rmse_eblup sd_hb</span></span>
-<span><span class="co">#&gt; 1       1 1 122.6 123.2        9.0   9.0</span></span>
-<span><span class="co">#&gt; 2       2 1 123.5 124.1        8.4   8.9</span></span>
-<span><span class="co">#&gt; 3       3 1 113.0 111.4        9.0   9.7</span></span>
-<span><span class="co">#&gt; 4       4 2 115.0 114.4        7.3   8.1</span></span>
-<span><span class="co">#&gt; 5       5 3 137.3 138.0        5.7   8.5</span></span>
-<span><span class="co">#&gt; 6       6 3 109.0 109.4        7.7   7.3</span></span>
-<span><span class="co">#&gt; 7       7 3 116.5 116.2        7.0   6.9</span></span>
-<span><span class="co">#&gt; 8       8 3 122.8 122.8        6.6   6.9</span></span>
-<span><span class="co">#&gt; 9       9 4 111.6 111.8        6.2   6.8</span></span>
-<span><span class="co">#&gt; 10     10 5 124.2 124.1        6.2   6.0</span></span>
-<span><span class="co">#&gt; 11     11 5 112.5 112.3        5.0   7.1</span></span>
+<span><span class="co">#&gt; 1       1 1 122.6 123.1        9.0   8.9</span></span>
+<span><span class="co">#&gt; 2       2 1 123.5 124.0        8.4   8.7</span></span>
+<span><span class="co">#&gt; 3       3 1 113.0 111.7        9.0   9.6</span></span>
+<span><span class="co">#&gt; 4       4 2 115.0 114.5        7.3   7.9</span></span>
+<span><span class="co">#&gt; 5       5 3 137.3 137.5        5.7   8.6</span></span>
+<span><span class="co">#&gt; 6       6 3 109.0 109.2        7.7   7.3</span></span>
+<span><span class="co">#&gt; 7       7 3 116.5 116.3        7.0   6.8</span></span>
+<span><span class="co">#&gt; 8       8 3 122.8 122.7        6.6   6.8</span></span>
+<span><span class="co">#&gt; 9       9 4 111.6 111.5        6.2   6.8</span></span>
+<span><span class="co">#&gt; 10     10 5 124.2 124.2        6.2   5.9</span></span>
+<span><span class="co">#&gt; 11     11 5 112.5 112.7        5.0   7.2</span></span>
 <span><span class="co">#&gt; 12     12 6 131.3 131.2        5.3   5.6</span></span></code></pre></div>
 <p>The two sets of estimates differ by less than 5 hectares (about 4% of
 the county means), most in counties 5 and 11. The bootstrap root MSE and
@@ -399,7 +399,7 @@ county 1:</p>
 <span><span class="co">#&gt; [1] 1</span></span>
 <span><span class="va">fit_hbu1</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span><span class="va">fit_hbu1</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">domain</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"samp_size"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   domain samp_size       hb       sd</span></span>
-<span><span class="co">#&gt; 1      1         0 119.5016 11.42145</span></span></code></pre></div>
+<span><span class="co">#&gt; 1      1         0 119.4988 11.40511</span></span></code></pre></div>
 <p>The population means in <code>Xpop</code> must be complete: a missing
 mean is an error, since the prediction of that county would be wrong.
 <code><a href="../reference/hb_unit.html">hb_unit()</a></code> also fits binomial and Poisson responses
