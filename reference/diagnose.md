@@ -200,33 +200,29 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 1.8887 
+#> Random effect variance (sigma2_u): 2.829985 
 #> 
 #> Fixed Effects Coefficients:
-#>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  2.9984e+00  6.9061e-01  4.3416e+00  1.4144e-05  1.6577e+00
-#> x1          -3.6431e-03  8.0843e-03 -4.5064e-01  6.5225e-01 -1.9735e-02
-#> x2           8.6089e-02  2.7838e-02  3.0925e+00  1.9847e-03  3.1240e-02
-#>             ci_upper
-#> (Intercept)   4.3781
-#> x1            0.0122
-#> x2            0.1409
+#>                   beta  std.error     zvalue     pvalue   ci_lower ci_upper
+#> (Intercept)  3.0715572  0.7909887  3.8831870  0.0001031  1.5330615   4.6544
+#> x1          -0.0041512  0.0094343 -0.4400155  0.6599259 -0.0229833   0.0143
+#> x2           0.0862090  0.0320401  2.6906581  0.0071311  0.0230295   0.1495
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.329038    7.329038 0.7461557 0.5567483 10.18081 5.887341
-#> 2      2 7.599650 6.507566    6.507566 0.8048433 0.6477727 12.36781 4.957588
-#> 3      3 5.514137 5.147678    5.147678 0.7838940 0.6144898 15.22811 3.622309
-#> 4      4 3.869326 4.366008    4.366008 0.7085443 0.5020350 16.22865 2.963607
-#> 5      5 6.305063 6.363118    6.363118 0.8800533 0.7744939 13.83054 4.632819
-#> 6      6 3.926807 4.148782    4.148782 0.5684738 0.3231625 13.70219 3.029360
+#> 1      1 8.359527 7.590846    7.590846 0.7640230 0.5837311 10.06506 6.107741
+#> 2      2 7.599650 6.775392    6.775392 0.8337953 0.6952147 12.30623 5.161056
+#> 3      3 5.514137 5.245482    5.245482 0.8229081 0.6771777 15.68794 3.640202
+#> 4      4 3.869326 4.247402    4.247402 0.7360699 0.5417989 17.32989 2.794586
+#> 5      5 6.305063 6.352990    6.352990 0.9388750 0.8814862 14.77847 4.508182
+#> 6      6 3.926807 4.091352    4.091352 0.5837763 0.3407948 14.26854 2.943485
 #>   ci_upper random_effect    vardir
-#> 1 8.811889    2.71644443 0.6618838
-#> 2 8.112927    2.28397056 0.8374691
-#> 3 6.699329    0.72133145 0.8822257
-#> 4 5.743676   -1.32493951 0.6581716
-#> 5 8.090312   -0.08169565 1.2788021
-#> 6 5.259425   -0.99645269 0.3878004
+#> 1 9.103079    2.96522717 0.6618838
+#> 2 8.430374    2.52170402 0.8374691
+#> 3 6.869508    0.77265156 0.8822257
+#> 4 5.682178   -1.47620955 0.6581716
+#> 5 8.195014   -0.09886316 1.2788021
+#> 6 5.233334   -1.08175993 0.3878004
 #> ... and 36 more rows.
 #> 
 #> ── fastsae Small Area Estimation Diagnostic Report ─────────────────────────────
@@ -234,20 +230,20 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> ── 1. Precision & Efficiency Gain ──
 #> 
-#> ! Domains with RSE < 25%: 61.9% (Caution: low precision)
-#> ✔ Average RSE reduction: Direct "29.49%" -> SAE "22.95%" (Gain: 6.54%)
-#> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.55, max: 5.97)
+#> ! Domains with RSE < 25%: 52.4% (Caution: low precision)
+#> ✔ Average RSE reduction: Direct "29.49%" -> SAE "25.84%" (Gain: 3.65%)
+#> ✔ Variance reduction in 100% of areas (MSE ratio median: 1.38, max: 4.4)
 #> 
 #> ── 2. Brown et al. (2001) Diagnostics ──
 #> 
-#> ✔ Goodness-of-Fit Statistic W: W = 7.39 (df = 32), p-value = 1 [Consistent with direct estimates]
-#> ℹ Bias regression (direct ~ model, descriptive): alpha = -0.8064 (SE 0.4412), beta = 1.1798 (SE 0.0801), R^2 = 0.879
+#> ✔ Goodness-of-Fit Statistic W: W = 4.51 (df = 32), p-value = 1 [Consistent with direct estimates]
+#> ℹ Bias regression (direct ~ model, descriptive): alpha = -0.7264 (SE 0.3513), beta = 1.1591 (SE 0.0632), R^2 = 0.918
 #> A slope above 1 is expected for shrinkage estimators; see ?diagnose.
 #> 
 #> ── 5. Bayesian Information Criteria & Predictive Diagnostics ──
 #> 
-#> ℹ WAIC: 117.76 (p_eff: 14.1) | DIC: 118.69 (p_eff: 20.02)
-#> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.09, p-value = 0.936 [Well-calibrated predictive distribution]
+#> ℹ WAIC: 114.2 (p_eff: 13.09) | DIC: 118.64 (p_eff: 22.2)
+#> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.079, p-value = 0.9802 [Well-calibrated predictive distribution]
 #> ! Leave-One-Out CPO: 2 observation(s) flagged with numerical caution.
 #> ────────────────────────────────────────────────────────────────────────────────
 #> ✖ Final Assessment: WARNING: High proportions of domains with RSE >= threshold.

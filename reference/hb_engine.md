@@ -34,6 +34,7 @@ jax_engine(
   device = c("auto", "cpu", "cuda", "metal"),
   seed = 42,
   prior_beta = c("normal", "horseshoe"),
+  priors = c("inla", "weakly_informative"),
   robust = FALSE,
   keep_draws = TRUE,
   progress = interactive()
@@ -69,20 +70,20 @@ print(x, ...)
 - prior_prec:
 
   Prior for the precision of the area (domain) random effect. `NULL`
-  (default): the PC prior `list(prior = "pc.prec", param = c(1, 0.01))`
-  in
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
-  and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md),
-  `list(prior = "loggamma", param = c(0.01, 0.01))` in
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md).
-  The PC prior puts probability 0.01 on a standard deviation above 1,
-  which suits area-level responses such as proportions, rates and log
-  scales; unit-level responses are often on a raw scale (e.g. hectares),
-  where it would over-shrink the area effects, hence the vague log-gamma
-  prior. For an area-level response with a large scale, set
-  `prior_prec = list(prior = "pc.prec", param = c(U, 0.01))` with `U` a
-  plausible upper value of the area standard deviation.
+  (default), in all HB functions: a half-normal prior on the standard
+  deviation (given to INLA as an `"expression:"` prior), with scale
+  \\s_y\\, the standard deviation of the observed responses, for
+  `family = "gaussian"` and scale 1 on the link scale (logit, log) of
+  the other families. An area standard deviation cannot exceed \\s_y\\,
+  so the Gaussian prior only sets the scale and does not depend on the
+  unit of the response. INLA's PC prior
+  `list(prior = "pc.prec", param = c(1, 0.01))` does: on `mys` with the
+  response in tenths it moved the estimates by up to 4.1 posterior SD.
+  In simulations the 95% intervals covered 93-97% of the true values
+  with the half-normal prior against 85-92% with that PC prior
+  (Fay-Herriot, 15-60 areas; EBLUP: 93-96%), and 93-95% against 92-94%
+  for binomial and beta responses, where the PC prior also
+  underestimated the area SD by up to 18%.
 
 - prior_phi:
 
@@ -99,7 +100,7 @@ print(x, ...)
 
   Prior for the precision of the temporal random effect
   ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
-  only); `NULL` uses the INLA default.
+  only); `NULL`: the default of `prior_prec`.
 
 - prior_rho_time:
 
@@ -111,8 +112,7 @@ print(x, ...)
 
   Prior for the precision of the subarea random effect
   ([`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
-  only). `NULL` (default):
-  `list(prior = "pc.prec", param = c(1, 0.01))`.
+  only). `NULL`: the default of `prior_prec`.
 
 - draws:
 
@@ -164,6 +164,25 @@ print(x, ...)
   Prior for the regression coefficients: `"normal"` (default) or
   `"horseshoe"` (regularized horseshoe, for many candidate covariates).
 
+- priors:
+
+  Default priors of the model parameters. `"inla"` (default): the
+  defaults of `inla_engine()`, so that both engines fit the same model:
+  every random-effect standard deviation gets the default of
+  `inla_engine(prior_prec = )` (half-normal with scale \\s_y\\ for
+  Gaussian models, 1 on the link scale otherwise), the BYM2 mixing
+  parameter \\\phi\\ INLA's PC prior (\\P(\phi \< 0.5) = 0.5\\), the
+  AR(1) correlation INLA's \\N(0, 1/0.15)\\ prior on \\\log((1 +
+  \rho)/(1 - \rho))\\, the Leroux and SAR correlations uniform priors,
+  and the coefficients \\N(0, 1000)\\. On `mys` the two engines then
+  agree within 0.03 (iid) and 0.05 (BYM2) posterior SD.
+  `"weakly_informative"`: half-normal standard deviations with scale 1
+  on the standardised response or the link scale, uniform \\\phi\\ and
+  AR(1) correlation and \\N(0, 10^2)\\ coefficients (\\N(0, 2.5^2)\\ for
+  logit links). The priors of the likelihood (residual SD without
+  `vardir`, beta precision, negative binomial and gamma shapes) are the
+  latter in both cases.
+
 - robust:
 
   Logical; Student-t instead of normal random effects (the area effects,
@@ -210,8 +229,8 @@ reticulate. It needs Python with `jax` and `numpyro`; see
 and
 [`check_numpyro_available`](https://ridsonap.github.io/fastsae/reference/check_numpyro_available.md).
 The fixed effects get a normal or a regularized horseshoe prior
-(Piironen and Vehtari 2017), and the variance components half-normal
-priors. `spatial = "slm"` and `temporal = "rw2"` are not available.
+(Piironen and Vehtari 2017); see `priors` for the other priors.
+`spatial = "slm"` and `temporal = "rw2"` are not available.
 `jax_engine()` is available for
 [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
 [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
@@ -270,4 +289,5 @@ jax_engine(samples = 2000, chains = 4, device = "cuda")
 #> • 4 chains x 2000 draws, 500 warmup, seed 42
 #> • Device: cuda
 #> • Prior on coefficients: normal
+#> • Priors: inla
 ```

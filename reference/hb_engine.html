@@ -110,6 +110,7 @@ their defaults.</p>
 <span>  device <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"cpu"</span>, <span class="st">"cuda"</span>, <span class="st">"metal"</span><span class="op">)</span>,</span>
 <span>  seed <span class="op">=</span> <span class="fl">42</span>,</span>
 <span>  prior_beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"normal"</span>, <span class="st">"horseshoe"</span><span class="op">)</span>,</span>
+<span>  priors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"inla"</span>, <span class="st">"weakly_informative"</span><span class="op">)</span>,</span>
 <span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  keep_draws <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  progress <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -145,16 +146,18 @@ rw1, rw2) to a generalized variance of 1. Default <code>TRUE</code>.</p></dd>
 
 <dt id="arg-prior-prec">prior_prec<a class="anchor" aria-label="anchor" href="#arg-prior-prec"></a></dt>
 <dd><p>Prior for the precision of the area (domain) random
-effect. <code>NULL</code> (default): the PC prior
-<code>list(prior = "pc.prec", param = c(1, 0.01))</code> in <code><a href="hb_area.html">hb_area()</a></code> and
-<code><a href="hb_twofold.html">hb_twofold()</a></code>, <code>list(prior = "loggamma", param = c(0.01, 0.01))</code>
-in <code><a href="hb_unit.html">hb_unit()</a></code>. The PC prior puts probability 0.01 on a standard
-deviation above 1, which suits area-level responses such as proportions,
-rates and log scales; unit-level responses are often on a raw scale (e.g.
-hectares), where it would over-shrink the area effects, hence the vague
-log-gamma prior. For an area-level response with a large scale, set
-<code>prior_prec = list(prior = "pc.prec", param = c(U, 0.01))</code> with
-<code>U</code> a plausible upper value of the area standard deviation.</p></dd>
+effect. <code>NULL</code> (default), in all HB functions: a half-normal prior on the
+standard deviation (given to INLA as an <code>"expression:"</code> prior), with scale
+\(s_y\), the standard deviation of the observed responses, for
+<code>family = "gaussian"</code> and scale 1 on the link scale (logit, log) of the other
+families. An area standard deviation cannot exceed \(s_y\), so the Gaussian prior
+only sets the scale and does not depend on the unit of the response. INLA's PC prior
+<code>list(prior = "pc.prec", param = c(1, 0.01))</code> does: on <code>mys</code> with the
+response in tenths it moved the estimates by up to 4.1 posterior SD. In simulations
+the 95% intervals covered 93-97% of the true values with the half-normal prior
+against 85-92% with that PC prior (Fay-Herriot, 15-60 areas; EBLUP: 93-96%), and
+93-95% against 92-94% for binomial and beta responses, where the PC prior also
+underestimated the area SD by up to 18%.</p></dd>
 
 
 <dt id="arg-prior-phi">prior_phi<a class="anchor" aria-label="anchor" href="#arg-prior-phi"></a></dt>
@@ -170,7 +173,7 @@ log-gamma prior. For an area-level response with a large scale, set
 
 <dt id="arg-prior-prec-time">prior_prec_time<a class="anchor" aria-label="anchor" href="#arg-prior-prec-time"></a></dt>
 <dd><p>Prior for the precision of the temporal random
-effect (<code><a href="hb_area.html">hb_area()</a></code> only); <code>NULL</code> uses the INLA default.</p></dd>
+effect (<code><a href="hb_area.html">hb_area()</a></code> only); <code>NULL</code>: the default of <code>prior_prec</code>.</p></dd>
 
 
 <dt id="arg-prior-rho-time">prior_rho_time<a class="anchor" aria-label="anchor" href="#arg-prior-rho-time"></a></dt>
@@ -181,8 +184,7 @@ default.</p></dd>
 
 <dt id="arg-prior-prec-subarea">prior_prec_subarea<a class="anchor" aria-label="anchor" href="#arg-prior-prec-subarea"></a></dt>
 <dd><p>Prior for the precision of the subarea random
-effect (<code><a href="hb_twofold.html">hb_twofold()</a></code> only). <code>NULL</code> (default):
-<code>list(prior = "pc.prec", param = c(1, 0.01))</code>.</p></dd>
+effect (<code><a href="hb_twofold.html">hb_twofold()</a></code> only). <code>NULL</code>: the default of <code>prior_prec</code>.</p></dd>
 
 
 <dt id="arg-draws">draws<a class="anchor" aria-label="anchor" href="#arg-draws"></a></dt>
@@ -232,6 +234,23 @@ that reason <code>"auto"</code> uses the CPU on macOS.</p></dd>
 candidate covariates).</p></dd>
 
 
+<dt id="arg-priors">priors<a class="anchor" aria-label="anchor" href="#arg-priors"></a></dt>
+<dd><p>Default priors of the model parameters. <code>"inla"</code> (default): the
+defaults of <code>inla_engine()</code>, so that both engines fit the same model:
+every random-effect standard deviation gets the default of
+<code>inla_engine(prior_prec = )</code> (half-normal with scale \(s_y\) for Gaussian
+models, 1 on the link scale otherwise), the BYM2 mixing parameter
+\(\phi\) INLA's PC prior (\(P(\phi &lt; 0.5) = 0.5\)), the AR(1) correlation INLA's
+\(N(0, 1/0.15)\) prior on \(\log((1 + \rho)/(1 - \rho))\), the Leroux and SAR
+correlations uniform priors, and the coefficients \(N(0, 1000)\). On <code>mys</code> the
+two engines then agree within 0.03 (iid) and 0.05 (BYM2) posterior SD.
+<code>"weakly_informative"</code>: half-normal standard deviations with scale 1 on the
+standardised response or the link scale, uniform \(\phi\) and AR(1) correlation and
+\(N(0, 10^2)\) coefficients (\(N(0, 2.5^2)\) for logit links). The priors of the
+likelihood (residual SD without <code>vardir</code>, beta precision, negative binomial and
+gamma shapes) are the latter in both cases.</p></dd>
+
+
 <dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>
 <dd><p>Logical; Student-t instead of normal random effects (the
 area effects, and the sub-area effects of <code><a href="hb_twofold.html">hb_twofold()</a></code>), with the
@@ -276,7 +295,7 @@ JAX, Phan et al. 2019) on CPU, CUDA GPU or Apple Metal, through
 <span class="pkg">reticulate</span>. It needs Python with <code>jax</code> and <code>numpyro</code>; see
 <code><a href="setup_numpyro_env.html">setup_numpyro_env</a></code> and <code><a href="check_numpyro_available.html">check_numpyro_available</a></code>.
 The fixed effects get a normal or a regularized horseshoe prior (Piironen
-and Vehtari 2017), and the variance components half-normal priors.
+and Vehtari 2017); see <code>priors</code> for the other priors.
 <code>spatial = "slm"</code> and <code>temporal = "rw2"</code> are not available.
 <code>jax_engine()</code> is available for <code><a href="hb_area.html">hb_area()</a></code>, <code><a href="hb_unit.html">hb_unit()</a></code> and <code><a href="hb_twofold.html">hb_twofold()</a></code>.</p>
     </div>
@@ -328,6 +347,7 @@ regularization in the horseshoe and other shrinkage priors.
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> 4 chains x 2000 draws, 500 warmup, seed 42</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Device: cuda</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Prior on coefficients: normal</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Priors: inla</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

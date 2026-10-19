@@ -291,31 +291,31 @@ fit_hb <- hb_twofold(
 )
 
 fit_hb$random_effect_var
-#>   sigma2_v   sigma2_u 
-#> 0.98042752 0.04514054
+#>  sigma2_v  sigma2_u 
+#> 1.2370025 0.1859788
 head(fit_hb$df_hb)
 #>   domain subarea        y       hb linear_pred   vardir        sd       mse
-#> 1    A01   A01-1 12.20118 12.42216    12.42216 1.663801 0.5507614 0.3033381
-#> 2    A01   A01-2 14.48113 14.50121    14.50121 1.105026 0.5402938 0.2919174
-#> 3    A01   A01-3 15.01471 14.54443    14.54443 1.301555 0.5456819 0.2977687
-#> 4    A01   A01-4 11.36094 12.28444    12.28444 1.406429 0.5495778 0.3020357
-#> 5    A02   A02-1 12.02304 12.72627    12.72627 1.986447 0.5702496 0.3251847
-#> 6    A02   A02-2       NA 10.43896    10.43896 1.268523 0.5975203 0.3570305
-#>        rse ci_lower ci_upper random_effect_area random_effect_subarea
-#> 1 4.433700 11.33418 13.50220         -0.4076506         -9.329018e-03
-#> 2 3.725854 13.43691 15.56170         -0.4076506         -1.610113e-03
-#> 3 3.751826 13.47666 15.62394         -0.4076506          2.312350e-02
-#> 4 4.473770 11.18800 13.35101         -0.4076506         -4.243916e-02
-#> 5 4.480885 11.59235 13.83691         -0.8011043         -2.417371e-02
-#> 6 5.723944  9.25947 11.61621         -0.8011043         -1.080782e-11
+#> 1    A01   A01-1 12.20118 12.39290    12.39290 1.663801 0.6267376 0.3928000
+#> 2    A01   A01-2 14.48113 14.48306    14.48306 1.105026 0.6022376 0.3626901
+#> 3    A01   A01-3 15.01471 14.56061    14.56061 1.301555 0.6149109 0.3781155
+#> 4    A01   A01-4 11.36094 12.20725    12.20725 1.406429 0.6221921 0.3871231
+#> 5    A02   A02-1 12.02304 12.65286    12.65286 1.986447 0.6498927 0.4223605
+#> 6    A02   A02-2       NA 10.39838    10.39838 1.268523 0.7105738 0.5049151
+#>        rse  ci_lower ci_upper random_effect_area random_effect_subarea
+#> 1 5.057232 11.151455 13.62611         -0.4211314         -2.072824e-02
+#> 2 4.158220 13.296659 15.66950         -0.4211314         -1.332579e-03
+#> 3 4.223113 13.363453 15.78882         -0.4211314          5.683072e-02
+#> 4 5.096906 10.953783 13.40860         -0.4211314         -9.938372e-02
+#> 5 5.136332 11.353954 13.91986         -0.8380897         -5.535978e-02
+#> 6 6.833501  8.993467 11.81479         -0.8380897          6.810325e-11
 head(fit_hb$df_area)
 #>   domain  hb_area   sd_area  mse_area rse_area ci_lower_area ci_upper_area
-#> 1    A01 13.45490 0.4908445 0.2409284 3.648072      12.53683      14.48164
-#> 2    A02 11.25353 0.5329704 0.2840575 4.736029      10.25695      12.21224
-#> 3    A03 14.05266 0.4416122 0.1950213 3.142553      13.17667      14.96141
-#> 4    A04 16.55565 0.5186690 0.2690175 3.132883      15.43037      17.40842
-#> 5    A05 13.31399 0.5457555 0.2978491 4.099113      12.29381      14.41104
-#> 6    A06 12.79458 0.4726022 0.2233529 3.693768      11.74917      13.57948
+#> 1    A01 13.42839 0.5115306 0.2616635 3.809322      12.41243      14.49213
+#> 2    A02 11.18134 0.5585532 0.3119816 4.995403      10.02758      12.18690
+#> 3    A03 14.08162 0.4564143 0.2083140 3.241206      13.24423      14.96521
+#> 4    A04 16.66043 0.5313830 0.2823679 3.189491      15.54299      17.51367
+#> 5    A05 13.24769 0.5650628 0.3192960 4.265369      12.29191      14.38185
+#> 6    A06 12.79910 0.4876379 0.2377907 3.809941      11.74785      13.62786
 #>   n_subareas
 #> 1          4
 #> 2          5
@@ -331,7 +331,7 @@ EBLUP:
 ``` r
 
 cor(fit_tf$df_eblup$eblup, fit_hb$df_hb$hb)
-#> [1] 0.9996075
+#> [1] 0.999991
 compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 #> 
 #> ── Small Area Estimation Model Concordance & Comparison ────────────────────────
@@ -343,17 +343,17 @@ compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 #> Key Concordance & Efficiency Metrics:
 #>                                                    Metric     Value
 #>                                           Matched Domains       131
-#>                                   Pearson Correlation (r)    0.9996
-#>                                Spearman Correlation (rho)    0.9995
-#>                            Mean Absolute Difference (MAE)    0.0526
-#>                       Root Mean Squared Difference (RMSD)    0.0698
-#>             Mean MSE Ratio (EBLUP two-fold / HB two-fold)    1.3631
-#>           Median MSE Ratio (EBLUP two-fold / HB two-fold)    1.3586
-#>       Domains where HB two-fold reports lower uncertainty 131 / 131
-#>  % of domains where HB two-fold reports lower uncertainty    100.0%
+#>                                   Pearson Correlation (r)    1.0000
+#>                                Spearman Correlation (rho)    0.9999
+#>                            Mean Absolute Difference (MAE)    0.0077
+#>                       Root Mean Squared Difference (RMSD)    0.0104
+#>             Mean MSE Ratio (EBLUP two-fold / HB two-fold)    1.0438
+#>           Median MSE Ratio (EBLUP two-fold / HB two-fold)    1.0526
+#>       Domains where HB two-fold reports lower uncertainty 103 / 131
+#>  % of domains where HB two-fold reports lower uncertainty     78.6%
 #>                               Mean RSE % (EBLUP two-fold)     4.97%
-#>                                  Mean RSE % (HB two-fold)     4.27%
-#>                                 Average RSE Reduction (%)     0.69%
+#>                                  Mean RSE % (HB two-fold)     4.89%
+#>                                 Average RSE Reduction (%)     0.08%
 #> ℹ One model is Hierarchical Bayes: its posterior variance and the frequentist MSE of the other are not the same quantity, so a smaller value does not show a more accurate estimator.
 ```
 
@@ -373,7 +373,7 @@ c(
   hb_two_fold = emp_mse(fit_hb$df_hb$hb, sampled | in_sampled_area)
 )
 #> eblup_two_fold    hb_two_fold 
-#>      0.5583827      0.5692370
+#>      0.5583827      0.5570989
 ```
 
 For counts or proportions, use `family = "poisson"` with `exposure` or
@@ -407,10 +407,9 @@ fit_jax$rhat_max
 head(fit_jax$df_area)
 ```
 
-The priors differ from those of INLA (half-normal standard deviations
-instead of PC priors), so the estimates differ slightly; on simulated
-data with 20 areas the area means of the two engines correlated above
-0.999.
+Both engines use the same priors by default
+(`jax_engine(priors = "inla")`), so their estimates differ only by
+INLA’s approximation and the Monte Carlo error.
 
 ------------------------------------------------------------------------
 

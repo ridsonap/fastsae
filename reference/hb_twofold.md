@@ -121,10 +121,10 @@ hb_twofold(
   [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
   holds the approximation strategy, the priors (`prior_prec` for the
   area effect \\\tau_v\\ and `prior_prec_subarea` for the sub-area
-  effect \\\tau_u\\, both by default
-  `list(prior = "pc.prec", param = c(1, 0.01))`; `prior_phi` for BYM2),
-  `scale_model`, the number of posterior `draws` for the area aggregates
-  (default 200) and their `seed`, and further
+  effect \\\tau_u\\, both by default the prior of
+  [`inla_engine`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)`(prior_prec = )`;
+  `prior_phi` for BYM2), `scale_model`, the number of posterior `draws`
+  for the area aggregates (default 200) and their `seed`, and further
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) arguments.
   The Gaussian model is fitted in INLA's `"classic"` mode, the binomial
   and Poisson models in INLA's default `"compact"` mode, as in
@@ -320,40 +320,40 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-TWOFOLD-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Method: INLA (laplace)
-#> Area effect variance (sigma2_v): 0.679579 
-#> Subarea effect variance (sigma2_u): 0.147589 
+#> Area effect variance (sigma2_v): 1.263078 
+#> Subarea effect variance (sigma2_u): 0.352764 
 #> Spatial mixing fraction (phi): NA 
 #> 
 #> Fixed Effects Coefficients:
 #>                   beta  std.error     zvalue     pvalue   ci_lower ci_upper
-#> (Intercept) 9.0918e-01 2.9804e-01 3.0505e+00 2.2845e-03 3.1722e-01   1.5007
-#> x1          9.5250e-01 1.4319e-01 6.6522e+00 2.8875e-11 6.6455e-01   1.2290
+#> (Intercept) 9.1768e-01 3.8578e-01 2.3788e+00 1.7369e-02 1.4671e-01   1.6901
+#> x1          9.4873e-01 1.6723e-01 5.6731e+00 1.4025e-08 6.0891e-01   1.2704
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain subarea         y        hb linear_pred    vardir        sd       mse
-#> 1      1     1-1 2.5249687 2.5600753   2.5600753 0.5114576 0.4997665 0.2497666
-#> 2      1     1-2 2.3333192 2.0619528   2.0619527 0.6419530 0.5080113 0.2580754
-#> 3      2     2-1 1.2440865 1.2441778   1.2441777 0.4773757 0.4559948 0.2079313
-#> 4      2     2-2 0.9335319 0.7791609   0.7791608 0.7640087 0.4902199 0.2403156
-#> 5      2     2-3 2.0476243 2.2711962   2.2711963 0.7869359 0.5047162 0.2547384
-#> 6      3     3-1 1.6429514 1.4064617   1.4064616 0.5085271 0.4458452 0.1987780
+#> 1      1     1-1 2.5249687 2.5697364   2.5697364 0.5114576 0.5562661 0.3094320
+#> 2      1     1-2 2.3333192 2.1251792   2.1251792 0.6419530 0.5815634 0.3382160
+#> 3      2     2-1 1.2440865 1.2421247   1.2421247 0.4773757 0.5157415 0.2659893
+#> 4      2     2-2 0.9335319 0.8007818   0.8007817 0.7640087 0.5769019 0.3328158
+#> 5      2     2-3 2.0476243 2.2346991   2.2346992 0.7869359 0.5897514 0.3478067
+#> 6      3     3-1 1.6429514 1.4666033   1.4666033 0.5085271 0.5139411 0.2641354
 #>        rse   ci_lower ci_upper random_effect_area random_effect_subarea
-#> 1 19.52156  1.5746754 3.541176         0.19168326           0.001175798
-#> 2 24.63739  1.0732822 3.075820         0.19168326           0.052434232
-#> 3 36.65030  0.3463035 2.143292        -0.04870223          -0.001499913
-#> 4 62.91639 -0.1772792 1.762356        -0.04870223           0.021230904
-#> 5 22.22248  1.2560585 3.251739        -0.04870223          -0.030949605
-#> 6 31.69978  0.5383447 2.299683         0.29729555           0.056930456
+#> 1 21.64681  1.4711497 3.659016         0.21027680          -0.010542152
+#> 2 27.36538  0.9925328 3.284346         0.21027680           0.089974094
+#> 3 41.52091  0.2270468 2.259164        -0.05803548          -0.001137452
+#> 4 72.04234 -0.3246619 1.958577        -0.05803548           0.042063658
+#> 5 26.39064  1.0474818 3.380134        -0.05803548          -0.059243463
+#> 6 35.04295  0.4640277 2.494332         0.30833357           0.096278956
 #> ... and 22 more rows.
 #> 
 #> Area-Level Aggregates (First 6 areas):
 #>   domain    hb_area   sd_area  mse_area rse_area ci_lower_area ci_upper_area
-#> 1      1  2.3110140 0.4654092 0.2166058 20.13875    1.45129501    3.27127992
-#> 2      2  1.4315116 0.4007483 0.1605992 27.99477    0.72389440    2.22370463
-#> 3      3  1.4467601 0.3852838 0.1484436 26.63080    0.71686692    2.21956553
-#> 4      4  2.8616076 0.3859779 0.1489789 13.48815    2.22017050    3.66839157
-#> 5      5  0.6643406 0.3188753 0.1016814 47.99876    0.06766789    1.24956775
-#> 6      6 -0.6983029 0.3710388 0.1376698 53.13436   -1.43240090    0.05488951
+#> 1      1  2.3474578 0.4905890 0.2406776 20.89874    1.44491734    3.31182391
+#> 2      2  1.4258685 0.4170345 0.1739178 29.24775    0.67222829    2.32944474
+#> 3      3  1.4775234 0.3956330 0.1565255 26.77677    0.78476723    2.32704395
+#> 4      4  3.0259776 0.4225201 0.1785232 13.96309    2.25846053    3.85759187
+#> 5      5  0.6768729 0.3356819 0.1126824 49.59306   -0.01048981    1.37180552
+#> 6      6 -0.8734795 0.4045300 0.1636445 46.31248   -1.59901660   -0.04865586
 #>   n_subareas
 #> 1          2
 #> 2          3
@@ -375,56 +375,56 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Method: INLA (laplace)
 #> 
 #> Variance Components:
-#> sigma2_v (area): 0.679579 
-#> sigma2_u (subarea): 0.147589 
+#> sigma2_v (area): 1.263078 
+#> sigma2_u (subarea): 0.352764 
 #> phi (spatial fraction): NA 
 #> 
 #> Coefficients:
 #>                   beta  std.error     zvalue     pvalue   ci_lower ci_upper
-#> (Intercept) 9.0918e-01 2.9804e-01 3.0505e+00 2.2845e-03 3.1722e-01   1.5007
-#> x1          9.5250e-01 1.4319e-01 6.6522e+00 2.8875e-11 6.6455e-01   1.2290
+#> (Intercept) 9.1768e-01 3.8578e-01 2.3788e+00 1.7369e-02 1.4671e-01   1.6901
+#> x1          9.4873e-01 1.6723e-01 5.6731e+00 1.4025e-08 6.0891e-01   1.2704
 #> 
 #> Hyperparameters:
 #>                                  mean        sd 0.025quant 0.5quant 0.975quant
-#> Precision for ..area_id..     1.94996  1.115628  0.5970003  1.69169   4.828204
-#> Precision for ..subarea_id.. 26.67126 67.263361  1.7781504 10.44669 155.767639
-#>                                  mode
-#> Precision for ..area_id..    1.275266
-#> Precision for ..subarea_id.. 3.643245
+#> Precision for ..area_id..    1.175629 0.8048668  0.2753772 0.972060   3.279658
+#> Precision for ..subarea_id.. 5.328773 5.7246477  0.9067990 3.643309  20.280658
+#>                                   mode
+#> Precision for ..area_id..    0.6551048
+#> Precision for ..subarea_id.. 1.9881957
 #> 
 #> Goodness of Fit:
 #> $dic
-#> [1] 77.45528
+#> [1] 76.50284
 #> 
 #> $p_eff_dic
-#> [1] 13.07198
+#> [1] 16.65468
 #> 
 #> $waic
-#> [1] 79.56035
+#> [1] 75.47097
 #> 
 #> $p_eff_waic
-#> [1] 11.93568
+#> [1] 11.83889
 #> 
 #> $mlik
 #> log marginal-likelihood (integration) 
-#>                             -50.54249 
+#>                             -49.23015 
 #> 
 #> 
 #> HB Summary Statistics:
 #>        hb           linear_pred            sd              mse        
-#>  Min.   :-1.4365   Min.   :-1.4365   Min.   :0.3682   Min.   :0.1356  
-#>  1st Qu.: 0.1838   1st Qu.: 0.1838   1st Qu.:0.4359   1st Qu.:0.1900  
-#>  Median : 1.1484   Median : 1.1484   Median :0.4661   Median :0.2172  
-#>  Mean   : 1.0510   Mean   : 1.0510   Mean   :0.4663   Mean   :0.2194  
-#>  3rd Qu.: 2.1017   3rd Qu.: 2.1017   3rd Qu.:0.5040   3rd Qu.:0.2540  
-#>  Max.   : 3.3074   Max.   : 3.3074   Max.   :0.5554   Max.   :0.3084  
+#>  Min.   :-1.7358   Min.   :-1.7358   Min.   :0.4117   Min.   :0.1695  
+#>  1st Qu.: 0.2104   1st Qu.: 0.2104   1st Qu.:0.5083   1st Qu.:0.2584  
+#>  Median : 1.2595   Median : 1.2595   Median :0.5463   Median :0.2984  
+#>  Mean   : 1.0570   Mean   : 1.0570   Mean   :0.5318   Mean   :0.2864  
+#>  3rd Qu.: 2.0838   3rd Qu.: 2.0838   3rd Qu.:0.5774   3rd Qu.:0.3334  
+#>  Max.   : 3.3671   Max.   : 3.3671   Max.   :0.6495   Max.   :0.4218  
 #>       rse         
-#>  Min.   :  14.35  
-#>  1st Qu.:  24.91  
-#>  Median :  31.51  
-#>  Mean   : 161.83  
-#>  3rd Qu.:  58.67  
-#>  Max.   :2697.27  
+#>  Min.   :  15.33  
+#>  1st Qu.:  27.12  
+#>  Median :  35.43  
+#>  Mean   : 173.44  
+#>  3rd Qu.:  71.63  
+#>  Max.   :2226.32  
 #> 
 # }
 ```
