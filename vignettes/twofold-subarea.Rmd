@@ -268,9 +268,8 @@ fit_jax$rhat_max
 head(fit_jax$df_area)
 ```
 
-The priors differ from those of INLA (half-normal standard deviations instead of PC priors), so
-the estimates differ slightly; on simulated data with 20 areas the area means of the two engines
-correlated above 0.999.
+Both engines use the same priors by default (`jax_engine(priors = "inla")`), so their
+estimates differ only by INLA's approximation and the Monte Carlo error.
 
 ---
 

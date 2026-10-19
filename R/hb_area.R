@@ -30,10 +30,10 @@
 #'   Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
 #'   Horseshoe prior, Student-t random effects \tab -- \tab yes \cr
 #' }
-#' The \code{"jax"} engine uses weakly informative priors (half-normal standard deviations,
-#' uniform spatial mixing / autocorrelation parameters) instead of the PC priors of INLA, so its
-#' estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
-#' not use \code{vardir}.
+#' By default both engines use the same priors (see \code{prior_prec} of
+#' \code{\link{inla_engine}()} and \code{priors} of \code{\link{jax_engine}()}), so their estimates
+#' differ only by the INLA approximation and the Monte Carlo error. For \code{family = "gamma"}
+#' the \code{"jax"} engine estimates a common shape and does not use \code{vardir}.
 #'
 #' With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of any family are
 #' fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use
@@ -87,7 +87,11 @@
 #'       is provided, area-specific precision is calculated via Janicki (2020) formula
 #'       \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
 #'       If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
-#'     \item \code{"gamma"}: Skewed positive continuous response.
+#'     \item \code{"gamma"}: Skewed positive continuous response. If \code{vardir} is
+#'       provided, the precision of each area is scaled as \eqn{y_i^2 / V_i}; without it
+#'       the precision is estimated from one observation per area, which is weakly
+#'       identified against the area effect (a warning; with INLA the 95\% intervals
+#'       covered 83-88\% of the true means in a simulation, 91-95\% with \code{vardir}).
 #'   }
 #' @param spatial Character string specifying the spatial random effect structure:
 #'   \itemize{
@@ -374,10 +378,12 @@ hb_area <- function(
       "i" = "Use {.code spatial = \"bym2\"}, {.code \"bym\"}, {.code \"besag\"} or {.code \"leroux\"} with {.arg W}."
     ))
   }
+  prior_sd <- .default_prior_prec(.response_or_null(formula, data), family)
   engine <- .resolve_inla_engine(
     engine, missing(engine), list(...), "hb_area",
     defaults = list(
-      prior_prec = list(prior = "pc.prec", param = c(1, 0.01)),
+      prior_prec = prior_sd,
+      prior_prec_time = prior_sd,
       prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
       draws = 1000L
     ),
@@ -473,6 +479,17 @@ hb_area <- function(
     if (any(y_non_na <= 0, na.rm = TRUE)) {
       cli::cli_abort("For {.code family = 'gamma'}, response {.arg y} must be strictly positive (> 0).")
     }
+  }
+  if (family == "gamma" && is.null(vardir) && engine$name == "inla") {
+    # Without vardir the gamma precision is estimated from one observation per area
+    # and trades off against the area effect: in a simulation (15-60 areas,
+    # benchmarks/validation/gamma_vardir.R) the 95% intervals covered 83-88% of the
+    # true means, 91-95% with vardir; the PC and half-normal priors on the area SD did
+    # not change this (benchmarks/validation/default_sd_prior_glm_more.R).
+    cli::cli_warn(c(
+      "With one observation per area and no {.arg vardir}, the gamma precision and the area random effect are only weakly identified, and the intervals are too short (83-88% coverage of 95% intervals in a simulation).",
+      "i" = "Give the sampling variances in {.arg vardir}: they fix the precision of each area (91-95% coverage)."
+    ))
   }
 
   # INLA treats a missing covariate as 0, so every row needs complete
@@ -748,6 +765,9 @@ hb_area <- function(
       hyper_generic1$beta <- prior_rho
     } else if (!is.null(prior_phi) && !identical(prior_phi$prior, "pc")) {
       hyper_generic1$beta <- prior_phi
+    } else {
+      # uniform lambda, as jax_engine()
+      hyper_generic1$beta <- list(prior = "logitbeta", param = c(1, 1))
     }
     if (st_interaction != "separable") {
       rand_terms <- c(rand_terms, "f(..domain_id.., model = 'generic1', Cmatrix = C_mat, hyper = hyper_generic1)")

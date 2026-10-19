@@ -44,7 +44,7 @@
 #' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
 #'   object, or \code{"jax"} or a \code{\link{jax_engine}()} object. \code{inla_engine()} holds the approximation strategy, the priors (\code{prior_prec} for the area
 #'   effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
-#'   both by default \code{list(prior = "pc.prec", param = c(1, 0.01))}; \code{prior_phi} for
+#'   both by default the prior of \code{\link{inla_engine}(prior_prec = )}; \code{prior_phi} for
 #'   BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
 #'   (default 200) and their \code{seed}, and further \code{INLA::inla()} arguments. The
 #'   Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
@@ -182,7 +182,8 @@ hb_twofold <- function(
   ...
 ) {
   call_matched <- match.call()
-  pc_prec <- list(prior = "pc.prec", param = c(1, 0.01))
+  family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson"))
+  pc_prec <- .default_prior_prec(.response_or_null(formula, data), family)
   engine <- .resolve_inla_engine(
     engine, missing(engine), list(...), "hb_twofold",
     defaults = list(
@@ -200,7 +201,6 @@ hb_twofold <- function(
   prior_prec_subarea <- engine$prior_prec_subarea
   prior_phi <- engine$prior_phi
 
-  family <- match.arg(tolower(family), choices = c("gaussian", "binomial", "poisson"))
   spatial <- match.arg(tolower(spatial), choices = c("none", "bym2", "besag"))
 
   if (!is.data.frame(data)) {

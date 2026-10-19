@@ -44,8 +44,8 @@
 #' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
 #'   object, or \code{"jax"} or a \code{\link{jax_engine}()} object for MCMC (see the section
 #'   Engines). An \code{inla_engine()} holds the approximation strategy, the priors (\code{prior_prec}, default
-#'   \code{list(prior = "loggamma", param = c(0.01, 0.01))}, vague on any response scale;
-#'   \code{prior_phi} for BYM2),
+#'   half-normal with the scale of the unit responses for \code{family = "gaussian"}, see
+#'   \code{\link{inla_engine}()}; \code{prior_phi} for BYM2),
 #'   \code{scale_model} and further \code{INLA::inla()} arguments. The Gaussian model is
 #'   fitted in INLA's \code{"classic"} mode, the binomial and Poisson models in INLA's default
 #'   \code{"compact"} mode (for them classic was much slower: 72 s against 2.6 s for 4000
@@ -186,10 +186,11 @@ hb_unit <- function(
   print_result = TRUE,
   ...
 ) {
+  family <- match.arg(family)
   engine <- .resolve_inla_engine(
     engine, missing(engine), list(...), "hb_unit",
     defaults = list(
-      prior_prec = list(prior = "loggamma", param = c(0.01, 0.01)),
+      prior_prec = .default_prior_prec(.response_or_null(formula, unit_data), family),
       prior_phi = list(prior = "pc", param = c(0.5, 0.5))
     ),
     used = c("scale_model", "prior_prec", "prior_phi")
@@ -203,7 +204,6 @@ hb_unit <- function(
   # 1. Dependency checks
   if (engine$name == "inla") .check_inla_installed()
 
-  family <- match.arg(family)
   spatial <- match.arg(spatial)
   if (family != "gaussian") {
     cli::cli_warn(c(

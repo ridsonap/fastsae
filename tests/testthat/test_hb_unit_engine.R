@@ -199,7 +199,11 @@ test_that("hb_unit(engine = 'jax') matches Stan for the same model and priors", 
   # SD, the SDs by 2-5% and sigma2_u by 0-2%: Monte Carlo error.
   fx <- readRDS(test_path("fixtures", "hbunit-stan.rds"))
   d <- fx$data
-  eng <- jax_engine(warmup = 500, samples = 1000, chains = 2, device = "cpu", progress = FALSE)
+  # the fixture was sampled with the weakly informative priors
+  eng <- jax_engine(
+    warmup = 500, samples = 1000, chains = 2, device = "cpu", progress = FALSE,
+    priors = "weakly_informative"
+  )
   cfgs <- list(
     gaussian = list(y_gauss ~ x1),
     gaussian_bym2 = list(y_gauss ~ x1, spatial = "bym2", W = d$W),

@@ -58,7 +58,11 @@ Options:
     is provided, area-specific precision is calculated via Janicki (2020) formula
     \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
     If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
-  \item \code{"gamma"}: Skewed positive continuous response.
+  \item \code{"gamma"}: Skewed positive continuous response. If \code{vardir} is
+    provided, the precision of each area is scaled as \eqn{y_i^2 / V_i}; without it
+    the precision is estimated from one observation per area, which is weakly
+    identified against the area effect (a warning; with INLA the 95\% intervals
+    covered 83-88\% of the true means in a simulation, 91-95\% with \code{vardir}).
 }}
 
 \item{spatial}{Character string specifying the spatial random effect structure:
@@ -251,10 +255,10 @@ with either. Feature support:
   Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
   Horseshoe prior, Student-t random effects \tab -- \tab yes \cr
 }
-The \code{"jax"} engine uses weakly informative priors (half-normal standard deviations,
-uniform spatial mixing / autocorrelation parameters) instead of the PC priors of INLA, so its
-estimates differ slightly. For \code{family = "gamma"} it estimates a common shape and does
-not use \code{vardir}.
+By default both engines use the same priors (see \code{prior_prec} of
+\code{\link{inla_engine}()} and \code{priors} of \code{\link{jax_engine}()}), so their estimates
+differ only by the INLA approximation and the Monte Carlo error. For \code{family = "gamma"}
+the \code{"jax"} engine estimates a common shape and does not use \code{vardir}.
 
 With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of any family are
 fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use

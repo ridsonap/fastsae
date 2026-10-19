@@ -99,6 +99,36 @@
 * `print()`/`summary()` show the engine, and the self-benchmarking line now names the method used
   (posterior draws or Wang-Fuller-Qu) instead of always reporting Wang-Fuller-Qu.
 
+### Default priors of the HB models
+* The random-effect standard deviations of Gaussian HB models (`hb_area()`, `hb_unit()`,
+  `hb_twofold()`; area, sub-area, time and interaction effects) get a half-normal prior with
+  the scale of the response, sd(y), by default. It replaces INLA's PC prior
+  $P(\sigma > 1) = 0.01$ (`hb_area()`, `hb_twofold()`) and the log-gamma(0.01, 0.01) prior
+  (`hb_unit()`). The PC prior depends on the unit of the response: on `mys` with the response in
+  tenths it moved the estimates by up to 4.1 posterior SD. In a simulation
+  (`benchmarks/validation/default_sd_prior.R`) the 95% intervals covered 93-97% with the
+  half-normal prior (EBLUP: 93-96%) and 85-95% with PC priors scaled to sd(y). The other
+  families get a half-normal(1) prior on the link scale instead of the PC prior: for binomial
+  and beta responses the intervals covered 93-95% against 92-94%, and the PC prior
+  underestimated the area SD by up to 18% (`benchmarks/validation/default_sd_prior_glm.R`).
+  With small samples (binomial and beta, 5-20 units per area) the PC prior covered 86-94% and
+  estimated an area SD of 0.8 as 0.45; Poisson and binomial BYM2 models behaved as binomial
+  and beta (`benchmarks/validation/default_sd_prior_glm_more.R`).
+* `hb_area(family = "gamma")` without `vardir` warns that its intervals are too short: the gamma
+  precision is then estimated from one observation per area and trades off against the area
+  effect. In a simulation (`benchmarks/validation/gamma_vardir.R`) the 95% intervals covered
+  83-88% of the true means without `vardir` and 91-95% with it; no prior on the area SD changed
+  this. The negative binomial model has the same problem (87-93% coverage) and already warned
+  about it.
+  Leroux's $\lambda$ gets a uniform prior.
+  `inla_engine(prior_prec = )` overrides the default as before.
+* `jax_engine(priors = "inla")`, the new default, gives the NumPyro engine the priors of
+  `inla_engine()`: the default above, INLA's PC prior on the BYM2 $\phi$ (on INLA's support of
+  logit $\phi$), INLA's prior on the AR(1) correlation and $N(0, 1000)$ coefficients. On `mys`
+  the two engines now agree within 0.03 (iid) and 0.05 (BYM2) posterior SD, 0.35 before; the
+  SAR example of `test_hb_area_sar.R` within 0.05 SD, 0.22 before.
+  `priors = "weakly_informative"` keeps the previous priors.
+
 ### SAR area effect in `hb_area()`
 * `hb_area(spatial = "sar")`: the simultaneous autoregressive area effect
   $u = (I - \rho W)^{-1}\varepsilon$ of `eblup_sfh()`, i.e. its Bayesian counterpart (`"slm"`
@@ -109,8 +139,7 @@
   `"type3"`/`"type4"`/`"separable"` interactions.
   * With known `vardir`, INLA is within 0.004 posterior SD of the exact posterior (grid over
     $\sigma$ and $\rho$), and with 150 domains within 0.06 SD of `eblup_sfh()` (SD / $\sqrt{\mathrm{mse}}$
-    0.98-1.02, also for unsampled domains). The JAX engine agrees with INLA within 0.22 SD
-    (different default priors).
+    0.98-1.02, also for unsampled domains). The JAX engine agrees with INLA within 0.05 SD.
 
 ### Unsampled domains and missing periods in `eblup_stfh()`
 * `eblup_stfh()` no longer requires a complete panel. Cells whose response is `NA` -- missing
