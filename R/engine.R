@@ -439,6 +439,16 @@ print.fastsae_engine <- function(x, ...) {
   ))
 }
 
+#' Half-normal prior with scale `s` on the negative binomial size, as an INLA prior
+#' on theta = log(size)
+#' @noRd
+.half_normal_size <- function(s) {
+  list(prior = paste0(
+    "expression: s = ", format(s, digits = 15), "; size = exp(theta); ",
+    "logdens = log(2) - log(s) - 0.5*log(2*pi) - 0.5*(size/s)^2 + theta; return(logdens)"
+  ))
+}
+
 #' @rdname dot-prior_sd_scale
 #' @noRd
 .default_prior_prec <- function(y, family) {

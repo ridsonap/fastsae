@@ -264,15 +264,11 @@
   obs <- !is.na(y_fit)
 
   vardir_num <- if (!is.null(vardir)) as.numeric(vardir) else NULL
-  if (!is.null(vardir_num) && family %in% c("gaussian", "beta")) {
+  if (!is.null(vardir_num) && family %in% c("gaussian", "beta", "gamma", "nbinomial")) {
     bad <- obs & !(is.finite(vardir_num) & vardir_num > 0)
     if (any(bad)) {
       cli::cli_abort("{.arg vardir} must be finite and strictly positive for sampled domains ({sum(bad)} invalid).")
     }
-  }
-  if (family == "gamma" && !is.null(vardir_num)) {
-    cli::cli_alert_info("{.code engine = \"jax\"} estimates a common Gamma shape; {.arg vardir} is not used for {.code family = \"gamma\"}.")
-    vardir_num <- NULL
   }
   if (family %in% c("binomial", "poisson", "nbinomial") && any(y_fit[obs] < 0 | y_fit[obs] %% 1 != 0)) {
     cli::cli_abort("For {.code family = \"{family}\"}, the response must be non-negative integer counts.")
@@ -302,7 +298,7 @@
     if (spatial != "sar") spec <- .icar_spectral(W_obj$graph)
   }
 
-  run <- .run_numpyro(
+  run_args <- list(
     engine,
     X = X_mat,
     y = y_fit,
@@ -324,6 +320,14 @@
     W_sar = if (spatial == "sar") W_obj$W_mat else NULL,
     benchmark = FALSE
   )
+  if (family == "nbinomial" && !is.null(vardir_num)) {
+    # Two stages, as the INLA engine: the size of each area from the posterior mean of
+    # a first fit that estimates one size (see .nb_size_from_vardir)
+    stage1 <- do.call(.run_numpyro, run_args)
+    mu_hat <- as.numeric(stage1$fit$hb_mean) * (if (!is.null(exposure_num)) exposure_num else 1)
+    run_args$nb_size <- .nb_size_from_vardir(mu_hat, vardir_num)
+  }
+  run <- do.call(.run_numpyro, run_args)
   fit_py <- run$fit
   draws <- run$draws
   estcoef <- run$estcoef

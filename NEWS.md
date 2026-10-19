@@ -129,6 +129,30 @@
   SAR example of `test_hb_area_sar.R` within 0.05 SD, 0.22 before.
   `priors = "weakly_informative"` keeps the previous priors.
 
+### Gamma and negative binomial dispersion
+* `hb_area(family = "gamma", engine = jax_engine())` uses `vardir` as the INLA engine does: the
+  shape of each area is $y^2/V$. Before, `vardir` was ignored with a message and a common shape
+  was estimated, so the two engines fitted different models (estimates up to 2.6 posterior SD
+  apart on a test example; now within 0.15 SD).
+* `hb_area(family = "nbinomial")` uses `vardir`. The size of each area follows from
+  $V = \mu + \mu^2/n$ as $n = \hat\mu^2/(V - \hat\mu)$, with $\hat\mu$ the posterior mean of a first
+  fit that estimates one size, so the model is fitted twice (both engines). The direct count for
+  $\mu$ was too noisy (no better than one estimated size). In simulations
+  (`benchmarks/validation/dispersion_vardir.R`, `nb_size_prior.R`) the 95% intervals covered
+  90-95% with `vardir`, with median relative errors up to a third smaller than without it.
+* The negative binomial size gets a half-normal(10) prior in the INLA engine too (as in
+  `jax_engine()`), instead of INLA's `pc.mgamma(7)`. With one count per area the size follows
+  its prior: `pc.mgamma` estimated sizes of 110-180 for true sizes 3-100 (nearly Poisson) and
+  its intervals covered 76-92% when the overdispersion was real, against 90-97% now
+  (`benchmarks/validation/nb_size_prior.R`). For nearly Poisson counts the intervals are now
+  wider (up to 99%). The two engines now agree within 0.25 posterior SD on the NB model
+  (0.72 before, with the different size priors). The warning without `vardir` no longer
+  suggests `family = "poisson"`: on negative binomial counts a Poisson model covered 68-75%.
+* `jax_engine()` starts the regression coefficients at 0 instead of the median of 15 draws of
+  their prior: with the $N(0, 1000)$ prior that median can lie far out on a log or logit scale,
+  where chains of a model with a sharp likelihood (the gamma model above) got stuck (R-hat 1.6-3.4
+  in 3 of 4 seeds; now at most 1.013 in 6 of 6).
+
 ### SAR area effect in `hb_area()`
 * `hb_area(spatial = "sar")`: the simultaneous autoregressive area effect
   $u = (I - \rho W)^{-1}\varepsilon$ of `eblup_sfh()`, i.e. its Bayesian counterpart (`"slm"`

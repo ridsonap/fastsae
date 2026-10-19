@@ -53,7 +53,12 @@ Options:
     residual variance is estimated.
   \item \code{"binomial"}: Binary / proportion response. Requires \code{trials}.
   \item \code{"poisson"}: Count response / disease rate. Supports \code{exposure}.
-  \item \code{"nbinomial"}: Negative Binomial for overdispersed counts.
+  \item \code{"nbinomial"}: Negative Binomial for overdispersed counts. If \code{vardir}
+    is provided, the size of each area is fixed by \eqn{V_i = \mu_i + \mu_i^2/n_i} at
+    \eqn{n_i = \hat\mu_i^2/(V_i - \hat\mu_i)} (a near-Poisson size when
+    \eqn{V_i \le \hat\mu_i}), with \eqn{\hat\mu_i} the posterior mean of a first fit
+    that estimates one size (so the model is fitted twice); without \code{vardir} that
+    common size is weakly identified against the area effect (a warning).
   \item \code{"beta"}: Continuous proportions strictly in (0, 1). If \code{vardir}
     is provided, area-specific precision is calculated via Janicki (2020) formula
     \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
@@ -142,7 +147,8 @@ distance-decay weights becomes a nearly complete graph and gives a warning. \cod
 and \code{"slm"} use the weights, row-standardised (as \code{\link{eblup_sfh}} expects).}
 
 \item{vardir}{Vector, column name, or formula specifying the sampling variances of the
-direct estimator (for \code{family = "gaussian"} or \code{family = "beta"}).}
+direct estimator (for \code{family = "gaussian"}, \code{"beta"}, \code{"gamma"} or
+\code{"nbinomial"}).}
 
 \item{trials}{Vector, column name, or formula specifying sample sizes / total trials
 per area (for \code{family = "binomial"}).}
@@ -257,8 +263,7 @@ with either. Feature support:
 }
 By default both engines use the same priors (see \code{prior_prec} of
 \code{\link{inla_engine}()} and \code{priors} of \code{\link{jax_engine}()}), so their estimates
-differ only by the INLA approximation and the Monte Carlo error. For \code{family = "gamma"}
-the \code{"jax"} engine estimates a common shape and does not use \code{vardir}.
+differ only by the INLA approximation and the Monte Carlo error.
 
 With the \code{"inla"} engine, Gaussian models and the Leroux and SLM effects of any family are
 fitted in INLA's \code{"classic"} mode (Rue, Martino and Chopin, 2009); the other models use

@@ -8,6 +8,7 @@ and fast Kronecker tensor contraction for spatio-temporal interactions.
 import os
 import sys
 import numpy as np
+from functools import partial
 from scipy.special import logsumexp
 from scipy.sparse import csr_matrix
 
@@ -118,6 +119,19 @@ def horseshoe_shrinkage(tau, lam, c2, xp=np):
     shrinkage factor kappa = 1 / (1 + tau^2 lambda_tilde^2), from the scale actually used by the prior."""
     lam_tilde = xp.sqrt(c2) * lam / xp.sqrt(c2 + tau ** 2 * lam ** 2)
     return lam_tilde, 1.0 / (1.0 + (tau * lam_tilde) ** 2)
+
+def init_coefficients_at_zero(site=None, init_to_median=None):
+    """NumPyro init strategy: coefficients at 0, every other site at its prior median.
+    The median of 15 prior draws of an N(0, 1000) coefficient can be far out (|beta| ~ 10
+    on a log scale), where a sharp likelihood (a gamma shape known from vardir) left
+    chains stuck."""
+    if site is None:
+        return partial(init_coefficients_at_zero, init_to_median=init_to_median)
+    if site["type"] == "sample" and not site["is_observed"] and site["name"] in ("beta", "beta_0"):
+        import jax.numpy as jnp_
+        return jnp_.zeros(site["fn"].shape())
+    return init_to_median(site)
+
 
 def pc_bym2_phi_setup(laplacian_eigenvalues, scale_factor, u=0.5, alpha=0.5):
     """PC prior of the BYM2 mixing parameter phi (Riebler et al., 2016), as INLA's
@@ -346,6 +360,7 @@ def fit_numpyro_hb(
     eig_values=None,
     eig_vectors=None,
     W_sar=None,
+    nb_size=None,
     num_warmup=500,
     num_samples=1000,
     num_chains=2,
@@ -446,6 +461,20 @@ def fit_numpyro_hb(
             sar_W = jnp.asarray(W_np, dtype=jnp.float32)
 
     pen_idx = np.where(int_mask == 0.0)[0]
+
+    # Negative binomial with vardir: known size per area, computed in R
+    nb_size_np = np.asarray(nb_size, dtype=np.float64)[obs_idx] if (family == "nbinomial" and nb_size is not None) else None
+    nb_size_obs = jnp.asarray(nb_size_np, dtype=jnp.float32) if nb_size_np is not None else None
+
+    # Gamma with vardir: known shape y^2 / vardir per area (INLA's scale; 1 when invalid)
+    gamma_shape_np = None
+    gamma_shape_obs = None
+    if family == "gamma" and vardir_np is not None:
+        y_o = y_np[obs_idx].astype(np.float64)
+        v_o = vardir_np[obs_idx].astype(np.float64)
+        gamma_shape_np = np.where(np.isfinite(v_o) & (v_o > 0), y_o ** 2 / np.where(v_o > 0, v_o, 1.0), 1.0)
+        gamma_shape_np[~np.isfinite(gamma_shape_np) | (gamma_shape_np <= 0)] = 1.0
+        gamma_shape_obs = jnp.asarray(gamma_shape_np, dtype=jnp.float32)
 
     # Default priors. "inla": those of inla_engine(), so both engines fit the same model
     # (.default_prior_prec() in R). Random-effect SDs: half-normal with scale sd(y) for
@@ -688,20 +717,28 @@ def fit_numpyro_hb(
             numpyro.sample("y_obs", dist.Beta(a, b), obs=y_obs_clipped)
 
         elif family == "nbinomial":
-            alpha_nb = numpyro.sample("alpha_nb", dist.HalfNormal(10.0))
+            if nb_size_obs is not None:
+                # As INLA: the size of each area from vardir (.nb_size_from_vardir in R)
+                alpha_nb = nb_size_obs
+            else:
+                alpha_nb = numpyro.sample("alpha_nb", dist.HalfNormal(10.0))
+                numpyro.deterministic("alpha_dispersion", alpha_nb)
             rate = jnp.exp(eta)
             numpyro.deterministic("hb_est", rate)
             lam = rate[obs_idx] * (exposure_obs if exposure_obs is not None else 1.0)
             numpyro.sample("y_obs", dist.NegativeBinomial2(mean=lam, concentration=alpha_nb), obs=y_obs)
-            numpyro.deterministic("alpha_dispersion", alpha_nb)
 
         elif family == "gamma":
-            shape_gamma = numpyro.sample("shape_gamma", dist.HalfNormal(10.0))
+            if vardir_obs is not None:
+                # As INLA: the shape (precision) of each area is y^2 / vardir
+                shape_gamma = gamma_shape_obs
+            else:
+                shape_gamma = numpyro.sample("shape_gamma", dist.HalfNormal(10.0))
+                numpyro.deterministic("shape_param", shape_gamma)
             mu_gamma = jnp.exp(eta)
             numpyro.deterministic("hb_est", mu_gamma)
             rate_gamma = shape_gamma / jnp.maximum(mu_gamma[obs_idx], 1e-6)
             numpyro.sample("y_obs", dist.Gamma(concentration=shape_gamma, rate=rate_gamma), obs=y_obs)
-            numpyro.deterministic("shape_param", shape_gamma)
 
     # Run MCMC on GPU/Accelerator
     # On Apple Metal, sequential avoids vmap control-flow shader limits (the
@@ -709,7 +746,8 @@ def fit_numpyro_hb(
     on_metal = dev_str.lower().startswith("metal")
     pref_chain_method = "sequential" if on_metal else ("vectorized" if num_chains > 1 else "sequential")
     rng_key = jax.random.PRNGKey(seed)
-    kernel = NUTS(model, init_strategy=init_to_median, target_accept_prob=0.85, max_tree_depth=max_tree_depth)
+    kernel = NUTS(model, init_strategy=partial(init_coefficients_at_zero, init_to_median=init_to_median),
+                  target_accept_prob=0.85, max_tree_depth=max_tree_depth)
     # divergent transitions and the number of leapfrog steps of each iteration (tree depth)
     extra_fields = ("diverging", "num_steps")
 
@@ -996,24 +1034,30 @@ def fit_numpyro_hb(
         rate_post = np.clip(hb_samples[:, obs_idx], 1e-6, 1e8)
         e_val = exposure_np[obs_idx] if exposure_np is not None else 1.0
         lam_post = rate_post * e_val
-        r_post = np.asarray(samples["alpha_dispersion"])[:, None]  # shape (S_total, 1)
+        if nb_size_np is not None:
+            r_post = nb_size_np[None, :]  # known size per area
+        else:
+            r_post = np.asarray(samples["alpha_dispersion"])[:, None]  # shape (S_total, 1)
         ll = (gammaln(y_obs_val + r_post) - gammaln(y_obs_val + 1.0) - gammaln(r_post)
               + r_post * (np.log(r_post) - np.log(r_post + lam_post))
               + y_obs_val * (np.log(lam_post) - np.log(r_post + lam_post)))
         lam_mean = np.mean(lam_post, axis=0)
-        r_mean = float(np.mean(r_post))
+        r_mean = np.mean(r_post, axis=0)
         ll_mean = (gammaln(y_obs_val + r_mean) - gammaln(y_obs_val + 1.0) - gammaln(r_mean)
                    + r_mean * (np.log(r_mean) - np.log(r_mean + lam_mean))
                    + y_obs_val * (np.log(lam_mean) - np.log(r_mean + lam_mean)))
     elif family == "gamma":
         from scipy.special import gammaln
         mu_post = np.clip(hb_samples[:, obs_idx], 1e-6, 1e8)
-        alpha_post = np.asarray(samples["shape_param"])[:, None]  # shape (S_total, 1)
+        if gamma_shape_np is not None:
+            alpha_post = gamma_shape_np[None, :]  # known shape per area
+        else:
+            alpha_post = np.asarray(samples["shape_param"])[:, None]  # shape (S_total, 1)
         rate_post = alpha_post / mu_post
         ll = (alpha_post * np.log(rate_post) - gammaln(alpha_post)
               + (alpha_post - 1.0) * np.log(y_obs_val) - rate_post * y_obs_val)
         mu_mean = np.mean(mu_post, axis=0)
-        alpha_mean = float(np.mean(alpha_post))
+        alpha_mean = np.mean(alpha_post, axis=0)
         rate_mean = alpha_mean / mu_mean
         ll_mean = (alpha_mean * np.log(rate_mean) - gammaln(alpha_mean)
                    + (alpha_mean - 1.0) * np.log(y_obs_val) - rate_mean * y_obs_val)
