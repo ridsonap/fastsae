@@ -114,12 +114,15 @@
   With small samples (binomial and beta, 5-20 units per area) the PC prior covered 86-94% and
   estimated an area SD of 0.8 as 0.45; Poisson and binomial BYM2 models behaved as binomial
   and beta (`benchmarks/validation/default_sd_prior_glm_more.R`).
-* `hb_area(family = "gamma")` without `vardir` warns that its intervals are too short: the gamma
-  precision is then estimated from one observation per area and trades off against the area
-  effect. In a simulation (`benchmarks/validation/gamma_vardir.R`) the 95% intervals covered
-  83-88% of the true means without `vardir` and 91-95% with it; no prior on the area SD changed
-  this. The negative binomial model has the same problem (87-93% coverage) and already warned
-  about it.
+* `hb_area(family = "gamma")` without `vardir` warns, with both engines, that the gamma
+  precision is weakly identified: it is then estimated from one observation per area and
+  trades off against the area effect, so it follows its prior. The prior is half-normal(10)
+  on the precision with both engines (INLA used its default loggamma(1, 0.01)). In a
+  simulation (`benchmarks/validation/gamma_shape_prior.R`) the estimate stayed at 8-13 for
+  true shapes 5-100 and the 95% intervals covered 92-100%; INLA's prior put it at 76-84 and
+  covered 52-86% for shapes 5 and 20. Intervals are too wide when the sampling noise is small,
+  and areas without a direct estimate covered 85-97%. With `vardir` the intervals covered
+  92-94% (`benchmarks/validation/dispersion_vardir.R`).
   Leroux's $\lambda$ gets a uniform prior.
   `inla_engine(prior_prec = )` overrides the default as before.
 * `jax_engine(priors = "inla")`, the new default, gives the NumPyro engine the priors of

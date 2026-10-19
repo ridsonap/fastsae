@@ -485,15 +485,14 @@ hb_area <- function(
       cli::cli_abort("For {.code family = 'gamma'}, response {.arg y} must be strictly positive (> 0).")
     }
   }
-  if (family == "gamma" && is.null(vardir) && engine$name == "inla") {
+  if (family == "gamma" && is.null(vardir)) {
     # Without vardir the gamma precision is estimated from one observation per area
-    # and trades off against the area effect: in a simulation (15-60 areas,
-    # benchmarks/validation/gamma_vardir.R) the 95% intervals covered 83-88% of the
-    # true means, 91-95% with vardir; the PC and half-normal priors on the area SD did
-    # not change this (benchmarks/validation/default_sd_prior_glm_more.R).
+    # and trades off against the area effect, so it follows its prior (median estimates
+    # 8-13 with half-normal(10) for true shapes 5-100, benchmarks/validation/gamma_shape_prior.R).
+    # With vardir the 95% intervals covered 92-94% (benchmarks/validation/dispersion_vardir.R).
     cli::cli_warn(c(
-      "With one observation per area and no {.arg vardir}, the gamma precision and the area random effect are only weakly identified, and the intervals are too short (83-88% coverage of 95% intervals in a simulation).",
-      "i" = "Give the sampling variances in {.arg vardir}: they fix the precision of each area (91-95% coverage)."
+      "With one observation per area and no {.arg vardir}, the gamma precision and the area random effect are only weakly identified.",
+      "i" = "The precision then follows its prior (half-normal(10)): in a simulation the 95% intervals covered 92-100% of the true means, but were too wide for small sampling noise. Give the sampling variances in {.arg vardir}: they fix the precision of each area (92-94% coverage)."
     ))
   }
 
@@ -989,7 +988,10 @@ hb_area <- function(
   # INLA's pc.mgamma(7) for true sizes 3-100); pc.mgamma shrinks towards Poisson and
   # ignored real overdispersion: 76-92% coverage against 90-97% for sizes 3 and 10
   # (benchmarks/validation/nb_size_prior.R).
-  if (family == "nbinomial") {
+  # Gamma precision (shape) without vardir: half-normal(10) as well. INLA's
+  # loggamma(1, 0.01) put the estimate at 76-84 for true shapes 5-100 and covered
+  # 52-86% for shapes 5 and 20, against 92-99% (benchmarks/validation/gamma_shape_prior.R).
+  if (family %in% c("nbinomial", "gamma")) {
     inla_args$control.family <- list(hyper = list(theta = .half_normal_size(10)))
   }
   use_classic <- family == "gaussian" || spatial %in% c("generic1", "sar", "slm")

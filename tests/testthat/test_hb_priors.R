@@ -144,7 +144,7 @@ test_that("with the default priors JAX and INLA fit the same model", {
   }
 })
 
-test_that("a gamma model without vardir warns that its intervals are too short", {
+test_that("a gamma model without vardir warns and has a half-normal(10) precision prior", {
   skip_if_not_installed("INLA")
   set.seed(4)
   d <- data.frame(x = rnorm(20))
@@ -152,9 +152,11 @@ test_that("a gamma model without vardir warns that its intervals are too short",
   d$y <- rgamma(20, shape = 20, rate = 20 / d$mu)
   d$v <- d$mu^2 / 20
   expect_warning(
-    hb_area(y ~ x, data = d, family = "gamma", print_result = FALSE),
+    fit <- hb_area(y ~ x, data = d, family = "gamma", print_result = FALSE),
     "weakly identified"
   )
+  # half-normal(10) on the precision, as jax_engine(), not INLA's loggamma(1, 0.01)
+  expect_match(fit$fit$.args$control.family[[1]]$hyper$theta$prior, "^expression: s = 10;")
   w <- character(0)
   withCallingHandlers(
     hb_area(y ~ x, data = d, family = "gamma", vardir = "v", print_result = FALSE),
