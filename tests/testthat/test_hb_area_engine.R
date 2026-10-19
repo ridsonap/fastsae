@@ -496,3 +496,79 @@ test_that("engine = 'jax' gamma model with vardir agrees with INLA", {
   expect_lt(max(z), 0.15)
   expect_lt(max(abs(fj$df_hb$sd / fi$df_hb$sd - 1)), 0.15)
 })
+
+sim_nb_vardir <- function(m = 40, seed = 12) {
+  set.seed(seed)
+  d <- data.frame(x = rnorm(m), E = runif(m, 10, 100))
+  mu <- d$E * exp(-0.5 + 0.4 * d$x + rnorm(m, sd = 0.5))
+  d$y <- rnbinom(m, mu = mu, size = 10)
+  d$v <- mu + mu^2 / 10
+  d$y[1:4] <- NA
+  d
+}
+
+test_that("a negative binomial model with vardir fixes the size of each area", {
+  skip_if_not_installed("INLA")
+  d <- sim_nb_vardir()
+  w <- character(0)
+  fit <- withCallingHandlers(
+    hb_area(y ~ x, data = d, family = "nbinomial", exposure = "E", vardir = "v", print_result = FALSE),
+    warning = function(cnd) {
+      w <<- c(w, conditionMessage(cnd))
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_false(any(grepl("weakly identified", w)))
+  expect_false(any(grepl("size", rownames(fit$fit$summary.hyperpar))))
+  expect_warning(
+    hb_area(y ~ x, data = d, family = "nbinomial", exposure = "E", print_result = FALSE),
+    "weakly identified"
+  )
+})
+
+test_that("engine = 'jax' passes vardir of a negative binomial model to the backend", {
+  env <- new.env()
+  local_fake_backend(env)
+  d <- sim_nb_vardir(m = 12)
+  d$y[1:4] <- 5
+  d$area <- paste0("a", 1:12)
+  hb_area(y ~ x,
+    data = d, domain = "area", vardir = "v", exposure = "E", family = "nbinomial",
+    engine = jax_engine(samples = 50, device = "cpu"), print_result = FALSE
+  )
+  expect_equal(env$args$vardir, d$v)
+})
+
+test_that("engine = 'jax' negative binomial model with vardir agrees with INLA", {
+  skip_if_no_numpyro()
+  skip_if_not_installed("INLA")
+  d <- sim_nb_vardir()
+  fj <- quiet_mcmc(hb_area(y ~ x,
+    data = d, vardir = "v", exposure = "E", family = "nbinomial",
+    engine = jax_engine(warmup = 1000, samples = 1000, chains = 4, device = "cpu", seed = 1),
+    print_result = FALSE
+  ))
+  fi <- hb_area(y ~ x, data = d, vardir = "v", exposure = "E", family = "nbinomial", print_result = FALSE)
+  # The first stage (one estimated size) already differs by up to 0.25 posterior SD:
+  # INLA's approximation of the weakly identified NB model (see hb_area()); locally the
+  # two stages differed by at most 0.17 SD, with a median of 0.03
+  z <- abs(fj$df_hb$hb - fi$df_hb$hb) / fi$df_hb$sd
+  expect_lt(max(z), 0.25)
+  expect_lt(median(z), 0.1)
+  expect_lt(max(abs(fj$df_hb$sd / fi$df_hb$sd - 1)), 0.15)
+})
+
+test_that("the INLA negative binomial size gets the half-normal(10) prior of jax_engine()", {
+  skip_if_not_installed("INLA")
+  d <- sim_nb_vardir()
+  fit <- suppressWarnings(hb_area(y ~ x, data = d, family = "nbinomial", exposure = "E", print_result = FALSE))
+  prior <- fit$fit$.args$control.family[[1]]$hyper$theta$prior
+  expect_match(prior, "^expression: s = 10; size = exp\\(theta\\)")
+  # a prior given by the user is kept
+  own <- list(prior = "pc.mgamma", param = 7)
+  fit_own <- suppressWarnings(hb_area(y ~ x,
+    data = d, family = "nbinomial", exposure = "E", print_result = FALSE,
+    engine = inla_engine(control.family = list(hyper = list(theta = own)))
+  ))
+  expect_match(fit_own$fit$.args$control.family[[1]]$hyper$theta$prior, "^pc.mgamma$")
+})

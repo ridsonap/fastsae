@@ -81,7 +81,12 @@
 #'       residual variance is estimated.
 #'     \item \code{"binomial"}: Binary / proportion response. Requires \code{trials}.
 #'     \item \code{"poisson"}: Count response / disease rate. Supports \code{exposure}.
-#'     \item \code{"nbinomial"}: Negative Binomial for overdispersed counts.
+#'     \item \code{"nbinomial"}: Negative Binomial for overdispersed counts. If \code{vardir}
+#'       is provided, the size of each area is fixed by \eqn{V_i = \mu_i + \mu_i^2/n_i} at
+#'       \eqn{n_i = \hat\mu_i^2/(V_i - \hat\mu_i)} (a near-Poisson size when
+#'       \eqn{V_i \le \hat\mu_i}), with \eqn{\hat\mu_i} the posterior mean of a first fit
+#'       that estimates one size (so the model is fitted twice); without \code{vardir} that
+#'       common size is weakly identified against the area effect (a warning).
 #'     \item \code{"beta"}: Continuous proportions strictly in (0, 1). If \code{vardir}
 #'       is provided, area-specific precision is calculated via Janicki (2020) formula
 #'       \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
@@ -122,7 +127,8 @@
 #'   distance-decay weights becomes a nearly complete graph and gives a warning. \code{"sar"}
 #'   and \code{"slm"} use the weights, row-standardised (as \code{\link{eblup_sfh}} expects).
 #' @param vardir Vector, column name, or formula specifying the sampling variances of the
-#'   direct estimator (for \code{family = "gaussian"} or \code{family = "beta"}).
+#'   direct estimator (for \code{family = "gaussian"}, \code{"beta"}, \code{"gamma"} or
+#'   \code{"nbinomial"}).
 #' @param trials Vector, column name, or formula specifying sample sizes / total trials
 #'   per area (for \code{family = "binomial"}).
 #' @param exposure Vector, column name, or formula specifying expected counts or population
@@ -399,14 +405,14 @@ hb_area <- function(
       cli::cli_abort("Posterior self-benchmarking needs {.code inla_engine(draws = )} of at least 1.")
     }
     .check_inla_link(engine$link, family)
-    if (family == "nbinomial") {
+    if (family == "nbinomial" && is.null(vardir)) {
       # With one count per area the negative binomial overdispersion and the area
       # effect both describe extra variation between areas; against Stan, INLA's
       # posterior means were off by 0.33-0.64 SD and the SDs by 0.57-1.24 times,
       # in both modes and with grid integration.
       cli::cli_warn(c(
-        "With one count per area, the negative binomial overdispersion and the area random effect are only weakly identified, and INLA's approximation of this model can be inaccurate.",
-        "i" = "Against long MCMC runs the posterior means were off by up to 0.6 posterior SD. Consider {.code family = \"poisson\"} (the area effect already captures overdispersion between areas) or {.code engine = \"jax\"} (MCMC)."
+        "With one count per area, the negative binomial overdispersion and the area random effect are only weakly identified.",
+        "i" = "The size then follows its prior (half-normal(10)): in a simulation the 95% intervals covered 90-97% of the true rates when the overdispersion was real, but were too wide for nearly Poisson counts (up to 99%). Give the sampling variances in {.arg vardir}: they fix the size of each area (90-95%). A Poisson model is not an alternative: it ignores the overdispersion (68-75% coverage)."
       ))
     }
   }
@@ -498,7 +504,7 @@ hb_area <- function(
   if (any(!is.na(y))) {
     .check_design(X_fixed[!is.na(y), , drop = FALSE], "sampled observations")
   }
-  if (!is.null(vardir_vec) && family %in% c("gaussian", "beta", "gamma")) {
+  if (!is.null(vardir_vec) && family %in% c("gaussian", "beta", "gamma", "nbinomial")) {
     .check_vardir(y, vardir_vec, if (is.null(time_vec)) "area" else "observation")
   }
 
@@ -978,6 +984,14 @@ hb_area <- function(
   # other non-Gaussian models both modes matched Stan, and classic was much
   # slower for many areas (beta, n = 2000: 32 s against 1.3 s), so they keep
   # INLA's default. inla_engine(inla.mode = ) overrides.
+  # Negative binomial size: half-normal(10), as jax_engine(). With one count per area
+  # the size follows its prior (median estimates 8-12 with this prior and 110-180 with
+  # INLA's pc.mgamma(7) for true sizes 3-100); pc.mgamma shrinks towards Poisson and
+  # ignored real overdispersion: 76-92% coverage against 90-97% for sizes 3 and 10
+  # (benchmarks/validation/nb_size_prior.R).
+  if (family == "nbinomial") {
+    inla_args$control.family <- list(hyper = list(theta = .half_normal_size(10)))
+  }
   use_classic <- family == "gaussian" || spatial %in% c("generic1", "sar", "slm")
   if (use_classic && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
   # User settings (inla_engine(...)) override; control.* lists are merged
@@ -1065,6 +1079,20 @@ hb_area <- function(
   link <- .check_inla_link(link, family)
   inla_args$control.family$control.link <- list(model = link)
 
+  # Negative binomial with sampling variances, in two stages (see .nb_size_from_vardir):
+  # the size of each area from the posterior mean of a first fit that estimates one size.
+  # INLA variant 2: size = scale * exp(theta), with theta fixed at 0.
+  if (family == "nbinomial" && !is.null(vardir)) {
+    stage1 <- tryCatch(
+      do.call(INLA::inla, inla_args),
+      error = function(e) cli::cli_abort(c("Fitting the first stage of the negative binomial model with INLA failed.", "x" = e$message))
+    )
+    mu_hat <- stage1$summary.fitted.values$mean[seq_len(n_obs)] * (if (!is.null(exposure)) exposure else 1)
+    inla_args$scale <- .nb_size_from_vardir(mu_hat, vardir)
+    inla_args$control.family$variant <- 2
+    inla_args$control.family$hyper <- list(theta = list(initial = 0, fixed = TRUE))
+  }
+
   # Run INLA fitting
   fit <- tryCatch(
     do.call(INLA::inla, inla_args),
@@ -1132,4 +1160,21 @@ hb_area <- function(
   }
 
   return(res)
+}
+
+#' Negative binomial size of each area from its sampling variance
+#'
+#' Var(y) = mu + mu^2 / size gives size = mu^2 / (vardir - mu); `mu` is the posterior
+#' mean count of a first fit that estimates one size. The direct count for mu is too
+#' noisy: its 95% intervals covered 88-92% (30 areas, true size 10), no better than one
+#' estimated size, while the two stages covered 90-95% for true sizes 3-100 with
+#' median relative errors up to 25% smaller (benchmarks/validation/nb_size_prior.R).
+#' Areas with vardir <= mu (no overdispersion relative to Poisson) or without vardir
+#' get a near-Poisson size.
+#' @noRd
+.nb_size_from_vardir <- function(mu, vardir) {
+  size <- rep(1e8, length(mu))
+  ok <- !is.na(mu) & !is.na(vardir) & mu > 0 & vardir > mu
+  size[ok] <- mu[ok]^2 / (vardir[ok] - mu[ok])
+  pmin(size, 1e8)
 }

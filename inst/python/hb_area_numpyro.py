@@ -360,6 +360,7 @@ def fit_numpyro_hb(
     eig_values=None,
     eig_vectors=None,
     W_sar=None,
+    nb_size=None,
     num_warmup=500,
     num_samples=1000,
     num_chains=2,
@@ -460,6 +461,10 @@ def fit_numpyro_hb(
             sar_W = jnp.asarray(W_np, dtype=jnp.float32)
 
     pen_idx = np.where(int_mask == 0.0)[0]
+
+    # Negative binomial with vardir: known size per area, computed in R
+    nb_size_np = np.asarray(nb_size, dtype=np.float64)[obs_idx] if (family == "nbinomial" and nb_size is not None) else None
+    nb_size_obs = jnp.asarray(nb_size_np, dtype=jnp.float32) if nb_size_np is not None else None
 
     # Gamma with vardir: known shape y^2 / vardir per area (INLA's scale; 1 when invalid)
     gamma_shape_np = None
@@ -712,12 +717,16 @@ def fit_numpyro_hb(
             numpyro.sample("y_obs", dist.Beta(a, b), obs=y_obs_clipped)
 
         elif family == "nbinomial":
-            alpha_nb = numpyro.sample("alpha_nb", dist.HalfNormal(10.0))
+            if nb_size_obs is not None:
+                # As INLA: the size of each area from vardir (.nb_size_from_vardir in R)
+                alpha_nb = nb_size_obs
+            else:
+                alpha_nb = numpyro.sample("alpha_nb", dist.HalfNormal(10.0))
+                numpyro.deterministic("alpha_dispersion", alpha_nb)
             rate = jnp.exp(eta)
             numpyro.deterministic("hb_est", rate)
             lam = rate[obs_idx] * (exposure_obs if exposure_obs is not None else 1.0)
             numpyro.sample("y_obs", dist.NegativeBinomial2(mean=lam, concentration=alpha_nb), obs=y_obs)
-            numpyro.deterministic("alpha_dispersion", alpha_nb)
 
         elif family == "gamma":
             if vardir_obs is not None:
@@ -1025,12 +1034,15 @@ def fit_numpyro_hb(
         rate_post = np.clip(hb_samples[:, obs_idx], 1e-6, 1e8)
         e_val = exposure_np[obs_idx] if exposure_np is not None else 1.0
         lam_post = rate_post * e_val
-        r_post = np.asarray(samples["alpha_dispersion"])[:, None]  # shape (S_total, 1)
+        if nb_size_np is not None:
+            r_post = nb_size_np[None, :]  # known size per area
+        else:
+            r_post = np.asarray(samples["alpha_dispersion"])[:, None]  # shape (S_total, 1)
         ll = (gammaln(y_obs_val + r_post) - gammaln(y_obs_val + 1.0) - gammaln(r_post)
               + r_post * (np.log(r_post) - np.log(r_post + lam_post))
               + y_obs_val * (np.log(lam_post) - np.log(r_post + lam_post)))
         lam_mean = np.mean(lam_post, axis=0)
-        r_mean = float(np.mean(r_post))
+        r_mean = np.mean(r_post, axis=0)
         ll_mean = (gammaln(y_obs_val + r_mean) - gammaln(y_obs_val + 1.0) - gammaln(r_mean)
                    + r_mean * (np.log(r_mean) - np.log(r_mean + lam_mean))
                    + y_obs_val * (np.log(lam_mean) - np.log(r_mean + lam_mean)))
