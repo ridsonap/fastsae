@@ -131,6 +131,8 @@
   the two engines now agree within 0.03 (iid) and 0.05 (BYM2) posterior SD, 0.35 before; the
   SAR example of `test_hb_area_sar.R` within 0.05 SD, 0.22 before.
   `priors = "weakly_informative"` keeps the previous priors.
+* New vignette "Default Priors of the Hierarchical Bayes Models": the default priors of both
+  engines, the priors that still differ between them and the simulations behind the choices.
 
 ### Gamma and negative binomial dispersion
 * `hb_area(family = "gamma", engine = jax_engine())` uses `vardir` as the INLA engine does: the
