@@ -50,7 +50,8 @@ Options:
 \itemize{
   \item \code{"gaussian"}: Continuous response (Fay-Herriot model). If \code{vardir}
     is provided, sampling variances are treated as known. If \code{vardir = NULL},
-    residual variance is estimated.
+    residual variance is estimated, with a half-normal(sd y) prior on its SD; it is
+    then only weakly identified against the area effect.
   \item \code{"binomial"}: Binary / proportion response. Requires \code{trials}.
   \item \code{"poisson"}: Count response / disease rate. Supports \code{exposure}.
   \item \code{"nbinomial"}: Negative Binomial for overdispersed counts. If \code{vardir}

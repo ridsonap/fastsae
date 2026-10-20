@@ -99,9 +99,9 @@ An object of class \code{c("fastsae_hb_unit", "fastsae_hb", "fastsae")} containi
   \item \code{estcoef}: Data frame of estimated regression coefficients (posterior mean, sd, z-value, p-value, credible intervals).
   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
   \item \code{random_effect_var}: Posterior mean of the domain random effect variance
-    (\eqn{\sigma_u^2}). With few domains and the vague default prior its posterior is
-    very skewed and INLA's summary of it is not accurate (on \code{cornsoybean}, 12
-    counties: about 70 against an exact posterior mean of 41 and median of 7, while the
+    (\eqn{\sigma_u^2}). With few domains its posterior is very skewed and INLA's summary
+    of it can be inaccurate (on \code{cornsoybean}, 12 counties, with the earlier vague
+    log-gamma prior: about 70 against an exact posterior mean of 41 and median of 7, while the
     county means and SDs agree with the exact posterior). Do not read it as a REML
     estimate; the domain estimates in \code{df_hb} are the reliable output.
   \item \code{residual_var}: Estimated residual variance (\eqn{\sigma_e^2}, for Gaussian).
@@ -144,17 +144,20 @@ unit-level \code{Xpop} is currently averaged per domain. A warning is given for 
 }
 \section{Engines}{
 
-Both engines fit the same model from the sampled units and return the same structure. With
-\code{jax_engine()} the coefficients have normal priors (standard deviation 10, or 2.5 for
-\code{"binomial"}) and the standard deviations of the domain effect and, for
-\code{"gaussian"}, of the unit errors half-normal(1) priors, on the standardised response
-scale for \code{"gaussian"}; \code{inla_engine()} puts the vague log-gamma prior on the
-precisions. The domain means, SDs and 2.5\%/97.5\% quantiles are computed from the MCMC
+Both engines fit the same model from the sampled units, with the same default priors, and
+return the same structure. The standard deviations of the domain effect and, for
+\code{"gaussian"}, of the unit errors have half-normal priors with scale \eqn{s_y}, the
+standard deviation of the sampled unit responses (scale 1 on the link scale for
+\code{"binomial"} and \code{"poisson"}), and the coefficients \eqn{N(0, 1000)} priors.
+\code{jax_engine(priors = "weakly_informative")} uses half-normal(1) standard deviations and
+\eqn{N(0, 10^2)} coefficients (\eqn{N(0, 2.5^2)} for \code{"binomial"}) on the standardised
+scale instead. See \code{vignette("hb-priors", package = "fastsae")}. The domain means, SDs and 2.5\%/97.5\% quantiles are computed from the MCMC
 draws; with \code{popsize_var} each draw of the Gaussian domain mean includes the mean error of
 the non-sampled units, \eqn{N(0, \sigma_e^2 / (N_d - n_d))} for that draw of \eqn{\sigma_e^2}
 (the INLA engine adds its posterior mean to the variance and gives a normal interval).
 
-On simulated data (30 domains, three unsampled) a Stan fit of the same model and priors gave
+The following comparisons were made with the earlier default priors (half-normal(1) on the
+standardised scale for \code{jax_engine()}, INLA's log-gamma priors on the precisions). On simulated data (30 domains, three unsampled) a Stan fit of the same model and priors gave
 domain means within 0.04 posterior SD and SDs within 5\% for the Gaussian (also with BYM2),
 Bernoulli and Poisson models. With their own priors, \code{hbsae::fSAE(method = "HB")}
 (Gaussian, numerical integration over the variance ratio, flat priors) and the INLA engine

@@ -131,8 +131,16 @@
   the two engines now agree within 0.03 (iid) and 0.05 (BYM2) posterior SD, 0.35 before; the
   SAR example of `test_hb_area_sar.R` within 0.05 SD, 0.22 before.
   `priors = "weakly_informative"` keeps the previous priors.
+* `hb_area(family = "gaussian")` without `vardir` was unusable with `inla_engine()`: INLA's
+  default log-gamma(1, 5e-5) prior on the residual precision put the residual SD near zero, so
+  the area means collapsed onto the direct estimates and the 95% intervals covered 0-4% of the
+  true means (`benchmarks/validation/likelihood_priors.R`). The residual SD now gets the
+  half-normal(sd y) prior of `jax_engine()` (94-97% coverage in every unit of `y`), as do the
+  unit errors of `hb_unit()`.
+* The beta precision without `vardir` or `trials` gets INLA's log-gamma(1, 0.1) prior with both
+  engines (`jax_engine()` used half-normal(10), which covered 84-97% against 88-96%).
 * New vignette "Default Priors of the Hierarchical Bayes Models": the default priors of both
-  engines, the priors that still differ between them and the simulations behind the choices.
+  engines and the simulations behind the choices.
 
 ### Gamma and negative binomial dispersion
 * `hb_area(family = "gamma", engine = jax_engine())` uses `vardir` as the INLA engine does: the

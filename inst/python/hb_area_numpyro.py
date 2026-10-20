@@ -710,7 +710,10 @@ def fit_numpyro_hb(
             elif trials_obs is not None:
                 phi_beta = jnp.maximum(trials_obs - 1.0, 1.0)
             else:
-                phi_beta = numpyro.sample("phi_beta", dist.HalfNormal(10.0))
+                # "inla": INLA's loggamma(1, 0.1) on log phi, i.e. phi ~ Exponential(0.1)
+                phi_beta = numpyro.sample(
+                    "phi_beta", dist.Exponential(0.1) if inla_priors else dist.HalfNormal(10.0)
+                )
             a = jnp.maximum(p[obs_idx] * phi_beta, 1e-4)
             b = jnp.maximum((1.0 - p[obs_idx]) * phi_beta, 1e-4)
             y_obs_clipped = jnp.clip(y_obs, 1e-5, 1.0 - 1e-5)

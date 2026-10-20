@@ -49,11 +49,8 @@ $\tau \sim C^+(1)$ and slab $c^2 \sim$ Inv-Gamma$(2, 8)$.
 | Negative binomial size | `vardir` given | Fixed per area at $\hat\mu_d^2 / (V_d - \hat\mu_d)$, with $\hat\mu_d$ from a first fit |
 | Gamma precision | no `vardir` | Half-normal$(10)$, both engines |
 | Negative binomial size | no `vardir` | Half-normal$(10)$, both engines |
-| Gaussian residual SD | no `vardir` (and `hb_unit()`) | INLA: log-gamma$(1, 5 \times 10^{-5})$ on the precision; JAX: half-normal$(1)$ on the standardised response |
-| Beta precision | no `vardir`, no `trials` | INLA: log-gamma$(1, 0.1)$; JAX: half-normal$(10)$ |
-
-The last two rows still differ between the engines; there the engines fit slightly
-different models.
+| Gaussian residual SD | no `vardir` (and the unit errors of `hb_unit()`) | Half-normal$(\mathrm{sd}(y))$, both engines |
+| Beta precision $\phi$ | no `vardir`, no `trials` | Log-gamma$(1, 0.1)$ on $\log\phi$, i.e. $\phi \sim$ Exponential$(0.1)$, both engines |
 
 ## Why half-normal standard deviations
 
@@ -137,6 +134,34 @@ dispersion of each area and give 92-94% (gamma) and 91-95% (negative binomial) c
 (`dispersion_vardir.R`). A Poisson model is not an alternative for overdispersed counts: it
 ignores the overdispersion and covered 68-75%.
 
+The Gaussian and beta likelihoods have the same problem without `vardir`. For the Gaussian
+residual SD, INLA's own default, log-gamma$(1, 5 \times 10^{-5})$ on the precision, is
+disastrous here: it put the residual SD near zero (precision about $1.5 \times 10^4$), the
+area means collapsed onto the direct estimates and their intervals covered almost none of the
+true means. The half-normal prior with the scale of the response, the prior of the area SD,
+covered nominally in every unit of the response (`likelihood_priors.R`; 30 areas,
+60 replicates, coverage of 95% intervals for sampled areas, $y$ in its unit / times 10):
+
+| Area SD | Residual SD | Half-normal$(\mathrm{sd}\,y)$ | INLA's default |
+|---|---|---|---|
+| 0.5 | 0.5 | 0.943 / 0.943 | 0.038 / 0.006 |
+| 0.5 | 1 | 0.949 / 0.947 | 0.024 / 0.001 |
+| 1 | 0.5 | 0.955 / 0.968 | 0.033 / 0.003 |
+| 1 | 1 | 0.953 / 0.938 | 0.019 / 0.002 |
+
+For the beta precision, INLA's default log-gamma$(1, 0.1)$ covered as well as half-normal$(10)$
+or better (area SD 0.3 / 0.8):
+
+| True $\phi$ | Log-gamma$(1, 0.1)$ | Half-normal$(10)$ |
+|---|---|---|
+| 10 | 0.960 / 0.937 | 0.965 / 0.938 |
+| 50 | 0.931 / 0.903 | 0.913 / 0.869 |
+| 200 | 0.875 / 0.925 | 0.841 / 0.871 |
+
+so both engines use it. Neither prior covers well when the sampling noise is small
+($\phi = 200$), and the areas without a direct estimate then covered only 73-80%; give
+`vardir` or `trials` when they are known.
+
 ## Changing the priors
 
 `inla_engine()` takes INLA prior specifications for every hyperparameter. A prior given
@@ -161,7 +186,7 @@ fit_nb <- hb_area(y ~ x,
 
 The other arguments are `prior_phi` (BYM2), `prior_rho` (Leroux, SAR), `prior_prec_time`
 and `prior_rho_time` (temporal effect) and `prior_prec_subarea` (`hb_twofold()`).
-`jax_engine()` offers the two prior sets above:
+`jax_engine()` offers the two prior sets of the first table:
 
 ```{r}
 fit_jax <- hb_area(y ~ x1 + x2 + x3,

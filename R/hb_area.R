@@ -78,7 +78,8 @@
 #'   \itemize{
 #'     \item \code{"gaussian"}: Continuous response (Fay-Herriot model). If \code{vardir}
 #'       is provided, sampling variances are treated as known. If \code{vardir = NULL},
-#'       residual variance is estimated.
+#'       residual variance is estimated, with a half-normal(sd y) prior on its SD; it is
+#'       then only weakly identified against the area effect.
 #'     \item \code{"binomial"}: Binary / proportion response. Requires \code{trials}.
 #'     \item \code{"poisson"}: Count response / disease rate. Supports \code{exposure}.
 #'     \item \code{"nbinomial"}: Negative Binomial for overdispersed counts. If \code{vardir}
@@ -993,6 +994,16 @@ hb_area <- function(
   # 52-86% for shapes 5 and 20, against 92-99% (benchmarks/validation/gamma_shape_prior.R).
   if (family %in% c("nbinomial", "gamma")) {
     inla_args$control.family <- list(hyper = list(theta = .half_normal_size(10)))
+  }
+  # Gaussian residual SD without vardir: half-normal(sd y), as jax_engine(). With one
+  # direct estimate per area it trades off against the area effect; INLA's default
+  # loggamma(1, 5e-5) on the precision put it near 0 (precision ~ 1.5e4), the means then
+  # collapsed onto the direct estimates and the 95% intervals covered 0-4% of the true
+  # means, against 94-97% in every unit of y (benchmarks/validation/likelihood_priors.R).
+  # The beta precision keeps INLA's loggamma(1, 0.1), which covered as well or better
+  # than half-normal(10) there; jax_engine() uses the same prior.
+  if (family == "gaussian" && is.null(vardir)) {
+    inla_args$control.family <- list(hyper = list(prec = .half_normal_prec(.prior_sd_scale(y))))
   }
   use_classic <- family == "gaussian" || spatial %in% c("generic1", "sar", "slm")
   if (use_classic && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
