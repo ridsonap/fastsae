@@ -9,9 +9,23 @@
 \alias{autoplot.fastsae_comparison}
 \title{Compare Two Small Area Estimation Models}
 \usage{
-compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
+compare_sae(
+  model1,
+  model2 = NULL,
+  names = NULL,
+  thresholds = c(25, 50),
+  top = 0.1,
+  ...
+)
 
-\method{compare_sae}{default}(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
+\method{compare_sae}{default}(
+  model1,
+  model2 = NULL,
+  names = NULL,
+  thresholds = c(25, 50),
+  top = 0.1,
+  ...
+)
 
 \method{print}{fastsae_comparison}(x, ...)
 
@@ -37,6 +51,9 @@ for the models. Default is inferred from model types or call arguments.}
 \item{thresholds}{Numeric vector of length 2 with the RSE (\%) cut-offs drawn in
 \code{autoplot(type = "rse")} (see \code{\link{add_reliability_flags}}). Default \code{c(25, 50)}.}
 
+\item{top}{Share (below 1) or number (1 or more) of the highest and of the lowest domains
+whose overlap between the models is reported. Default \code{0.1} (10\%, at least one domain).}
+
 \item{...}{Additional arguments.}
 
 \item{x}{An object of class \code{fastsae_comparison} (for \code{print} and \code{plot} methods).}
@@ -46,15 +63,22 @@ for the models. Default is inferred from model types or call arguments.}
 \item{y}{Ignored argument for compatibility with the generic \code{plot} method.}
 
 \item{type}{Character string indicating comparison plot type: \code{"scatter"},
-\code{"comparison"}, \code{"difference"}, \code{"mse"}, or \code{"rse"}. Default is \code{"scatter"}.}
+\code{"comparison"}, \code{"difference"} (Bland-Altman plot: the difference against the
+mean of the two estimates, with the mean difference and the 95\% limits of agreement),
+\code{"mse"}, or \code{"rse"}. Default is \code{"scatter"}.}
 
 \item{title}{Optional character string specifying a custom plot title.}
 }
 \value{
 An S3 object of class \code{fastsae_comparison} containing:
   \itemize{
-    \item \code{metrics}: A data frame of overall concordance and efficiency statistics.
-    \item \code{data}: A domain-level data frame with aligned estimates, MSE, and RSE values.
+    \item \code{metrics}: A data frame of the metrics above (columns \code{Group}, \code{Metric},
+      \code{Value}), formatted for printing.
+    \item \code{agreement}: The same agreement, uncertainty and ranking metrics as a named
+      numeric vector.
+    \item \code{data}: A domain-level data frame with aligned estimates, MSE and RSE values,
+      their differences, ranks (\code{rank_1}, \code{rank_2}, \code{rank_change}; 1 is the
+      highest estimate) and \code{z_diff}.
     \item \code{names}: Vector of the two model names.
     \item \code{thresholds}: The RSE thresholds used.
   }
@@ -64,14 +88,29 @@ Provides a comprehensive evaluation and concordance comparison between two
 fitted Small Area Estimation (SAE) models (e.g. comparing Classical Fay-Herriot
 vs Spatial Fay-Herriot, Area-level vs Unit-level BHF, or EBLUP vs HB).
 
-Computes empirical agreement and efficiency metrics including:
+Computes agreement, ranking and efficiency metrics:
 \itemize{
-  \item Pearson linear correlation (\eqn{r}) and Spearman rank correlation (\eqn{\rho}).
-  \item Mean Absolute Difference (MAE) and Root Mean Squared Difference (RMSD).
-  \item Relative efficiency metrics: Mean MSE ratio (\eqn{\text{MSE}_1 / \text{MSE}_2}),
-    and the proportion of domains where Model 2 achieves greater precision.
-  \item Average Relative Standard Error (RSE \%) across models and precision gains.
+  \item Agreement of the estimates (Bland and Altman 1986): the mean difference
+    \eqn{\bar d} of Model 2 minus Model 1, the 95\% limits of agreement
+    \eqn{\bar d \pm 1.96\, s_d}, the mean absolute difference (MAE) and the root mean
+    squared difference (RMSD), and Lin's (1989) concordance correlation coefficient
+    \eqn{\rho_c = 2 s_{12} / (s_1^2 + s_2^2 + (\bar\theta_1 - \bar\theta_2)^2)} (moments
+    with divisor \eqn{n}), which is 1 only when the estimates lie on the identity line.
+  \item Differences relative to the uncertainty: \eqn{z_d = (\hat\theta_{2d} -
+    \hat\theta_{1d}) / \sqrt{\text{MSE}_{1d}}}, summarised by its median absolute value and
+    the share of domains with \eqn{|z_d| > 1}. This is descriptive, not a test: both
+    estimators use the same data, so their difference has a smaller variance than either.
+  \item Ranking of the domains: Spearman's rank correlation, the mean absolute change of
+    rank, and the share of the \code{top} highest and lowest domains of Model 1 that are
+    also among the highest and lowest of Model 2 (the domains a programme would target).
+  \item Efficiency: mean and median MSE ratio (\eqn{\text{MSE}_1 / \text{MSE}_2}), the
+    share of domains where Model 2 has the lower MSE, and the mean RSE (\%) of each model.
 }
+
+Pearson's correlation is not reported: two reasonable models of the same data correlate
+almost perfectly whatever their differences, and a correlation measures association, not
+agreement (a model that is 10\% higher everywhere still has \eqn{r = 1}; Bland and
+Altman 1986).
 }
 \examples{
 library(fastsae)
@@ -90,6 +129,14 @@ summary(comp)
 autoplot(comp, type = "scatter")
 autoplot(comp, type = "difference")
 }
+\references{
+Bland, J. M. and Altman, D. G. (1986). Statistical methods for assessing agreement
+between two methods of clinical measurement. \emph{The Lancet}, 327(8476), 307-310.
+
+Lin, L. I.-K. (1989). A concordance correlation coefficient to evaluate reproducibility.
+\emph{Biometrics}, 45(1), 255-268.
+}
 \seealso{
-\code{\link{autoplot.fastsae_comparison}}, \code{\link{map_sae}}
+\code{\link{autoplot.fastsae_comparison}}, \code{\link{map_sae}},
+  \code{\link{diagnose}} (model estimates against the direct estimates)
 }

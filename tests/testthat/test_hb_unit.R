@@ -317,8 +317,7 @@ test_that("hb_unit integrates with diagnose() and compare_sae()", {
 
   comp <- compare_sae(fit_eblup, fit_hb)
   expect_s3_class(comp, "fastsae_comparison")
-  cor_val <- as.numeric(comp$metrics[comp$metrics$Metric == "Pearson Correlation (r)", "Value"])
-  expect_gt(cor_val, 0.80)
+  expect_gt(comp$agreement[["ccc"]], 0.80)
 })
 
 test_that("hb_unit handles unit-level Xpop, besag spatial, and explicit popnmean_xpop", {

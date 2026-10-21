@@ -15,7 +15,7 @@ test_that("compare_sae works for two fitted models", {
   expect_true("Value" %in% names(comp$metrics))
 
   # Test print and summary
-  expect_output(print(comp), "Key Concordance & Efficiency Metrics")
+  expect_output(print(comp), "Agreement, Ranking & Efficiency Metrics")
   expect_output(summary(comp), "Distribution of Domain Point Estimates")
 
   # Test autoplots
@@ -160,4 +160,52 @@ test_that("compare_sae and autoplot label panel rows uniquely", {
   }
   expect_s3_class(ggplot2::ggplot_build(autoplot(m1, type = "rse")), "ggplot_built")
   expect_false(anyDuplicated(fastsae:::.row_labels(m1$df_eblup)) > 0)
+})
+
+test_that("compare_sae() reports agreement, not Pearson's correlation", {
+  set.seed(3)
+  est <- rnorm(40, 10, 2)
+  m1 <- data.frame(domain = 1:40, estimate = est, mse = rep(0.25, 40))
+  # 10% higher everywhere: Pearson r = 1, but the estimates do not agree
+  m2 <- data.frame(domain = 1:40, estimate = 1.1 * est, mse = rep(0.2, 40))
+  comp <- compare_sae(m1, m2, names = c("A", "B"))
+  expect_false(any(grepl("Pearson", comp$metrics$Metric)))
+  ag <- comp$agreement
+  d <- 0.1 * est
+  expect_equal(ag[["mean_diff"]], mean(d))
+  expect_equal(unname(ag[c("loa_lower", "loa_upper")]), mean(d) + c(-1, 1) * 1.96 * sd(d))
+  # Lin's CCC with divisor n
+  v1 <- mean((est - mean(est))^2)
+  v2 <- mean((1.1 * est - mean(1.1 * est))^2)
+  s12 <- mean((est - mean(est)) * (1.1 * est - mean(1.1 * est)))
+  expect_equal(ag[["ccc"]], 2 * s12 / (v1 + v2 + (mean(est) - mean(1.1 * est))^2))
+  expect_lt(ag[["ccc"]], 0.9)
+  expect_equal(ag[["spearman"]], 1)
+  expect_equal(ag[["mean_abs_rank_change"]], 0)
+  # the difference is 0.1 * est, about 4 RMSEs (sqrt(0.25) = 0.5) of model A
+  expect_equal(ag[["median_abs_z"]], median(abs(d) / 0.5))
+  expect_equal(ag[["pct_abs_z_gt1"]], 100 * mean(abs(d) / 0.5 > 1))
+})
+
+test_that("compare_sae() counts the shared highest and lowest domains", {
+  m1 <- data.frame(domain = 1:10, estimate = 1:10)
+  m2 <- data.frame(domain = 1:10, estimate = c(1:8, 10, 9)[c(2, 1, 3:10)])
+  comp <- compare_sae(m1, m2, top = 2)
+  expect_equal(comp$agreement[["top_k"]], 2)
+  expect_equal(comp$agreement[["top_shared"]], 2) # domains 9 and 10 in both
+  expect_equal(comp$agreement[["bottom_shared"]], 2) # domains 1 and 2 in both
+  m3 <- data.frame(domain = 1:10, estimate = 10:1)
+  comp3 <- compare_sae(m1, m3, top = 0.3)
+  expect_equal(comp3$agreement[["top_k"]], 3)
+  expect_equal(comp3$agreement[["top_shared"]], 0)
+  expect_equal(comp3$agreement[["spearman"]], -1)
+  expect_error(compare_sae(m1, m2, top = 0), "positive")
+})
+
+test_that("autoplot(type = 'difference') is a Bland-Altman plot", {
+  m1 <- data.frame(domain = 1:20, estimate = 1:20, mse = 1)
+  m2 <- data.frame(domain = 1:20, estimate = 1:20 + 0.5, mse = 1)
+  p <- autoplot(compare_sae(m1, m2), type = "difference")
+  expect_equal(rlang::as_label(p$mapping$x), "mean_est")
+  expect_match(p$labels$subtitle, "limits of agreement")
 })

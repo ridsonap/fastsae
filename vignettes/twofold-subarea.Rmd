@@ -222,10 +222,10 @@ head(fit_hb$df_hb)
 head(fit_hb$df_area)
 ```
 
-With the default vague priors the posterior means are very close to the EBLUP:
+With the default priors the posterior means are very close to the EBLUP (mean difference, limits
+of agreement and Lin's concordance correlation below):
 
 ```{r compare_hb, eval = has_inla}
-cor(fit_tf$df_eblup$eblup, fit_hb$df_hb$hb)
 compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 ```
 

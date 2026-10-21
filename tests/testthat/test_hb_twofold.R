@@ -260,8 +260,7 @@ test_that("hb_twofold integrates with compare_sae() and diagnose()", {
   # compare_sae
   comp <- compare_sae(fit_eblup, fit_hb)
   expect_s3_class(comp, "fastsae_comparison")
-  cor_val <- as.numeric(comp$metrics[comp$metrics$Metric == "Pearson Correlation (r)", "Value"])
-  expect_gt(cor_val, 0.90)
+  expect_gt(comp$agreement[["ccc"]], 0.90)
 })
 
 test_that("hb_twofold handles besag spatial and subarea = NULL", {
