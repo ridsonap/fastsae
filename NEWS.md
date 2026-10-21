@@ -139,6 +139,17 @@
   unit errors of `hb_unit()`.
 * The beta precision without `vardir` or `trials` gets INLA's log-gamma(1, 0.1) prior with both
   engines (`jax_engine()` used half-normal(10), which covered 84-97% against 88-96%).
+* `hb_area(family = "beta", vardir = )` fixes the precision of each area at the posterior
+  mean of a first fit, $\phi_d = \hat\mu_d(1 - \hat\mu_d)/V_d - 1$, instead of at the direct
+  estimate (two stages, with both engines, as the negative binomial size). With the direct
+  estimate the model variance was $V_d \mu_d(1 - \mu_d)/(y_d(1 - y_d))$, not $V_d$, and the
+  95% intervals covered 81-84% of the true proportions near 0.08, against 90-94% now
+  (`benchmarks/validation/beta_vardir_phi.R`). tipsae's precision at the model mean inside
+  the model (`type_disp = "var"`) covered 93-95% but its likelihood is bimodal: 11 of 240
+  fits did not converge.
+* `hb_area(family = "beta")` warns that `trials` is ignored when `vardir` is also given.
+* `jax_engine()` computed the WAIC of a beta model with `trials` with a precision of 10
+  instead of $n_d - 1$.
 * New vignette "Default Priors of the Hierarchical Bayes Models": the default priors of both
   engines and the simulations behind the choices.
 

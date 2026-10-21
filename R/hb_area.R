@@ -89,9 +89,15 @@
 #'       that estimates one size (so the model is fitted twice); without \code{vardir} that
 #'       common size is weakly identified against the area effect (a warning).
 #'     \item \code{"beta"}: Continuous proportions strictly in (0, 1). If \code{vardir}
-#'       is provided, area-specific precision is calculated via Janicki (2020) formula
-#'       \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
-#'       If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
+#'       is provided, the precision of each area is fixed by
+#'       \eqn{V_i = \mu_i(1 - \mu_i)/(\phi_i + 1)} at
+#'       \eqn{\phi_i = \hat\mu_i(1 - \hat\mu_i)/V_i - 1} (at least 1), with \eqn{\hat\mu_i} the
+#'       posterior mean of a first fit with the precision at the direct estimate
+#'       \eqn{y_i} (Janicki 2020), so the model is fitted twice. If \code{trials} is
+#'       provided instead, the precision is \eqn{n_i - 1} (simple random sampling; give
+#'       effective sample sizes for complex designs); with both, \code{trials} is ignored
+#'       (a warning). Without either, one precision is estimated, which is weakly
+#'       identified against the area effect.
 #'     \item \code{"gamma"}: Skewed positive continuous response. If \code{vardir} is
 #'       provided, the precision of each area is scaled as \eqn{y_i^2 / V_i}; without it
 #'       the precision is estimated from one observation per area, which is weakly
@@ -461,6 +467,13 @@ hb_area <- function(
   exposure_vec <- if (!is.null(exposure)) .get_variable(data, exposure) else NULL
 
   response_var <- all.vars(formula)[1]
+
+  if (family == "beta" && !is.null(vardir_vec) && !is.null(trials_vec)) {
+    cli::cli_warn(c(
+      "{.arg trials} is ignored for {.code family = 'beta'} when {.arg vardir} is given.",
+      "i" = "The precision of each area comes from {.arg vardir}; give {.arg trials} alone to use the sample sizes (simple random sampling)."
+    ))
+  }
 
   if (family == "binomial") {
     if (is.null(trials_vec)) {
@@ -1106,6 +1119,16 @@ hb_area <- function(
     inla_args$control.family$hyper <- list(theta = list(initial = 0, fixed = TRUE))
   }
 
+  # Beta with sampling variances, in two stages (see .beta_phi_from_vardir): the
+  # precision of each area at the posterior mean of a first fit with the plug-in precision.
+  if (family == "beta" && !is.null(vardir)) {
+    stage1 <- tryCatch(
+      do.call(INLA::inla, inla_args),
+      error = function(e) cli::cli_abort(c("Fitting the first stage of the beta model with INLA failed.", "x" = e$message))
+    )
+    inla_args$scale <- .beta_phi_from_vardir(stage1$summary.fitted.values$mean[seq_len(n_obs)], vardir)
+  }
+
   # Run INLA fitting
   fit <- tryCatch(
     do.call(INLA::inla, inla_args),
@@ -1173,6 +1196,24 @@ hb_area <- function(
   }
 
   return(res)
+}
+
+#' Beta precision of each area from its sampling variance
+#'
+#' Var(y) = mu (1 - mu) / (phi + 1) gives phi = mu (1 - mu) / vardir - 1; `mu` is the
+#' posterior mean of a first fit with the plug-in precision of the direct estimate y. The
+#' plug-in alone gives a model variance V mu (1 - mu) / (y (1 - y)), not V, and its 95%
+#' intervals covered 81-84% for proportions near 0.08, against 90-94% in two stages
+#' (30 areas; benchmarks/validation/beta_vardir_phi.R). The precision as a function of the
+#' model mean inside the model (tipsae::fit_sae(type_disp = "var")) covered 93-95% but makes
+#' the likelihood bimodal (a low-precision mode near 0): 11 of 240 tipsae fits had R-hat
+#' above 1.05 (up to 8.7), and 13 of 240 with a NumPyro version of it. Floored at 1, as the
+#' plug-in.
+#' @noRd
+.beta_phi_from_vardir <- function(mu, vardir) {
+  phi <- mu * (1 - mu) / vardir - 1
+  phi[is.na(phi) | phi < 1] <- 1
+  phi
 }
 
 #' Negative binomial size of each area from its sampling variance

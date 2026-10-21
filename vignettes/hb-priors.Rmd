@@ -45,7 +45,9 @@ $\tau \sim C^+(1)$ and slab $c^2 \sim$ Inv-Gamma$(2, 8)$.
 
 | Parameter | When | Prior |
 |---|---|---|
-| Sampling variance (Gaussian), beta precision, gamma precision | `vardir` given | Fixed per area: $1/V_d$; $y_d(1 - y_d)/V_d - 1$ (Janicki 2020); $y_d^2 / V_d$ |
+| Sampling variance (Gaussian), gamma precision | `vardir` given | Fixed per area: $1/V_d$; $y_d^2 / V_d$ |
+| Beta precision | `vardir` given | Fixed per area at $\hat\mu_d(1 - \hat\mu_d)/V_d - 1$, with $\hat\mu_d$ from a first fit |
+| Beta precision | `trials` given (no `vardir`) | Fixed per area at $n_d - 1$ |
 | Negative binomial size | `vardir` given | Fixed per area at $\hat\mu_d^2 / (V_d - \hat\mu_d)$, with $\hat\mu_d$ from a first fit |
 | Gamma precision | no `vardir` | Half-normal$(10)$, both engines |
 | Negative binomial size | no `vardir` | Half-normal$(10)$, both engines |
@@ -161,6 +163,26 @@ or better (area SD 0.3 / 0.8):
 so both engines use it. Neither prior covers well when the sampling noise is small
 ($\phi = 200$), and the areas without a direct estimate then covered only 73-80%; give
 `vardir` or `trials` when they are known.
+
+### Beta precision from `vardir`
+
+The beta variance is $\mu_d(1 - \mu_d)/(\phi_d + 1)$, so a known sampling variance fixes
+$\phi_d = \mu_d(1 - \mu_d)/V_d - 1$ at the unknown true proportion. Putting the direct
+estimate $y_d$ in place of $\mu_d$ (Janicki 2020) gives the model a sampling variance of
+$V_d\,\mu_d(1 - \mu_d)/\{y_d(1 - y_d)\}$ instead of $V_d$, too small wherever $y_d$ happens
+to fall far from $\mu_d$. `hb_area()` therefore fits the model twice and takes $\phi_d$ at
+the posterior mean of the first fit. tipsae (`type_disp = "var"`) instead lets $\phi_d$
+follow the model mean inside the MCMC; that keeps the variance at $V_d$ exactly, but a low
+mean then also lowers the precision, which gives the likelihood a second mode near 0. Coverage
+of 95% intervals for sampled areas, area SD 0.3 / 0.8 (`beta_vardir_phi.R`; 30 areas,
+60 replicates, $V_d$ the true sampling variance):
+
+| Proportions near | Direct estimate | Two stages | tipsae | True $\phi_d$ |
+|---|---|---|---|---|
+| 0.08 | 0.844 / 0.812 | 0.938 / 0.896 | 0.938 / 0.931 | 0.953 / 0.918 |
+| 0.23 | 0.922 / 0.931 | 0.948 / 0.933 | 0.951 / 0.954 | 0.950 / 0.944 |
+
+tipsae covered as well, but 11 of its 240 fits did not converge (R-hat up to 8.7).
 
 ## Changing the priors
 

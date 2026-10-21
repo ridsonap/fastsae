@@ -61,9 +61,15 @@ Options:
     that estimates one size (so the model is fitted twice); without \code{vardir} that
     common size is weakly identified against the area effect (a warning).
   \item \code{"beta"}: Continuous proportions strictly in (0, 1). If \code{vardir}
-    is provided, area-specific precision is calculated via Janicki (2020) formula
-    \eqn{\phi_i = y_i(1 - y_i)/V_i - 1} and injected via INLA's \code{scale} argument.
-    If \code{trials} is provided, precision is scaled as \eqn{n_i - 1}.
+    is provided, the precision of each area is fixed by
+    \eqn{V_i = \mu_i(1 - \mu_i)/(\phi_i + 1)} at
+    \eqn{\phi_i = \hat\mu_i(1 - \hat\mu_i)/V_i - 1} (at least 1), with \eqn{\hat\mu_i} the
+    posterior mean of a first fit with the precision at the direct estimate
+    \eqn{y_i} (Janicki 2020), so the model is fitted twice. If \code{trials} is
+    provided instead, the precision is \eqn{n_i - 1} (simple random sampling; give
+    effective sample sizes for complex designs); with both, \code{trials} is ignored
+    (a warning). Without either, one precision is estimated, which is weakly
+    identified against the area effect.
   \item \code{"gamma"}: Skewed positive continuous response. If \code{vardir} is
     provided, the precision of each area is scaled as \eqn{y_i^2 / V_i}; without it
     the precision is estimated from one observation per area, which is weakly
