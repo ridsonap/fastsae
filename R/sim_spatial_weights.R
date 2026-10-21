@@ -1,4 +1,5 @@
-#' @title Simulate Spatial Proximity and Adjacency Matrices
+#' @title Simulate Spatial Proximity and Adjacency Matrices (internal; used by
+#'   sim_area_data() and sim_series_data(), which return the matrices)
 #' @description Generates synthetic spatial proximity or adjacency matrices for
 #'   small area estimation models. Supports k-nearest neighbors (KNN) on random
 #'   2D coordinates, regular grid contiguity (lattice), and 1D circular rings.
@@ -33,17 +34,7 @@
 #'
 #' When \code{type = "ring"}, domain \eqn{i} is connected to \eqn{i-1} and \eqn{i+1} in a closed ring.
 #'
-#' @examples
-#' # 1. Binary adjacency matrix for 20 domains using KNN
-#' W_bin <- sim_spatial_weights(D = 20, type = "knn", k = 3, seed = 123)
-#' dim(W_bin)
-#' table(W_bin)
-#'
-#' # 2. Row-standardized matrix on a regular grid
-#' W_std <- sim_spatial_weights(D = 25, type = "grid", style = "W")
-#' rowSums(W_std)
-#'
-#' @export
+#' @noRd
 sim_spatial_weights <- function(D = 40,
                                 type = c("knn", "grid", "ring"),
                                 style = c("B", "W"),

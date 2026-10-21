@@ -8,6 +8,7 @@ sim_area_data(
   D = 42,
   W = NULL,
   spatial_type = c("knn", "grid", "ring"),
+  k = 4,
   rho = 0.5,
   phi = 0.6,
   sigma_u = 0.5,
@@ -20,10 +21,16 @@ sim_area_data(
 \item{D}{Integer. Number of domains (areas). Default is 42.}
 
 \item{W}{Optional spatial proximity or adjacency matrix of dimension \eqn{D \times D}.
-If \code{NULL}, a spatial matrix is automatically simulated using \code{\link{sim_spatial_weights}}.}
+If \code{NULL}, a matrix is simulated (see \code{spatial_type} and \code{k}) and returned in
+the output (\code{W}, and \code{W_std} row-standardized).}
 
 \item{spatial_type}{Character. Topology for simulated \code{W} if \code{W = NULL}:
-\code{"knn"}, \code{"grid"}, or \code{"ring"}. Default is \code{"knn"}.}
+\code{"knn"} (each domain linked to its \code{k} nearest neighbours among random 2D
+coordinates, symmetrised), \code{"grid"} (rook contiguity on a regular lattice) or
+\code{"ring"} (a closed chain). Default is \code{"knn"}.}
+
+\item{k}{Integer. Number of nearest neighbours of each domain when
+\code{spatial_type = "knn"}. Default is 4.}
 
 \item{rho}{Numeric. Spatial autocorrelation autoregressive parameter (\eqn{|\rho| < 1}). Default is 0.5.}
 
@@ -67,8 +74,11 @@ sim <- sim_area_data(D = 40, spatial_type = "knn", seed = 123)
 print(sim)
 head(sim$data)
 
-# 2. Using an existing spatial matrix
-my_W <- sim_spatial_weights(D = 30, type = "grid")
-sim2 <- sim_area_data(W = my_W, seed = 456)
+# 2. A 6-nearest-neighbour graph, and its matrices
+sim2 <- sim_area_data(D = 30, k = 6, seed = 456)
+sim2$W[1:5, 1:5]
+
+# 3. Using an existing spatial matrix
+sim3 <- sim_area_data(W = sim2$W, seed = 789)
 
 }

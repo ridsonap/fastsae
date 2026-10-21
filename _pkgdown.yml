@@ -86,7 +86,6 @@ reference:
     desc: "Engine objects for the Hierarchical Bayes models: INLA (default) or MCMC with NumPyro / JAX (optional Python backend)"
     contents:
       - hb_engine
-      - check_numpyro_available
       - setup_numpyro_env
   - title: "Two-Fold Subarea Models"
     desc: "Nested area-subarea level models (Torabi & Rao, 2014) with both area and subarea random effects via REML EBLUP and Bayesian INLA"
@@ -137,7 +136,6 @@ reference:
     contents:
       - sim_area_data
       - sim_series_data
-      - sim_spatial_weights
   - title: "Example & Synthetic Datasets"
     desc: "Built-in empirical and synthetic survey datasets"
     contents:

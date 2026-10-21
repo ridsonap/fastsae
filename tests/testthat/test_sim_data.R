@@ -175,3 +175,19 @@ test_that("sim_area_data triggers cmdscale fallback when D = 2 and coords is NUL
   expect_equal(nrow(sim_2$data), 2)
   expect_equal(dim(sim_2$coords), c(2, 2))
 })
+
+test_that("sim_area_data() and sim_series_data() take the number of neighbours k", {
+  s4 <- sim_area_data(D = 30, seed = 1)
+  s7 <- sim_area_data(D = 30, k = 7, seed = 1)
+  # each domain is linked to its k nearest neighbours (and to those it is nearest to)
+  expect_gte(min(rowSums(s4$W)), 4)
+  expect_gte(min(rowSums(s7$W)), 7)
+  expect_gt(sum(s7$W), sum(s4$W))
+  st <- sim_series_data(D = 20, T = 3, k = 6, seed = 1)
+  expect_gte(min(rowSums(st$W)), 6)
+})
+
+test_that("setup_numpyro_env(check_only = TRUE) only runs the check", {
+  local_mocked_bindings(check_numpyro_available = function(device = "auto") paste("checked", device))
+  expect_equal(setup_numpyro_env(check_only = TRUE, device = "cpu"), "checked cpu")
+})
