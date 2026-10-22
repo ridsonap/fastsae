@@ -586,3 +586,61 @@ test_that("the INLA negative binomial size gets the half-normal(10) prior of jax
   ))
   expect_match(fit_own$fit$.args$control.family[[1]]$hyper$theta$prior, "^pc.mgamma$")
 })
+
+sim_beta_vardir <- function(m = 30, b0 = -2.5) {
+  set.seed(12)
+  d <- data.frame(x = rnorm(m), n = sample(10:80, m, replace = TRUE))
+  p <- plogis(b0 + 0.5 * d$x + rnorm(m, sd = 0.5))
+  d$y <- pmin(pmax(rbeta(m, p * (d$n - 1), (1 - p) * (d$n - 1)), 1e-4), 1 - 1e-4)
+  d$v <- p * (1 - p) / d$n
+  d$y[1:3] <- NA
+  d$v[1:3] <- NA
+  d
+}
+
+test_that("INLA beta model with vardir takes the precision at the model mean (two stages)", {
+  skip_if_not_installed("INLA")
+  d <- sim_beta_vardir()
+  fit <- hb_area(y ~ x, data = d, vardir = "v", family = "beta", print_result = FALSE)
+  obs <- !is.na(d$y)
+  phi <- fit$fit$.args$scale[obs]
+  # not the plug-in of the direct estimate, which gives the model variance
+  # V mu (1 - mu) / (y (1 - y)) instead of V (81-84% coverage for p near 0.08)
+  plug_in <- pmax(d$y * (1 - d$y) / d$v - 1, 1)[obs]
+  expect_gt(max(abs(phi / plug_in - 1)), 0.2)
+  # but the precision at a model mean (the first-stage posterior mean): the beta variance
+  # mu (1 - mu) / (phi + 1) is then vardir
+  mu <- c(0.05, 0.3, 0.5, 0.9)
+  v <- c(0.001, 0.01, 0.02, 0.002)
+  expect_equal(mu * (1 - mu) / (.beta_phi_from_vardir(mu, v) + 1), v)
+  expect_equal(.beta_phi_from_vardir(c(0.05, NA), c(0.04, 0.01)), c(1, 1))
+})
+
+test_that("engine = 'jax' beta model with vardir passes the two-stage precision", {
+  env <- new.env()
+  local_fake_backend(env)
+  d <- sim_beta_vardir()
+  d$area <- seq_len(nrow(d))
+  hb_area(y ~ x,
+    data = d, domain = "area", vardir = "v", family = "beta",
+    engine = jax_engine(samples = 50, device = "cpu"), print_result = FALSE
+  )
+  expect_length(env$args$beta_phi, nrow(d))
+  expect_true(all(env$args$beta_phi >= 1))
+})
+
+test_that("engine = 'jax' beta model with vardir agrees with INLA", {
+  skip_if_no_numpyro()
+  skip_if_not_installed("INLA")
+  d <- sim_beta_vardir()
+  fj <- quiet_mcmc(hb_area(y ~ x,
+    data = d, vardir = "v", family = "beta",
+    engine = jax_engine(warmup = 1000, samples = 1000, chains = 4, device = "cpu", seed = 1),
+    print_result = FALSE
+  ))
+  fi <- hb_area(y ~ x, data = d, vardir = "v", family = "beta", print_result = FALSE)
+  z <- abs(fj$df_hb$hb - fi$df_hb$hb) / fi$df_hb$sd
+  expect_lt(max(z), 0.25)
+  expect_lt(max(abs(fj$df_hb$sd / fi$df_hb$sd - 1)), 0.2)
+  expect_lt(fj$rhat_max, 1.05)
+})

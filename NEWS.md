@@ -118,6 +118,16 @@
 * `eblup_bhf()` returns `goodness` (full log-likelihood, AIC and BIC), as the other EBLUP
   models; with `method = "ML"` they equal those of `lme4::lmer(REML = FALSE)`.
 
+### Agreement metrics in `compare_sae()`
+* `compare_sae()` no longer reports Pearson's correlation: two reasonable models of the same
+  data correlate almost perfectly whatever their differences, and a correlation measures
+  association, not agreement. It now reports the mean difference and 95% limits of agreement
+  (Bland and Altman 1986), Lin's (1989) concordance correlation coefficient, the differences
+  relative to the RMSE of the first model, the mean change of rank and the overlap of the
+  highest and lowest domains (new argument `top`, default 10%), besides Spearman's correlation
+  and the MSE and RSE comparisons. The numbers are also returned as `$agreement`, and the
+  domain table gains ranks and `z_diff`. `autoplot(type = "difference")` is a Bland-Altman plot.
+
 ### Default priors of the HB models
 * The random-effect standard deviations of Gaussian HB models (`hb_area()`, `hb_unit()`,
   `hb_twofold()`; area, sub-area, time and interaction effects) get a half-normal prior with
@@ -150,6 +160,27 @@
   the two engines now agree within 0.03 (iid) and 0.05 (BYM2) posterior SD, 0.35 before; the
   SAR example of `test_hb_area_sar.R` within 0.05 SD, 0.22 before.
   `priors = "weakly_informative"` keeps the previous priors.
+* `hb_area(family = "gaussian")` without `vardir` was unusable with `inla_engine()`: INLA's
+  default log-gamma(1, 5e-5) prior on the residual precision put the residual SD near zero, so
+  the area means collapsed onto the direct estimates and the 95% intervals covered 0-4% of the
+  true means (`benchmarks/validation/likelihood_priors.R`). The residual SD now gets the
+  half-normal(sd y) prior of `jax_engine()` (94-97% coverage in every unit of `y`), as do the
+  unit errors of `hb_unit()`.
+* The beta precision without `vardir` or `trials` gets INLA's log-gamma(1, 0.1) prior with both
+  engines (`jax_engine()` used half-normal(10), which covered 84-97% against 88-96%).
+* `hb_area(family = "beta", vardir = )` fixes the precision of each area at the posterior
+  mean of a first fit, $\phi_d = \hat\mu_d(1 - \hat\mu_d)/V_d - 1$, instead of at the direct
+  estimate (two stages, with both engines, as the negative binomial size). With the direct
+  estimate the model variance was $V_d \mu_d(1 - \mu_d)/(y_d(1 - y_d))$, not $V_d$, and the
+  95% intervals covered 81-84% of the true proportions near 0.08, against 90-94% now
+  (`benchmarks/validation/beta_vardir_phi.R`). tipsae's precision at the model mean inside
+  the model (`type_disp = "var"`) covered 93-95% but its likelihood is bimodal: 11 of 240
+  fits did not converge.
+* `hb_area(family = "beta")` warns that `trials` is ignored when `vardir` is also given.
+* `jax_engine()` computed the WAIC of a beta model with `trials` with a precision of 10
+  instead of $n_d - 1$.
+* New vignette "Default Priors of the Hierarchical Bayes Models": the default priors of both
+  engines and the simulations behind the choices.
 
 ### Gamma and negative binomial dispersion
 * `hb_area(family = "gamma", engine = jax_engine())` uses `vardir` as the INLA engine does: the

@@ -43,6 +43,8 @@ navbar:
           href: articles/spatial-temporal.html
         - text: "Bayesian Area-Level Models (INLA)"
           href: articles/hb-area-inla.html
+        - text: "Default Priors of the HB Models"
+          href: articles/hb-priors.html
         - text: "Model Diagnostics & Calibration"
           href: articles/model-diagnostics.html
         - text: "Unit-Level Estimation (BHF and HB)"
