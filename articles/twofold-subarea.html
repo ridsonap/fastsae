@@ -457,12 +457,11 @@ with their posterior uncertainty in <code>df_area</code>.</p>
 <span><span class="co">#&gt; 4          6</span></span>
 <span><span class="co">#&gt; 5          4</span></span>
 <span><span class="co">#&gt; 6          3</span></span></code></pre></div>
-<p>With the default vague priors the posterior means are very close to
-the EBLUP:</p>
+<p>With the default priors the posterior means are very close to the
+EBLUP (mean difference, limits of agreement and Lin’s concordance
+correlation below):</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">fit_tf</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.999991</span></span>
-<span><span class="fu"><a href="../reference/compare_sae.html">compare_sae</a></span><span class="op">(</span><span class="va">fit_tf</span>, <span class="va">fit_hb</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"EBLUP two-fold"</span>, <span class="st">"HB two-fold"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_sae.html">compare_sae</a></span><span class="op">(</span><span class="va">fit_tf</span>, <span class="va">fit_hb</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"EBLUP two-fold"</span>, <span class="st">"HB two-fold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Small Area Estimation Model Concordance &amp; Comparison</span> <span style="color: #00BBBB;">────────────────────────</span></span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Model 1</span>: EBLUP two-fold</span></span>
@@ -470,20 +469,43 @@ the EBLUP:</p>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Matched Domains</span>: 131</span></span>
 <span><span class="co">#&gt; ────────────────────────────────────────────────────────────────────────────────</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Key Concordance &amp; Efficiency Metrics:</span></span>
-<span><span class="co">#&gt;                                                    Metric     Value</span></span>
-<span><span class="co">#&gt;                                           Matched Domains       131</span></span>
-<span><span class="co">#&gt;                                   Pearson Correlation (r)    1.0000</span></span>
-<span><span class="co">#&gt;                                Spearman Correlation (rho)    0.9999</span></span>
-<span><span class="co">#&gt;                            Mean Absolute Difference (MAE)    0.0077</span></span>
-<span><span class="co">#&gt;                       Root Mean Squared Difference (RMSD)    0.0104</span></span>
-<span><span class="co">#&gt;             Mean MSE Ratio (EBLUP two-fold / HB two-fold)    1.0438</span></span>
-<span><span class="co">#&gt;           Median MSE Ratio (EBLUP two-fold / HB two-fold)    1.0526</span></span>
-<span><span class="co">#&gt;       Domains where HB two-fold reports lower uncertainty 103 / 131</span></span>
-<span><span class="co">#&gt;  % of domains where HB two-fold reports lower uncertainty     78.6%</span></span>
-<span><span class="co">#&gt;                               Mean RSE % (EBLUP two-fold)     4.97%</span></span>
-<span><span class="co">#&gt;                                  Mean RSE % (HB two-fold)     4.89%</span></span>
-<span><span class="co">#&gt;                                 Average RSE Reduction (%)     0.08%</span></span>
+<span><span class="co">#&gt; Agreement, Ranking &amp; Efficiency Metrics:</span></span>
+<span><span class="co">#&gt;  Group       Metric                                                  </span></span>
+<span><span class="co">#&gt;  Domains     Matched Domains                                         </span></span>
+<span><span class="co">#&gt;  Agreement   Mean Difference (HB two-fold - EBLUP two-fold)          </span></span>
+<span><span class="co">#&gt;  Agreement   95% Limits of Agreement                                 </span></span>
+<span><span class="co">#&gt;  Agreement   Mean Absolute Difference (MAE)                          </span></span>
+<span><span class="co">#&gt;  Agreement   Root Mean Squared Difference (RMSD)                     </span></span>
+<span><span class="co">#&gt;  Agreement   Lin's Concordance Correlation (CCC)                     </span></span>
+<span><span class="co">#&gt;  Uncertainty Median |Difference| / RMSE of EBLUP two-fold            </span></span>
+<span><span class="co">#&gt;  Uncertainty % of domains with |Difference| &gt; RMSE of EBLUP two-fold </span></span>
+<span><span class="co">#&gt;  Ranking     Spearman Rank Correlation (rho)                         </span></span>
+<span><span class="co">#&gt;  Ranking     Mean Absolute Rank Change                               </span></span>
+<span><span class="co">#&gt;  Ranking     Shared Top 13 (highest estimates)                       </span></span>
+<span><span class="co">#&gt;  Ranking     Shared Bottom 13 (lowest estimates)                     </span></span>
+<span><span class="co">#&gt;  Efficiency  Mean MSE Ratio (EBLUP two-fold / HB two-fold)           </span></span>
+<span><span class="co">#&gt;  Efficiency  Median MSE Ratio (EBLUP two-fold / HB two-fold)         </span></span>
+<span><span class="co">#&gt;  Efficiency  % of domains where HB two-fold reports lower uncertainty</span></span>
+<span><span class="co">#&gt;  Efficiency  Mean RSE % (EBLUP two-fold)                             </span></span>
+<span><span class="co">#&gt;  Efficiency  Mean RSE % (HB two-fold)                                </span></span>
+<span><span class="co">#&gt;  Value            </span></span>
+<span><span class="co">#&gt;  131              </span></span>
+<span><span class="co">#&gt;  -0.0004          </span></span>
+<span><span class="co">#&gt;  [-0.0209, 0.0201]</span></span>
+<span><span class="co">#&gt;  0.0077           </span></span>
+<span><span class="co">#&gt;  0.0104           </span></span>
+<span><span class="co">#&gt;  1.0000           </span></span>
+<span><span class="co">#&gt;  0.008            </span></span>
+<span><span class="co">#&gt;  0.0%             </span></span>
+<span><span class="co">#&gt;  0.9999           </span></span>
+<span><span class="co">#&gt;  0.18             </span></span>
+<span><span class="co">#&gt;  13 / 13          </span></span>
+<span><span class="co">#&gt;  13 / 13          </span></span>
+<span><span class="co">#&gt;  1.0438           </span></span>
+<span><span class="co">#&gt;  1.0526           </span></span>
+<span><span class="co">#&gt;  78.6%            </span></span>
+<span><span class="co">#&gt;  4.97%            </span></span>
+<span><span class="co">#&gt;  4.89%</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> One model is Hierarchical Bayes: its posterior variance and the frequentist MSE of the other are not the same quantity, so a smaller value does not show a more accurate estimator.</span></span></code></pre></div>
 <p><code><a href="../reference/compare_sae.html">compare_sae()</a></code> reports smaller posterior variances than
 EBLUP MSEs. The two are not the same quantity, and here the posterior

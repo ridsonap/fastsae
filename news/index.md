@@ -171,6 +171,21 @@
   used (posterior draws or Wang-Fuller-Qu) instead of always reporting
   Wang-Fuller-Qu.
 
+#### Agreement metrics in `compare_sae()`
+
+- [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
+  no longer reports Pearson’s correlation: two reasonable models of the
+  same data correlate almost perfectly whatever their differences, and a
+  correlation measures association, not agreement. It now reports the
+  mean difference and 95% limits of agreement (Bland and Altman 1986),
+  Lin’s (1989) concordance correlation coefficient, the differences
+  relative to the RMSE of the first model, the mean change of rank and
+  the overlap of the highest and lowest domains (new argument `top`,
+  default 10%), besides Spearman’s correlation and the MSE and RSE
+  comparisons. The numbers are also returned as `$agreement`, and the
+  domain table gains ranks and `z_diff`. `autoplot(type = "difference")`
+  is a Bland-Altman plot.
+
 #### Default priors of the HB models
 
 - The random-effect standard deviations of Gaussian HB models

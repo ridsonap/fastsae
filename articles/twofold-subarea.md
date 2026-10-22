@@ -325,13 +325,12 @@ head(fit_hb$df_area)
 #> 6          3
 ```
 
-With the default vague priors the posterior means are very close to the
-EBLUP:
+With the default priors the posterior means are very close to the EBLUP
+(mean difference, limits of agreement and Lin’s concordance correlation
+below):
 
 ``` r
 
-cor(fit_tf$df_eblup$eblup, fit_hb$df_hb$hb)
-#> [1] 0.999991
 compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 #> 
 #> ── Small Area Estimation Model Concordance & Comparison ────────────────────────
@@ -340,20 +339,43 @@ compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 #> Matched Domains: 131
 #> ────────────────────────────────────────────────────────────────────────────────
 #> 
-#> Key Concordance & Efficiency Metrics:
-#>                                                    Metric     Value
-#>                                           Matched Domains       131
-#>                                   Pearson Correlation (r)    1.0000
-#>                                Spearman Correlation (rho)    0.9999
-#>                            Mean Absolute Difference (MAE)    0.0077
-#>                       Root Mean Squared Difference (RMSD)    0.0104
-#>             Mean MSE Ratio (EBLUP two-fold / HB two-fold)    1.0438
-#>           Median MSE Ratio (EBLUP two-fold / HB two-fold)    1.0526
-#>       Domains where HB two-fold reports lower uncertainty 103 / 131
-#>  % of domains where HB two-fold reports lower uncertainty     78.6%
-#>                               Mean RSE % (EBLUP two-fold)     4.97%
-#>                                  Mean RSE % (HB two-fold)     4.89%
-#>                                 Average RSE Reduction (%)     0.08%
+#> Agreement, Ranking & Efficiency Metrics:
+#>  Group       Metric                                                  
+#>  Domains     Matched Domains                                         
+#>  Agreement   Mean Difference (HB two-fold - EBLUP two-fold)          
+#>  Agreement   95% Limits of Agreement                                 
+#>  Agreement   Mean Absolute Difference (MAE)                          
+#>  Agreement   Root Mean Squared Difference (RMSD)                     
+#>  Agreement   Lin's Concordance Correlation (CCC)                     
+#>  Uncertainty Median |Difference| / RMSE of EBLUP two-fold            
+#>  Uncertainty % of domains with |Difference| > RMSE of EBLUP two-fold 
+#>  Ranking     Spearman Rank Correlation (rho)                         
+#>  Ranking     Mean Absolute Rank Change                               
+#>  Ranking     Shared Top 13 (highest estimates)                       
+#>  Ranking     Shared Bottom 13 (lowest estimates)                     
+#>  Efficiency  Mean MSE Ratio (EBLUP two-fold / HB two-fold)           
+#>  Efficiency  Median MSE Ratio (EBLUP two-fold / HB two-fold)         
+#>  Efficiency  % of domains where HB two-fold reports lower uncertainty
+#>  Efficiency  Mean RSE % (EBLUP two-fold)                             
+#>  Efficiency  Mean RSE % (HB two-fold)                                
+#>  Value            
+#>  131              
+#>  -0.0004          
+#>  [-0.0209, 0.0201]
+#>  0.0077           
+#>  0.0104           
+#>  1.0000           
+#>  0.008            
+#>  0.0%             
+#>  0.9999           
+#>  0.18             
+#>  13 / 13          
+#>  13 / 13          
+#>  1.0438           
+#>  1.0526           
+#>  78.6%            
+#>  4.97%            
+#>  4.89%
 #> ℹ One model is Hierarchical Bayes: its posterior variance and the frequentist MSE of the other are not the same quantity, so a smaller value does not show a more accurate estimator.
 ```
 

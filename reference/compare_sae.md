@@ -5,28 +5,57 @@ two fitted Small Area Estimation (SAE) models (e.g. comparing Classical
 Fay-Herriot vs Spatial Fay-Herriot, Area-level vs Unit-level BHF, or
 EBLUP vs HB).
 
-Computes empirical agreement and efficiency metrics including:
+Computes agreement, ranking and efficiency metrics:
 
-- Pearson linear correlation (\\r\\) and Spearman rank correlation
-  (\\\rho\\).
+- Agreement of the estimates (Bland and Altman 1986): the mean
+  difference \\\bar d\\ of Model 2 minus Model 1, the 95% limits of
+  agreement \\\bar d \pm 1.96\\ s_d\\, the mean absolute difference
+  (MAE) and the root mean squared difference (RMSD), and Lin's (1989)
+  concordance correlation coefficient \\\rho_c = 2 s\_{12} / (s_1^2 +
+  s_2^2 + (\bar\theta_1 - \bar\theta_2)^2)\\ (moments with divisor
+  \\n\\), which is 1 only when the estimates lie on the identity line.
 
-- Mean Absolute Difference (MAE) and Root Mean Squared Difference
-  (RMSD).
+- Differences relative to the uncertainty: \\z_d = (\hat\theta\_{2d} -
+  \hat\theta\_{1d}) / \sqrt{\text{MSE}\_{1d}}\\, summarised by its
+  median absolute value and the share of domains with \\\|z_d\| \> 1\\.
+  This is descriptive, not a test: both estimators use the same data, so
+  their difference has a smaller variance than either.
 
-- Relative efficiency metrics: Mean MSE ratio (\\\text{MSE}\_1 /
-  \text{MSE}\_2\\), and the proportion of domains where Model 2 achieves
-  greater precision.
+- Ranking of the domains: Spearman's rank correlation, the mean absolute
+  change of rank, and the share of the `top` highest and lowest domains
+  of Model 1 that are also among the highest and lowest of Model 2 (the
+  domains a programme would target).
 
-- Average Relative Standard Error (RSE %) across models and precision
-  gains.
+- Efficiency: mean and median MSE ratio (\\\text{MSE}\_1 /
+  \text{MSE}\_2\\), the share of domains where Model 2 has the lower
+  MSE, and the mean RSE (%) of each model.
+
+Pearson's correlation is not reported: two reasonable models of the same
+data correlate almost perfectly whatever their differences, and a
+correlation measures association, not agreement (a model that is 10%
+higher everywhere still has \\r = 1\\; Bland and Altman 1986).
 
 ## Usage
 
 ``` r
-compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
+compare_sae(
+  model1,
+  model2 = NULL,
+  names = NULL,
+  thresholds = c(25, 50),
+  top = 0.1,
+  ...
+)
 
 # Default S3 method
-compare_sae(model1, model2 = NULL, names = NULL, thresholds = c(25, 50), ...)
+compare_sae(
+  model1,
+  model2 = NULL,
+  names = NULL,
+  thresholds = c(25, 50),
+  top = 0.1,
+  ...
+)
 
 # S3 method for class 'fastsae_comparison'
 print(x, ...)
@@ -70,6 +99,12 @@ autoplot(
   [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
   Default `c(25, 50)`.
 
+- top:
+
+  Share (below 1) or number (1 or more) of the highest and of the lowest
+  domains whose overlap between the models is reported. Default `0.1`
+  (10%, at least one domain).
+
 - ...:
 
   Additional arguments.
@@ -91,7 +126,9 @@ autoplot(
 - type:
 
   Character string indicating comparison plot type: `"scatter"`,
-  `"comparison"`, `"difference"`, `"mse"`, or `"rse"`. Default is
+  `"comparison"`, `"difference"` (Bland-Altman plot: the difference
+  against the mean of the two estimates, with the mean difference and
+  the 95% limits of agreement), `"mse"`, or `"rse"`. Default is
   `"scatter"`.
 
 - title:
@@ -102,20 +139,35 @@ autoplot(
 
 An S3 object of class `fastsae_comparison` containing:
 
-- `metrics`: A data frame of overall concordance and efficiency
-  statistics.
+- `metrics`: A data frame of the metrics above (columns `Group`,
+  `Metric`, `Value`), formatted for printing.
 
-- `data`: A domain-level data frame with aligned estimates, MSE, and RSE
-  values.
+- `agreement`: The same agreement, uncertainty and ranking metrics as a
+  named numeric vector.
+
+- `data`: A domain-level data frame with aligned estimates, MSE and RSE
+  values, their differences, ranks (`rank_1`, `rank_2`, `rank_change`; 1
+  is the highest estimate) and `z_diff`.
 
 - `names`: Vector of the two model names.
 
 - `thresholds`: The RSE thresholds used.
 
+## References
+
+Bland, J. M. and Altman, D. G. (1986). Statistical methods for assessing
+agreement between two methods of clinical measurement. *The Lancet*,
+327(8476), 307-310.
+
+Lin, L. I.-K. (1989). A concordance correlation coefficient to evaluate
+reproducibility. *Biometrics*, 45(1), 255-268.
+
 ## See also
 
 `autoplot.fastsae_comparison`,
-[`map_sae`](https://ridsonap.github.io/fastsae/reference/map_sae.md)
+[`map_sae`](https://ridsonap.github.io/fastsae/reference/map_sae.md),
+[`diagnose`](https://ridsonap.github.io/fastsae/reference/diagnose.md)
+(model estimates against the direct estimates)
 
 ## Examples
 
@@ -191,20 +243,25 @@ print(comp)
 #> Matched Domains: 42
 #> ────────────────────────────────────────────────────────────────────────────────
 #> 
-#> Key Concordance & Efficiency Metrics:
-#>                                                        Metric   Value
-#>                                               Matched Domains      42
-#>                                       Pearson Correlation (r)  0.9754
-#>                                    Spearman Correlation (rho)  0.9671
-#>                                Mean Absolute Difference (MAE)  0.2866
-#>                           Root Mean Squared Difference (RMSD)  0.3692
-#>                              Mean MSE Ratio (FH / Spatial FH)  1.3758
-#>                            Median MSE Ratio (FH / Spatial FH)  1.2606
-#>                        Domains where Spatial FH has lower MSE 42 / 42
-#>  Percentage of domains where Spatial FH is more efficient (%)  100.0%
-#>                                               Mean RSE % (FH)  25.59%
-#>                                       Mean RSE % (Spatial FH)  21.64%
-#>                                     Average RSE Reduction (%)   3.95%
+#> Agreement, Ranking & Efficiency Metrics:
+#>  Group       Metric                                          Value            
+#>  Domains     Matched Domains                                 42               
+#>  Agreement   Mean Difference (Spatial FH - FH)               -0.0075          
+#>  Agreement   95% Limits of Agreement                         [-0.7397, 0.7248]
+#>  Agreement   Mean Absolute Difference (MAE)                  0.2866           
+#>  Agreement   Root Mean Squared Difference (RMSD)             0.3692           
+#>  Agreement   Lin's Concordance Correlation (CCC)             0.9753           
+#>  Uncertainty Median |Difference| / RMSE of FH                0.218            
+#>  Uncertainty % of domains with |Difference| > RMSE of FH     0.0%             
+#>  Ranking     Spearman Rank Correlation (rho)                 0.9671           
+#>  Ranking     Mean Absolute Rank Change                       2.29             
+#>  Ranking     Shared Top 4 (highest estimates)                4 / 4            
+#>  Ranking     Shared Bottom 4 (lowest estimates)              4 / 4            
+#>  Efficiency  Mean MSE Ratio (FH / Spatial FH)                1.3758           
+#>  Efficiency  Median MSE Ratio (FH / Spatial FH)              1.2606           
+#>  Efficiency  % of domains where Spatial FH is more efficient 100.0%           
+#>  Efficiency  Mean RSE % (FH)                                 25.59%           
+#>  Efficiency  Mean RSE % (Spatial FH)                         21.64%           
 #> 
 summary(comp)
 #> 
@@ -214,20 +271,25 @@ summary(comp)
 #> Matched Domains: 42
 #> ────────────────────────────────────────────────────────────────────────────────
 #> 
-#> Key Concordance & Efficiency Metrics:
-#>                                                        Metric   Value
-#>                                               Matched Domains      42
-#>                                       Pearson Correlation (r)  0.9754
-#>                                    Spearman Correlation (rho)  0.9671
-#>                                Mean Absolute Difference (MAE)  0.2866
-#>                           Root Mean Squared Difference (RMSD)  0.3692
-#>                              Mean MSE Ratio (FH / Spatial FH)  1.3758
-#>                            Median MSE Ratio (FH / Spatial FH)  1.2606
-#>                        Domains where Spatial FH has lower MSE 42 / 42
-#>  Percentage of domains where Spatial FH is more efficient (%)  100.0%
-#>                                               Mean RSE % (FH)  25.59%
-#>                                       Mean RSE % (Spatial FH)  21.64%
-#>                                     Average RSE Reduction (%)   3.95%
+#> Agreement, Ranking & Efficiency Metrics:
+#>  Group       Metric                                          Value            
+#>  Domains     Matched Domains                                 42               
+#>  Agreement   Mean Difference (Spatial FH - FH)               -0.0075          
+#>  Agreement   95% Limits of Agreement                         [-0.7397, 0.7248]
+#>  Agreement   Mean Absolute Difference (MAE)                  0.2866           
+#>  Agreement   Root Mean Squared Difference (RMSD)             0.3692           
+#>  Agreement   Lin's Concordance Correlation (CCC)             0.9753           
+#>  Uncertainty Median |Difference| / RMSE of FH                0.218            
+#>  Uncertainty % of domains with |Difference| > RMSE of FH     0.0%             
+#>  Ranking     Spearman Rank Correlation (rho)                 0.9671           
+#>  Ranking     Mean Absolute Rank Change                       2.29             
+#>  Ranking     Shared Top 4 (highest estimates)                4 / 4            
+#>  Ranking     Shared Bottom 4 (lowest estimates)              4 / 4            
+#>  Efficiency  Mean MSE Ratio (FH / Spatial FH)                1.3758           
+#>  Efficiency  Median MSE Ratio (FH / Spatial FH)              1.2606           
+#>  Efficiency  % of domains where Spatial FH is more efficient 100.0%           
+#>  Efficiency  Mean RSE % (FH)                                 25.59%           
+#>  Efficiency  Mean RSE % (Spatial FH)                         21.64%           
 #> 
 #> Distribution of Domain Point Estimates:
 #>          FH Spatial FH Difference
