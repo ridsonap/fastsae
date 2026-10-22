@@ -130,6 +130,7 @@ reference:
     contents:
       - map_sae
       - compare_sae
+      - step_sae
       - export_sae
       - add_reliability_flags
       - plot.fastsae

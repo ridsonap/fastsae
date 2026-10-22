@@ -402,3 +402,21 @@ test_that("compiled BHF fit rejects unidentifiable designs", {
   expect_error(fastsae:::.bhf_fit(cbind(1, x, 2 * x), rnorm(20), rep(0:3, 5), 4, "REML"), "linearly dependent")
   expect_error(fastsae:::.bhf_fit(cbind(1, x), rnorm(20), 0:19, 20, "REML"), "must exceed")
 })
+
+test_that("eblup_bhf() reports the full log-likelihood, AIC and BIC of lme4", {
+  skip_if_not_installed("lme4")
+  data("cornsoybean", package = "fastsae")
+  data("cornsoybeanmeans", package = "fastsae")
+  pop <- cornsoybeanmeans
+  names(pop)[names(pop) == "MeanCornPixPerSeg"] <- "CornPix"
+  names(pop)[names(pop) == "MeanSoyBeansPixPerSeg"] <- "SoyBeansPix"
+  names(pop)[names(pop) == "CountyIndex"] <- "County"
+  fit <- eblup_bhf(CornHec ~ CornPix + SoyBeansPix,
+    unit_data = cornsoybean, Xpop = pop, domain_var = "County",
+    popsize_var = "PopnSegments", method = "ML", print_result = FALSE
+  )
+  ref <- lme4::lmer(CornHec ~ CornPix + SoyBeansPix + (1 | County), data = cornsoybean, REML = FALSE)
+  expect_equal(fit$goodness[["loglikelihood"]], as.numeric(stats::logLik(ref)), tolerance = 1e-5)
+  expect_equal(fit$goodness[["AIC"]], stats::AIC(ref), tolerance = 1e-5)
+  expect_equal(fit$goodness[["BIC"]], stats::BIC(ref), tolerance = 1e-5)
+})

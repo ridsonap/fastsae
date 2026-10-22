@@ -107,6 +107,7 @@ Collate:
     spatial_test.R
     benchmark.R
     compare_sae.R
+    step_sae.R
     export_sae.R
     map_sae.R
 Config/roxygen2/version: 8.0.0
