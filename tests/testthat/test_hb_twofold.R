@@ -491,7 +491,8 @@ test_that(".inla_predictor_draws() matches inla.posterior.sample()", {
   expect_false(is.null(fits$classic_besag$fit$misc$configs$constr))
   for (f in fits) {
     eta <- .inla_predictor_draws(f$fit, 4000, nrow(dat), seed = 1L)
-    ps <- INLA::inla.posterior.sample(4000, f$fit, seed = 0L)
+    # serial configurations: R CMD check limits the number of forked processes
+    ps <- INLA::inla.posterior.sample(4000, f$fit, seed = 0L, parallel.configs = FALSE)
     rows <- match(paste0("Predictor:", seq_len(nrow(dat))), rownames(ps[[1]]$latent))
     ref <- sapply(ps, function(s) s$latent[rows, 1])
     sd_ref <- apply(ref, 1, sd)

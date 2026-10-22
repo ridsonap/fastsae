@@ -420,8 +420,10 @@ test_that("hb_unit() fits in INLA's classic mode and is reproducible", {
 test_that("posterior draws of the INLA engine use a fixed seed by default", {
   expect_gt(inla_engine()$seed, 0)
   skip_if_not_installed("INLA")
+  # Gaussian hb_twofold() aggregates by lincombs and stores no configurations
   fit <- hb_twofold(y ~ x1,
     vardir = "vardir", domain = "area", data = twofold_data(),
+    engine = inla_engine(control.compute = list(config = TRUE)),
     print_result = FALSE
   )
   draw <- function() .inla_draws(fit$fit, 5, fit$engine_spec$seed)[[3]]$latent
