@@ -42,6 +42,10 @@
 #' @returns List containing EBLUP estimates, fit, and optionally MSE. The
 #'   \code{fit} element holds the variance components, \code{beta}, the
 #'   predicted random effects and the unit-level conditional residuals.
+#'   \code{goodness} is a named vector: \code{loglikelihood} (the full Gaussian
+#'   log-likelihood of the sampled units at the estimates, for ML and REML fits alike, as in
+#'   \code{\link{eblup_fh}()}), and \code{AIC} and \code{BIC} computed from it with
+#'   \eqn{p + 2} parameters and the number of sampled units.
 #'
 #' @references
 #' Battese, G. E., Harter, R. M., and Fuller, W. A. (1988). An error-components
@@ -223,6 +227,7 @@ eblup_bhf <- function(
     model = "BHF",
     level = "unit",
     mse_type = mse_type,
+    goodness = .bhf_goodness(ys, Xs, betaest, dom_int, sigma2_u, sigma2_e),
     convergence = fit$convergence,
     data = unit_data,
     call = match.call()
@@ -237,6 +242,25 @@ eblup_bhf <- function(
   }
 
   return(out)
+}
+
+#' Full Gaussian log-likelihood of the nested error model at the estimates, with AIC
+#' and BIC (p + 2 parameters, n sampled units). Per domain V_d = s2e I + s2u 11', so
+#' log|V_d| = (n_d - 1) log s2e + log(s2e + n_d s2u) and
+#' r' V_d^-1 r = (sum r^2 - s2u (sum r)^2 / (s2e + n_d s2u)) / s2e.
+#' @noRd
+.bhf_goodness <- function(ys, Xs, beta, dom_int, s2u, s2e) {
+  r <- as.numeric(ys - Xs %*% beta)
+  n_d <- tabulate(dom_int + 1L)
+  sum_r <- vapply(split(r, dom_int), sum, numeric(1))
+  sum_r2 <- vapply(split(r^2, dom_int), sum, numeric(1))
+  n_d <- n_d[n_d > 0]
+  logdet <- sum((n_d - 1) * log(s2e) + log(s2e + n_d * s2u))
+  quad <- sum((sum_r2 - s2u * sum_r^2 / (s2e + n_d * s2u)) / s2e)
+  n <- length(r)
+  loglik <- -0.5 * (n * log(2 * pi) + logdet + quad)
+  k <- ncol(Xs) + 2
+  c(loglikelihood = loglik, AIC = -2 * loglik + 2 * k, BIC = -2 * loglik + k * log(n))
 }
 
 #' Fit the nested error model by REML/ML (C++, profiled likelihood)

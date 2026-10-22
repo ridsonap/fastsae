@@ -99,6 +99,25 @@
 * `print()`/`summary()` show the engine, and the self-benchmarking line now names the method used
   (posterior draws or Wang-Fuller-Qu) instead of always reporting Wang-Fuller-Qu.
 
+### Covariate selection: `step_sae()`
+* New `step_sae()` selects the covariates of any fitted model by stepwise search (backward,
+  forward or both), refitting it with the same settings (family, spatial or temporal structure,
+  engine) at every step.
+  * EBLUP models: AIC, BIC (default) or KIC from the full log-likelihood (Marhuenda, Morales
+    and Pardo 2014). Models with a `method` argument are fitted by ML during the search and the
+    selected model is refitted with the original method. On `mys` with a noise covariate the
+    path and the BIC values equal those of `emdi::step()`.
+  * HB models of every family: LCPO (leave-one-out through INLA's conditional predictive
+    ordinates; default with `inla_engine()`), WAIC (default with `jax_engine()`) or DIC. WAIC
+    is unstable with one observation per area: in a binomial simulation it selected exactly
+    the true covariates in 27% of the replicates, LCPO in 70%
+    (`benchmarks/validation/step_sae.R`).
+  * Spatial models are selected with their spatial effect: a spatially smooth noise covariate
+    was kept in 20% of the replicates by the Fay-Herriot model and in 8% by the spatial one
+    (spatial confounding; Hodges and Reich 2010).
+* `eblup_bhf()` returns `goodness` (full log-likelihood, AIC and BIC), as the other EBLUP
+  models; with `method = "ML"` they equal those of `lme4::lmer(REML = FALSE)`.
+
 ### Default priors of the HB models
 * The random-effect standard deviations of Gaussian HB models (`hb_area()`, `hb_unit()`,
   `hb_twofold()`; area, sub-area, time and interaction effects) get a half-normal prior with

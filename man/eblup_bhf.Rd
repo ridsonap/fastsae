@@ -57,6 +57,10 @@ does not change the random number stream of the session.}
 List containing EBLUP estimates, fit, and optionally MSE. The
   \code{fit} element holds the variance components, \code{beta}, the
   predicted random effects and the unit-level conditional residuals.
+  \code{goodness} is a named vector: \code{loglikelihood} (the full Gaussian
+  log-likelihood of the sampled units at the estimates, for ML and REML fits alike, as in
+  \code{\link{eblup_fh}()}), and \code{AIC} and \code{BIC} computed from it with
+  \eqn{p + 2} parameters and the number of sampled units.
 }
 \description{
 This function estimates small area means or totals using the unit-level model
