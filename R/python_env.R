@@ -1,24 +1,5 @@
-#' Check whether the NumPyro / JAX engine is available
-#'
-#' Checks that \code{hb_area(engine = "jax")} can run: the package \pkg{reticulate}
-#' and a Python with the modules \code{jax} and \code{numpyro}. It uses the Python
-#' already initialised in the session, otherwise the one named by the environment
-#' variables \code{RETICULATE_PYTHON} or \code{RETICULATE_PYTHON_ENV}, otherwise the
-#' \code{r-numpyro-gpu} environment created by \code{\link{setup_numpyro_env}} (virtualenv,
-#' or conda when \code{conda} is on the \code{PATH}). When none of these exists it returns
-#' \code{FALSE} at once, without searching the system for other Python installations
-#' (which can take tens of seconds on some platforms). To use another Python, set
-#' \code{RETICULATE_PYTHON}, or select it with \code{reticulate::use_python()} and initialise
-#' it (e.g. \code{reticulate::py_config()}) before the check. The check never installs or
-#' downloads anything: the managed ('uv') Python of \pkg{reticulate} is not
-#' provisioned unless the \code{RETICULATE_USE_MANAGED_VENV} environment variable is set.
-#'
-#' @param device Character: \code{"auto"}, \code{"metal"}, \code{"cuda"}, or \code{"cpu"}.
-#' @return Logical indicating whether the environment is properly configured.
-#' @seealso \code{\link{setup_numpyro_env}}, \code{\link{hb_area}}
-#' @examples
-#' check_numpyro_available()
-#' @export
+#' Whether the NumPyro / JAX engine is available (setup_numpyro_env(check_only = TRUE))
+#' @noRd
 check_numpyro_available <- function(device = "auto") {
   device <- match.arg(device, c("auto", "metal", "cuda", "cpu"))
   if (!requireNamespace("reticulate", quietly = TRUE)) {
@@ -88,25 +69,48 @@ check_numpyro_available <- function(device = "auto") {
   )
 }
 
-#' Set up the Python environment for the NumPyro / JAX engine
+#' Set up, or check, the Python environment for the NumPyro / JAX engine
 #'
 #' Creates (or updates) a Python environment with \code{jax} and \code{numpyro} for
-#' \code{hb_area(engine = "jax")} and activates it for \pkg{reticulate}.
+#' \code{jax_engine()} and activates it for \pkg{reticulate}. With
+#' \code{check_only = TRUE} it only checks that the engine can run, and installs nothing.
+#'
+#' @details
+#' The check needs the package \pkg{reticulate} and a Python with the modules
+#' \code{jax} and \code{numpyro}. It uses the Python already initialised in the session,
+#' otherwise the one named by the environment variables \code{RETICULATE_PYTHON} or
+#' \code{RETICULATE_PYTHON_ENV}, otherwise the \code{r-numpyro-gpu} environment created by
+#' this function (virtualenv, or conda when \code{conda} is on the \code{PATH}). When none of
+#' these exists it returns \code{FALSE} at once, without searching the system for other
+#' Python installations (which can take tens of seconds on some platforms). To use another
+#' Python, set \code{RETICULATE_PYTHON}, or select it with \code{reticulate::use_python()} and
+#' initialise it (e.g. \code{reticulate::py_config()}) before the check. The check never
+#' installs or downloads anything: the managed ('uv') Python of \pkg{reticulate} is not
+#' provisioned unless the \code{RETICULATE_USE_MANAGED_VENV} environment variable is set.
 #'
 #' @param envname Name of the conda or virtualenv environment. Default \code{"r-numpyro-gpu"}.
 #' @param method \code{"auto"} (virtualenv), \code{"virtualenv"}, or \code{"conda"}.
 #' @param device \code{"auto"} (CUDA if \code{nvidia-smi} is found, otherwise CPU), \code{"metal"}
 #'   (Apple Silicon), \code{"cuda"} (NVIDIA), or \code{"cpu"}. Versions are pinned to tested
 #'   combinations: \code{jax==0.5.0} and \code{numpyro==0.19.0} for CPU/CUDA; \code{jax==0.4.34},
-#'   \code{jaxlib==0.4.34}, \code{jax-metal==0.1.1} for Metal.
-#' @return Invisible logical \code{TRUE} upon successful setup.
-#' @seealso \code{\link{check_numpyro_available}}, \code{\link{hb_area}}
+#'   \code{jaxlib==0.4.34}, \code{jax-metal==0.1.1} for Metal. With \code{check_only = TRUE},
+#'   the device to check (\code{"auto"} uses the CPU on macOS).
+#' @param check_only Logical; only check whether the engine can run (see Details), without
+#'   installing anything. Default \code{FALSE}.
+#' @return Invisible logical \code{TRUE} upon successful setup; with \code{check_only = TRUE},
+#'   a logical telling whether the engine is available.
+#' @seealso \code{\link{jax_engine}}, \code{\link{hb_area}}
 #' @examples
+#' setup_numpyro_env(check_only = TRUE)
 #' \dontrun{
 #' setup_numpyro_env(device = "auto")
 #' }
 #' @export
-setup_numpyro_env <- function(envname = "r-numpyro-gpu", method = "auto", device = "auto") {
+setup_numpyro_env <- function(envname = "r-numpyro-gpu", method = "auto", device = "auto",
+                              check_only = FALSE) {
+  if (isTRUE(check_only)) {
+    return(check_numpyro_available(device = device))
+  }
   if (!requireNamespace("reticulate", quietly = TRUE)) {
     cli::cli_abort("Package {.pkg reticulate} is required. Install it with {.code install.packages(\"reticulate\")}.")
   }

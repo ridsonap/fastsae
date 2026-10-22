@@ -170,7 +170,7 @@ default of the model function; a setting the model does not use (such as
 \code{jax_engine()} fits the model by MCMC (NumPyro's No-U-Turn sampler on
 JAX, Phan et al. 2019) on CPU, CUDA GPU or Apple Metal, through
 \pkg{reticulate}. It needs Python with \code{jax} and \code{numpyro}; see
-\code{\link{setup_numpyro_env}} and \code{\link{check_numpyro_available}}.
+\code{\link{setup_numpyro_env}} (\code{check_only = TRUE} checks it).
 The fixed effects get a normal or a regularized horseshoe prior (Piironen
 and Vehtari 2017); see \code{priors} for the other priors.
 \code{spatial = "slm"} and \code{temporal = "rw2"} are not available.

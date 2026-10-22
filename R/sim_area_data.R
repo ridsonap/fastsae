@@ -6,9 +6,14 @@
 #'
 #' @param D Integer. Number of domains (areas). Default is 42.
 #' @param W Optional spatial proximity or adjacency matrix of dimension \eqn{D \times D}.
-#'   If \code{NULL}, a spatial matrix is automatically simulated using \code{\link{sim_spatial_weights}}.
+#'   If \code{NULL}, a matrix is simulated (see \code{spatial_type} and \code{k}) and returned in
+#'   the output (\code{W}, and \code{W_std} row-standardized).
 #' @param spatial_type Character. Topology for simulated \code{W} if \code{W = NULL}:
-#'   \code{"knn"}, \code{"grid"}, or \code{"ring"}. Default is \code{"knn"}.
+#'   \code{"knn"} (each domain linked to its \code{k} nearest neighbours among random 2D
+#'   coordinates, symmetrised), \code{"grid"} (rook contiguity on a regular lattice) or
+#'   \code{"ring"} (a closed chain). Default is \code{"knn"}.
+#' @param k Integer. Number of nearest neighbours of each domain when
+#'   \code{spatial_type = "knn"}. Default is 4.
 #' @param rho Numeric. Spatial autocorrelation autoregressive parameter (\eqn{|\rho| < 1}). Default is 0.5.
 #' @param phi Numeric. Proportion of spatial marginal variance relative to total area variance (BYM2 parameter, \eqn{0 \le \phi \le 1}). Default is 0.6.
 #' @param sigma_u Numeric. Overall standard deviation of domain random effects. Default is 0.5.
@@ -39,14 +44,18 @@
 #' print(sim)
 #' head(sim$data)
 #'
-#' # 2. Using an existing spatial matrix
-#' my_W <- sim_spatial_weights(D = 30, type = "grid")
-#' sim2 <- sim_area_data(W = my_W, seed = 456)
+#' # 2. A 6-nearest-neighbour graph, and its matrices
+#' sim2 <- sim_area_data(D = 30, k = 6, seed = 456)
+#' sim2$W[1:5, 1:5]
+#'
+#' # 3. Using an existing spatial matrix
+#' sim3 <- sim_area_data(W = sim2$W, seed = 789)
 #'
 #' @export
 sim_area_data <- function(D = 42,
                           W = NULL,
                           spatial_type = c("knn", "grid", "ring"),
+                          k = 4,
                           rho = 0.5,
                           phi = 0.6,
                           sigma_u = 0.5,
@@ -63,7 +72,7 @@ sim_area_data <- function(D = 42,
   if (is.null(W)) {
     D <- as.integer(D)
     if (is.na(D) || D < 2L) stop("'D' must be an integer >= 2.", call. = FALSE)
-    W <- sim_spatial_weights(D = D, type = spatial_type, style = "B")
+    W <- sim_spatial_weights(D = D, type = spatial_type, style = "B", k = k)
     coords <- attr(W, "coords")
   } else {
     W <- as.matrix(W)

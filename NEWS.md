@@ -85,8 +85,8 @@
   10,000 domains) and slower for small ones, where a fixed cost of about two minutes per fit
   dominates (see the "hb_area() engines" benchmark article). `device = "auto"` keeps using the CPU
   on macOS.
-* New `setup_numpyro_env()` and `check_numpyro_available()` to install and check the Python side.
-  Nothing is installed or downloaded unless `setup_numpyro_env()` is called. The check looks only at
+* New `setup_numpyro_env()` to install the Python side, and `setup_numpyro_env(check_only = TRUE)`
+  to check it. Nothing is installed or downloaded by the check. It looks only at
   an initialised Python, `RETICULATE_PYTHON` / `RETICULATE_PYTHON_ENV` and the `r-numpyro-gpu`
   environment, so it answers in about a second instead of searching the whole system for Python
   installations (which took over 20 s on Windows).
@@ -592,7 +592,8 @@
   * `map_sae()`: Spatial thematic choropleth maps integrated with `sf`.
   * `export_sae()`: Export estimation results with full statistical metadata to Excel (`openxlsx`/`writexl`) and CSV.
 * **Simulation Utilities**:
-  * `sim_area_data()`, `sim_spatial_weights()`, and `sim_series_data()`.
+  * `sim_area_data()` and `sim_series_data()`, which return the simulated spatial weights (`W`,
+    `W_std`; `spatial_type` and the number of neighbours `k` choose the graph).
 * **Reliability & Performance**:
   * High-performance C++ core (`RcppArmadillo` and OpenMP) with strict validation checks.
 

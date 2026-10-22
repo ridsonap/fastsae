@@ -8,9 +8,14 @@
 #' @param T Integer. Number of time periods (\eqn{T \ge 2}). Default is 5.
 #' @param time_start Integer. Starting year / time label. Default is 2022.
 #' @param W Optional spatial proximity or adjacency matrix of dimension \eqn{D \times D}.
-#'   If \code{NULL}, a spatial matrix is automatically simulated using \code{\link{sim_spatial_weights}}.
+#'   If \code{NULL}, a matrix is simulated (see \code{spatial_type} and \code{k}) and returned in
+#'   the output (\code{W}, and \code{W_std} row-standardized).
 #' @param spatial_type Character. Topology for simulated \code{W} if \code{W = NULL}:
-#'   \code{"knn"}, \code{"grid"}, or \code{"ring"}. Default is \code{"knn"}.
+#'   \code{"knn"} (each domain linked to its \code{k} nearest neighbours among random 2D
+#'   coordinates, symmetrised), \code{"grid"} (rook contiguity on a regular lattice) or
+#'   \code{"ring"} (a closed chain). Default is \code{"knn"}.
+#' @param k Integer. Number of nearest neighbours of each domain when
+#'   \code{spatial_type = "knn"}. Default is 4.
 #' @param rho_s Numeric. Domain spatial autoregressive autocorrelation parameter (\eqn{|\rho_s| < 1},
 #'   corresponding to \code{rho1} in \code{\link{eblup_stfh}}). Default is 0.5.
 #' @param rho_t Numeric. Temporal AR(1) autocorrelation parameter (\eqn{|\rho_t| < 1},
@@ -68,6 +73,7 @@ sim_series_data <- function(D = 42,
                             time_start = 2022,
                             W = NULL,
                             spatial_type = c("knn", "grid", "ring"),
+                            k = 4,
                             rho_s = 0.5,
                             rho_t = 0.6,
                             sigma_s = 0.4,
@@ -97,7 +103,7 @@ sim_series_data <- function(D = 42,
   if (is.null(W)) {
     D <- as.integer(D)
     if (is.na(D) || D < 2L) stop("'D' must be an integer >= 2.", call. = FALSE)
-    W <- sim_spatial_weights(D = D, type = spatial_type, style = "B")
+    W <- sim_spatial_weights(D = D, type = spatial_type, style = "B", k = k)
     coords <- attr(W, "coords")
   } else {
     W <- as.matrix(W)

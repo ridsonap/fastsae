@@ -315,7 +315,7 @@
 #' }
 #'
 #' # 4. The same Fay-Herriot model by MCMC (NumPyro NUTS on JAX)
-#' if (check_numpyro_available()) {
+#' if (setup_numpyro_env(check_only = TRUE)) {
 #'   m_jax <- hb_area(
 #'     y ~ x1 + x2 + x3,
 #'     data = mys,
