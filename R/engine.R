@@ -83,9 +83,10 @@
 #'   effect (\code{hb_twofold()} only). \code{NULL}: the default of \code{prior_prec}.
 #' @param draws Number of posterior draws from
 #'   \code{INLA::inla.posterior.sample()}: for posterior self-benchmarking in
-#'   \code{hb_area()} (\code{NULL}: 1000) and for the area aggregates of
-#'   \code{hb_twofold()} (\code{NULL}: 200; \code{0} skips the sampling and
-#'   approximates the aggregate uncertainty from independent sub-area effects).
+#'   \code{hb_area()} (\code{NULL}: 1000) and for the area aggregates of the binomial
+#'   and Poisson \code{hb_twofold()} models (\code{NULL}: 200; \code{0} skips the sampling
+#'   and approximates the aggregate uncertainty from independent sub-area effects). The
+#'   Gaussian aggregates are exact INLA linear combinations and need no draws.
 #' @param seed Seed of \code{INLA::inla.posterior.sample()} for those draws, also used
 #'   by \code{benchmark_sae()}. The default \code{1L} makes them reproducible (INLA
 #'   then samples on one thread); \code{0L} is INLA's own default, a random seed.

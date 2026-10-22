@@ -538,6 +538,12 @@
 * `export_sae()` lists both variance components of two-fold models in the model summary.
 
 ### Performance
+* `hb_twofold()` (INLA, Gaussian): the area aggregates in `df_area` are INLA linear combinations
+  of the sub-area predictors, with exact posterior marginals, instead of 200 posterior draws.
+  The draws were sampled once per hyperparameter configuration (143 for the area and sub-area
+  variances), so a fit with 15 areas took 45 s, now 6 s; the area SDs agree with 4000 draws
+  within their Monte Carlo error. `inla_engine(draws = )` now only applies to the binomial and
+  Poisson families.
 * `benchmark_sae()`: the MSE covariance between areas is applied as a matrix-free operator
   (FH: $O(n p^2)$, no $n \times n$ matrices). FH with $m = 2000$: 9.4 s / 490 MB -> 0.002 s / 1.7 MB;
   $m = 20000$ now runs in about 0.01 s.

@@ -70,15 +70,17 @@ object, or \code{"jax"} or a \code{\link{jax_engine}()} object. \code{inla_engin
 effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
 both by default the prior of \code{\link{inla_engine}(prior_prec = )}; \code{prior_phi} for
 BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
-(default 200) and their \code{seed}, and further \code{INLA::inla()} arguments. The
-Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
+of the binomial and Poisson models (default 200) and their \code{seed}, and further
+\code{INLA::inla()} arguments. The Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
 in INLA's default \code{"compact"} mode, as in \code{\link{hb_area}};
 \code{inla_engine(inla.mode = )} selects a mode. \code{jax_engine()} samples the same
 model by MCMC (see the Engines section).}
 
 \item{compute_area}{Logical. If \code{TRUE} (default), computes aggregate primary area-level
-estimates and posterior standard errors from joint posterior draws (sampled from the INLA
-fit, or the MCMC draws with \code{jax_engine()}).}
+estimates and posterior standard errors: for the Gaussian model with INLA from the exact
+posterior of the weighted sums of the sub-area predictors (INLA linear combinations),
+otherwise from joint posterior draws (sampled from the INLA fit, or the MCMC draws with
+\code{jax_engine()}).}
 
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary of results.}
 

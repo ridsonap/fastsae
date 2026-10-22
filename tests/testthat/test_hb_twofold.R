@@ -409,3 +409,33 @@ test_that("hb_twofold handles INLA failure and fallback aggregation", {
   expect_s3_class(fit_fb, "fastsae")
   expect_false(any(is.na(fit_fb$df_area$hb)))
 })
+
+test_that("Gaussian area aggregates are exact linear combinations, without posterior sampling", {
+  skip_if_not_installed("INLA")
+  set.seed(4)
+  dat <- do.call(rbind, lapply(1:6, function(d) {
+    data.frame(area = d, subarea = paste0(d, "_", 1:3), x = rnorm(3), w = runif(3, 1, 5))
+  }))
+  dat$vardir <- runif(nrow(dat), 0.5, 2)
+  dat$y <- 5 + dat$x + rnorm(6)[dat$area] + rnorm(nrow(dat), sd = sqrt(dat$vardir))
+  # inla.posterior.sample() runs once per hyperparameter configuration (143 here),
+  # which made the default Gaussian fit take ~45 s
+  local_mocked_bindings(.inla_draws = function(...) stop("no posterior sampling"))
+  fit <- hb_twofold(y ~ x,
+    vardir = "vardir", domain = "area", subarea = "subarea", weight = "w",
+    data = dat, print_result = FALSE
+  )
+  lc <- fit$fit$summary.lincomb.derived
+  expect_equal(nrow(lc), 6)
+  expect_equal(fit$df_area$sd_area, lc$sd)
+  expect_equal(fit$df_area$ci_lower_area, lc[["0.025quant"]])
+  expect_equal(fit$df_area$ci_upper_area, lc[["0.975quant"]])
+  # the area mean stays the weighted mean of the sub-area means, which INLA integrates
+  # slightly differently from the linear combinations
+  expect_equal(fit$df_area$hb_area, lc$mean, tolerance = 1e-4)
+  # the area SD keeps the covariance the sub-areas share through the area effect: larger
+  # than the SD of independent sub-areas
+  w <- dat$w / ave(dat$w, dat$area, FUN = sum)
+  sd_indep <- sqrt(tapply((w * fit$df_hb$sd)^2, dat$area, sum))
+  expect_true(all(fit$df_area$sd_area > sd_indep))
+})
