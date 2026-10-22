@@ -176,6 +176,59 @@
   )
 }
 
+#' Posterior draws of the linear predictor from INLA's hyperparameter configurations
+#'
+#' With a seed, INLA::inla.posterior.sample() samples serially and runs the inla
+#' program once per configuration (~0.3 s each; 36-143 configurations in
+#' hb_twofold()). This picks the configurations as INLA does (R's RNG, by their
+#' posterior weight) and draws the latent field of each in R from its Gaussian
+#' approximation N(improved mean, Q^-1), conditioned on the linear constraints,
+#' then maps it to the predictor (A x in INLA's compact mode, the Predictor rows
+#' in classic mode). INLA's skewness correction of the marginals is not applied:
+#' on hb_twofold() fits it moved the area aggregates less than the Monte Carlo
+#' error of 20000 draws. Returns the n_pred x n matrix, or NULL when the fit has
+#' no configurations (control.compute = list(config = TRUE)).
+#' @noRd
+.inla_predictor_draws <- function(fit, n, n_pred, seed = 1L) {
+  cs <- fit$misc$configs
+  if (is.null(cs) || length(cs$config) == 0L) {
+    return(NULL)
+  }
+  A <- cs$A
+  pred_rows <- NULL
+  if (is.null(A) || nrow(A) == 0L) {
+    i <- match("Predictor", cs$contents$tag)
+    if (is.na(i)) {
+      return(NULL)
+    }
+    pred_rows <- cs$contents$start[i] + seq_len(n_pred) - 1L
+  } else if (nrow(A) != n_pred) {
+    return(NULL)
+  }
+  seed <- as.integer(seed)
+  .with_seed(if (seed > 0) seed else -1L, {
+    lp <- vapply(cs$config, function(cfg) cfg$log.posterior, numeric(1))
+    k_of <- sample.int(length(lp), n, replace = TRUE, prob = exp(lp - max(lp)))
+    out <- matrix(NA_real_, n_pred, n)
+    for (k in sort(unique(k_of))) {
+      j <- which(k_of == k)
+      cfg <- cs$config[[k]]
+      # INLA stores the upper triangle of Q
+      L <- Matrix::Cholesky(Matrix::forceSymmetric(cfg$Q, uplo = "U"), perm = TRUE, LDL = FALSE)
+      z <- matrix(stats::rnorm(nrow(cfg$Q) * length(j)), nrow(cfg$Q))
+      x <- Matrix::solve(L, Matrix::solve(L, z, system = "Lt"), system = "Pt") +
+        (cfg$improved.mean %||% cfg$mean)
+      if (!is.null(cs$constr)) {
+        Ac <- cs$constr$A
+        QiA <- Matrix::solve(L, t(Ac))
+        x <- x - QiA %*% Matrix::solve(Ac %*% QiA, Ac %*% x - cs$constr$e)
+      }
+      out[, j] <- as.matrix(if (is.null(pred_rows)) A %*% x else x[pred_rows, , drop = FALSE])
+    }
+    out
+  })
+}
+
 #' Convert and validate spatial proximity / weight matrix for INLA models
 #'
 #' @param W Matrix, Matrix object, `spdep` `nb`, or `listw` object.

@@ -409,3 +409,104 @@ test_that("hb_twofold handles INLA failure and fallback aggregation", {
   expect_s3_class(fit_fb, "fastsae")
   expect_false(any(is.na(fit_fb$df_area$hb)))
 })
+
+test_that("Gaussian area aggregates are exact linear combinations, without posterior sampling", {
+  skip_if_not_installed("INLA")
+  set.seed(4)
+  dat <- do.call(rbind, lapply(1:6, function(d) {
+    data.frame(area = d, subarea = paste0(d, "_", 1:3), x = rnorm(3), w = runif(3, 1, 5))
+  }))
+  dat$vardir <- runif(nrow(dat), 0.5, 2)
+  dat$y <- 5 + dat$x + rnorm(6)[dat$area] + rnorm(nrow(dat), sd = sqrt(dat$vardir))
+  # inla.posterior.sample() runs once per hyperparameter configuration (143 here),
+  # which made the default Gaussian fit take ~45 s
+  local_mocked_bindings(.inla_draws = function(...) stop("no posterior sampling"))
+  fit <- hb_twofold(y ~ x,
+    vardir = "vardir", domain = "area", subarea = "subarea", weight = "w",
+    data = dat, print_result = FALSE
+  )
+  lc <- fit$fit$summary.lincomb.derived
+  expect_equal(nrow(lc), 6)
+  expect_equal(fit$df_area$sd_area, lc$sd)
+  expect_equal(fit$df_area$ci_lower_area, lc[["0.025quant"]])
+  expect_equal(fit$df_area$ci_upper_area, lc[["0.975quant"]])
+  # the area mean stays the weighted mean of the sub-area means, which INLA integrates
+  # slightly differently from the linear combinations
+  expect_equal(fit$df_area$hb_area, lc$mean, tolerance = 1e-4)
+  # the area SD keeps the covariance the sub-areas share through the area effect: larger
+  # than the SD of independent sub-areas
+  w <- dat$w / ave(dat$w, dat$area, FUN = sum)
+  sd_indep <- sqrt(tapply((w * fit$df_hb$sd)^2, dat$area, sum))
+  expect_true(all(fit$df_area$sd_area > sd_indep))
+})
+
+sim_twofold_counts <- function() {
+  set.seed(5)
+  dat <- do.call(rbind, lapply(1:12, function(d) {
+    data.frame(area = d, subarea = paste0(d, "_", 1:3), x = rnorm(3))
+  }))
+  dat$n <- 30L
+  dat$y <- rbinom(nrow(dat), 30, plogis(-1 + 0.5 * dat$x + rnorm(12, sd = 0.6)[dat$area]))
+  dat
+}
+
+test_that("binomial and Poisson area aggregates are sampled in R from INLA's configurations", {
+  skip_if_not_installed("INLA")
+  dat <- sim_twofold_counts()
+  # inla.posterior.sample() ran the inla program once per configuration (~25 s)
+  local_mocked_bindings(.inla_draws = function(...) stop("no inla.posterior.sample()"))
+  fit <- hb_twofold(y ~ x,
+    domain = "area", subarea = "subarea", trials = "n", family = "binomial",
+    data = dat, print_result = FALSE
+  )
+  # draws keep the covariance the sub-areas share through the area effect
+  sd_indep <- sqrt(tapply((fit$df_hb$sd / 3)^2, dat$area, sum))
+  expect_true(all(fit$df_area$sd_area > 1.2 * sd_indep))
+  expect_equal(fit$df_area$hb_area, as.numeric(tapply(fit$df_hb$hb, dat$area, mean)))
+})
+
+test_that(".inla_predictor_draws() matches inla.posterior.sample()", {
+  skip_if_not_installed("INLA")
+  dat <- sim_twofold_counts()
+  W <- matrix(0, 12, 12)
+  W[cbind(1:11, 2:12)] <- W[cbind(2:12, 1:11)] <- 1
+  dat$v <- 0.5
+  dat$yg <- 1 + dat$x + rnorm(12)[dat$area] + rnorm(nrow(dat), sd = sqrt(0.5))
+  cfg <- list(config = TRUE)
+  fits <- list(
+    # compact mode (predictor = A x), several configurations (CCD keeps INLA's sampling short)
+    compact = hb_twofold(y ~ x,
+      domain = "area", subarea = "subarea", trials = "n", family = "binomial", data = dat,
+      compute_area = FALSE, print_result = FALSE,
+      engine = inla_engine(control.compute = cfg, control.inla = list(int.strategy = "ccd"))
+    ),
+    # classic mode (Predictor in the latent field) and the sum-to-zero constraint of Besag
+    classic_besag = hb_twofold(yg ~ x,
+      vardir = "v", domain = "area", subarea = "subarea", data = dat, spatial = "besag", W = W,
+      compute_area = FALSE, print_result = FALSE,
+      engine = inla_engine(control.compute = cfg, control.inla = list(int.strategy = "eb"))
+    )
+  )
+  expect_gt(length(fits$compact$fit$misc$configs$config), 1)
+  expect_false(is.null(fits$classic_besag$fit$misc$configs$constr))
+  for (f in fits) {
+    eta <- .inla_predictor_draws(f$fit, 4000, nrow(dat), seed = 1L)
+    # serial configurations: R CMD check limits the number of forked processes
+    ps <- INLA::inla.posterior.sample(4000, f$fit, seed = 0L, parallel.configs = FALSE)
+    rows <- match(paste0("Predictor:", seq_len(nrow(dat))), rownames(ps[[1]]$latent))
+    ref <- sapply(ps, function(s) s$latent[rows, 1])
+    sd_ref <- apply(ref, 1, sd)
+    expect_lt(max(abs(rowMeans(eta) - rowMeans(ref)) / sd_ref), 0.1)
+    expect_lt(max(abs(apply(eta, 1, sd) / sd_ref - 1)), 0.08)
+    # the covariance of the sub-areas of an area: their correlation
+    expect_lt(max(abs(cor(eta[1, ], eta[2, ]) - cor(ref[1, ], ref[2, ]))), 0.06)
+  }
+  # reproducible, and the session's random numbers are left alone
+  set.seed(9)
+  a <- .inla_predictor_draws(fits$compact$fit, 5, nrow(dat), seed = 3L)
+  u <- runif(1)
+  set.seed(9)
+  expect_identical(.inla_predictor_draws(fits$compact$fit, 5, nrow(dat), seed = 3L), a)
+  expect_identical(runif(1), u)
+  expect_null(.inla_predictor_draws(list(misc = list()), 5, 3))
+})

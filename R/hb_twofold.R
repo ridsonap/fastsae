@@ -46,14 +46,16 @@
 #'   effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
 #'   both by default the prior of \code{\link{inla_engine}(prior_prec = )}; \code{prior_phi} for
 #'   BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
-#'   (default 200) and their \code{seed}, and further \code{INLA::inla()} arguments. The
-#'   Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
+#'   of the binomial and Poisson models (default 2000) and their \code{seed}, and further
+#'   \code{INLA::inla()} arguments. The Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
 #'   in INLA's default \code{"compact"} mode, as in \code{\link{hb_area}};
 #'   \code{inla_engine(inla.mode = )} selects a mode. \code{jax_engine()} samples the same
 #'   model by MCMC (see the Engines section).
 #' @param compute_area Logical. If \code{TRUE} (default), computes aggregate primary area-level
-#'   estimates and posterior standard errors from joint posterior draws (sampled from the INLA
-#'   fit, or the MCMC draws with \code{jax_engine()}).
+#'   estimates and posterior standard errors: for the Gaussian model with INLA from the exact
+#'   posterior of the weighted sums of the sub-area predictors (INLA linear combinations),
+#'   otherwise from joint posterior draws (sampled from the INLA fit, or the MCMC draws with
+#'   \code{jax_engine()}).
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary of results.
 #' @param ... Deprecated. \code{strategy}, \code{scale_model}, \code{prior_prec_area} (now
 #'   \code{prior_prec}), \code{prior_prec_subarea}, \code{prior_phi}, \code{n_samples} (now
@@ -190,7 +192,7 @@ hb_twofold <- function(
       prior_prec = pc_prec,
       prior_prec_subarea = pc_prec,
       prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
-      draws = 200L
+      draws = 2000L
     ),
     used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws")
   )
@@ -325,9 +327,23 @@ hb_twofold <- function(
     family = family,
     control.predictor = list(compute = TRUE, link = 1),
     control.inla = list(strategy = strategy),
-    control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, mlik = TRUE, config = compute_area),
+    control.compute = list(
+      dic = TRUE, waic = TRUE, cpo = TRUE, mlik = TRUE,
+      config = compute_area && family != "gaussian"
+    ),
     num.threads = 1
   )
+
+  # Gaussian area aggregates are linear in the predictor: INLA's linear combinations give
+  # their exact posterior marginals. The other families need posterior draws.
+  if (compute_area) {
+    norm_weight <- .twofold_weights(weight_vec, domain_vec, unique_domains, subarea_vec)
+    if (family == "gaussian") {
+      A <- matrix(0, length(unique_domains), n_subareas)
+      A[cbind(match(domain_vec, unique_domains), seq_len(n_subareas))] <- norm_weight
+      inla_args$lincomb <- INLA::inla.make.lincombs(Predictor = A)
+    }
+  }
 
   if (family == "gaussian") {
     inla_args$scale <- scale_vec
@@ -400,32 +416,33 @@ hb_twofold <- function(
 
   # 10. Area-Level Aggregation
   df_area <- NULL
-  if (compute_area) {
-    norm_weight <- .twofold_weights(weight_vec, domain_vec, unique_domains, subarea_vec)
-    # Joint posterior draws of the sub-area parameters on the response scale
-    mat_samples <- tryCatch(
-      {
-        ps <- .inla_draws(fit, engine$draws, engine$seed)
-        pred_names <- paste0("Predictor:", seq_len(n_subareas))
-        latent_rows <- rownames(ps[[1]]$latent)
-        pred_indices <- match(pred_names, latent_rows)
-
-        if (!any(is.na(pred_indices))) {
-          mat_samples <- sapply(ps, function(s) s$latent[pred_indices, 1])
-
-          # Link function transformation if binomial or poisson
-          if (family == "binomial") {
-            mat_samples <- 1 / (1 + exp(-mat_samples))
-          } else if (family == "poisson") {
-            mat_samples <- exp(mat_samples)
-          }
-          mat_samples
-        } else {
-          NULL
-        }
-      },
-      error = function(e) NULL
+  if (compute_area && family == "gaussian") {
+    df_area <- .twofold_area_table(NULL, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd,
+      summary = fit$summary.lincomb.derived
     )
+  } else if (compute_area) {
+    # Joint posterior draws of the sub-area predictors, sampled in R from INLA's
+    # configurations; INLA's own sampler if the fit does not have them
+    eta <- NULL
+    if (engine$draws > 0) {
+      eta <- tryCatch(.inla_predictor_draws(fit, engine$draws, n_subareas, engine$seed),
+        error = function(e) NULL
+      )
+      if (is.null(eta)) {
+        eta <- tryCatch(
+          {
+            ps <- .inla_draws(fit, engine$draws, engine$seed)
+            pred_indices <- match(paste0("Predictor:", seq_len(n_subareas)), rownames(ps[[1]]$latent))
+            if (!any(is.na(pred_indices))) sapply(ps, function(s) s$latent[pred_indices, 1])
+          },
+          error = function(e) NULL
+        )
+      }
+    }
+    # on the response scale
+    mat_samples <- if (!is.null(eta)) {
+      if (family == "binomial") stats::plogis(eta) else exp(eta)
+    }
     df_area <- .twofold_area_table(mat_samples, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd)
   }
 
@@ -554,10 +571,12 @@ hb_twofold <- function(
 #' `draws` is the n x S matrix of joint posterior draws of the sub-area
 #' parameters on the response scale; the area SD and interval come from the
 #' weighted sums of the draws, which keep the covariance the sub-areas of an
-#' area share through v_i. Without draws (`NULL`) they are approximated from
+#' area share through v_i. `summary` (INLA's `summary.lincomb.derived`, one row
+#' per area) gives them exactly instead. Without either they are approximated from
 #' independent sub-area errors.
 #' @noRd
-.twofold_area_table <- function(draws, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd) {
+.twofold_area_table <- function(draws, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd,
+                                summary = NULL) {
   n_domains <- length(unique_domains)
   area_hb <- as.numeric(tapply(norm_weight * hb_pred, domain_vec, sum, na.rm = TRUE)[as.character(unique_domains)])
   n_subs <- as.integer(table(factor(domain_vec, levels = unique_domains)))
@@ -566,7 +585,11 @@ hb_twofold <- function(
   for (i in seq_along(unique_domains)) {
     idx <- which(domain_vec == unique_domains[i])
     w_i <- norm_weight[idx]
-    if (!is.null(draws)) {
+    if (!is.null(summary) && nrow(summary) == n_domains) {
+      area_sd[i] <- summary$sd[i]
+      area_lower[i] <- summary[["0.025quant"]][i]
+      area_upper[i] <- summary[["0.975quant"]][i]
+    } else if (!is.null(draws)) {
       area_draws <- colSums(w_i * draws[idx, , drop = FALSE])
       area_sd[i] <- stats::sd(area_draws)
       area_lower[i] <- stats::quantile(area_draws, probs = 0.025)

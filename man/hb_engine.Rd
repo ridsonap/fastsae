@@ -83,11 +83,16 @@ default.}
 \item{prior_prec_subarea}{Prior for the precision of the subarea random
 effect (\code{hb_twofold()} only). \code{NULL}: the default of \code{prior_prec}.}
 
-\item{draws}{Number of posterior draws from
-\code{INLA::inla.posterior.sample()}: for posterior self-benchmarking in
-\code{hb_area()} (\code{NULL}: 1000) and for the area aggregates of
-\code{hb_twofold()} (\code{NULL}: 200; \code{0} skips the sampling and
-approximates the aggregate uncertainty from independent sub-area effects).}
+\item{draws}{Number of posterior draws: from \code{INLA::inla.posterior.sample()}
+for posterior self-benchmarking in \code{hb_area()} (\code{NULL}: 1000), and for
+the area aggregates of the binomial and Poisson \code{hb_twofold()} models
+(\code{NULL}: 2000; \code{0} skips the sampling and approximates the aggregate
+uncertainty from independent sub-area effects). \code{hb_twofold()} draws them in R
+from the Gaussian approximation of the latent field at each of INLA's hyperparameter
+configurations, without INLA's skewness correction (which changed the aggregates
+less than the Monte Carlo error of 20000 draws), in well under a second instead of
+0.3 s per configuration. The Gaussian aggregates are exact INLA linear combinations
+and need no draws.}
 
 \item{seed}{Random seed of the sampler. Default 42.}
 

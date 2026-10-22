@@ -156,9 +156,10 @@ test_that("step_sae() selects hb_unit() and hb_twofold() models by WAIC, DIC or 
   ft <- hb_twofold(y ~ x1 + x2,
     vardir = "vardir", domain = "area", subarea = "subarea", data = dat, print_result = FALSE
   )
-  # one candidate (each hb_twofold() fit takes long); DIC is read as WAIC
-  st <- step_sae(ft, scope = list(lower = ~x1, upper = ~ x1 + x2), criterion = "WAIC", trace = FALSE)
-  expect_equal(st$path$WAIC[1], ft$goodness$waic)
-  expect_s3_class(st$model, "fastsae_hb_twofold")
-  expect_true("x1" %in% attr(stats::terms(st$final), "term.labels"))
+  for (cr in c("WAIC", "DIC", "LCPO")) {
+    st <- step_sae(ft, criterion = cr, trace = FALSE)
+    expect_s3_class(st$model, "fastsae_hb_twofold")
+    expect_true("x1" %in% attr(stats::terms(st$final), "term.labels"))
+    if (cr != "LCPO") expect_equal(st$path[[cr]][1], ft$goodness[[tolower(cr)]])
+  }
 })

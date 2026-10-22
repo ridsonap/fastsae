@@ -204,7 +204,9 @@ installed.
 
 The argument `weight` (here the population of each sub-area) aggregates the sub-area posteriors
 to area estimates, $\hat\theta_i = \sum_j w_{ij} \theta_{ij} / \sum_j w_{ij}$, with their
-posterior uncertainty in `df_area`.
+posterior uncertainty in `df_area`. For the Gaussian model these are linear combinations of the
+sub-area predictors, whose posterior INLA computes exactly; the binomial and Poisson aggregates
+come from posterior draws (`inla_engine(draws = )`).
 
 ```{r fit_hb, eval = has_inla}
 fit_hb <- hb_twofold(
