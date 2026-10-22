@@ -185,7 +185,7 @@ jobs:
       - name: Run the JAX engine tests
         shell: Rscript {0}
         run: |
-          stopifnot(fastsae::check_numpyro_available(device = "cpu"))
+          stopifnot(fastsae::setup_numpyro_env(device = "cpu", check_only = TRUE))
           res <- testthat::test_dir(
             "tests/testthat", filter = "engine|mcmc", package = "fastsae",
             load_package = "installed", reporter = "summary", stop_on_failure = TRUE
