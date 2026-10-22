@@ -676,3 +676,17 @@ test_that("hb_area prior/spatial branches work", {
   )
   expect_s3_class(fit_slm, "fastsae_hb_area")
 })
+
+test_that("a beta model with vardir and trials warns that trials is ignored", {
+  skip_if_not_installed("INLA")
+  set.seed(11)
+  d <- data.frame(x = rnorm(20), n = sample(20:60, 20, replace = TRUE))
+  p <- plogis(-1 + 0.5 * d$x)
+  d$y <- rbeta(20, p * (d$n - 1), (1 - p) * (d$n - 1))
+  d$v <- p * (1 - p) / d$n
+  expect_warning(
+    hb_area(y ~ x, data = d, family = "beta", vardir = "v", trials = "n", print_result = FALSE),
+    "is ignored"
+  )
+  expect_no_warning(hb_area(y ~ x, data = d, family = "beta", trials = "n", print_result = FALSE))
+})

@@ -1,7 +1,7 @@
 # Gamma and negative binomial hb_area() with and without vardir. Without vardir the
 # dispersion (gamma shape, NB size) is estimated from one observation per area and is
 # hardly identified against the area effect; with vardir it is fixed per area (gamma:
-# y^2 / vardir; NB: y^2 / (vardir - y)). Truth: gamma shape 20, NB size 10, vardir the
+# y^2 / vardir; NB: two stages, see .nb_size_from_vardir()). Truth: gamma shape 20, NB size 10, vardir the
 # true sampling variance. 15/30/60 areas (1/8 without a direct estimate), area SD
 # 0.3/0.8/1.5 on the log scale, exposure 10-100 for NB, default priors, 100 replicates.
 #
@@ -11,8 +11,9 @@
 #                  no vardir                       vardir
 #   gamma          0.824-0.890 (0.139-0.184)       0.916-0.942 (0.135-0.163)
 #   neg. binomial  0.940-0.961 (0.170-0.390)       0.908-0.953 (0.161-0.265)
-# Gamma without vardir: intervals too short for every prior on the area SD (hb_area()
-# warns). Negative binomial (true size 10) without vardir: covered thanks to the
+# Gamma without vardir: intervals too short for every prior on the area SD with INLA's
+# loggamma(1, 0.01) precision prior, the default then; the half-normal(10) prior now used
+# covers 92-100% (benchmarks/validation/gamma_shape_prior.R). Negative binomial (true size 10) without vardir: covered thanks to the
 # half-normal(10) size prior, whose median estimate stays near 8-12 whatever the true
 # size (benchmarks/validation/nb_size_prior.R), with errors up to 50% larger than with
 # vardir.

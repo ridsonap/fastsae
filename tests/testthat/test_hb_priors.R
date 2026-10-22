@@ -167,3 +167,50 @@ test_that("a gamma model without vardir warns and has a half-normal(10) precisio
   )
   expect_false(any(grepl("weakly identified", w)))
 })
+
+test_that("a Gaussian model without vardir has a half-normal(sd y) residual prior", {
+  skip_if_not_installed("INLA")
+  data("mys", package = "fastsae")
+  # INLA's default loggamma(1, 5e-5) put the residual SD near 0, so the area means
+  # collapsed onto the direct estimates (0-4% coverage, benchmarks/validation/likelihood_priors.R)
+  fit <- hb_area(y ~ x1 + x2 + x3, data = mys, print_result = FALSE)
+  # INLA stores the Gaussian precision prior as theta1
+  prior <- fit$fit$.args$control.family[[1]]$hyper$theta1$prior
+  expect_equal(hn_scale(list(prior = prior)), sd(mys$y, na.rm = TRUE))
+  expect_gt(min(fit$df_hb$sd), 0.1)
+  own <- list(prior = "loggamma", param = c(1, 5e-5))
+  fit_own <- hb_area(y ~ x1 + x2 + x3,
+    data = mys, print_result = FALSE,
+    engine = inla_engine(control.family = list(hyper = list(prec = own)))
+  )
+  expect_match(fit_own$fit$.args$control.family[[1]]$hyper$theta1$prior, "^loggamma$")
+
+  data("cornsoybean", package = "fastsae")
+  data("cornsoybeanmeans", package = "fastsae")
+  pop <- cornsoybeanmeans
+  names(pop)[names(pop) == "MeanCornPixPerSeg"] <- "CornPix"
+  names(pop)[names(pop) == "MeanSoyBeansPixPerSeg"] <- "SoyBeansPix"
+  names(pop)[names(pop) == "CountyIndex"] <- "County"
+  fu <- hb_unit(CornHec ~ CornPix + SoyBeansPix,
+    unit_data = cornsoybean, Xpop = pop, domain_var = "County", print_result = FALSE
+  )
+  prior_u <- fu$fit$.args$control.family[[1]]$hyper$theta1$prior
+  expect_equal(hn_scale(list(prior = prior_u)), sd(cornsoybean$CornHec))
+})
+
+test_that("JAX and INLA give a beta model without vardir the same precision prior", {
+  skip_if_no_numpyro_backend()
+  skip_if_not_installed("INLA")
+  set.seed(7)
+  m <- 30
+  d <- data.frame(x = rnorm(m))
+  p <- plogis(-1 + 0.5 * d$x + rnorm(m, sd = 0.5))
+  d$y <- rbeta(m, p * 20, (1 - p) * 20)
+  d$y[1:3] <- NA
+  eng <- jax_engine(warmup = 1000, samples = 1000, chains = 4, device = "cpu", seed = 1)
+  fj <- suppressMessages(hb_area(y ~ x, data = d, family = "beta", engine = eng, print_result = FALSE))
+  fi <- hb_area(y ~ x, data = d, family = "beta", print_result = FALSE)
+  z <- abs(fj$df_hb$hb - fi$df_hb$hb) / fi$df_hb$sd
+  expect_lt(max(z), 0.2)
+  expect_lt(max(abs(fj$df_hb$sd / fi$df_hb$sd - 1)), 0.2)
+})

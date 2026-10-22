@@ -361,6 +361,7 @@ def fit_numpyro_hb(
     eig_vectors=None,
     W_sar=None,
     nb_size=None,
+    beta_phi=None,
     num_warmup=500,
     num_samples=1000,
     num_chains=2,
@@ -465,6 +466,8 @@ def fit_numpyro_hb(
     # Negative binomial with vardir: known size per area, computed in R
     nb_size_np = np.asarray(nb_size, dtype=np.float64)[obs_idx] if (family == "nbinomial" and nb_size is not None) else None
     nb_size_obs = jnp.asarray(nb_size_np, dtype=jnp.float32) if nb_size_np is not None else None
+    beta_phi_np = np.asarray(beta_phi, dtype=np.float64)[obs_idx] if (family == "beta" and beta_phi is not None) else None
+    beta_phi_obs = jnp.asarray(beta_phi_np, dtype=jnp.float32) if beta_phi_np is not None else None
 
     # Gamma with vardir: known shape y^2 / vardir per area (INLA's scale; 1 when invalid)
     gamma_shape_np = None
@@ -705,12 +708,19 @@ def fit_numpyro_hb(
         elif family == "beta":
             p = jax.nn.sigmoid(eta)
             numpyro.deterministic("hb_est", p)
-            if vardir_obs is not None:
+            if beta_phi_obs is not None:
+                # As INLA: the precision of each area from vardir at the posterior mean of
+                # a first fit (.beta_phi_from_vardir in R)
+                phi_beta = beta_phi_obs
+            elif vardir_obs is not None:
                 phi_beta = jnp.maximum((y_obs * (1.0 - y_obs) / vardir_obs) - 1.0, 1.0)
             elif trials_obs is not None:
                 phi_beta = jnp.maximum(trials_obs - 1.0, 1.0)
             else:
-                phi_beta = numpyro.sample("phi_beta", dist.HalfNormal(10.0))
+                # "inla": INLA's loggamma(1, 0.1) on log phi, i.e. phi ~ Exponential(0.1)
+                phi_beta = numpyro.sample(
+                    "phi_beta", dist.Exponential(0.1) if inla_priors else dist.HalfNormal(10.0)
+                )
             a = jnp.maximum(p[obs_idx] * phi_beta, 1e-4)
             b = jnp.maximum((1.0 - p[obs_idx]) * phi_beta, 1e-4)
             y_obs_clipped = jnp.clip(y_obs, 1e-5, 1.0 - 1e-5)
@@ -1017,17 +1027,21 @@ def fit_numpyro_hb(
     elif family == "beta":
         y_val_clip = np.clip(y_obs_val, 1e-5, 1.0 - 1e-5)
         p_post = np.clip(hb_samples[:, obs_idx], 1e-5, 1.0 - 1e-5)
-        if vardir_np is not None:
-            phi_val = np.maximum((y_obs_val * (1.0 - y_obs_val) / vardir_np[obs_idx]) - 1.0, 1.0)
+        p_mean = np.mean(p_post, axis=0)
+        if beta_phi_np is not None:
+            phi_val = phi_mean = beta_phi_np
+        elif vardir_np is not None:
+            phi_val = phi_mean = np.maximum((y_obs_val * (1.0 - y_obs_val) / vardir_np[obs_idx]) - 1.0, 1.0)
+        elif trials_np is not None:
+            phi_val = phi_mean = np.maximum(trials_np[obs_idx] - 1.0, 1.0)
         else:
-            phi_val = float(np.mean(samples.get("phi_beta", 10.0)))
+            phi_val = phi_mean = float(np.mean(samples["phi_beta"]))
         a_post = np.maximum(p_post * phi_val, 1e-4)
         b_post = np.maximum((1.0 - p_post) * phi_val, 1e-4)
         from scipy.special import betaln
         ll = (a_post - 1.0) * np.log(y_val_clip) + (b_post - 1.0) * np.log(1.0 - y_val_clip) - betaln(a_post, b_post)
-        p_mean = np.mean(p_post, axis=0)
-        a_mean = np.maximum(p_mean * phi_val, 1e-4)
-        b_mean = np.maximum((1.0 - p_mean) * phi_val, 1e-4)
+        a_mean = np.maximum(p_mean * phi_mean, 1e-4)
+        b_mean = np.maximum((1.0 - p_mean) * phi_mean, 1e-4)
         ll_mean = (a_mean - 1.0) * np.log(y_val_clip) + (b_mean - 1.0) * np.log(1.0 - y_val_clip) - betaln(a_mean, b_mean)
     elif family == "nbinomial":
         from scipy.special import gammaln

@@ -327,6 +327,11 @@
     mu_hat <- as.numeric(stage1$fit$hb_mean) * (if (!is.null(exposure_num)) exposure_num else 1)
     run_args$nb_size <- .nb_size_from_vardir(mu_hat, vardir_num)
   }
+  if (family == "beta" && !is.null(vardir_num)) {
+    # Two stages, as the INLA engine (see .beta_phi_from_vardir)
+    stage1 <- do.call(.run_numpyro, run_args)
+    run_args$beta_phi <- .beta_phi_from_vardir(as.numeric(stage1$fit$hb_mean), vardir_num)
+  }
   run <- do.call(.run_numpyro, run_args)
   fit_py <- run$fit
   draws <- run$draws

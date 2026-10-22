@@ -126,8 +126,11 @@ two engines then agree within 0.03 (iid) and 0.05 (BYM2) posterior SD.
 \code{"weakly_informative"}: half-normal standard deviations with scale 1 on the
 standardised response or the link scale, uniform \eqn{\phi} and AR(1) correlation and
 \eqn{N(0, 10^2)} coefficients (\eqn{N(0, 2.5^2)} for logit links). The priors of the
-likelihood (residual SD without \code{vardir}, beta precision, negative binomial and
-gamma shapes) are the latter in both cases.}
+likelihood are the same as with \code{inla_engine()}: half-normal(\eqn{s_y}) on the
+Gaussian residual SD without \code{vardir} (and on the unit errors of
+\code{hb_unit()}), half-normal(10) on the negative binomial size and the gamma shape, and
+INLA's log-gamma(1, 0.1) on the log beta precision (\eqn{\phi \sim} Exponential(0.1));
+\code{"weakly_informative"} keeps half-normal(10) for the beta precision.}
 
 \item{robust}{Logical; Student-t instead of normal random effects (the
 area effects, and the sub-area effects of \code{hb_twofold()}), with the
