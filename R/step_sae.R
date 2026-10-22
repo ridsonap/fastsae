@@ -215,8 +215,10 @@ step_sae <- function(object, scope = NULL, direction = c("both", "backward", "fo
     if (length(cpo) == 0L) cli::cli_abort("The INLA fit has no conditional predictive ordinates.")
     return(-mean(log(cpo)))
   }
+  # hb_area(): DIC, WAIC; hb_unit() and hb_twofold(): dic, waic
+  if (criterion %in% c("WAIC", "DIC") && !criterion %in% names(g)) criterion <- tolower(criterion)
   if (is.null(g) || (!criterion %in% names(g) && criterion != "KIC")) {
-    cli::cli_abort("The model does not report {.val {criterion}}.")
+    cli::cli_abort("The model does not report {.val {toupper(criterion)}}.")
   }
   if (criterion == "KIC") {
     # KIC = -2 loglik + 3k, with k from AIC = -2 loglik + 2k
