@@ -276,7 +276,10 @@ are only run when INLA is installed.
 The argument `weight` (here the population of each sub-area) aggregates
 the sub-area posteriors to area estimates,
 $`\hat\theta_i = \sum_j w_{ij} \theta_{ij} / \sum_j w_{ij}`$, with their
-posterior uncertainty in `df_area`.
+posterior uncertainty in `df_area`. For the Gaussian model these are
+linear combinations of the sub-area predictors, whose posterior INLA
+computes exactly; the binomial and Poisson aggregates come from
+posterior draws (`inla_engine(draws = )`).
 
 ``` r
 
@@ -310,12 +313,12 @@ head(fit_hb$df_hb)
 #> 6 6.832333  8.99364 11.81438         -0.8382561         -3.841197e-11
 head(fit_hb$df_area)
 #>   domain  hb_area   sd_area  mse_area rse_area ci_lower_area ci_upper_area
-#> 1    A01 13.42833 0.5047862 0.2548091 3.759113      12.41439      14.49255
-#> 2    A02 11.18124 0.5565653 0.3097649 4.977671      10.12057      12.18632
-#> 3    A03 14.08170 0.4566022 0.2084856 3.242522      13.24758      15.01321
-#> 4    A04 16.66077 0.5256844 0.2763441 3.155222      15.54241      17.50356
-#> 5    A05 13.24774 0.5790065 0.3352485 4.370607      12.19274      14.43877
-#> 6    A06 12.79906 0.4849711 0.2351969 3.789114      11.72845      13.62868
+#> 1    A01 13.42833 0.5162319 0.2664954 3.844349      12.41277      14.43825
+#> 2    A02 11.18124 0.5549241 0.3079408 4.962993      10.08415      12.26186
+#> 3    A03 14.08170 0.4637863 0.2150978 3.293539      13.17472      14.99413
+#> 4    A04 16.66077 0.5774092 0.3334014 3.465681      15.53889      17.80449
+#> 5    A05 13.24774 0.6585491 0.4336869 4.971031      11.94801      14.53404
+#> 6    A06 12.79906 0.5225056 0.2730121 4.082374      11.77389      13.82419
 #>   n_subareas
 #> 1          4
 #> 2          5

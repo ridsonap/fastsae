@@ -124,7 +124,8 @@ hb_twofold(
   effect \\\tau_u\\, both by default the prior of
   [`inla_engine`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)`(prior_prec = )`;
   `prior_phi` for BYM2), `scale_model`, the number of posterior `draws`
-  for the area aggregates (default 200) and their `seed`, and further
+  for the area aggregates of the binomial and Poisson models
+  (default 2000) and their `seed`, and further
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) arguments.
   The Gaussian model is fitted in INLA's `"classic"` mode, the binomial
   and Poisson models in INLA's default `"compact"` mode, as in
@@ -136,8 +137,10 @@ hb_twofold(
 - compute_area:
 
   Logical. If `TRUE` (default), computes aggregate primary area-level
-  estimates and posterior standard errors from joint posterior draws
-  (sampled from the INLA fit, or the MCMC draws with
+  estimates and posterior standard errors: for the Gaussian model with
+  INLA from the exact posterior of the weighted sums of the sub-area
+  predictors (INLA linear combinations), otherwise from joint posterior
+  draws (sampled from the INLA fit, or the MCMC draws with
   [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)).
 
 - print_result:
@@ -348,12 +351,12 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> Area-Level Aggregates (First 6 areas):
 #>   domain    hb_area   sd_area  mse_area rse_area ci_lower_area ci_upper_area
-#> 1      1  2.3474578 0.4905892 0.2406778 20.89874    1.44492002    3.31182506
-#> 2      2  1.4258685 0.4170350 0.1739182 29.24779    0.67222149    2.32944637
-#> 3      3  1.4775233 0.3956332 0.1565256 26.77678    0.78476737    2.32704381
-#> 4      4  3.0259777 0.4225201 0.1785232 13.96309    2.25846818    3.85759451
-#> 5      5  0.6768728 0.3356821 0.1126824 49.59308   -0.01049124    1.37180703
-#> 6      6 -0.8734794 0.4045281 0.1636430 46.31227   -1.59902438   -0.04865144
+#> 1      1  2.3474578 0.4832041 0.2334862 20.58415    1.40292019     3.2995332
+#> 2      2  1.4258685 0.4277236 0.1829474 29.99741    0.58607029     2.2648079
+#> 3      3  1.4775233 0.3967959 0.1574470 26.85547    0.70201865     2.2589305
+#> 4      4  3.0259777 0.4045413 0.1636537 13.36895    2.24472719     3.8314001
+#> 5      5  0.6768728 0.3570974 0.1275186 52.75695   -0.02280294     1.3784493
+#> 6      6 -0.8734794 0.3886164 0.1510227 44.49062   -1.63855450    -0.1153079
 #>   n_subareas
 #> 1          2
 #> 2          3

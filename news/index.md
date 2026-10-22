@@ -976,6 +976,26 @@
 
 #### Performance
 
+- [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  (INLA): the area aggregates in `df_area` took most of the fit time.
+  [`INLA::inla.posterior.sample()`](https://rdrr.io/pkg/INLA/man/posterior.sample.html)
+  with a seed runs the inla program once per hyperparameter
+  configuration (~0.3 s each): 143 configurations for the Gaussian model
+  (45 s with 15 areas) and 36-39 for the binomial and Poisson models
+  (22-34 s), for only 200 draws.
+  - Gaussian: the aggregates are INLA linear combinations of the
+    sub-area predictors, with exact posterior marginals (45 s -\> 6 s);
+    the area SDs agree with 4000 draws within their Monte Carlo error.
+  - Binomial and Poisson: the draws are taken in R from the Gaussian
+    approximation of the latent field at each of INLA’s configurations,
+    chosen by their posterior weight as INLA does, and
+    `inla_engine(draws = )` now defaults to 2000 instead of 200: under a
+    second for the draws, and reproducible with `seed`. With 200 draws
+    the aggregate interval bounds were off by up to 0.4-0.6 posterior SD
+    against 10000 INLA draws, with 2000 by at most 0.17. INLA’s skewness
+    correction is not applied; with 20000 draws it moved the aggregates
+    less than the Monte Carlo error. INLA’s own sampler is still used if
+    the fit has no stored configurations.
 - [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md):
   the MSE covariance between areas is applied as a matrix-free operator
   (FH: $`O(n p^2)`$, no $`n \times n`$ matrices). FH with $`m = 2000`$:

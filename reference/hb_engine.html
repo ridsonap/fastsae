@@ -189,11 +189,16 @@ effect (<code><a href="hb_twofold.html">hb_twofold()</a></code> only). <code>NUL
 
 
 <dt id="arg-draws">draws<a class="anchor" aria-label="anchor" href="#arg-draws"></a></dt>
-<dd><p>Number of posterior draws from
-<code><a href="https://rdrr.io/pkg/INLA/man/posterior.sample.html" class="external-link">INLA::inla.posterior.sample()</a></code>: for posterior self-benchmarking in
-<code><a href="hb_area.html">hb_area()</a></code> (<code>NULL</code>: 1000) and for the area aggregates of
-<code><a href="hb_twofold.html">hb_twofold()</a></code> (<code>NULL</code>: 200; <code>0</code> skips the sampling and
-approximates the aggregate uncertainty from independent sub-area effects).</p></dd>
+<dd><p>Number of posterior draws: from <code><a href="https://rdrr.io/pkg/INLA/man/posterior.sample.html" class="external-link">INLA::inla.posterior.sample()</a></code>
+for posterior self-benchmarking in <code><a href="hb_area.html">hb_area()</a></code> (<code>NULL</code>: 1000), and for
+the area aggregates of the binomial and Poisson <code><a href="hb_twofold.html">hb_twofold()</a></code> models
+(<code>NULL</code>: 2000; <code>0</code> skips the sampling and approximates the aggregate
+uncertainty from independent sub-area effects). <code><a href="hb_twofold.html">hb_twofold()</a></code> draws them in R
+from the Gaussian approximation of the latent field at each of INLA's hyperparameter
+configurations, without INLA's skewness correction (which changed the aggregates
+less than the Monte Carlo error of 20000 draws), in well under a second instead of
+0.3 s per configuration. The Gaussian aggregates are exact INLA linear combinations
+and need no draws.</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>

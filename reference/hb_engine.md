@@ -116,14 +116,22 @@ print(x, ...)
 
 - draws:
 
-  Number of posterior draws from
-  [`INLA::inla.posterior.sample()`](https://rdrr.io/pkg/INLA/man/posterior.sample.html):
+  Number of posterior draws: from
+  [`INLA::inla.posterior.sample()`](https://rdrr.io/pkg/INLA/man/posterior.sample.html)
   for posterior self-benchmarking in
   [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
-  (`NULL`: 1000) and for the area aggregates of
+  (`NULL`: 1000), and for the area aggregates of the binomial and
+  Poisson
   [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
-  (`NULL`: 200; `0` skips the sampling and approximates the aggregate
-  uncertainty from independent sub-area effects).
+  models (`NULL`: 2000; `0` skips the sampling and approximates the
+  aggregate uncertainty from independent sub-area effects).
+  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  draws them in R from the Gaussian approximation of the latent field at
+  each of INLA's hyperparameter configurations, without INLA's skewness
+  correction (which changed the aggregates less than the Monte Carlo
+  error of 20000 draws), in well under a second instead of 0.3 s per
+  configuration. The Gaussian aggregates are exact INLA linear
+  combinations and need no draws.
 
 - seed:
 
