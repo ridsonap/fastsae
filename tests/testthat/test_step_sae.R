@@ -116,3 +116,49 @@ test_that("step_sae() works for eblup_stfh() and eblup_twofold()", {
   expect_true("x1" %in% attr(stats::terms(st$final), "term.labels"))
   expect_equal(st$model$method, tf$method)
 })
+
+test_that("step_sae() selects hb_unit() and hb_twofold() models by WAIC, DIC or LCPO", {
+  skip_if_not_installed("INLA")
+  data("cornsoybean", package = "fastsae")
+  data("cornsoybeanmeans", package = "fastsae")
+  pop <- cornsoybeanmeans
+  names(pop)[names(pop) == "MeanCornPixPerSeg"] <- "CornPix"
+  names(pop)[names(pop) == "MeanSoyBeansPixPerSeg"] <- "SoyBeansPix"
+  names(pop)[names(pop) == "CountyIndex"] <- "County"
+  units <- cornsoybean
+  set.seed(3)
+  units$noise <- rnorm(nrow(units))
+  pop$noise <- 0
+  fu <- hb_unit(CornHec ~ CornPix + noise,
+    unit_data = units, Xpop = pop, domain_var = "County",
+    popsize_var = "PopnSegments", print_result = FALSE
+  )
+  # hb_unit() and hb_twofold() report goodness as list(dic, waic, ...), not DIC, WAIC
+  for (cr in c("WAIC", "DIC")) {
+    s <- step_sae(fu, criterion = cr, direction = "backward", trace = FALSE)
+    expect_equal(s$path[[cr]][1], fu$goodness[[tolower(cr)]])
+    expect_s3_class(s$model, "fastsae_hb_unit")
+  }
+  s <- step_sae(fu, direction = "backward", trace = FALSE)
+  expect_equal(s$criterion, "LCPO")
+  # the leave-one-out criterion of the sampled units; the population rows have no CPO
+  cpo <- fu$fit$cpo$cpo
+  expect_equal(s$path$LCPO[1], -mean(log(cpo[is.finite(cpo) & cpo > 0])))
+  expect_true("CornPix" %in% attr(stats::terms(s$final), "term.labels"))
+
+  set.seed(2)
+  dat <- do.call(rbind, lapply(1:15, function(d) {
+    nd <- sample(2:4, 1)
+    data.frame(area = d, subarea = paste0(d, "_", seq_len(nd)), x1 = rnorm(nd), x2 = rnorm(nd))
+  }))
+  dat$vardir <- runif(nrow(dat), 0.5, 2)
+  dat$y <- 10 + 2 * dat$x1 + rnorm(15, sd = 1)[dat$area] + rnorm(nrow(dat), sd = sqrt(dat$vardir))
+  ft <- hb_twofold(y ~ x1 + x2,
+    vardir = "vardir", domain = "area", subarea = "subarea", data = dat, print_result = FALSE
+  )
+  # one candidate (each hb_twofold() fit takes long); DIC is read as WAIC
+  st <- step_sae(ft, scope = list(lower = ~x1, upper = ~ x1 + x2), criterion = "WAIC", trace = FALSE)
+  expect_equal(st$path$WAIC[1], ft$goodness$waic)
+  expect_s3_class(st$model, "fastsae_hb_twofold")
+  expect_true("x1" %in% attr(stats::terms(st$final), "term.labels"))
+})

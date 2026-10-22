@@ -629,6 +629,23 @@ test_that("engine = 'jax' beta model with vardir passes the two-stage precision"
   expect_true(all(env$args$beta_phi >= 1))
 })
 
+test_that("engine = 'jax' WAIC of a beta model with trials takes the precision n - 1", {
+  skip_if_no_numpyro()
+  d <- sim_beta_vardir()
+  fit <- quiet_mcmc(hb_area(y ~ x,
+    data = d, trials = "n", family = "beta", engine = jax_eng, print_result = FALSE
+  ))
+  obs <- !is.na(d$y)
+  # the likelihood's precision phi_d = n_d - 1 (not a fixed 10)
+  phi <- matrix(pmax(d$n[obs] - 1, 1), 600, sum(obs), byrow = TRUE)
+  p <- pmin(pmax(t(fit$draws[obs, ]), 1e-5), 1 - 1e-5)
+  y <- matrix(d$y[obs], 600, sum(obs), byrow = TRUE)
+  ll <- stats::dbeta(y, p * phi, (1 - p) * phi, log = TRUE)
+  lppd <- sum(log(colMeans(exp(ll))))
+  p_waic <- sum(apply(ll, 2, stats::var))
+  expect_equal(unname(fit$goodness["WAIC"]), -2 * (lppd - p_waic), tolerance = 1e-4)
+})
+
 test_that("engine = 'jax' beta model with vardir agrees with INLA", {
   skip_if_no_numpyro()
   skip_if_not_installed("INLA")
