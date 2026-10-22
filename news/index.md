@@ -167,6 +167,35 @@
   used (posterior draws or Wang-Fuller-Qu) instead of always reporting
   Wang-Fuller-Qu.
 
+#### Covariate selection: `step_sae()`
+
+- New
+  [`step_sae()`](https://ridsonap.github.io/fastsae/reference/step_sae.md)
+  selects the covariates of any fitted model by stepwise search
+  (backward, forward or both), refitting it with the same settings
+  (family, spatial or temporal structure, engine) at every step.
+  - EBLUP models: AIC, BIC (default) or KIC from the full log-likelihood
+    (Marhuenda, Morales and Pardo 2014). Models with a `method` argument
+    are fitted by ML during the search and the selected model is
+    refitted with the original method. On `mys` with a noise covariate
+    the path and the BIC values equal those of `emdi::step()`.
+  - HB models of every family: LCPO (leave-one-out through INLA’s
+    conditional predictive ordinates; default with
+    [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)),
+    WAIC (default with
+    [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md))
+    or DIC. WAIC is unstable with one observation per area: in a
+    binomial simulation it selected exactly the true covariates in 27%
+    of the replicates, LCPO in 70% (`benchmarks/validation/step_sae.R`).
+  - Spatial models are selected with their spatial effect: a spatially
+    smooth noise covariate was kept in 20% of the replicates by the
+    Fay-Herriot model and in 8% by the spatial one (spatial confounding;
+    Hodges and Reich 2010).
+- [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+  returns `goodness` (full log-likelihood, AIC and BIC), as the other
+  EBLUP models; with `method = "ML"` they equal those of
+  `lme4::lmer(REML = FALSE)`.
+
 #### Agreement metrics in `compare_sae()`
 
 - [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)

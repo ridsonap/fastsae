@@ -343,6 +343,8 @@ evaluation, and official publication exports
   [`plot(`*`<fastsae_comparison>`*`)`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
   [`autoplot(`*`<fastsae_comparison>`*`)`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
   : Compare Two Small Area Estimation Models
+- [`step_sae()`](https://ridsonap.github.io/fastsae/reference/step_sae.md)
+  : Stepwise Selection of the Covariates of a Small Area Model
 - [`export_sae()`](https://ridsonap.github.io/fastsae/reference/export_sae.md)
   : Export Small Area Estimation Results to Excel or CSV
 - [`add_reliability_flags()`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)

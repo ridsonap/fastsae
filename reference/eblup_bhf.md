@@ -88,7 +88,12 @@ eblup_bhf(
 
 List containing EBLUP estimates, fit, and optionally MSE. The `fit`
 element holds the variance components, `beta`, the predicted random
-effects and the unit-level conditional residuals.
+effects and the unit-level conditional residuals. `goodness` is a named
+vector: `loglikelihood` (the full Gaussian log-likelihood of the sampled
+units at the estimates, for ML and REML fits alike, as in
+[`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)),
+and `AIC` and `BIC` computed from it with \\p + 2\\ parameters and the
+number of sampled units.
 
 ## Details
 

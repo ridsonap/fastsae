@@ -163,7 +163,11 @@ does not change the random number stream of the session.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>List containing EBLUP estimates, fit, and optionally MSE. The
   <code>fit</code> element holds the variance components, <code>beta</code>, the
-  predicted random effects and the unit-level conditional residuals.</p>
+  predicted random effects and the unit-level conditional residuals.
+  <code>goodness</code> is a named vector: <code>loglikelihood</code> (the full Gaussian
+  log-likelihood of the sampled units at the estimates, for ML and REML fits alike, as in
+  <code><a href="eblup_fh.html">eblup_fh()</a></code>), and <code>AIC</code> and <code>BIC</code> computed from it with
+  \(p + 2\) parameters and the number of sampled units.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

@@ -125,6 +125,10 @@ summary(fit_bhf)
 #> CornPix      0.366335  0.064959  5.639511 0.0000
 #> SoyBeansPix -0.030364  0.067576 -0.449327 0.6532
 #> 
+#> Goodness of Fit:
+#> loglikelihood           AIC           BIC 
+#>     -159.2759      328.5517      336.6063 
+#> 
 #> EBLUP Summary Statistics:
 #>       mse             rse       
 #>  Min.   :24.89   Min.   :4.039  
