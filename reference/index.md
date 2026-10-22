@@ -31,10 +31,9 @@ with NumPyro / JAX (optional Python backend)
   [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
   [`print(`*`<fastsae_engine>`*`)`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
   : Estimation engines for the Hierarchical Bayes models
-- [`check_numpyro_available()`](https://ridsonap.github.io/fastsae/reference/check_numpyro_available.md)
-  : Check whether the NumPyro / JAX engine is available
 - [`setup_numpyro_env()`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)
-  : Set up the Python environment for the NumPyro / JAX engine
+  : Set up, or check, the Python environment for the NumPyro / JAX
+  engine
 
 ## Two-Fold Subarea Models
 
@@ -136,8 +135,6 @@ weight matrices
   Autocorrelation
 - [`sim_series_data()`](https://ridsonap.github.io/fastsae/reference/sim_series_data.md)
   : Simulate Spatio-Temporal Multi-Distribution Small Area Data
-- [`sim_spatial_weights()`](https://ridsonap.github.io/fastsae/reference/sim_spatial_weights.md)
-  : Simulate Spatial Proximity and Adjacency Matrices
 
 ## Example & Synthetic Datasets
 

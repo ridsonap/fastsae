@@ -231,12 +231,10 @@ is ignored with a warning.
 JAX, Phan et al. 2019) on CPU, CUDA GPU or Apple Metal, through
 reticulate. It needs Python with `jax` and `numpyro`; see
 [`setup_numpyro_env`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)
-and
-[`check_numpyro_available`](https://ridsonap.github.io/fastsae/reference/check_numpyro_available.md).
-The fixed effects get a normal or a regularized horseshoe prior
-(Piironen and Vehtari 2017); see `priors` for the other priors.
-`spatial = "slm"` and `temporal = "rw2"` are not available.
-`jax_engine()` is available for
+(`check_only = TRUE` checks it). The fixed effects get a normal or a
+regularized horseshoe prior (Piironen and Vehtari 2017); see `priors`
+for the other priors. `spatial = "slm"` and `temporal = "rw2"` are not
+available. `jax_engine()` is available for
 [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
 [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
 and

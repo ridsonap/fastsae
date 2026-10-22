@@ -12,6 +12,7 @@ sim_area_data(
   D = 42,
   W = NULL,
   spatial_type = c("knn", "grid", "ring"),
+  k = 4,
   rho = 0.5,
   phi = 0.6,
   sigma_u = 0.5,
@@ -30,13 +31,20 @@ sim_area_data(
 - W:
 
   Optional spatial proximity or adjacency matrix of dimension \\D \times
-  D\\. If `NULL`, a spatial matrix is automatically simulated using
-  [`sim_spatial_weights`](https://ridsonap.github.io/fastsae/reference/sim_spatial_weights.md).
+  D\\. If `NULL`, a matrix is simulated (see `spatial_type` and `k`) and
+  returned in the output (`W`, and `W_std` row-standardized).
 
 - spatial_type:
 
-  Character. Topology for simulated `W` if `W = NULL`: `"knn"`,
-  `"grid"`, or `"ring"`. Default is `"knn"`.
+  Character. Topology for simulated `W` if `W = NULL`: `"knn"` (each
+  domain linked to its `k` nearest neighbours among random 2D
+  coordinates, symmetrised), `"grid"` (rook contiguity on a regular
+  lattice) or `"ring"` (a closed chain). Default is `"knn"`.
+
+- k:
+
+  Integer. Number of nearest neighbours of each domain when
+  `spatial_type = "knn"`. Default is 4.
 
 - rho:
 
@@ -145,7 +153,16 @@ head(sim$data)
 #> 5 0.72223          44  1.2174         1.8366  0.9405  0.1524
 #> 6 0.29830           8  0.5810         0.2490  0.0456  0.1388
 
-# 2. Using an existing spatial matrix
-my_W <- sim_spatial_weights(D = 30, type = "grid")
-sim2 <- sim_area_data(W = my_W, seed = 456)
+# 2. A 6-nearest-neighbour graph, and its matrices
+sim2 <- sim_area_data(D = 30, k = 6, seed = 456)
+sim2$W[1:5, 1:5]
+#>   1 2 3 4 5
+#> 1 0 0 0 0 0
+#> 2 0 0 0 0 0
+#> 3 0 0 0 0 1
+#> 4 0 0 0 0 1
+#> 5 0 0 1 1 0
+
+# 3. Using an existing spatial matrix
+sim3 <- sim_area_data(W = sim2$W, seed = 789)
 ```

@@ -16,6 +16,7 @@ sim_series_data(
   time_start = 2022,
   W = NULL,
   spatial_type = c("knn", "grid", "ring"),
+  k = 4,
   rho_s = 0.5,
   rho_t = 0.6,
   sigma_s = 0.4,
@@ -47,13 +48,20 @@ sim_series_data(
 - W:
 
   Optional spatial proximity or adjacency matrix of dimension \\D \times
-  D\\. If `NULL`, a spatial matrix is automatically simulated using
-  [`sim_spatial_weights`](https://ridsonap.github.io/fastsae/reference/sim_spatial_weights.md).
+  D\\. If `NULL`, a matrix is simulated (see `spatial_type` and `k`) and
+  returned in the output (`W`, and `W_std` row-standardized).
 
 - spatial_type:
 
-  Character. Topology for simulated `W` if `W = NULL`: `"knn"`,
-  `"grid"`, or `"ring"`. Default is `"knn"`.
+  Character. Topology for simulated `W` if `W = NULL`: `"knn"` (each
+  domain linked to its `k` nearest neighbours among random 2D
+  coordinates, symmetrised), `"grid"` (rook contiguity on a regular
+  lattice) or `"ring"` (a closed chain). Default is `"knn"`.
+
+- k:
+
+  Integer. Number of nearest neighbours of each domain when
+  `spatial_type = "knn"`. Default is 4.
 
 - rho_s:
 
