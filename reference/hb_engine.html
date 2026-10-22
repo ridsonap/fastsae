@@ -42,6 +42,7 @@ their defaults.'><meta property="og:image" content="https://ridsonap.github.io/f
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-priors.html">Default Priors of the HB Models</a></li>
     <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF and HB)</a></li>
     <li><a class="dropdown-item" href="../articles/twofold-subarea.html">Sub-Area Level Two-Fold Models</a></li>
@@ -247,8 +248,11 @@ two engines then agree within 0.03 (iid) and 0.05 (BYM2) posterior SD.
 <code>"weakly_informative"</code>: half-normal standard deviations with scale 1 on the
 standardised response or the link scale, uniform \(\phi\) and AR(1) correlation and
 \(N(0, 10^2)\) coefficients (\(N(0, 2.5^2)\) for logit links). The priors of the
-likelihood (residual SD without <code>vardir</code>, beta precision, negative binomial and
-gamma shapes) are the latter in both cases.</p></dd>
+likelihood are the same as with <code>inla_engine()</code>: half-normal(\(s_y\)) on the
+Gaussian residual SD without <code>vardir</code> (and on the unit errors of
+<code><a href="hb_unit.html">hb_unit()</a></code>), half-normal(10) on the negative binomial size and the gamma shape, and
+INLA's log-gamma(1, 0.1) on the log beta precision (\(\phi \sim\) Exponential(0.1));
+<code>"weakly_informative"</code> keeps half-normal(10) for the beta precision.</p></dd>
 
 
 <dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>

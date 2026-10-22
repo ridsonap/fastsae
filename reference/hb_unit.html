@@ -44,6 +44,7 @@ population adjustments."><meta property="og:image" content="https://ridsonap.git
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
+    <li><a class="dropdown-item" href="../articles/hb-priors.html">Default Priors of the HB Models</a></li>
     <li><a class="dropdown-item" href="../articles/model-diagnostics.html">Model Diagnostics &amp; Calibration</a></li>
     <li><a class="dropdown-item" href="../articles/unit-level-bhf.html">Unit-Level Estimation (BHF and HB)</a></li>
     <li><a class="dropdown-item" href="../articles/twofold-subarea.html">Sub-Area Level Two-Fold Models</a></li>
@@ -206,9 +207,9 @@ binary units); <code>inla_engine(inla.mode = )</code> selects a mode.</p></dd>
 <li><p><code>estcoef</code>: Data frame of estimated regression coefficients (posterior mean, sd, z-value, p-value, credible intervals).</p></li>
 <li><p><code>hyperpar</code>: Data frame of hyperparameter posterior estimates.</p></li>
 <li><p><code>random_effect_var</code>: Posterior mean of the domain random effect variance
-    (\(\sigma_u^2\)). With few domains and the vague default prior its posterior is
-    very skewed and INLA's summary of it is not accurate (on <code>cornsoybean</code>, 12
-    counties: about 70 against an exact posterior mean of 41 and median of 7, while the
+    (\(\sigma_u^2\)). With few domains its posterior is very skewed and INLA's summary
+    of it can be inaccurate (on <code>cornsoybean</code>, 12 counties, with the earlier vague
+    log-gamma prior: about 70 against an exact posterior mean of 41 and median of 7, while the
     county means and SDs agree with the exact posterior). Do not read it as a REML
     estimate; the domain estimates in <code>df_hb</code> are the reliable output.</p></li>
 <li><p><code>residual_var</code>: Estimated residual variance (\(\sigma_e^2\), for Gaussian).</p></li>
@@ -244,16 +245,19 @@ unit-level <code>Xpop</code> is currently averaged per domain. A warning is give
     <h2 id="engines">Engines<a class="anchor" aria-label="anchor" href="#engines"></a></h2>
 
 
-<p>Both engines fit the same model from the sampled units and return the same structure. With
-<code><a href="hb_engine.html">jax_engine()</a></code> the coefficients have normal priors (standard deviation 10, or 2.5 for
-<code>"binomial"</code>) and the standard deviations of the domain effect and, for
-<code>"gaussian"</code>, of the unit errors half-normal(1) priors, on the standardised response
-scale for <code>"gaussian"</code>; <code><a href="hb_engine.html">inla_engine()</a></code> puts the vague log-gamma prior on the
-precisions. The domain means, SDs and 2.5%/97.5% quantiles are computed from the MCMC
+<p>Both engines fit the same model from the sampled units, with the same default priors, and
+return the same structure. The standard deviations of the domain effect and, for
+<code>"gaussian"</code>, of the unit errors have half-normal priors with scale \(s_y\), the
+standard deviation of the sampled unit responses (scale 1 on the link scale for
+<code>"binomial"</code> and <code>"poisson"</code>), and the coefficients \(N(0, 1000)\) priors.
+<code>jax_engine(priors = "weakly_informative")</code> uses half-normal(1) standard deviations and
+\(N(0, 10^2)\) coefficients (\(N(0, 2.5^2)\) for <code>"binomial"</code>) on the standardised
+scale instead. See <code><a href="../articles/hb-priors.html">vignette("hb-priors", package = "fastsae")</a></code>. The domain means, SDs and 2.5%/97.5% quantiles are computed from the MCMC
 draws; with <code>popsize_var</code> each draw of the Gaussian domain mean includes the mean error of
 the non-sampled units, \(N(0, \sigma_e^2 / (N_d - n_d))\) for that draw of \(\sigma_e^2\)
 (the INLA engine adds its posterior mean to the variance and gives a normal interval).</p>
-<p>On simulated data (30 domains, three unsampled) a Stan fit of the same model and priors gave
+<p>The following comparisons were made with the earlier default priors (half-normal(1) on the
+standardised scale for <code><a href="hb_engine.html">jax_engine()</a></code>, INLA's log-gamma priors on the precisions). On simulated data (30 domains, three unsampled) a Stan fit of the same model and priors gave
 domain means within 0.04 posterior SD and SDs within 5% for the Gaussian (also with BYM2),
 Bernoulli and Poisson models. With their own priors, <code>hbsae::fSAE(method = "HB")</code>
 (Gaussian, numerical integration over the variance ratio, flat priors) and the INLA engine
@@ -304,6 +308,8 @@ of INLA, whose log-gamma prior favours small variances, and 0.8-1.0 times those 
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit_hb_u</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  *** inla.core.safe:  rerun to try to solve negative eigenvalue(s) in the Hessian </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
@@ -314,41 +320,41 @@ of INLA, whose log-gamma prior favours small variances, and 0.8-1.0 times those 
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-UNIT-GAUSSIAN (Non-spatial)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: INLA (laplace)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 107.4697 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 104.7262 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Spatial mixing fraction (phi): NA </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.7331e+01  3.1320e+01  5.5335e-01  5.8003e-01 -4.4375e+01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix      3.6764e-01  6.5744e-02  5.5919e+00  2.2455e-08  2.3783e-01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix -2.9302e-02  6.8237e-02 -4.2941e-01  6.6763e-01 -1.6386e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.7344e+01  3.3044e+01  5.2489e-01  5.9966e-01 -4.7777e+01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix      3.6765e-01  6.9353e-02  5.3011e+00  1.1511e-07  2.3077e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix -2.9352e-02  7.1997e-02 -4.0768e-01  6.8351e-01 -1.7129e-01</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  79.1395</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix       0.4971</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix   0.1052</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  82.5314</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix       0.5042</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix   0.1126</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred    vardir       sd      mse      rse</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 165.7600 123.2393    123.1612 287.13687 9.029869 81.53854 7.327102</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2  96.3200 124.0670    124.1161 287.13687 8.879435 78.84437 7.156968</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3  76.0800 111.3807    111.4705 287.13687 9.717040 94.42086 8.724165</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 150.8900 114.3514    114.1783 143.56844 8.065070 65.04535 7.052881</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 158.6233 137.9634    137.8529  95.71229 8.504381 72.32449 6.164232</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 102.5233 109.4054    109.4418  95.71229 7.343275 53.92369 6.711984</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred   vardir        sd       mse      rse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 165.7600 123.2470    123.1689 323.0879  9.514737  90.53023 7.720054</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2  96.3200 124.0713    124.1204 323.0879  9.373449  87.86154 7.554890</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3  76.0800 111.3954    111.4853 323.0879 10.149972 103.02194 9.111659</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 150.8900 114.3575    114.1843 161.5440  8.502685  72.29566 7.435182</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 158.6233 138.0302    137.9201 107.6960  8.667924  75.13290 6.279727</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 102.5233 109.4356    109.4722 107.6960  7.681062  58.99871 7.018796</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    ci_lower ci_upper samp_size sample_mean random_effect pop_size</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 105.54077 140.9379         1    165.7600      2.908779      545</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 106.66330 141.4707         1     96.3200      2.033756      566</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3  92.33535 130.4261         1     76.0800     -6.385784      394</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4  98.54389 130.1590         2    150.8900     -3.392320      424</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 121.29477 154.6319         3    158.6233      9.139622      564</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6  95.01261 123.7983         3    102.5233      4.768254      570</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 104.59814 141.8959         1    165.7600      2.887946      545</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 105.69933 142.4432         1     96.3200      2.043931      566</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  91.50149 131.2894         1     76.0800     -6.344250      394</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  97.69219 131.0227         2    150.8900     -3.385560      424</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 121.04112 155.0194         3    158.6233      9.157537      564</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  94.38072 124.4905         3    102.5233      4.765605      570</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   estimated_total</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1        67165.42</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        70221.92</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3        43884.01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4        48485.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5        77811.33</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6        62361.10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1        67169.63</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        70224.35</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3        43889.80</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4        48487.56</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        77849.06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6        62378.29</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 6 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -361,41 +367,41 @@ of INLA, whose log-gamma prior favours small variances, and 0.8-1.0 times those 
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-UNIT-GAUSSIAN (Non-spatial)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: INLA (laplace)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 107.4697 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 104.7262 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Spatial mixing fraction (phi): NA </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.7331e+01  3.1320e+01  5.5335e-01  5.8003e-01 -4.4375e+01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix      3.6764e-01  6.5744e-02  5.5919e+00  2.2455e-08  2.3783e-01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix -2.9302e-02  6.8237e-02 -4.2941e-01  6.6763e-01 -1.6386e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.7344e+01  3.3044e+01  5.2489e-01  5.9966e-01 -4.7777e+01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix      3.6765e-01  6.9353e-02  5.3011e+00  1.1511e-07  2.3077e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix -2.9352e-02  7.1997e-02 -4.0768e-01  6.8351e-01 -1.7129e-01</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  79.1395</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix       0.4971</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix   0.1052</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  82.5314</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> CornPix       0.5042</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SoyBeansPix   0.1126</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred    vardir       sd      mse      rse</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 165.7600 123.2393    123.1612 287.13687 9.029869 81.53854 7.327102</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2  96.3200 124.0670    124.1161 287.13687 8.879435 78.84437 7.156968</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3  76.0800 111.3807    111.4705 287.13687 9.717040 94.42086 8.724165</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 150.8900 114.3514    114.1783 143.56844 8.065070 65.04535 7.052881</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 158.6233 137.9634    137.8529  95.71229 8.504381 72.32449 6.164232</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 102.5233 109.4054    109.4418  95.71229 7.343275 53.92369 6.711984</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred   vardir        sd       mse      rse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 165.7600 123.2470    123.1689 323.0879  9.514737  90.53023 7.720054</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2  96.3200 124.0713    124.1204 323.0879  9.373449  87.86154 7.554890</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3  76.0800 111.3954    111.4853 323.0879 10.149972 103.02194 9.111659</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 150.8900 114.3575    114.1843 161.5440  8.502685  72.29566 7.435182</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 158.6233 138.0302    137.9201 107.6960  8.667924  75.13290 6.279727</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 102.5233 109.4356    109.4722 107.6960  7.681062  58.99871 7.018796</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    ci_lower ci_upper samp_size sample_mean random_effect pop_size</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 105.54077 140.9379         1    165.7600      2.908779      545</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 106.66330 141.4707         1     96.3200      2.033756      566</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3  92.33535 130.4261         1     76.0800     -6.385784      394</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4  98.54389 130.1590         2    150.8900     -3.392320      424</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 121.29477 154.6319         3    158.6233      9.139622      564</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6  95.01261 123.7983         3    102.5233      4.768254      570</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 104.59814 141.8959         1    165.7600      2.887946      545</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 105.69933 142.4432         1     96.3200      2.043931      566</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  91.50149 131.2894         1     76.0800     -6.344250      394</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  97.69219 131.0227         2    150.8900     -3.385560      424</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 121.04112 155.0194         3    158.6233      9.157537      564</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  94.38072 124.4905         3    102.5233      4.765605      570</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   estimated_total</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1        67165.42</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        70221.92</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3        43884.01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4        48485.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5        77811.33</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6        62361.10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1        67169.63</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        70224.35</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3        43889.80</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4        48487.56</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        77849.06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6        62378.29</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 6 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

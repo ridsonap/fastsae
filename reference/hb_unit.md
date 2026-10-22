@@ -173,12 +173,12 @@ containing:
 - `hyperpar`: Data frame of hyperparameter posterior estimates.
 
 - `random_effect_var`: Posterior mean of the domain random effect
-  variance (\\\sigma_u^2\\). With few domains and the vague default
-  prior its posterior is very skewed and INLA's summary of it is not
-  accurate (on `cornsoybean`, 12 counties: about 70 against an exact
-  posterior mean of 41 and median of 7, while the county means and SDs
-  agree with the exact posterior). Do not read it as a REML estimate;
-  the domain estimates in `df_hb` are the reliable output.
+  variance (\\\sigma_u^2\\). With few domains its posterior is very
+  skewed and INLA's summary of it can be inaccurate (on `cornsoybean`,
+  12 counties, with the earlier vague log-gamma prior: about 70 against
+  an exact posterior mean of 41 and median of 7, while the county means
+  and SDs agree with the exact posterior). Do not read it as a REML
+  estimate; the domain estimates in `df_hb` are the reliable output.
 
 - `residual_var`: Estimated residual variance (\\\sigma_e^2\\, for
   Gaussian).
@@ -227,31 +227,35 @@ averaged per domain. A warning is given for these families.
 
 ## Engines
 
-Both engines fit the same model from the sampled units and return the
-same structure. With
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
-the coefficients have normal priors (standard deviation 10, or 2.5 for
-`"binomial"`) and the standard deviations of the domain effect and, for
-`"gaussian"`, of the unit errors half-normal(1) priors, on the
-standardised response scale for `"gaussian"`;
-[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
-puts the vague log-gamma prior on the precisions. The domain means, SDs
-and 2.5%/97.5% quantiles are computed from the MCMC draws; with
-`popsize_var` each draw of the Gaussian domain mean includes the mean
-error of the non-sampled units, \\N(0, \sigma_e^2 / (N_d - n_d))\\ for
-that draw of \\\sigma_e^2\\ (the INLA engine adds its posterior mean to
-the variance and gives a normal interval).
+Both engines fit the same model from the sampled units, with the same
+default priors, and return the same structure. The standard deviations
+of the domain effect and, for `"gaussian"`, of the unit errors have
+half-normal priors with scale \\s_y\\, the standard deviation of the
+sampled unit responses (scale 1 on the link scale for `"binomial"` and
+`"poisson"`), and the coefficients \\N(0, 1000)\\ priors.
+`jax_engine(priors = "weakly_informative")` uses half-normal(1) standard
+deviations and \\N(0, 10^2)\\ coefficients (\\N(0, 2.5^2)\\ for
+`"binomial"`) on the standardised scale instead. See
+[`vignette("hb-priors", package = "fastsae")`](https://ridsonap.github.io/fastsae/articles/hb-priors.md).
+The domain means, SDs and 2.5%/97.5% quantiles are computed from the
+MCMC draws; with `popsize_var` each draw of the Gaussian domain mean
+includes the mean error of the non-sampled units, \\N(0, \sigma_e^2 /
+(N_d - n_d))\\ for that draw of \\\sigma_e^2\\ (the INLA engine adds its
+posterior mean to the variance and gives a normal interval).
 
-On simulated data (30 domains, three unsampled) a Stan fit of the same
-model and priors gave domain means within 0.04 posterior SD and SDs
-within 5% for the Gaussian (also with BYM2), Bernoulli and Poisson
-models. With their own priors, `hbsae::fSAE(method = "HB")` (Gaussian,
-numerical integration over the variance ratio, flat priors) and the INLA
-engine gave domain means within 0.1 and 0.06 posterior SD. With few
-domains the prior of the domain variance matters: on `cornsoybean` (12
-counties) the county SDs were 1.1-1.4 times those of INLA, whose
-log-gamma prior favours small variances, and 0.8-1.0 times those of
-hbsae.
+The following comparisons were made with the earlier default priors
+(half-normal(1) on the standardised scale for
+[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+INLA's log-gamma priors on the precisions). On simulated data (30
+domains, three unsampled) a Stan fit of the same model and priors gave
+domain means within 0.04 posterior SD and SDs within 5% for the Gaussian
+(also with BYM2), Bernoulli and Poisson models. With their own priors,
+`hbsae::fSAE(method = "HB")` (Gaussian, numerical integration over the
+variance ratio, flat priors) and the INLA engine gave domain means
+within 0.1 and 0.06 posterior SD. With few domains the prior of the
+domain variance matters: on `cornsoybean` (12 counties) the county SDs
+were 1.1-1.4 times those of INLA, whose log-gamma prior favours small
+variances, and 0.8-1.0 times those of hbsae.
 
 ## References
 
@@ -305,6 +309,8 @@ if (requireNamespace("INLA", quietly = TRUE)) {
   print(fit_hb_u)
 }
 #> 
+#>  *** inla.core.safe:  rerun to try to solve negative eigenvalue(s) in the Hessian 
+#> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
 #> hb_unit(formula = CornHec ~ CornPix + SoyBeansPix, unit_data = df_sample, Xpop
@@ -314,41 +320,41 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-UNIT-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Method: INLA (laplace)
-#> Random effect variance (sigma2_u): 107.4697 
+#> Random effect variance (sigma2_u): 104.7262 
 #> Spatial mixing fraction (phi): NA 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  1.7331e+01  3.1320e+01  5.5335e-01  5.8003e-01 -4.4375e+01
-#> CornPix      3.6764e-01  6.5744e-02  5.5919e+00  2.2455e-08  2.3783e-01
-#> SoyBeansPix -2.9302e-02  6.8237e-02 -4.2941e-01  6.6763e-01 -1.6386e-01
+#> (Intercept)  1.7344e+01  3.3044e+01  5.2489e-01  5.9966e-01 -4.7777e+01
+#> CornPix      3.6765e-01  6.9353e-02  5.3011e+00  1.1511e-07  2.3077e-01
+#> SoyBeansPix -2.9352e-02  7.1997e-02 -4.0768e-01  6.8351e-01 -1.7129e-01
 #>             ci_upper
-#> (Intercept)  79.1395
-#> CornPix       0.4971
-#> SoyBeansPix   0.1052
+#> (Intercept)  82.5314
+#> CornPix       0.5042
+#> SoyBeansPix   0.1126
 #> 
 #> HB Estimates (First 6 domains):
-#>   domain        y       hb linear_pred    vardir       sd      mse      rse
-#> 1      1 165.7600 123.2393    123.1612 287.13687 9.029869 81.53854 7.327102
-#> 2      2  96.3200 124.0670    124.1161 287.13687 8.879435 78.84437 7.156968
-#> 3      3  76.0800 111.3807    111.4705 287.13687 9.717040 94.42086 8.724165
-#> 4      4 150.8900 114.3514    114.1783 143.56844 8.065070 65.04535 7.052881
-#> 5      5 158.6233 137.9634    137.8529  95.71229 8.504381 72.32449 6.164232
-#> 6      6 102.5233 109.4054    109.4418  95.71229 7.343275 53.92369 6.711984
+#>   domain        y       hb linear_pred   vardir        sd       mse      rse
+#> 1      1 165.7600 123.2470    123.1689 323.0879  9.514737  90.53023 7.720054
+#> 2      2  96.3200 124.0713    124.1204 323.0879  9.373449  87.86154 7.554890
+#> 3      3  76.0800 111.3954    111.4853 323.0879 10.149972 103.02194 9.111659
+#> 4      4 150.8900 114.3575    114.1843 161.5440  8.502685  72.29566 7.435182
+#> 5      5 158.6233 138.0302    137.9201 107.6960  8.667924  75.13290 6.279727
+#> 6      6 102.5233 109.4356    109.4722 107.6960  7.681062  58.99871 7.018796
 #>    ci_lower ci_upper samp_size sample_mean random_effect pop_size
-#> 1 105.54077 140.9379         1    165.7600      2.908779      545
-#> 2 106.66330 141.4707         1     96.3200      2.033756      566
-#> 3  92.33535 130.4261         1     76.0800     -6.385784      394
-#> 4  98.54389 130.1590         2    150.8900     -3.392320      424
-#> 5 121.29477 154.6319         3    158.6233      9.139622      564
-#> 6  95.01261 123.7983         3    102.5233      4.768254      570
+#> 1 104.59814 141.8959         1    165.7600      2.887946      545
+#> 2 105.69933 142.4432         1     96.3200      2.043931      566
+#> 3  91.50149 131.2894         1     76.0800     -6.344250      394
+#> 4  97.69219 131.0227         2    150.8900     -3.385560      424
+#> 5 121.04112 155.0194         3    158.6233      9.157537      564
+#> 6  94.38072 124.4905         3    102.5233      4.765605      570
 #>   estimated_total
-#> 1        67165.42
-#> 2        70221.92
-#> 3        43884.01
-#> 4        48485.00
-#> 5        77811.33
-#> 6        62361.10
+#> 1        67169.63
+#> 2        70224.35
+#> 3        43889.80
+#> 4        48487.56
+#> 5        77849.06
+#> 6        62378.29
 #> ... and 6 more rows.
 #> 
 #> 
@@ -361,41 +367,41 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-UNIT-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Method: INLA (laplace)
-#> Random effect variance (sigma2_u): 107.4697 
+#> Random effect variance (sigma2_u): 104.7262 
 #> Spatial mixing fraction (phi): NA 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  1.7331e+01  3.1320e+01  5.5335e-01  5.8003e-01 -4.4375e+01
-#> CornPix      3.6764e-01  6.5744e-02  5.5919e+00  2.2455e-08  2.3783e-01
-#> SoyBeansPix -2.9302e-02  6.8237e-02 -4.2941e-01  6.6763e-01 -1.6386e-01
+#> (Intercept)  1.7344e+01  3.3044e+01  5.2489e-01  5.9966e-01 -4.7777e+01
+#> CornPix      3.6765e-01  6.9353e-02  5.3011e+00  1.1511e-07  2.3077e-01
+#> SoyBeansPix -2.9352e-02  7.1997e-02 -4.0768e-01  6.8351e-01 -1.7129e-01
 #>             ci_upper
-#> (Intercept)  79.1395
-#> CornPix       0.4971
-#> SoyBeansPix   0.1052
+#> (Intercept)  82.5314
+#> CornPix       0.5042
+#> SoyBeansPix   0.1126
 #> 
 #> HB Estimates (First 6 domains):
-#>   domain        y       hb linear_pred    vardir       sd      mse      rse
-#> 1      1 165.7600 123.2393    123.1612 287.13687 9.029869 81.53854 7.327102
-#> 2      2  96.3200 124.0670    124.1161 287.13687 8.879435 78.84437 7.156968
-#> 3      3  76.0800 111.3807    111.4705 287.13687 9.717040 94.42086 8.724165
-#> 4      4 150.8900 114.3514    114.1783 143.56844 8.065070 65.04535 7.052881
-#> 5      5 158.6233 137.9634    137.8529  95.71229 8.504381 72.32449 6.164232
-#> 6      6 102.5233 109.4054    109.4418  95.71229 7.343275 53.92369 6.711984
+#>   domain        y       hb linear_pred   vardir        sd       mse      rse
+#> 1      1 165.7600 123.2470    123.1689 323.0879  9.514737  90.53023 7.720054
+#> 2      2  96.3200 124.0713    124.1204 323.0879  9.373449  87.86154 7.554890
+#> 3      3  76.0800 111.3954    111.4853 323.0879 10.149972 103.02194 9.111659
+#> 4      4 150.8900 114.3575    114.1843 161.5440  8.502685  72.29566 7.435182
+#> 5      5 158.6233 138.0302    137.9201 107.6960  8.667924  75.13290 6.279727
+#> 6      6 102.5233 109.4356    109.4722 107.6960  7.681062  58.99871 7.018796
 #>    ci_lower ci_upper samp_size sample_mean random_effect pop_size
-#> 1 105.54077 140.9379         1    165.7600      2.908779      545
-#> 2 106.66330 141.4707         1     96.3200      2.033756      566
-#> 3  92.33535 130.4261         1     76.0800     -6.385784      394
-#> 4  98.54389 130.1590         2    150.8900     -3.392320      424
-#> 5 121.29477 154.6319         3    158.6233      9.139622      564
-#> 6  95.01261 123.7983         3    102.5233      4.768254      570
+#> 1 104.59814 141.8959         1    165.7600      2.887946      545
+#> 2 105.69933 142.4432         1     96.3200      2.043931      566
+#> 3  91.50149 131.2894         1     76.0800     -6.344250      394
+#> 4  97.69219 131.0227         2    150.8900     -3.385560      424
+#> 5 121.04112 155.0194         3    158.6233      9.157537      564
+#> 6  94.38072 124.4905         3    102.5233      4.765605      570
 #>   estimated_total
-#> 1        67165.42
-#> 2        70221.92
-#> 3        43884.01
-#> 4        48485.00
-#> 5        77811.33
-#> 6        62361.10
+#> 1        67169.63
+#> 2        70224.35
+#> 3        43889.80
+#> 4        48487.56
+#> 5        77849.06
+#> 6        62378.29
 #> ... and 6 more rows.
 #> 
 # }

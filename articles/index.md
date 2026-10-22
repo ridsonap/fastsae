@@ -12,6 +12,8 @@
   tipsae](https://ridsonap.github.io/fastsae/articles/hb-area-engines.md):
 - [Bayesian Area-Level Small Area Estimation with
   INLA](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md):
+- [Default Priors of the Hierarchical Bayes
+  Models](https://ridsonap.github.io/fastsae/articles/hb-priors.md):
 - [Model Diagnostics and Residual
   Analysis](https://ridsonap.github.io/fastsae/articles/model-diagnostics.md):
 - [Spatial and Spatio-Temporal

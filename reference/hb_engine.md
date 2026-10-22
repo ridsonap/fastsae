@@ -179,9 +179,14 @@ print(x, ...)
   `"weakly_informative"`: half-normal standard deviations with scale 1
   on the standardised response or the link scale, uniform \\\phi\\ and
   AR(1) correlation and \\N(0, 10^2)\\ coefficients (\\N(0, 2.5^2)\\ for
-  logit links). The priors of the likelihood (residual SD without
-  `vardir`, beta precision, negative binomial and gamma shapes) are the
-  latter in both cases.
+  logit links). The priors of the likelihood are the same as with
+  `inla_engine()`: half-normal(\\s_y\\) on the Gaussian residual SD
+  without `vardir` (and on the unit errors of
+  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)),
+  half-normal(10) on the negative binomial size and the gamma shape, and
+  INLA's log-gamma(1, 0.1) on the log beta precision (\\\phi \sim\\
+  Exponential(0.1)); `"weakly_informative"` keeps half-normal(10) for
+  the beta precision.
 
 - robust:
 
