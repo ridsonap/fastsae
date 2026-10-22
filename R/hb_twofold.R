@@ -46,7 +46,7 @@
 #'   effect \eqn{\tau_v} and \code{prior_prec_subarea} for the sub-area effect \eqn{\tau_u},
 #'   both by default the prior of \code{\link{inla_engine}(prior_prec = )}; \code{prior_phi} for
 #'   BYM2), \code{scale_model}, the number of posterior \code{draws} for the area aggregates
-#'   of the binomial and Poisson models (default 200) and their \code{seed}, and further
+#'   of the binomial and Poisson models (default 2000) and their \code{seed}, and further
 #'   \code{INLA::inla()} arguments. The Gaussian model is fitted in INLA's \code{"classic"} mode, the binomial and Poisson models
 #'   in INLA's default \code{"compact"} mode, as in \code{\link{hb_area}};
 #'   \code{inla_engine(inla.mode = )} selects a mode. \code{jax_engine()} samples the same
@@ -192,7 +192,7 @@ hb_twofold <- function(
       prior_prec = pc_prec,
       prior_prec_subarea = pc_prec,
       prior_phi = list(prior = "pc", param = c(0.5, 0.5)),
-      draws = 200L
+      draws = 2000L
     ),
     used = c("scale_model", "prior_prec", "prior_prec_subarea", "prior_phi", "draws")
   )
@@ -335,8 +335,7 @@ hb_twofold <- function(
   )
 
   # Gaussian area aggregates are linear in the predictor: INLA's linear combinations give
-  # their exact posterior marginals. Posterior draws (other families) are sampled once per
-  # hyperparameter configuration, 143 for the two variances, which took ~40 s even for small data.
+  # their exact posterior marginals. The other families need posterior draws.
   if (compute_area) {
     norm_weight <- .twofold_weights(weight_vec, domain_vec, unique_domains, subarea_vec)
     if (family == "gaussian") {
@@ -422,30 +421,28 @@ hb_twofold <- function(
       summary = fit$summary.lincomb.derived
     )
   } else if (compute_area) {
-    # Joint posterior draws of the sub-area parameters on the response scale
-    mat_samples <- tryCatch(
-      {
-        ps <- .inla_draws(fit, engine$draws, engine$seed)
-        pred_names <- paste0("Predictor:", seq_len(n_subareas))
-        latent_rows <- rownames(ps[[1]]$latent)
-        pred_indices <- match(pred_names, latent_rows)
-
-        if (!any(is.na(pred_indices))) {
-          mat_samples <- sapply(ps, function(s) s$latent[pred_indices, 1])
-
-          # Link function transformation if binomial or poisson
-          if (family == "binomial") {
-            mat_samples <- 1 / (1 + exp(-mat_samples))
-          } else if (family == "poisson") {
-            mat_samples <- exp(mat_samples)
-          }
-          mat_samples
-        } else {
-          NULL
-        }
-      },
-      error = function(e) NULL
-    )
+    # Joint posterior draws of the sub-area predictors, sampled in R from INLA's
+    # configurations; INLA's own sampler if the fit does not have them
+    eta <- NULL
+    if (engine$draws > 0) {
+      eta <- tryCatch(.inla_predictor_draws(fit, engine$draws, n_subareas, engine$seed),
+        error = function(e) NULL
+      )
+      if (is.null(eta)) {
+        eta <- tryCatch(
+          {
+            ps <- .inla_draws(fit, engine$draws, engine$seed)
+            pred_indices <- match(paste0("Predictor:", seq_len(n_subareas)), rownames(ps[[1]]$latent))
+            if (!any(is.na(pred_indices))) sapply(ps, function(s) s$latent[pred_indices, 1])
+          },
+          error = function(e) NULL
+        )
+      }
+    }
+    # on the response scale
+    mat_samples <- if (!is.null(eta)) {
+      if (family == "binomial") stats::plogis(eta) else exp(eta)
+    }
     df_area <- .twofold_area_table(mat_samples, norm_weight, domain_vec, unique_domains, hb_pred, hb_sd)
   }
 

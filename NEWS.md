@@ -538,12 +538,20 @@
 * `export_sae()` lists both variance components of two-fold models in the model summary.
 
 ### Performance
-* `hb_twofold()` (INLA, Gaussian): the area aggregates in `df_area` are INLA linear combinations
-  of the sub-area predictors, with exact posterior marginals, instead of 200 posterior draws.
-  The draws were sampled once per hyperparameter configuration (143 for the area and sub-area
-  variances), so a fit with 15 areas took 45 s, now 6 s; the area SDs agree with 4000 draws
-  within their Monte Carlo error. `inla_engine(draws = )` now only applies to the binomial and
-  Poisson families.
+* `hb_twofold()` (INLA): the area aggregates in `df_area` took most of the fit time.
+  `INLA::inla.posterior.sample()` with a seed runs the inla program once per hyperparameter
+  configuration (~0.3 s each): 143 configurations for the Gaussian model (45 s with 15 areas)
+  and 36-39 for the binomial and Poisson models (22-34 s), for only 200 draws.
+  * Gaussian: the aggregates are INLA linear combinations of the sub-area predictors, with exact
+    posterior marginals (45 s -> 6 s); the area SDs agree with 4000 draws within their Monte Carlo
+    error.
+  * Binomial and Poisson: the draws are taken in R from the Gaussian approximation of the latent
+    field at each of INLA's configurations, chosen by their posterior weight as INLA does, and
+    `inla_engine(draws = )` now defaults to 2000 instead of 200: under a second for the draws, and
+    reproducible with `seed`. With 200 draws the aggregate interval bounds were off by up to
+    0.4-0.6 posterior SD against 10000 INLA draws, with 2000 by at most 0.17. INLA's skewness
+    correction is not applied; with 20000 draws it moved the aggregates less than the Monte Carlo
+    error. INLA's own sampler is still used if the fit has no stored configurations.
 * `benchmark_sae()`: the MSE covariance between areas is applied as a matrix-free operator
   (FH: $O(n p^2)$, no $n \times n$ matrices). FH with $m = 2000$: 9.4 s / 490 MB -> 0.002 s / 1.7 MB;
   $m = 20000$ now runs in about 0.01 s.
