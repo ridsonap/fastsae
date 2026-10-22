@@ -426,30 +426,30 @@ with their posterior uncertainty in <code>df_area</code>.</p>
 <span></span>
 <span><span class="va">fit_hb</span><span class="op">$</span><span class="va">random_effect_var</span></span>
 <span><span class="co">#&gt;  sigma2_v  sigma2_u </span></span>
-<span><span class="co">#&gt; 1.2370025 0.1859788</span></span>
+<span><span class="co">#&gt; 1.2361948 0.1876566</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain subarea        y       hb linear_pred   vardir        sd       mse</span></span>
-<span><span class="co">#&gt; 1    A01   A01-1 12.20118 12.39290    12.39290 1.663801 0.6267376 0.3928000</span></span>
-<span><span class="co">#&gt; 2    A01   A01-2 14.48113 14.48306    14.48306 1.105026 0.6022376 0.3626901</span></span>
-<span><span class="co">#&gt; 3    A01   A01-3 15.01471 14.56061    14.56061 1.301555 0.6149109 0.3781155</span></span>
-<span><span class="co">#&gt; 4    A01   A01-4 11.36094 12.20725    12.20725 1.406429 0.6221921 0.3871231</span></span>
-<span><span class="co">#&gt; 5    A02   A02-1 12.02304 12.65286    12.65286 1.986447 0.6498927 0.4223605</span></span>
-<span><span class="co">#&gt; 6    A02   A02-2       NA 10.39838    10.39838 1.268523 0.7105738 0.5049151</span></span>
-<span><span class="co">#&gt;        rse  ci_lower ci_upper random_effect_area random_effect_subarea</span></span>
-<span><span class="co">#&gt; 1 5.057232 11.151455 13.62611         -0.4211314         -2.072824e-02</span></span>
-<span><span class="co">#&gt; 2 4.158220 13.296659 15.66950         -0.4211314         -1.332579e-03</span></span>
-<span><span class="co">#&gt; 3 4.223113 13.363453 15.78882         -0.4211314          5.683072e-02</span></span>
-<span><span class="co">#&gt; 4 5.096906 10.953783 13.40860         -0.4211314         -9.938372e-02</span></span>
-<span><span class="co">#&gt; 5 5.136332 11.353954 13.91986         -0.8380897         -5.535978e-02</span></span>
-<span><span class="co">#&gt; 6 6.833501  8.993467 11.81479         -0.8380897          6.810325e-11</span></span>
+<span><span class="co">#&gt; 1    A01   A01-1 12.20118 12.39284    12.39284 1.663801 0.6266608 0.3927038</span></span>
+<span><span class="co">#&gt; 2    A01   A01-2 14.48113 14.48299    14.48299 1.105026 0.6021869 0.3626291</span></span>
+<span><span class="co">#&gt; 3    A01   A01-3 15.01471 14.56048    14.56048 1.301555 0.6148532 0.3780445</span></span>
+<span><span class="co">#&gt; 4    A01   A01-4 11.36094 12.20728    12.20728 1.406429 0.6221135 0.3870252</span></span>
+<span><span class="co">#&gt; 5    A02   A02-1 12.02304 12.65276    12.65276 1.986447 0.6498179 0.4222633</span></span>
+<span><span class="co">#&gt; 6    A02   A02-2       NA 10.39822    10.39822 1.268523 0.7104407 0.5047260</span></span>
+<span><span class="co">#&gt;        rse ci_lower ci_upper random_effect_area random_effect_subarea</span></span>
+<span><span class="co">#&gt; 1 5.056637 11.15158 13.62591         -0.4212193         -2.070355e-02</span></span>
+<span><span class="co">#&gt; 2 4.157891 13.29671 15.66933         -0.4212193         -1.328942e-03</span></span>
+<span><span class="co">#&gt; 3 4.222755 13.36344 15.78856         -0.4212193          5.675650e-02</span></span>
+<span><span class="co">#&gt; 4 5.096251 10.95402 13.40851         -0.4212193         -9.928924e-02</span></span>
+<span><span class="co">#&gt; 5 5.135780 11.35408 13.91965         -0.8382561         -5.528423e-02</span></span>
+<span><span class="co">#&gt; 6 6.832333  8.99364 11.81438         -0.8382561         -3.841197e-11</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_area</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain  hb_area   sd_area  mse_area rse_area ci_lower_area ci_upper_area</span></span>
-<span><span class="co">#&gt; 1    A01 13.42839 0.5115306 0.2616635 3.809322      12.41243      14.49213</span></span>
-<span><span class="co">#&gt; 2    A02 11.18134 0.5585532 0.3119816 4.995403      10.02758      12.18690</span></span>
-<span><span class="co">#&gt; 3    A03 14.08162 0.4564143 0.2083140 3.241206      13.24423      14.96521</span></span>
-<span><span class="co">#&gt; 4    A04 16.66043 0.5313830 0.2823679 3.189491      15.54299      17.51367</span></span>
-<span><span class="co">#&gt; 5    A05 13.24769 0.5650628 0.3192960 4.265369      12.29191      14.38185</span></span>
-<span><span class="co">#&gt; 6    A06 12.79910 0.4876379 0.2377907 3.809941      11.74785      13.62786</span></span>
+<span><span class="co">#&gt; 1    A01 13.42833 0.5047862 0.2548091 3.759113      12.41439      14.49255</span></span>
+<span><span class="co">#&gt; 2    A02 11.18124 0.5565653 0.3097649 4.977671      10.12057      12.18632</span></span>
+<span><span class="co">#&gt; 3    A03 14.08170 0.4566022 0.2084856 3.242522      13.24758      15.01321</span></span>
+<span><span class="co">#&gt; 4    A04 16.66077 0.5256844 0.2763441 3.155222      15.54241      17.50356</span></span>
+<span><span class="co">#&gt; 5    A05 13.24774 0.5790065 0.3352485 4.370607      12.19274      14.43877</span></span>
+<span><span class="co">#&gt; 6    A06 12.79906 0.4849711 0.2351969 3.789114      11.72845      13.62868</span></span>
 <span><span class="co">#&gt;   n_subareas</span></span>
 <span><span class="co">#&gt; 1          4</span></span>
 <span><span class="co">#&gt; 2          5</span></span>
@@ -491,8 +491,8 @@ correlation below):</p>
 <span><span class="co">#&gt;  Value            </span></span>
 <span><span class="co">#&gt;  131              </span></span>
 <span><span class="co">#&gt;  -0.0004          </span></span>
-<span><span class="co">#&gt;  [-0.0209, 0.0201]</span></span>
-<span><span class="co">#&gt;  0.0077           </span></span>
+<span><span class="co">#&gt;  [-0.0208, 0.0200]</span></span>
+<span><span class="co">#&gt;  0.0076           </span></span>
 <span><span class="co">#&gt;  0.0104           </span></span>
 <span><span class="co">#&gt;  1.0000           </span></span>
 <span><span class="co">#&gt;  0.008            </span></span>
@@ -501,8 +501,8 @@ correlation below):</p>
 <span><span class="co">#&gt;  0.18             </span></span>
 <span><span class="co">#&gt;  13 / 13          </span></span>
 <span><span class="co">#&gt;  13 / 13          </span></span>
-<span><span class="co">#&gt;  1.0438           </span></span>
-<span><span class="co">#&gt;  1.0526           </span></span>
+<span><span class="co">#&gt;  1.0440           </span></span>
+<span><span class="co">#&gt;  1.0528           </span></span>
 <span><span class="co">#&gt;  78.6%            </span></span>
 <span><span class="co">#&gt;  4.97%            </span></span>
 <span><span class="co">#&gt;  4.89%</span></span>
@@ -522,7 +522,7 @@ settles it; here the two are practically equal:</p>
 <span>  hb_two_fold <span class="op">=</span> <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span>, <span class="va">sampled</span> <span class="op">|</span> <span class="va">in_sampled_area</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; eblup_two_fold    hb_two_fold </span></span>
-<span><span class="co">#&gt;      0.5583827      0.5570989</span></span></code></pre></div>
+<span><span class="co">#&gt;      0.5583827      0.5571915</span></span></code></pre></div>
 <p>For counts or proportions, use <code>family = "poisson"</code> with
 <code>exposure</code> or <code>family = "binomial"</code> with
 <code>trials</code>; with <code>spatial = "bym2"</code> and a
