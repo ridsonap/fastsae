@@ -13,11 +13,13 @@ The R Journal
 Dear Editors,
 \bigskip
 
-Please consider our article titled "Fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R" for publication in The R Journal.
+Please consider our article titled "fastsae: Frequentist and Bayesian Small Area Estimation in R" for publication in The R Journal.
 
-The manuscript introduces the R package `fastsae`, designed for high-performance frequentist and Bayesian small area estimation. The package combines optimized C++17 linear algebra routines with OpenMP multi-threading to eliminate computational bottlenecks in classical, spatial, and spatio-temporal Fay-Herriot models, alongside Battese-Harter-Fuller unit-level models. Furthermore, it incorporates deterministic Bayesian Empirical Best Prediction (EBP) via Integrated Nested Laplace Approximations (INLA) across six probability distributions with exact survey dispersion matching. It also provides institutional two-stage hierarchical benchmarking, automated reliability classification, model concordance diagnostics, and spatial choropleth visualization.
+The article introduces the R package `fastsae`, which brings the main area-level and unit-level small area estimation models used in official statistics together in one interface. Its frequentist part implements the Fay-Herriot model, its spatial and spatio-temporal extensions, and the unit-level and two-fold nested error models with analytical and bootstrap mean squared errors in compiled code that scales to thousands of areas. Its hierarchical Bayes part fits area-level, unit-level and two-fold models with six likelihoods and spatial, temporal and space-time effects, either by integrated nested Laplace approximations or by Hamiltonian Monte Carlo in JAX through the same call, with the dispersion of each area fixed by the sampling variance of its direct estimate and with documented default priors. Benchmarking, reliability classification, model comparison, maps and export complete the workflow.
 
-We believe that researchers and practitioners working in official statistics and survey methodology will find this article and the accompanying software highly valuable for production-grade small area estimation.
+The article compares the package with sae, emdi and tipsae in runtime and in the accuracy and coverage of the estimates, reports a design-based simulation, and illustrates a complete workflow with poverty data. The benchmark scripts and their stored results are in the package repository, and the article renders from the stored results in a few minutes; the timings of sae and emdi come from an earlier run, as stated in the article.
+
+We believe the article will interest researchers and practitioners in official statistics and survey methodology who need small area estimates in production.
 
 \bigskip
 \bigskip

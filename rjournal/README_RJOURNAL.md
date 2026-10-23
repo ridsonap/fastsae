@@ -1,85 +1,57 @@
-# The R Journal Submission Bundle: fastsae
+# R Journal submission: fastsae
 
-This directory contains the complete submission bundle for **The R Journal**, prepared in strict accordance with the official submission guidelines at [https://journal.r-project.org/submissions.html](https://journal.r-project.org/submissions.html).
+Article: *fastsae: Frequentist and Bayesian Small Area Estimation in R*, by Ridson Al Farizal P.
+and Azka Ubaidillah (Politeknik Statistika STIS). Submission guidelines:
+<https://journal.r-project.org/submissions.html>.
 
----
+## Files
 
-## 1. Article Metadata
-
-- **Title**: *fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R*
-- **Category**: Add-on Package / Software Article
-- **Target Journal**: *The R Journal*
-- **Authors**:
-  1. **Ridson Al Farizal P.** (Department of Computational Statistics, Politeknik Statistika STIS, Jakarta, Indonesia; ORCID: [0000-0003-0617-0214](https://orcid.org/0000-0003-0617-0214); Email: `alfrzlp@gmail.com`)
-  2. **Azka Ubaidillah** (Department of Statistics, Politeknik Statistika STIS, Jakarta, Indonesia; ORCID: [0000-0002-3597-0459](https://orcid.org/0000-0002-3597-0459); Email: `azka@stis.ac.id`)
-- **Keywords**: small area estimation, Fay-Herriot, empirical best prediction, INLA, OpenMP, Rcpp, hierarchical benchmarking, spatial statistics, R
-- **Page Count**: 14 pages (standard R Journal layout)
-
----
-
-## 2. Directory Contents
-
-| File | Description |
+| File | Content |
 |---|---|
-| `fastsae.Rmd` | Modern R Markdown manuscript designed for `rjtools` (`rjtools::rjournal_web_article` and `rjtools::rjournal_pdf_article`). Contains reproducible knitr chunks. |
-| `RJwrapper.tex` | Master LaTeX wrapper for classic R Journal compilation. |
-| `fastsae.tex` | LaTeX article body with complete sections, equations, tables, and R Journal typography. |
-| `RJournal.sty` | Official R Journal LaTeX style package. |
-| `fastsae.bib` | Comprehensive BibTeX database (45+ entries) with complete DOIs, volume, and issue numbers. |
-| `RJwrapper.pdf` | Pre-compiled 15-page publication-quality PDF (0 errors, 0 undefined citations). |
-| `figures/` | High-resolution vector figures in PDF format: |
-|   * `fig-time-fh.pdf` | Runtime scaling across domain sample sizes (D) for frequentist FH models. |
-|   * `fig-time-beta.pdf` | Runtime scaling across domain sample sizes (D) for Bayesian Beta models. |
-|   * `fig-mem.pdf` | Memory allocated per call (`bench::mark()$mem_alloc`) across domain sizes (D) on log-log scale. |
-|   * `fig-ratio.pdf` | Speedup ratios by D (at D = 1,000: 1,263x FH and 67x SFH vs sae; 117x Beta vs tipsae). |
-|   * `fig-equiv.pdf` | Numerical equivalence between `fastsae` (INLA) and `tipsae` (Stan HMC) (r = 0.9993). |
-|   * `fig-diagnostics.pdf` | Calibration and precision diagnostic panel generated from `autoplot()`. |
+| `fastsae.Rmd` | The article (`rjtools::rjournal_article`); renders to HTML and PDF |
+| `fastsae.bib` | References |
+| `motivation-letter/` | Motivation letter |
+| `RJournal.sty`, `RJwrapper.tex` | Style and wrapper used by the PDF output |
 
----
+The article computes its tables and figures from the stored benchmark results, so it
+renders in a few minutes:
 
-The benchmark figures are generated from `inst/extdata/*.rds` (English labels):
+| Result | Script | Stored in |
+|---|---|---|
+| Frequentist timings | `benchmarks/bench_frequentist_fastsae.R` (fastsae rows) | `inst/extdata/{eblup,seblup,steblup}_benchmark.rds` |
+| Beta timings | `benchmarks/bench_beta_tipsae.R`, `bench_spatial_beta.R`, `bench_spatio_temporal_beta.R` | `inst/extdata/{beta,spatial_beta,spatio_temporal_beta}_benchmark.rds` |
+| fastsae vs tipsae estimates | `benchmarks/bench_beta_concordance.R` | `inst/extdata/beta_concordance_n1000.rds` |
+| Estimation engines | `benchmarks/bench_hb_area_engines.R` | `inst/extdata/hb_engine_benchmark.rds` |
+| Gaussian HB, fastsae vs hbsae | `benchmarks/bench_hb_normal.R` | `inst/extdata/hb_normal_benchmark.rds` |
+| Design-based simulation | `benchmarks/sim_mc_finite_pop_d500.R` | `benchmarks/output/mc_finite_population_results_D500_R25.rds` |
 
-```bash
-cd paper
-Rscript scripts/02_figures.R --lang=en --out=rjournal/figures
+The sae and emdi rows of the frequentist timings come from an earlier run whose data
+generator is no longer available; the article says so.
+
+## Build and check
+
+Run from this directory (`rjtools::initial_check_article()` reads stdin through pandoc, so
+give it an empty stdin when run non-interactively):
+
+```sh
+Rscript -e 'rmarkdown::render("fastsae.Rmd", output_format = "rjtools::rjournal_web_article")'
+Rscript -e 'rmarkdown::render("fastsae.Rmd", output_format = "rjtools::rjournal_pdf_article")'
+Rscript -e 'rjtools::initial_check_article(".")' < /dev/null
 ```
 
-The numbers in the text and tables were last updated on 2026-10-14 from the same files
-(`fastsae` rows re-measured with fastsae 1.0.0; comparator rows from the earlier runs).
+The article needs fastsae, INLA, tipsae (for the example data), sf, spdep, ggplot2,
+patchwork and kableExtra.
 
-## 3. How to Build and Verify
+`initial_check_article()` of rjtools 1.0.18.1 stops in `check_spelling()`, which looks for a
+`\section*{References}` that the rjtools template does not produce; run the checks after it
+one by one. It also flags the lower-case package name in the title and the proper noun in
+"Example: poverty in Emilia-Romagna"; both are intended.
 
-### Option A: Using the Modern `rjtools` Workflow (Recommended by The R Journal)
-```r
-# Install rjtools if not already installed
-install.packages("rjtools")
+## Before submitting
 
-# Check and validate the submission
-rjtools::check_article("rjournal/fastsae.Rmd")
-
-# Render HTML and PDF versions
-rmarkdown::render("rjournal/fastsae.Rmd")
-```
-
-### Option B: Using the Traditional LaTeX Workflow
-```bash
-cd rjournal
-pdflatex RJwrapper.tex
-bibtex RJwrapper
-pdflatex RJwrapper.tex
-pdflatex RJwrapper.tex
-```
-
----
-
-## 4. Compliance Checklist (R Journal Guidelines)
-
-- [x] **Clear Motivation & Gap**: Identifies the triple operational barrier in official SAE: computational bottlenecks in bootstrap, MCMC friction in non-Gaussian likelihoods, and lack of two-stage hierarchical benchmarking.
-- [x] **Comprehensive Comparison Table**: Table 1 explicitly contrasts `fastsae` against `sae`, `emdi`, `tipsae`, `mcmcsae`, and `SUMMER` across 12 capability dimensions.
-- [x] **Rigorous Mathematical Methodology**: Exact equations for FH, SFH, STFH, BHF, INLA Latent Gaussian Models with exact survey dispersion matching (Beta, Gamma, Binomial, Poisson, NegBin), two-stage benchmarking, and RSE reliability classification.
-- [x] **Reproducible Worked Examples**: Section 5 provides end-to-end executable code demonstrating data preparation, model fitting, model comparison (`compare_sae`), hierarchical calibration (`benchmark_sae`), reliability tagging (`add_reliability_flags`), and diagnostic plotting (`autoplot`).
-- [x] **Complete Benchmark & Simulation**: Rigorous runtime/memory benchmarks (D from 30 to 1000) and design-based Monte Carlo simulations under known ground truth (D=500, R=25, N=250,000) demonstrating 1.92x efficiency gain over direct survey estimator.
-- [x] **Institutional Dissemination Impact**: Table 5 provides a synthesis of empirical evidence and concrete policy implications ("So What").
-- [x] **Clean Bibliography**: All 45+ citations include valid DOIs or URLs.
-- [x] **Compilation Verified**: Compiled to `RJwrapper.pdf` (14 pages) with zero LaTeX errors and zero missing citations.
-
+- fastsae 1.0.0 must be on CRAN (a requirement of the journal); CRAN has 0.1.0, which lacks
+  the HB functions the article describes.
+- Set `date` in the YAML header to the submission date (`check_date()` compares it with the
+  current date).
+- When the engine benchmark ended, other processes (Finder, Spotlight) used about one CPU
+  core; re-run `benchmarks/bench_hb_area_engines.R` on an idle machine for final numbers.

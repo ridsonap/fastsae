@@ -2,96 +2,283 @@
 # Please edit fastsae.Rmd to modify this file
 
 ## ----setup, include=FALSE-----------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align = "center")
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.align = "center")
 # pdfLaTeX cannot typeset U+2264 in verbatim output (reliability tier labels)
 local({
   hook <- knitr::knit_hooks$get("output")
   knitr::knit_hooks$set(output = function(x, options) hook(gsub("\u2264", "<=", x), options))
 })
 library(fastsae)
+library(ggplot2)
+
+is_pdf <- knitr::is_latex_output()
+# Tables for both output formats
+rj_table <- function(x, caption, align = NULL, header = NULL, groups = NULL, font_size = NULL) {
+  x <- as.data.frame(x, stringsAsFactors = FALSE)
+  if (is_pdf) {
+    # escape = FALSE passes LaTeX through, so a bare % would start a comment
+    esc <- function(s) gsub("(?<!\\\\)%", "\\\\%", s, perl = TRUE)
+    caption <- esc(caption)
+    names(x) <- esc(names(x))
+    x[] <- lapply(x, function(col) if (is.character(col)) esc(col) else col)
+  }
+  tab <- knitr::kable(x, format = if (is_pdf) "latex" else "html", caption = caption,
+                      align = align, booktabs = TRUE, escape = FALSE, linesep = "")
+  if (!is.null(header)) tab <- kableExtra::add_header_above(tab, header)
+  for (g in groups) tab <- kableExtra::pack_rows(tab, g$label, g$from, g$to)
+  kableExtra::kable_styling(tab, font_size = font_size, full_width = FALSE,
+                            latex_options = "hold_position")
+}
+fmt <- function(x, digits = 2) formatC(x, format = "f", digits = digits, big.mark = ",")
+fmt_s <- function(x) {
+  ifelse(is.na(x), "--", ifelse(x < 0.01, formatC(x, format = "g", digits = 2),
+         ifelse(x < 100, formatC(x, format = "f", digits = 2), formatC(x, format = "f", digits = 0, big.mark = ","))))
+}
+fmt_x <- function(x) if (x >= 100) format(round(x), big.mark = ",") else sprintf("%.0f", x)
+
+# Benchmark results (written by the scripts in benchmarks/)
+ext <- function(f) file.path("..", "inst", "extdata", f)
+read_bench <- function(f) {
+  x <- as.data.frame(readRDS(ext(f)))
+  x$Method <- as.character(x$Method)
+  x
+}
+b_fh <- read_bench("eblup_benchmark.rds")
+b_sfh <- read_bench("seblup_benchmark.rds")
+b_st <- read_bench("steblup_benchmark.rds")
+b_beta <- read_bench("beta_benchmark.rds")
+b_sbeta <- read_bench("spatial_beta_benchmark.rds")
+b_stbeta <- read_bench("spatio_temporal_beta_benchmark.rds")
+b_hbn <- read_bench("hb_normal_benchmark.rds")
+med <- function(x, m, n) {
+  v <- x$`Median (s)`[x$Method == m & x$n == n]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+mem <- function(x, m, n) {
+  v <- x$`Memory (MB)`[x$Method == m & x$n == n]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+speedup <- function(x, m, n) med(x, m, n) / med(x, "fastsae", n)
+conc <- readRDS(ext("beta_concordance_n1000.rds"))
+cm <- conc$metrics
+ca <- conc$agreement
+mc <- readRDS(file.path("..", "benchmarks", "output", "mc_finite_population_results_D500_R25.rds"))
 
 
-## ----engines-data, include=FALSE----------------------------------------------
-eng <- readRDS("../inst/extdata/hb_engine_benchmark.rds")
+## ----pkg-comparison-----------------------------------------------------------
+pkgs <- c("fastsae", "sae", "emdi", "hbsae", "tipsae", "mcmcsae", "SUMMER")
+cmp <- rbind(
+  "Inference" = c("REML/ML, HB (INLA, HMC)", "REML/ML", "REML/ML", "REML, HB (num. integration)", "HB (Stan HMC)", "HB (Gibbs, HMC)", "HB (INLA)"),
+  "Area-level model" = c("yes", "yes", "yes", "yes", "beta-type", "yes", "yes"),
+  "Spatial / spatio-temporal EBLUP" = c("SAR / SAR + AR(1)", "SAR / SAR + AR(1)", "SAR / --", "--", "--", "--", "--"),
+  "Unit-level model" = c("EBLUP, HB", "EBLUP, EB", "EBLUP, EBP", "EBLUP, HB", "--", "HB", "HB"),
+  "HB likelihoods" = c("Gaussian, beta, gamma, binomial, Poisson, neg. binomial", "--", "--", "Gaussian", "beta, flexible beta, 0/1-inflated beta, ext. beta", "Gaussian, binomial, multinomial, Poisson, neg. binomial, gamma", "Gaussian, binomial, beta-binomial"),
+  "HB spatial effects" = c("ICAR, BYM, BYM2, Leroux, SAR, SLM", "--", "--", "--", "ICAR", "ICAR, BYM2, Leroux", "ICAR, BYM2"),
+  "Benchmarking" = c("ratio, difference, MSE-weighted, logit; one or two levels", "--", "raking, ratio, MSE-adjusted; one total", "linear constraints", "raking, ratio, double", "--", "national totals"),
+  "Maps / export" = c("yes / spreadsheet", "-- / --", "yes / spreadsheet", "-- / --", "yes / CSV", "-- / --", "yes / --"),
+  "Compiled code" = c("C++ (OpenMP)", "--", "--", "--", "Stan", "C++", "--")
+)
+colnames(cmp) <- pkgs
+cmp <- cbind(Feature = rownames(cmp), cmp)
+rownames(cmp) <- NULL
+rj_table(cmp, caption = "Small area estimation packages for R. EBLUP: empirical best linear unbiased predictor; EB(P): empirical best (predictor); HB: hierarchical Bayes; HMC: Hamiltonian Monte Carlo. Taken from the package documentation (sae 1.3, emdi 2.2.3, hbsae 1.2, tipsae 1.0.3, mcmcsae 0.8.2, SUMMER 2.0.0).",
+         font_size = 7) |>
+  kableExtra::column_spec(1, width = "2.2cm") |>
+  kableExtra::column_spec(2:8, width = "1.75cm")
+
+
+## ----priors-------------------------------------------------------------------
+pri <- data.frame(
+  Parameter = c("Coefficients $\\boldsymbol{\\beta}$",
+                "Standard deviations of random effects (area, sub-area, time, space-time; $\\sigma_e$ of hb\\_unit())",
+                "BYM2 mixing parameter $\\phi$",
+                "Leroux $\\lambda$; SAR and SLM $\\rho$",
+                "AR(1) correlation $\\rho$",
+                "Gamma shape, negative binomial size (no $\\psi_d$)",
+                "Beta precision (no $\\psi_d$, no $n_d$)",
+                "Gaussian residual standard deviation (no $\\psi_d$)"),
+  Prior = c("intercept flat; others $\\mathcal{N}(0, 1000)$",
+            "half-normal$(s)$, $s = \\mathrm{sd}(\\boldsymbol{y})$ for Gaussian models and $s = 1$ on the link scale otherwise",
+            "PC prior with $P(\\phi < 0.5) = 0.5$",
+            "uniform on the admissible range",
+            "$\\mathcal{N}(0, 1/0.15)$ on $\\log\\{(1 + \\rho)/(1 - \\rho)\\}$",
+            "half-normal$(10)$",
+            "exponential with rate 0.1",
+            "half-normal$(s)$")
+)
+rj_table(pri, caption = "Default priors of hb\\_area(), hb\\_unit() and hb\\_twofold(). All intrinsic Gaussian Markov random fields are scaled, so that $\\sigma$ is a typical marginal standard deviation for every structure. Every prior can be changed through inla\\_engine().") |>
+  kableExtra::column_spec(1, width = "6cm") |>
+  kableExtra::column_spec(2, width = "8cm")
+
+
+## ----functions----------------------------------------------------------------
+fns <- data.frame(
+  Function = c("eblup\\_fh(), eblup\\_sfh(), eblup\\_stfh()", "eblup\\_bhf(), eblup\\_twofold()",
+               "hb\\_area()", "hb\\_unit(), hb\\_twofold()", "inla\\_engine(), jax\\_engine()",
+               "benchmark\\_sae()", "add\\_reliability\\_flags()", "compare\\_sae(), step\\_sae()",
+               "diagnose(), autoplot()", "map\\_sae(), export\\_sae()"),
+  Purpose = c("Fay-Herriot, spatial and spatio-temporal EBLUP with analytical or bootstrap MSE",
+              "Unit-level and two-fold EBLUP",
+              "Area-level HB models: six likelihoods, spatial, temporal and space-time effects",
+              "Unit-level and two-fold HB models",
+              "Estimation engines for the HB functions",
+              "Ratio, difference, MSE-weighted and logit benchmarking at one or two levels",
+              "Reliability tiers by relative standard error",
+              "Agreement and ranking of two models; covariate selection",
+              "Model diagnostics and plots",
+              "Choropleth maps; spreadsheet export")
+)
+rj_table(fns, caption = "Main functions of fastsae.") |>
+  kableExtra::column_spec(1, width = "5.5cm") |>
+  kableExtra::column_spec(2, width = "8.5cm")
+
+
+## ----freq-table---------------------------------------------------------------
+ns <- c(30, 100, 500, 1000)
+freq_rows <- function(x, has_emdi = TRUE) {
+  data.frame(
+    D = format(ns, big.mark = ","),
+    f = fmt_s(sapply(ns, function(n) med(x, "fastsae", n))),
+    s = fmt_s(sapply(ns, function(n) med(x, "sae", n))),
+    e = if (has_emdi) fmt_s(sapply(ns, function(n) med(x, "emdi", n))) else "--",
+    mf = fmt_s(sapply(ns, function(n) mem(x, "fastsae", n))),
+    ms = fmt_s(sapply(ns, function(n) mem(x, "sae", n))),
+    me = if (has_emdi) fmt_s(sapply(ns, function(n) mem(x, "emdi", n))) else "--"
+  )
+}
+ft <- rbind(freq_rows(b_fh), freq_rows(b_sfh), freq_rows(b_st, has_emdi = FALSE))
+names(ft) <- c("$D$", "fastsae", "sae", "emdi", "fastsae ", "sae ", "emdi ")
+rj_table(ft, align = "rrrrrrr",
+         caption = "Median time and memory allocated by R for point estimates and analytical MSEs. The spatio-temporal model has $T = 5$ periods. The fastsae rows were measured with fastsae 1.0.0; the sae and emdi rows come from an earlier run of the same design on other random draws.",
+         header = c(" " = 1, "Time (s)" = 3, "Memory allocated (MB)" = 3),
+         groups = list(list(label = "Fay-Herriot", from = 1, to = 4),
+                       list(label = "Spatial Fay-Herriot", from = 5, to = 8),
+                       list(label = "Spatio-temporal Fay-Herriot", from = 9, to = 12)))
+
+
+## ----beta-table---------------------------------------------------------------
+nb <- c(30, 50, 100, 250, 500, 1000)
+bt <- data.frame(
+  D = format(nb, big.mark = ","),
+  cf = fmt_s(sapply(nb, function(n) med(b_beta, "fastsae", n))),
+  ct = fmt_s(sapply(nb, function(n) med(b_beta, "tipsae", n))),
+  sf = fmt_s(sapply(nb, function(n) med(b_sbeta, "fastsae", n))),
+  st = fmt_s(sapply(nb, function(n) med(b_sbeta, "tipsae", n))),
+  tf = fmt_s(sapply(nb, function(n) med(b_stbeta, "fastsae", n))),
+  tt = fmt_s(sapply(nb, function(n) med(b_stbeta, "tipsae", n)))
+)
+names(bt) <- c("$D$", rep(c("fastsae", "tipsae"), 3))
+rj_table(bt, align = "rrrrrrr",
+         caption = "Median time in seconds of beta models with sampling variances, fitted by fastsae (INLA, two-stage precision) and tipsae (Stan, 4 chains of 2,000 iterations). The spatio-temporal model has $T = 5$ periods and was run up to $D = 50$.",
+         header = c(" " = 1, "Independent" = 2, "Spatial (ICAR)" = 2, "Spatio-temporal" = 2))
+
+
+## ----concordance, fig.width = 7, fig.height = 3.2, fig.cap = "Posterior means (left) and posterior standard deviations (right) of a beta model with $D = 1{,}000$ areas fitted by fastsae and tipsae. The dashed lines are the identity.", fig.alt = "Two scatter plots. Left: posterior means from fastsae on the x axis against tipsae on the y axis, between 0 and 1, close to the identity line. Right: posterior standard deviations from fastsae against tipsae."----
+ce <- conc$est
+pd <- rbind(
+  data.frame(panel = "Posterior mean", fastsae = ce$fastsae_mean, tipsae = ce$tipsae_mean),
+  data.frame(panel = "Posterior standard deviation", fastsae = ce$fastsae_sd, tipsae = ce$tipsae_sd)
+)
+pd$panel <- factor(pd$panel, levels = c("Posterior mean", "Posterior standard deviation"))
+ggplot(pd, aes(fastsae, tipsae)) +
+  geom_abline(linetype = "dashed", colour = "grey50") +
+  geom_point(size = 0.6, alpha = 0.5) +
+  facet_wrap(~panel, scales = "free") +
+  labs(x = "fastsae", y = "tipsae") +
+  theme_bw(base_size = 10)
+
+
+## ----engines-data-------------------------------------------------------------
+eng <- readRDS(ext("hb_engine_benchmark.rds"))
 etm <- eng$timings
 eag <- eng$agreement
 et <- function(design, engine, n) etm$time_warm[etm$design == design & etm$engine == engine & etm$n == n][1]
-e_fmt <- function(x) if (is.na(x)) "--" else if (x < 10) sprintf("%.1f s", x) else sprintf("%s s", format(round(x), big.mark = ","))
 e_nmax <- max(etm$n)
 e_ntip <- max(etm$n[etm$engine == "tipsae"])
 e_rhat_jax <- max(etm$rhat_max[etm$engine %in% c("cpu", "metal")], na.rm = TRUE)
 e_rhat_tip <- max(etm$rhat_max[etm$engine == "tipsae"], na.rm = TRUE)
 e_cor_jax <- min(eag$cor_hb[eag$engine %in% c("cpu", "metal")])
-e_tip_ratio <- et("beta", "tipsae", e_ntip) / et("beta", "inla", e_ntip)
-e_cpu_vs_tip <- range(sapply(sort(unique(etm$n[etm$engine == "tipsae"])), function(n) et("beta", "tipsae", n) / et("beta", "cpu", n)))
+e_sd_jax <- range(eag$median_ratio_sd[eag$engine %in% c("cpu", "metal")])
+e_sd_tip <- range(eag$median_ratio_sd[eag$engine == "tipsae"])
+e_nmin <- min(etm$n)
+e_rhat_tip_n <- etm$n[etm$engine == "tipsae"][which.max(etm$rhat_max[etm$engine == "tipsae"])]
 
 
-## ----engines-table, results="asis", echo=FALSE--------------------------------
-e_rows <- vapply(c("gaussian", "beta"), function(d) {
-  paste(vapply(sort(unique(etm$n)), function(n) {
-    sprintf("%s & %s & %s & %s & %s & %s \\\\", if (n == min(etm$n)) c(gaussian = "Gaussian", beta = "Beta")[[d]] else "",
-            format(n, big.mark = ","), e_fmt(et(d, "inla", n)), e_fmt(et(d, "cpu", n)),
-            e_fmt(et(d, "metal", n)), e_fmt(et(d, "tipsae", n)))
-  }, character(1)), collapse = "\n")
-}, character(1))
-cat(sprintf("\\begin{table}[t!]
-\\centering
-\\small
-\\begin{tabular}{lrrrrr}
-\\toprule
-Model & $D$ & INLA & JAX (CPU) & JAX (Apple GPU) & \\CRANpkg{tipsae} \\\\
-\\midrule
-%s
-\\midrule
-%s
-\\bottomrule
-\\end{tabular}
-\\caption{\\label{tab:bench_engines} Warm runtime of \\code{hb\\_area()} with an ICAR area effect by estimation engine on an Apple M4. JAX: NumPyro NUTS, 2 chains $\\times$ 1,000 draws after 500 warmup. \\CRANpkg{tipsae}: Stan defaults, Beta model only.}
-\\end{table}
-", e_rows[["gaussian"]], e_rows[["beta"]]))
+## ----engines------------------------------------------------------------------
+e_rows <- do.call(rbind, lapply(c("gaussian", "beta"), function(d) {
+  data.frame(D = format(sort(unique(etm$n)), big.mark = ","),
+             inla = fmt_s(sapply(sort(unique(etm$n)), function(n) et(d, "inla", n))),
+             cpu = fmt_s(sapply(sort(unique(etm$n)), function(n) et(d, "cpu", n))),
+             metal = fmt_s(sapply(sort(unique(etm$n)), function(n) et(d, "metal", n))),
+             tipsae = fmt_s(sapply(sort(unique(etm$n)), function(n) et(d, "tipsae", n))))
+}))
+names(e_rows) <- c("$D$", "INLA", "JAX (CPU)", "JAX (Apple GPU)", "tipsae")
+k <- length(unique(etm$n))
+rj_table(e_rows, align = "rrrrr",
+         caption = "Time in seconds of a second (warm) fit of hb\\_area() with an ICAR area effect, by estimation engine. JAX: NumPyro NUTS, 2 chains of 1,000 draws after 500 warm-up iterations; tipsae: Stan defaults (4 chains of 2,000 iterations), beta model only. Times are for these run lengths, not per effective sample.",
+         groups = list(list(label = "Gaussian", from = 1, to = k), list(label = "Beta", from = k + 1, to = 2 * k)))
 
 
-## ----load_and_fit-------------------------------------------------------------
+## ----mc-data------------------------------------------------------------------
+mcs <- as.data.frame(mc$summary_table)
+mc_se <- function(dom) 100 * stats::sd(dom$Emp_CR / 100) / sqrt(nrow(dom))
+mc_tab <- data.frame(
+  Estimator = c("Direct", "fastsae", "tipsae"),
+  RMSE = fmt(mcs[["Empirical RMSE"]], 4),
+  RRMSE = fmt(mcs[["Empirical RRMSE (%)"]], 1),
+  MARB = fmt(mcs[["Empirical MARB (%)"]], 1),
+  Coverage = c("--", sprintf("%s (%s)", fmt(mcs[["Empirical 95% CrI Coverage (%)"]][2:3], 1),
+                             fmt(c(mc_se(mc$dom_fast), mc_se(mc$dom_tip)), 1))),
+  Width = c("--", fmt(mcs[["Empirical Mean CrI Width"]][2:3], 3)),
+  Time = c("--", fmt(mcs[["Avg Runtime (s/fit)"]][2:3], 1))
+)
+names(mc_tab) <- c("Estimator", "RMSE", "RRMSE (%)", "MARB (%)", "Coverage (%)", "Width", "Time (s)")
+
+
+## ----mc-----------------------------------------------------------------------
+rj_table(mc_tab, align = "lrrrrrr",
+         caption = "Design-based simulation ($D = 500$, $R = 25$): root mean squared error, relative RMSE and mean absolute relative bias, averaged over areas, coverage of the 95% intervals (standard error across areas in parentheses), mean interval width, and time per fit with five replicates running in parallel.")
+
+
+## ----data, echo = TRUE--------------------------------------------------------
 library("fastsae")
-data("sim_area")
-sim_area$prov <- rep(paste0("Prov_", 1:6), each = 7)
-sim_area$pop <- round(runif(nrow(sim_area), 15000, 45000))
-
-# Construct row-standardized spatial proximity matrix
-coords <- cbind(sim_area$x_coord, sim_area$y_coord)
-dists <- as.matrix(dist(coords))
-W <- (dists < quantile(dists, 0.18)) * 1
-diag(W) <- 0
-rs <- rowSums(W); rs[rs == 0] <- 1; W_std <- W / rs
-
-# Fit Frequentist and Bayesian Models
-fit_fh <- eblup_fh(y_gaussian ~ x1 + x2, vardir = "vardir",
-  data = sim_area, method = "REML", print_result = FALSE)
-fit_sfh <- eblup_sfh(y_gaussian ~ x1 + x2, vardir = "vardir",
-  domain = "area", W = W_std, data = sim_area,
-  method = "REML", print_result = FALSE)
-fit_beta <- hb_area(y_beta ~ x1 + x2, vardir = "vardir",
-  data = sim_area, family = "beta", spatial = "bym2",
-  W = W, print_result = FALSE)
+data("emilia_cs", "emilia_shp", package = "tipsae")
+shp <- sf::st_as_sf(emilia_shp)
+shp <- shp[match(emilia_cs$id, shp$NAME_DISTRICT), ]
+W <- spdep::nb2mat(spdep::poly2nb(shp), style = "B")
+dimnames(W) <- list(emilia_cs$id, emilia_cs$id)
 
 
-## ----compare_models-----------------------------------------------------------
-comp <- compare_sae(fit_fh, fit_sfh, names = c("FH", "SFH"))
-comp$metrics[c(1, 2, 4, 6, 8, 9), ]
+## ----fit, echo = TRUE---------------------------------------------------------
+fit_fh <- eblup_fh(hcr ~ x, vardir = "vars", domain = "id",
+  data = emilia_cs, print_result = FALSE)
+fit_beta <- hb_area(hcr ~ x, data = emilia_cs, domain = "id",
+  vardir = "vars", family = "beta", spatial = "bym2", W = W,
+  print_result = FALSE)
 
 
-## ----benchmark----------------------------------------------------------------
-bm <- benchmark_sae(fit_fh, national_target = 0.50, group = "prov",
-  weight = "pop", method = "ratio", type = "mean")
-head(bm[, c("domain", "group", "original", "benchmarked", "rel_adjustment_pct")], 4)
+## ----compare, echo = TRUE-----------------------------------------------------
+cmp <- compare_sae(fit_fh, fit_beta, names = c("FH", "Beta-BYM2"))
+subset(cmp$metrics, Group %in% c("Agreement", "Efficiency"), c(Metric, Value))
 
 
-## ----reliability--------------------------------------------------------------
-flags <- add_reliability_flags(fit_beta)
-table(flags$reliability)
+## ----benchmark, echo = TRUE---------------------------------------------------
+prov_target <- tapply(emilia_cs$hcr * emilia_cs$pop, emilia_cs$prov, sum) /
+  tapply(emilia_cs$pop, emilia_cs$prov, sum)
+reg_target <- sum(emilia_cs$hcr * emilia_cs$pop) / sum(emilia_cs$pop)
+bm <- benchmark_sae(fit_beta, target = prov_target, group = emilia_cs$prov,
+  weight = emilia_cs$pop, national_target = reg_target, method = "logit")
+head(bm[, c("domain", "group", "original", "benchmarked")], 4)
 
 
-## ----diagplot, fig.cap = "Model diagnostic panels generated via autoplot.", fig.width=7, fig.height=4.5, fig.path="figures/"----
-diag_beta <- diagnose(fit_beta)
-autoplot(diag_beta)
+## ----reliability, echo = TRUE-------------------------------------------------
+as.data.frame(table(tier = add_reliability_flags(fit_beta)$reliability))
+
+
+## ----map, echo = TRUE, fig.width = 7, fig.height = 3.6, out.width = "100%", fig.cap = "Head-count poverty ratios of the health districts of Emilia-Romagna in 2016 estimated by the beta model with a BYM2 area effect (left) and their relative standard errors (right).", fig.alt = "Two choropleth maps of the 38 health districts of Emilia-Romagna. Left: estimated poverty ratios. Right: relative standard errors in percent."----
+p_est <- map_sae(fit_beta, sf_geom = shp, key = "NAME_DISTRICT",
+  type = "estimate", title = "Head-count ratio", subtitle = "")
+p_rse <- map_sae(fit_beta, sf_geom = shp, key = "NAME_DISTRICT",
+  type = "rse", title = "RSE (%)", subtitle = "")
+patchwork::wrap_plots(p_est, p_rse)
 
