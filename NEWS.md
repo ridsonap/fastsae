@@ -182,7 +182,18 @@
 * `jax_engine()` computed the WAIC of a beta model with `trials` with a precision of 10
   instead of $n_d - 1$.
 * New vignette "Default Priors of the Hierarchical Bayes Models": the default priors of both
-  engines and the simulations behind the choices.
+  engines and the simulations behind the choices. It also writes out the three models with
+  all their default priors (including the Leroux, SAR and SLM correlations, the space-time
+  interactions and the coefficients under `benchmark_method = "wfq"`), shows how to list the
+  priors of a fit with `INLA::inla.priors.used()` and when to change them.
+* The documentation no longer describes the earlier priors as the defaults: `?hb_twofold`
+  (which still contrasted the half-normal priors of `jax_engine()` with PC priors of
+  `inla_engine()`), the unit-level vignette (re-run on `cornsoybean`: the two engines now agree
+  within Monte Carlo error and INLA matches the exact posterior within 0.06 posterior SD), the
+  INLA vignette (which also gave a wrong formula for INLA's approximation and the plug-in beta
+  precision) and the finite population vignette, whose simulations were re-run with the
+  default priors (coverage of the 95% intervals 92-93%, against 88-89% with the PC prior and
+  the plug-in beta precision used before).
 
 ### Gamma and negative binomial dispersion
 * `hb_area(family = "gamma", engine = jax_engine())` uses `vardir` as the INLA engine does: the

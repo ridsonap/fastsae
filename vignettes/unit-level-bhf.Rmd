@@ -145,18 +145,19 @@ data.frame(
 )
 ```
 
-The two sets of estimates differ by less than 5 hectares (about 4% of the county means), most
-in counties 5 and 11. The bootstrap root MSE and the posterior SD are different quantities:
-the SDs are mostly smaller here because much of the posterior mass of $\sigma_u^2$ lies near 0
-(its exact posterior median is about 7, against a REML estimate of 63), which shrinks the
-county means more strongly towards the regression.
+The two sets of estimates differ by about 1 hectare at most (under 1% of the county means).
+The bootstrap root MSE and the posterior SD are different quantities; here the SDs are larger
+in 10 of the 12 counties (by up to half in counties 5 and 11), and with `B = 50` the bootstrap
+MSE is itself noisy.
 
-With 12 counties and the default vague log-gamma prior on the precision of the county effect,
-the posterior of $\sigma_u^2$ is very skewed, with much mass near 0, and INLA's summary of it
-(`random_effect_var`) is not accurate. Do not compare it with the REML estimate of
-`eblup_bhf()`. The county estimates in `df_hb` are reliable: `hb_unit()` fits in INLA's
-`"classic"` mode, which on these data matches the exact posterior (computed by numerical
-integration over the two variances) and is stable from call to call.
+The prior of $\sigma_u$ is half-normal with the scale of the unit responses (see
+`vignette("hb-priors")`). With 12 counties the posterior of $\sigma_u^2$ is still skewed:
+its exact posterior mean is about 100 and its median 68, against a REML estimate of 63, and
+INLA's summary of it (`random_effect_var`, 115 on these data) is not accurate. Do not compare
+it with the REML estimate of `eblup_bhf()`. The county estimates in `df_hb` are reliable:
+`hb_unit()` fits in INLA's `"classic"` mode, which on these data matches the exact posterior
+(computed by numerical integration over the two variances) within 0.06 posterior SD, with
+SDs within 2%.
 
 ### MCMC with `engine = jax_engine()`
 
@@ -177,13 +178,10 @@ fit_hbu_jax <- hb_unit(
 fit_hbu_jax$rhat_max
 ```
 
-Its priors are half-normal on the standard deviations of the county effect and of the unit
-errors (on the standardised response scale). With 12 counties the prior of $\sigma_u^2$ shapes
-its posterior, so the county SDs differ between engines: on these data they are 1.1-1.4 times
-those of INLA, whose log-gamma prior puts more mass near $\sigma_u^2 = 0$, and 0.8-1.0 times
-those of `hbsae::fSAE(method = "HB")`, with its flat prior on the variance ratio. With more
-domains the data dominate: for 30 simulated domains the three agreed within 0.1 posterior SD,
-and a Stan fit with the same priors as the JAX engine agreed within Monte Carlo error.
+It uses the same priors as the INLA engine. On these data its county means were within
+0.16 posterior SD of INLA's and its SDs 0.98-1.06 times INLA's (four chains of 2,000 draws,
+largest R-hat 1.002). The differences are Monte Carlo error: against the exact posterior the
+JAX means were within 0.14 SD.
 
 ### Counties without a sample
 

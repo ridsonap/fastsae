@@ -99,10 +99,10 @@ An object of class \code{c("fastsae_hb_unit", "fastsae_hb", "fastsae")} containi
   \item \code{estcoef}: Data frame of estimated regression coefficients (posterior mean, sd, z-value, p-value, credible intervals).
   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
   \item \code{random_effect_var}: Posterior mean of the domain random effect variance
-    (\eqn{\sigma_u^2}). With few domains its posterior is very skewed and INLA's summary
-    of it can be inaccurate (on \code{cornsoybean}, 12 counties, with the earlier vague
-    log-gamma prior: about 70 against an exact posterior mean of 41 and median of 7, while the
-    county means and SDs agree with the exact posterior). Do not read it as a REML
+    (\eqn{\sigma_u^2}). With few domains its posterior is skewed and INLA's summary
+    of it can be inaccurate (on \code{cornsoybean}, 12 counties: about 115 against an exact
+    posterior mean of 100 and median of 68, while the county means and SDs agree with the
+    exact posterior). Do not read it as a REML
     estimate; the domain estimates in \code{df_hb} are the reliable output.
   \item \code{residual_var}: Estimated residual variance (\eqn{\sigma_e^2}, for Gaussian).
   \item \code{phi}: Estimated spatial variance proportion (for BYM2).
@@ -162,8 +162,10 @@ domain means within 0.04 posterior SD and SDs within 5\% for the Gaussian (also 
 Bernoulli and Poisson models. With their own priors, \code{hbsae::fSAE(method = "HB")}
 (Gaussian, numerical integration over the variance ratio, flat priors) and the INLA engine
 gave domain means within 0.1 and 0.06 posterior SD. With few domains the prior of the domain
-variance matters: on \code{cornsoybean} (12 counties) the county SDs were 1.1-1.4 times those
-of INLA, whose log-gamma prior favours small variances, and 0.8-1.0 times those of hbsae.
+variance matters: on \code{cornsoybean} (12 counties) the county SDs of the JAX engine were
+1.1-1.4 times those of INLA under these earlier priors. With the current shared priors they
+are 0.98-1.06 times those of INLA, and both engines match the exact posterior (INLA within
+0.06 and JAX within 0.14 posterior SD).
 }
 
 \examples{

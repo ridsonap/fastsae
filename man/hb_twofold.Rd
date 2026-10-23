@@ -158,16 +158,19 @@ estimation.
 }
 \section{Engines}{
 
-Both engines fit the same model and return the same structure. With
-\code{jax_engine()} the area effect (iid, Besag or BYM2) and the iid sub-area effect have
-half-normal priors on their standard deviations (on the standardised response scale for
-\code{family = "gaussian"}) instead of the PC priors of \code{inla_engine()}, so the
-estimates differ slightly. On simulated data (20 areas, 56 sub-areas; Gaussian, binomial,
-Poisson and Gaussian with BYM2) the area means of the two engines correlated above 0.999 and
-differed by a median of 0.02-0.07 posterior SD, with area SDs 0.85-1.14 times those of INLA.
-The posterior means of the variances were larger with MCMC (area variance 0.93 against 0.68
-for the Gaussian model): their posteriors are skewed, and INLA's summary is biased downwards
-for small variances. \code{jax_engine(robust = TRUE)} gives Student-t area and sub-area
+Both engines fit the same model with the same default priors and return the same
+structure. The standard deviations of the area effect (iid, Besag or BYM2) and of the iid
+sub-area effect have half-normal priors with scale \eqn{s_y}, the standard deviation of the
+sub-area direct estimates, for \code{family = "gaussian"}, and scale 1 on the link scale otherwise;
+the BYM2 mixing parameter has INLA's PC prior and the coefficients \eqn{N(0, 1000)} priors.
+\code{jax_engine(priors = "weakly_informative")} uses half-normal(1) standard deviations on
+the standardised scale instead. See \code{vignette("hb-priors", package = "fastsae")}.
+Under the earlier PC priors of \code{inla_engine()}, on simulated data (20 areas,
+56 sub-areas; Gaussian, binomial, Poisson and Gaussian with BYM2) the area means of the two
+engines correlated above 0.999 and differed by a median of 0.02-0.07 posterior SD, with area
+SDs 0.85-1.14 times those of INLA. The posterior means of the variances were larger with MCMC
+(area variance 0.93 against 0.68 for the Gaussian model): their posteriors are skewed, and
+INLA's summary is biased downwards for small variances. \code{jax_engine(robust = TRUE)} gives Student-t area and sub-area
 effects and \code{prior_beta = "horseshoe"} a regularized horseshoe prior on the coefficients.
 }
 

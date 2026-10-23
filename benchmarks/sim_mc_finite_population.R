@@ -160,12 +160,10 @@ run_one_replication <- function(r) {
     family = "beta",
     spatial = "besag",
     W = W,
-    strategy = "laplace",
-    prior_prec = list(prior = "pc.prec", param = c(1, 0.05)),
     print_result = FALSE
   )
   time_fast <- as.numeric(difftime(Sys.time(), t0_fast, units = "secs"))
-  df_fast <- fit_fast$df_ebp
+  df_fast <- fit_fast$df_hb
   rownames(df_fast) <- df_fast$domain
   df_fast <- df_fast[domain_ids, ]
   
@@ -198,7 +196,7 @@ run_one_replication <- function(r) {
     time_fast = time_fast,
     time_tip = time_tip,
     p_dir = smp_summary[domain_ids, "p_dir"],
-    fast_est = df_fast$ebp,
+    fast_est = df_fast$hb,
     fast_low = df_fast$ci_lower,
     fast_up  = df_fast$ci_upper,
     tip_est  = df_tip$`HB est.`,
