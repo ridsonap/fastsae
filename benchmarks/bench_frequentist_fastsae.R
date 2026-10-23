@@ -89,7 +89,7 @@ update_file <- function(file, new_rows) {
 rows <- list(FH = list(), SFH = list(), STFH = list())
 for (n_val in D_values) {
   cat(sprintf(">>> D = %d (%d iterations)\n", n_val, iter_arg))
-  W <- as.matrix(sim_spatial_weights(D = n_val, type = "knn", style = "W", k = 4, seed = n_val))
+  W <- as.matrix(fastsae:::sim_spatial_weights(D = n_val, type = "knn", style = "W", k = 4, seed = n_val))
   d_fh <- sim_fh(n_val, seed = n_val)
   d_sfh <- sim_fh(n_val, W = W, rho = 0.5, seed = n_val)
   d_st <- sim_stfh(n_val, W, seed = n_val)

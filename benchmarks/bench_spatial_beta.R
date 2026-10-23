@@ -35,7 +35,7 @@ cat(sprintf("Domain sizes: %s | Iterations: %d each\n", paste(D_values, collapse
 cat("==============================================================================\n\n")
 
 # Setup output directories
-out_dirs <- c("inst/exdata", "inst/extdata")
+out_dirs <- "inst/extdata"
 for (d in out_dirs) {
   if (!dir.exists(d)) dir.create(d, recursive = TRUE)
 }
@@ -51,7 +51,7 @@ save_all_locations <- function(obj) {
   }
 }
 
-file_primary <- file.path("inst/exdata", "spatial_beta_benchmark.rds")
+file_primary <- file.path("inst/extdata", "spatial_beta_benchmark.rds")
 
 # Load existing benchmark data if present
 df_existing <- NULL
@@ -87,6 +87,10 @@ for (n_val in D_values) {
   sim <- sim_area_data(D = n_val, W = W, spatial_type = "knn", seed = 42 + n_val)
   df <- sim[["data"]]
   df[["domain"]] <- as.character(df[["domain"]])
+  # Sampling variance of the Beta direct estimate, y (1 - y) / (kappa + 1) with the precision
+  # kappa = 25 of the simulator, computed from the estimate as a survey would. The Gaussian
+  # `vardir` exceeds mu (1 - mu) / 2 in about half of the areas, which floors the precision at 1.
+  df[["vardir_beta"]] <- df[["y_beta"]] * (1 - df[["y_beta"]]) / 26
   
   t_start <- Sys.time()
   
@@ -95,7 +99,7 @@ for (n_val in D_values) {
       formula = y_beta ~ x1 + x2,
       data = df,
       domain = "domain",
-      vardir = "vardir",
+      vardir = "vardir_beta",
       family = "beta",
       spatial = "besag",
       W = W,
@@ -105,7 +109,7 @@ for (n_val in D_values) {
       formula_fixed = y_beta ~ x1 + x2,
       data = df,
       domains = "domain",
-      disp_direct = "vardir",
+      disp_direct = "vardir_beta",
       type_disp = "var",
       likelihood = "beta",
       spatial_error = TRUE,
@@ -152,7 +156,7 @@ for (n_val in D_values) {
   
   # Save immediately after each n completes
   save_all_locations(df_existing)
-  cat(sprintf("    [Saved] Updated all RDS files in inst/exdata and inst/extdata (Total rows: %d)\n\n", nrow(df_existing)))
+  cat(sprintf("    [Saved] Updated all RDS files in inst/extdata (Total rows: %d)\n\n", nrow(df_existing)))
 }
 
 cat("==============================================================================\n")
