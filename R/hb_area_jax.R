@@ -351,7 +351,7 @@
   df_hb$ci_lower <- as.numeric(fit_py$hb_ci_lower)
   df_hb$ci_upper <- as.numeric(fit_py$hb_ci_upper)
   df_hb$random_effect <- as.numeric(fit_py$rand_eff_mean)
-  df_hb <- .hb_aux_columns(df_hb, family, y, vardir, trials, exposure)
+  df_hb <- .hb_aux_columns(df_hb, family, y, vardir, trials, exposure, beta_phi = run_args$beta_phi)
 
   hyper <- fit_py$hyperparameters
   hyperpar <- if (length(hyper) > 0) {

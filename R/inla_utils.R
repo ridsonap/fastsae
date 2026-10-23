@@ -345,7 +345,8 @@
   time_id = NULL,
   unique_domains = NULL,
   unique_times = NULL,
-  call = NULL
+  call = NULL,
+  beta_phi = NULL
 ) {
   n_obs <- length(y)
   n_domains <- if (!is.null(unique_domains)) length(unique_domains) else length(unique(domain))
@@ -566,7 +567,7 @@
     )
   }
 
-  df_hb <- .hb_aux_columns(df_hb, family, y, vardir, trials, exposure)
+  df_hb <- .hb_aux_columns(df_hb, family, y, vardir, trials, exposure, beta_phi = beta_phi)
 
   # 5. Goodness of fit measures
   goodness <- c(
@@ -667,16 +668,17 @@
 #' Auxiliary df_hb columns shared by the hb_area() engines
 #'
 #' Sampling variances / precisions, binomial totals and count rates, computed
-#' from the HB estimate already in `df_hb$hb`.
+#' from the HB estimate already in `df_hb$hb`. `beta_phi` is the beta precision
+#' the model was fitted with (second stage of .beta_phi_from_vardir()).
 #' @noRd
-.hb_aux_columns <- function(df_hb, family, y, vardir = NULL, trials = NULL, exposure = NULL) {
+.hb_aux_columns <- function(df_hb, family, y, vardir = NULL, trials = NULL, exposure = NULL,
+                            beta_phi = NULL) {
   hb_est <- df_hb$hb
   # If vardir provided (Gaussian FH, Beta, or Gamma)
   if (!is.null(vardir)) {
     df_hb$vardir <- vardir
     if (family == "beta") {
-      phi_dir <- (y * (1 - y) / vardir) - 1
-      df_hb$precision <- pmax(phi_dir, 1, na.rm = TRUE)
+      df_hb$precision <- if (!is.null(beta_phi)) beta_phi else pmax(y * (1 - y) / vardir - 1, 1, na.rm = TRUE)
     } else if (family == "gamma") {
       s_dir <- (y^2) / vardir
       df_hb$precision <- s_dir

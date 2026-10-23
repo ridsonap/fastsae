@@ -176,6 +176,8 @@
   (`benchmarks/validation/beta_vardir_phi.R`). tipsae's precision at the model mean inside
   the model (`type_disp = "var"`) covered 93-95% but its likelihood is bimodal: 11 of 240
   fits did not converge.
+* The `precision` column of `df_hb` for such a model is the precision the model was fitted
+  with; it still showed the precision at the direct estimate.
 * `hb_area(family = "beta")` warns that `trials` is ignored when `vardir` is also given.
 * `jax_engine()` computed the WAIC of a beta model with `trials` with a precision of 10
   instead of $n_d - 1$.

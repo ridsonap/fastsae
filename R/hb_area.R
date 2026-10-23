@@ -225,6 +225,8 @@
 #'     \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},
 #'     posterior standard error \code{sd}, \code{mse}, relative error \code{rse} (\%),
 #'     95\% credible interval (\code{ci_lower}, \code{ci_upper}), and \code{random_effect}.
+#'     With \code{vardir}, also \code{vardir} and, for the beta and gamma families, the
+#'     \code{precision} of each area the model was fitted with.
 #'   \item \code{estcoef}: Data frame of estimated regression coefficients.
 #'   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
 #'   \item \code{random_effect_var}: Posterior mean of the area random effect variance (see
@@ -1160,7 +1162,8 @@ hb_area <- function(
     time_id = time_id,
     unique_domains = unique_domains,
     unique_times = unique_times,
-    call = call
+    call = call,
+    beta_phi = if (family == "beta" && !is.null(vardir)) inla_args$scale
   )
 
   if (!is.null(sb_info)) {
