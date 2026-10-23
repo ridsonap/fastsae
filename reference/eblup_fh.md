@@ -136,7 +136,7 @@ random_effect, vardir, mse, and rse.
 
 - `mse` Mean Square Error  
 
-- `rse` Relative Standart Error (%)  
+- `rse` Relative Standard Error (%)  
   `self_benchmark` logical indicating whether self-benchmarking was
   active,  
   `benchmark_summary` summary table of benchmark calibration (if
@@ -148,26 +148,31 @@ The model has a form that is response ~ auxiliary variables. where
 numeric type response variables can contain NA. When the response
 variable contains NA it will be estimated with synthetic estimator.
 
+The random effect variance is estimated by (RE)ML and truncated at 0, as
+in sae. An estimate of 0 makes every EBLUP the synthetic estimate, and
+the MSE estimates can then understate the error; the function says so
+with a message. Such estimates are common with few areas or large
+sampling variances (Li and Lahiri, 2010).
+
 ## References
 
-1.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
-    Sons.
+1.  Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method
+    for solving small area estimation problems. *Journal of Multivariate
+    Analysis*, 101(4), 882-892.
 
-&nbsp;
-
-1.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
+2.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
     criteria for Fay-Herriot model selection. *Computational Statistics
     & Data Analysis*, 70, 268-280.
 
-2.  Rao, J. N. K., & Molina, I. (2015). Small area estimation. John
+3.  Rao, J. N. K., & Molina, I. (2015). Small area estimation. John
     Wiley & Sons.
 
-3.  Slud, E. V., & Maiti, T. (2006). Small-area estimation via
+4.  Slud, E. V., & Maiti, T. (2006). Small-area estimation via
     Fay-Herriot models with logit and log transformations.
     *Communications in Statistics - Theory and Methods*, 35(10),
     1957-1971.
 
-4.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
+5.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
     under a restriction. *Survey Methodology*, 34(1), 29-36.
 
 ## Examples

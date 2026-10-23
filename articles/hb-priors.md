@@ -1,13 +1,13 @@
 # Default Priors of the Hierarchical Bayes Models
 
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
 and
-[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
 fit their models with INLA
-([`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
 the default) or with NUTS in NumPyro
-([`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)).
+([`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)).
 Both engines use the same default priors, so a model gives the same
 estimates whichever engine fits it. This article lists those priors,
 explains why they were chosen and summarises the simulations behind
@@ -20,7 +20,7 @@ how wide the intervals are.
 
 ## Priors of the model parameters
 
-| Parameter | Default ([`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md), `jax_engine(priors = "inla")`) | `jax_engine(priors = "weakly_informative")` |
+| Parameter | Default ([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md), `jax_engine(priors = "inla")`) | `jax_engine(priors = "weakly_informative")` |
 |----|----|----|
 | Random-effect SD $`\sigma`$ (area, sub-area, time, area-by-time) | Half-normal$`(s)`$: $`s = \mathrm{sd}(y)`$ for Gaussian models, $`s = 1`$ on the link scale otherwise | Half-normal$`(1)`$ on the standardised response or the link scale |
 | BYM2 mixing parameter $`\phi`$ | PC prior with $`P(\phi < 0.5) = 0.5`$ | Uniform$`(0, 1)`$ |
@@ -30,13 +30,13 @@ how wide the intervals are.
 
 Here $`\mathrm{sd}(y)`$ is the standard deviation of the observed direct
 estimates (of the unit responses for
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)).
-[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)).
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 writes the half-normal prior as an `expression:` prior on the log
 precision $`\theta = -2 \log \sigma`$, so that INLA and NumPyro use the
 same density.
 
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 has two priors that INLA does not have. With `robust = TRUE` the random
 effects are Student-$`t`$ with degrees of freedom $`\nu \sim`$
 Uniform$`(2.5, 30)`$. With `prior_beta = "horseshoe"` the coefficients
@@ -54,7 +54,7 @@ slab $`c^2 \sim`$ Inv-Gamma$`(2, 8)`$.
 | Negative binomial size | `vardir` given | Fixed per area at $`\hat\mu_d^2 / (V_d - \hat\mu_d)`$, with $`\hat\mu_d`$ from a first fit |
 | Gamma precision | no `vardir` | Half-normal$`(10)`$, both engines |
 | Negative binomial size | no `vardir` | Half-normal$`(10)`$, both engines |
-| Gaussian residual SD | no `vardir` (and the unit errors of [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)) | Half-normal$`(\mathrm{sd}(y))`$, both engines |
+| Gaussian residual SD | no `vardir` (and the unit errors of [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)) | Half-normal$`(\mathrm{sd}(y))`$, both engines |
 | Beta precision $`\phi`$ | no `vardir`, no `trials` | Log-gamma$`(1, 0.1)`$ on $`\log\phi`$, i.e. $`\phi \sim`$ Exponential$`(0.1)`$, both engines |
 
 ## Why half-normal standard deviations
@@ -108,7 +108,7 @@ slows the sampler down.
 
 The BYM2 and AR(1) priors are INLA’s defaults (Riebler et al. 2016),
 reproduced in JAX:
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 evaluates the PC density of $`\phi`$ from the eigenvalues of the scaled
 ICAR precision, as `INLA:::inla.pc.bym.phi()` does. With these priors
 the two engines agree on `mys` within 0.03 (iid) and 0.05 (BYM2)
@@ -148,7 +148,7 @@ areas, 100 replicates):
 The half-normal$`(10)`$ prior has a cost: when the sampling noise is
 small (shape or size 100) its intervals are too wide and its errors
 larger.
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 therefore warns when a gamma or negative binomial model is fitted
 without `vardir`. The sampling variances fix the dispersion of each area
 and give 92-94% (gamma) and 91-95% (negative binomial) coverage
@@ -194,7 +194,7 @@ unknown true proportion. Putting the direct estimate $`y_d`$ in place of
 $`\mu_d`$ (Janicki 2020) gives the model a sampling variance of
 $`V_d\,\mu_d(1 - \mu_d)/\{y_d(1 - y_d)\}`$ instead of $`V_d`$, too small
 wherever $`y_d`$ happens to fall far from $`\mu_d`$.
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 therefore fits the model twice and takes $`\phi_d`$ at the posterior
 mean of the first fit. tipsae (`type_disp = "var"`) instead lets
 $`\phi_d`$ follow the model mean inside the MCMC; that keeps the
@@ -213,7 +213,7 @@ up to 8.7).
 
 ## Changing the priors
 
-[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 takes INLA prior specifications for every hyperparameter. A prior given
 there replaces the default.
 
@@ -238,8 +238,8 @@ fit_nb <- hb_area(y ~ x,
 The other arguments are `prior_phi` (BYM2), `prior_rho` (Leroux, SAR),
 `prior_prec_time` and `prior_rho_time` (temporal effect) and
 `prior_prec_subarea`
-([`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)).
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+([`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)).
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 offers the two prior sets of the first table:
 
 ``` r

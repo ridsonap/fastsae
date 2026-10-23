@@ -100,7 +100,7 @@ Speedup Factor (fastsae vs competitors) — FH
 ## Bayesian Spatio-Temporal Benchmark: `fastsae` (INLA) vs `tipsae` (Stan MCMC)
 
 To assess Bayesian small area estimation performance,
-[`fastsae::hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`fastsae::hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 was benchmarked against
 [`tipsae::fit_sae()`](https://rdrr.io/pkg/tipsae/man/fit_sae.html), the
 state-of-the-art Stan MCMC package for spatio-temporal Beta small area
@@ -111,7 +111,7 @@ health districts in Emilia-Romagna over 5 years, $`N = 190`$ domains
 $`\times`$ years) with spatial polygon contiguity matrix $`W`$ from
 **`emilia_shp`**.
 
-| Metric | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan MCMC) | [`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md) (INLA) |
+| Metric | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan MCMC) | [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (INLA) |
 |:---|:---|:---|
 | **Model** | Beta, Besag ICAR + domain-specific RW(1) | `family = "beta"`, `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"`; same structure, different priors |
 | **Computation** | Hamiltonian Monte Carlo (NUTS) | Integrated nested Laplace approximation (INLA’s default `"compact"` mode for Beta) |
@@ -128,7 +128,7 @@ should still be checked (`convergence`, from INLA’s mode search).
 
 Use the interactive controls below to compare runtime, memory footprint,
 and speedup factors between
-[`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 and [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)
 across **Standard Beta**, **Spatial Beta (Besag ICAR)**, and
 **Spatio-Temporal Beta (Besag + RW1)** models:
@@ -154,7 +154,7 @@ Beta
 
 To establish that the substantial computational accelerations achieved
 by
-[`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 preserve full inferential validity relative to Stan MCMC
 ([`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)),
 summary concordance and error metrics were evaluated across
@@ -178,4 +178,4 @@ For comprehensive design-based simulation studies evaluating parameter
 recovery and empirical properties under repeated survey sampling from
 finite populations ($`D = 60`$ and national-scale $`D = 500`$), see the
 dedicated article: [Finite Population Simulation &
-Validation](https://ridsonap.github.io/fastsae/articles/finite-population-validation.md).
+Validation](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.md).

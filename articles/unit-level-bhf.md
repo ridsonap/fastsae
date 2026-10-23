@@ -9,9 +9,9 @@ auxiliary aggregates (e.g., census means or satellite imagery).
 
 The **fastsae** package implements the nested error regression model of
 Battese, Harter, and Fuller (1988) via
-[`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md),
+[`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md),
 providing fast estimation and parallel parametric bootstrap MSE.
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
 fits the same model as a hierarchical Bayes model with INLA (see the
 last section).
 
@@ -85,7 +85,7 @@ head(df_pop)
 ### 2. Fit BHF Model with Bootstrap MSE
 
 We fit the model using
-[`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md).
+[`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md).
 The domain-level Mean Squared Error (MSE) is estimated by parametric
 bootstrap (`mse_type = "bootstrap"`, the default; `mse_type = "none"`
 skips it):
@@ -183,13 +183,13 @@ autoplot(fit_bhf, type = "comparison")
 
 ## Hierarchical Bayes with `hb_unit()`
 
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
 fits the nested error model with INLA and returns posterior means,
 standard deviations and credible intervals of the county means. It needs
 the **INLA** package, which is not on CRAN
 (<https://www.r-inla.org/download/>); the chunks below are only run when
 INLA is installed. The arguments are those of
-[`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md):
+[`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md):
 
 ``` r
 
@@ -250,9 +250,9 @@ With 12 counties and the default vague log-gamma prior on the precision
 of the county effect, the posterior of $`\sigma_u^2`$ is very skewed,
 with much mass near 0, and INLA’s summary of it (`random_effect_var`) is
 not accurate. Do not compare it with the REML estimate of
-[`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md).
+[`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md).
 The county estimates in `df_hb` are reliable:
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
 fits in INLA’s `"classic"` mode, which on these data matches the exact
 posterior (computed by numerical integration over the two variances) and
 is stable from call to call.
@@ -262,7 +262,7 @@ is stable from call to call.
 `hb_unit(engine = jax_engine())` samples the same model with NumPyro’s
 NUTS sampler instead of INLA (it needs Python with ‘jax’ and ‘numpyro’;
 see
-[`setup_numpyro_env()`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)),
+[`setup_numpyro_env()`](https://ridsonap.is-a.dev/fastsae/reference/setup_numpyro_env.md)),
 and summarises the county means from the MCMC draws:
 
 ``` r
@@ -316,13 +316,13 @@ fit_hbu1$df_hb[fit_hbu1$df_hb$domain == 1, c("domain", "samp_size", "hb", "sd")]
 
 The population means in `Xpop` must be complete: a missing mean is an
 error, since the prediction of that county would be wrong.
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
 also fits binomial and Poisson responses (`family`) and a spatial county
 effect (`spatial = "bym2"` or `"besag"` with a proximity matrix `W`).
 For binomial and Poisson responses the county means are predicted at the
 mean covariates, which is biased for a nonlinear link (by -8% and -16%
 in a simulation; see
-[`?hb_unit`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)),
+[`?hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)),
 and the function warns about it.
 
 ## References

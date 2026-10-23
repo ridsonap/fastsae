@@ -5,7 +5,7 @@
   responses (Gaussian Fay-Herriot, Poisson, Binomial, Beta, Negative Binomial, Gamma)."><meta property="og:description" content="Generates synthetic spatio-temporal panel datasets for small area estimation.
   Combines domain-level spatial autocorrelation (SAR) with domain-specific first-order
   autoregressive AR(1) temporal dynamics across \(T\) time periods, producing multi-distribution
-  responses (Gaussian Fay-Herriot, Poisson, Binomial, Beta, Negative Binomial, Gamma)."><meta property="og:image" content="https://ridsonap.github.io/fastsae/logo.png"><script>
+  responses (Gaussian Fay-Herriot, Poisson, Binomial, Beta, Negative Binomial, Gamma)."><meta property="og:image" content="https://ridsonap.is-a.dev/fastsae/logo.png"><script>
   // Force light mode as default for first-time visitors
   if (!localStorage.getItem('theme')) {
     localStorage.setItem('theme', 'light');
@@ -157,7 +157,7 @@ corresponding to <code>rho2</code> in <code><a href="eblup_stfh.html">eblup_stfh
 
 
 <dt id="arg-trend">trend<a class="anchor" aria-label="anchor" href="#arg-trend"></a></dt>
-<dd><p>Character. Deterministric temporal trend type: <code>"linear"</code>, <code>"random_walk"</code>,
+<dd><p>Character. Temporal trend type: <code>"linear"</code>, <code>"random_walk"</code>,
 <code>"ar1"</code>, or <code>"none"</code>. Default is <code>"linear"</code>.</p></dd>
 
 
@@ -185,7 +185,8 @@ then domain 2, required by <code><a href="eblup_stfh.html">eblup_stfh</a></code>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>Optional integer. Random seed for reproducibility.</p></dd>
+<dd><p>Optional integer. Random seed for reproducibility; the random number stream
+of the session is restored afterwards.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -258,7 +259,6 @@ then domain 2, required by <code><a href="eblup_stfh.html">eblup_stfh</a></code>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6    241 0.74524          67  3.2009  0.7883  0.9023</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># 2. Directly estimate Spatio-Temporal Fay-Herriot model (eblup_stfh)</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="va">fit_stfh</span> <span class="op">&lt;-</span> <span class="fu"><a href="eblup_stfh.html">eblup_stfh</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">y_gaussian</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span></span>
 <span class="r-in"><span>  data <span class="op">=</span> <span class="va">sim_panel</span><span class="op">$</span><span class="va">data</span>,</span></span>
@@ -267,8 +267,79 @@ then domain 2, required by <code><a href="eblup_stfh.html">eblup_stfh</a></code>
 <span class="r-in"><span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>,</span></span>
 <span class="r-in"><span>  W <span class="op">=</span> <span class="va">sim_panel</span><span class="op">$</span><span class="va">W_std</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Predicting 21 cells without a direct estimate: 4 unsampled domains (spatial borrowing) and 5 missing periods of sampled domains.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Call</span>:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_stfh(formula = y_gaussian ~ x1 + x2, vardir = ~vardir, data =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> sim_panel$data, domain = ~area, time = ~year, W = sim_panel$W_std)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 54 iterations)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: REML</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Cells without a direct estimate</span>: 21 of 120 (predicted from the model)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  beta std.error    zvalue pvalue</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.269492  0.337142  3.765448  2e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1           0.732842  0.095006  7.713648  0e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2          -0.514087  0.093151 -5.518876  0e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Estimates (First 6 domains):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   domain time      y     eblup  vardir        mse       rse mse_pb</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 2021 1.4259 1.3231777 0.04593 0.02553239 12.076124     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      1 2022 0.9198 0.9296162 0.12341 0.02302511 16.322894     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      1 2023 1.1845 0.9588192 0.08359 0.02673284 17.052412     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      1 2024 1.0411 1.3837820 0.14610 0.03535159 13.587413     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      2 2021 1.7132 1.7990165 0.13304 0.03122553  9.822449     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      2 2022 2.4992 2.2251026 0.05670 0.02387886  6.944752     NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   random_effect_u1 random_effect_u2 sampled</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1       0.03508106       0.33449464    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       0.03508106       0.32568488    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3       0.03508106       0.31805952    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4       0.03508106       0.28526816    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      -0.03653546      -0.03536499    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      -0.03653546      -0.03056140    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ... and 114 more rows.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_stfh</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Summary of fastsae Fit</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────────</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Call :</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> eblup_stfh(formula = y_gaussian ~ x1 + x2, vardir = ~vardir, data =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> sim_panel$data, domain = ~area, time = ~year, W = sim_panel$W_std)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (in 54 iterations)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Method</span>: REML</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Cells without a direct estimate</span>: 21 of 120 (predicted from the model)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Variance &amp; Correlation Components:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      estimate  std.error</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.045254237 0.07942611</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.999000000         NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.009138615 0.01672543</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.964294560 0.07215955</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  beta std.error    zvalue pvalue</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.269492  0.337142  3.765448  2e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1           0.732842  0.095006  7.713648  0e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2          -0.514087  0.093151 -5.518876  0e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Goodness of Fit:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> loglikelihood           AIC           BIC </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     -54.26026     122.52051     140.68635 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> EBLUP Summary Statistics:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       mse               rse         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   :0.01837   Min.   :  5.449  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.:0.02616   1st Qu.:  8.660  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :0.03087   Median : 13.548  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :0.05793   Mean   : 27.119  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:0.03719   3rd Qu.: 21.625  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   :0.25638   Max.   :545.769  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

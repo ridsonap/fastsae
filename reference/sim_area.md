@@ -6,7 +6,7 @@ Poisson, Binomial, Beta, Negative Binomial, and Gamma). Designed for
 testing and benchmarking generalized linear and spatial small area
 estimation models (HB / INLA). Its centroids give the neighbourhood
 graph of
-[`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md).
+[`mys_proxmat`](https://ridsonap.is-a.dev/fastsae/reference/mys_proxmat.md).
 
 ## Usage
 
@@ -77,9 +77,9 @@ A data frame with 42 rows and 14 variables:
 ## Source
 
 Simulated using
-[`sim_area_data`](https://ridsonap.github.io/fastsae/reference/sim_area_data.md)
+[`sim_area_data`](https://ridsonap.is-a.dev/fastsae/reference/sim_area_data.md)
 with the dense distance-decay weights that
-[`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md)
+[`mys_proxmat`](https://ridsonap.is-a.dev/fastsae/reference/mys_proxmat.md)
 held until fastsae 1.0.0; the centroids are a two-dimensional scaling of
 those weights.
 

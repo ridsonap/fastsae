@@ -59,7 +59,7 @@ export_sae(
 
   Numeric vector of length 2 with the RSE (%) cut-offs of the
   reliability flags (see
-  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
+  [`add_reliability_flags`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)).
   Default is `c(25, 50)`.
 
 - overwrite:
@@ -111,6 +111,6 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #> 
 tmp_file <- tempfile(fileext = ".xlsx")
 export_sae(fit_fh, file = tmp_file)
-#> ✔ Successfully exported SAE results to Excel: /tmp/RtmpEun7DT/file25dd4aeca77e.xlsx
+#> ✔ Successfully exported SAE results to Excel: /tmp/RtmpB3TaFz/file254f6904fddf.xlsx
 unlink(tmp_file)
 ```

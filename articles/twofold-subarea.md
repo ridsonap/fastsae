@@ -14,10 +14,10 @@ with two nested random effects. **fastsae** fits it in two ways:
 
 | Function | Approach | Uncertainty | Area aggregates |
 |:---|:---|:---|:---|
-| [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md) | EBLUP, REML or ML | Analytical (Prasad-Rao type) or parametric bootstrap MSE | `df_area`, weighted by `weight` |
-| [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md) | Hierarchical Bayes with INLA | Posterior SD and credible intervals | `df_area`, weighted by `weight` |
+| [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md) | EBLUP, REML or ML | Analytical (Prasad-Rao type) or parametric bootstrap MSE | `df_area`, weighted by `weight` |
+| [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md) | Hierarchical Bayes with INLA | Posterior SD and credible intervals | `df_area`, weighted by `weight` |
 
-[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
 also fits binomial and Poisson responses and a spatial (BYM2, Besag)
 area effect.
 
@@ -164,7 +164,7 @@ head(fit_tf$df_area)
 
 Because the data are simulated, we can compare each estimator with the
 true $`\theta_{ij}`$. The Fay-Herriot model, fitted with
-[`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)
+[`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md)
 on the same rows, ignores the areas.
 
 ``` r
@@ -268,7 +268,7 @@ diagnose(fit_tf)
 
 ## Hierarchical Bayes with `hb_twofold()`
 
-[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
 fits the same model with INLA. It needs the **INLA** package, which is
 not on CRAN; see <https://www.r-inla.org/download/>. The chunks below
 are only run when INLA is installed.
@@ -382,7 +382,7 @@ compare_sae(fit_tf, fit_hb, names = c("EBLUP two-fold", "HB two-fold"))
 #> ℹ One model is Hierarchical Bayes: its posterior variance and the frequentist MSE of the other are not the same quantity, so a smaller value does not show a more accurate estimator.
 ```
 
-[`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
+[`compare_sae()`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md)
 reports smaller posterior variances than EBLUP MSEs. The two are not the
 same quantity, and here the posterior mean of $`\sigma_u^2`$ is also
 smaller than the REML estimate (both are below the true value 0.5, which
@@ -404,14 +404,14 @@ c(
 For counts or proportions, use `family = "poisson"` with `exposure` or
 `family = "binomial"` with `trials`; with `spatial = "bym2"` and a
 neighbourhood graph `W` between areas (for example from
-[`create_weights()`](https://ridsonap.github.io/fastsae/reference/create_weights.md)),
+[`create_weights()`](https://ridsonap.is-a.dev/fastsae/reference/create_weights.md)),
 the area effects are spatially correlated.
 
 ### MCMC with `engine = jax_engine()`
 
 The same model can be sampled by MCMC (NumPyro’s No-U-Turn sampler on
 JAX) instead of INLA. It needs Python with `jax` and `numpyro` (see
-[`?setup_numpyro_env`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)),
+[`?setup_numpyro_env`](https://ridsonap.is-a.dev/fastsae/reference/setup_numpyro_env.md)),
 so this chunk is not run here. The result has the same structure, plus
 the posterior draws in `draws` and the largest split R-hat in
 `rhat_max`; the area aggregates in `df_area` come from the MCMC draws.
@@ -447,10 +447,10 @@ INLA’s approximation and the Monte Carlo error.
   rows, sampled or not.
 - At least two areas need sampled sub-areas, otherwise $`\sigma_v^2`$
   cannot be estimated.
-- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+- [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   has `self_benchmark = TRUE` for estimates that add up to a known total
   (see
-  [`?eblup_twofold`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)).
+  [`?eblup_twofold`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)).
 
 ## References
 

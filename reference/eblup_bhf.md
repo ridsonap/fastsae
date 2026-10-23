@@ -91,7 +91,7 @@ element holds the variance components, `beta`, the predicted random
 effects and the unit-level conditional residuals. `goodness` is a named
 vector: `loglikelihood` (the full Gaussian log-likelihood of the sampled
 units at the estimates, for ML and REML fits alike, as in
-[`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)),
+[`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md)),
 and `AIC` and `BIC` computed from it with \\p + 2\\ parameters and the
 number of sampled units.
 
@@ -124,19 +124,12 @@ and satellite data. \*Journal of the American Statistical Association\*,
 
 ``` r
 
-library(dplyr)
-#> 
-#> Attaching package: ‘dplyr’
-#> The following objects are masked from ‘package:stats’:
-#> 
-#>     filter, lag
-#> The following objects are masked from ‘package:base’:
-#> 
-#>     intersect, setdiff, setequal, union
-df_meanpop <- cornsoybeanmeans |>
-  rename(CornPix = MeanCornPixPerSeg, SoyBeansPix = MeanSoyBeansPixPerSeg)
-df_cornsoybean <- cornsoybean |>
-  rename(CountyIndex = County)
+# the population means of the covariates must carry the names used in the formula
+df_meanpop <- cornsoybeanmeans
+names(df_meanpop)[match(c("MeanCornPixPerSeg", "MeanSoyBeansPixPerSeg"), names(df_meanpop))] <-
+  c("CornPix", "SoyBeansPix")
+df_cornsoybean <- cornsoybean
+names(df_cornsoybean)[names(df_cornsoybean) == "County"] <- "CountyIndex"
 
 res <- eblup_bhf(
   formula = CornHec ~ CornPix + SoyBeansPix,

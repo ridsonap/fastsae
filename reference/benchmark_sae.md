@@ -13,30 +13,31 @@ Supports:
   `group`).
 
 - **Two-Stage Hierarchical Benchmarking** (Rao and Molina, 2015, Sec
-  10.4; Steorts et al., 2014): Calibrates small areas (e.g. 500
-  Kabupaten/Kota) within overarching groups (e.g. 34 Provinces) while
-  *simultaneously* harmonizing the provincial aggregates to match an
-  overarching National Target (`national_target`). Guarantees
-  simultaneous mathematical consistency across all administrative tiers:
-  \\\sum\_{d \in \text{Prov}\_g} \tilde{w}\_{dg}
-  \hat{\theta}\_{dg}^{\text{BM}} = T_g^\*\\ and \\\sum_g \tilde{W}\_g
-  T_g^\* = T\_{\text{nat}}\\.
+  10.4; in the spirit of Ghosh and Steorts, 2013): Calibrates small
+  areas (e.g. 500 Kabupaten/Kota) within overarching groups (e.g. 34
+  Provinces) while *simultaneously* harmonizing the provincial
+  aggregates to match an overarching National Target
+  (`national_target`). Guarantees simultaneous mathematical consistency
+  across all administrative tiers: \\\sum\_{d \in \text{Prov}\_g}
+  \tilde{w}\_{dg} \hat{\theta}\_{dg}^{\text{BM}} = T_g^\*\\ and \\\sum_g
+  \tilde{W}\_g T_g^\* = T\_{\text{nat}}\\.
 
 Methods implemented:
 
 - `"ratio"`: Proportional / multiplicative adjustment. Preserves area
-  proportions and non-negativity (You and Rao, 2002; Rao and Molina,
-  2015).
+  proportions and non-negativity (Rao and Molina, 2015).
 
 - `"difference"`: Uniform additive adjustment (Rao and Molina, 2015,
   Section 10.3).
 
 - `"optimal"`: Variance-weighted quadratic loss benchmarking (Datta et
-  al., 2011; Steorts et al., 2014). Domains with higher MSE absorb
-  larger adjustments while precise domains remain minimally perturbed.
+  al., 2011; Bell, Datta and Ghosh, 2013). Domains with higher MSE
+  absorb larger adjustments while precise domains remain minimally
+  perturbed.
 
 - `"logit"`: Logit-scale additive shift for bounded indicators
-  \\\theta_d \in (0, 1)\\ (Berg and Fuller, 2014).
+  \\\theta_d \in (0, 1)\\: one shift per group on the logit scale, so
+  the benchmarked estimates stay in (0, 1).
 
 ## Usage
 
@@ -190,21 +191,15 @@ An object of class `c("fastsae_benchmark", "data.frame")` containing:
     ed.). John Wiley & Sons. Chapter 10: "Benchmarking and Other
     Practical Issues", pp. 297-315.
 
-2.  You, Y., and Rao, J. N. K. (2002). A pseudo-empirical best linear
-    unbiased prediction approach to small area estimation using survey
-    weights. *The Canadian Journal of Statistics*, 30(3), 431-439.
+2.  Bell, W. R., Datta, G. S., and Ghosh, M. (2013). Benchmarking small
+    area estimators. *Biometrika*, 100(1), 189-202.
 
-3.  Steorts, R. C., Hall, P., and Ghosh, M. (2014). General benchmarking
-    under quadratic loss with applications to small area estimation.
-    *Journal of Survey Statistics and Methodology*, 2(2), 173-193.
+3.  Ghosh, M., and Steorts, R. C. (2013). Two-stage benchmarking as
+    applied to small area estimation. *TEST*, 22(4), 670-687.
 
 4.  Datta, G. S., Ghosh, M., Steorts, R., and Maples, J. (2011).
     Bayesian benchmarking with applications to small area estimation.
-    *Test*, 20(3), 574-588.
-
-5.  Berg, E., and Fuller, W. A. (2014). Small area prediction of
-    proportions with a constrained multinomial logit model. *Journal of
-    Survey Statistics and Methodology*, 2(3), 256-283.
+    *TEST*, 20(3), 574-588.
 
 ## Examples
 

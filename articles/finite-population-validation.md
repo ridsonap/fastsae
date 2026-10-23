@@ -123,7 +123,7 @@ evaluation criterion).*
 | Estimator / Model | Empirical RMSE | Empirical RRMSE (%) | Empirical MARB (%) | Empirical RB (%) | Empirical 95% CrI Coverage | Mean CrI Width | Efficiency Gain (vs Direct) | Runtime (s/fit) |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 | **Direct Estimator (Sample $`\hat{p}_d`$)** | 0.0681 | 26.27% | 20.71% | +2.27% | — | — | 1.000x | — |
-| **[`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0485 | 19.56% | 17.04% | +5.81% | 88.27% | 0.1717 | 1.737x | 3.25 s |
+| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0485 | 19.56% | 17.04% | +5.81% | 88.27% | 0.1717 | 1.737x | 3.25 s |
 | **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.0491 | 19.16% | 15.89% | +1.06% | 93.18% | 0.1979 | 1.806x | 9.69 s |
 
 ### Key Empirical Findings:
@@ -137,7 +137,7 @@ evaluation criterion).*
     credible intervals ($`0.1717`$ vs $`0.1979`$), offering sharper
     regional estimates.
 3.  **Computational Scalability**:
-    [`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
     evaluates in a fraction of the time required by Stan MCMC,
     completing 100 full spatial Bayesian SAE estimations in just
     minutes.
@@ -159,7 +159,7 @@ were drawn across $`R = 25`$ Monte Carlo replications.
 | Estimator / Model | Empirical RMSE | Empirical RRMSE (%) | Empirical MARB (%) | Empirical RB (%) | 95% CrI Coverage (%) | Mean CrI Width | Efficiency Gain (vs Direct) | Runtime (s/fit) |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 | **Direct Estimator (Sample $`\hat{p}_d`$)** | 0.0719 | 27.14% | 21.75% | +2.96% | — | — | 1.000x | — |
-| **[`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0481 | 19.13% | 16.95% | +6.70% | 88.97% | 0.1725 | 1.917x | 4.17 s |
+| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0481 | 19.13% | 16.95% | +6.70% | 88.97% | 0.1725 | 1.917x | 4.17 s |
 | **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.0487 | 18.68% | 15.66% | +2.00% | 93.69% | 0.2017 | 2.014x | 36.86 s |
 
 ### Key National Scalability Takeaways:

@@ -23,11 +23,11 @@ diagnose(
 - object:
 
   A fitted model object of class `"fastsae"` (e.g., from
-  [`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`eblup_fh`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
-  [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
+  [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`eblup_fh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md),
+  [`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
   or
-  [`eblup_stfh`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)).
+  [`eblup_stfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)).
 
 - W:
 
@@ -200,33 +200,29 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 2.82998 
+#> Random effect variance (sigma2_u): 2.829983 
 #> 
 #> Fixed Effects Coefficients:
-#>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.07155730  0.79098720  3.88319469  0.00010309  1.53306367
-#> x1          -0.00415124  0.00943429 -0.44001640  0.65992523 -0.02298327
-#> x2           0.08620897  0.03204005  2.69066289  0.00713102  0.02302959
-#>             ci_upper
-#> (Intercept)   4.6544
-#> x1            0.0143
-#> x2            0.1495
+#>                   beta  std.error     zvalue     pvalue   ci_lower ci_upper
+#> (Intercept)  3.0715569  0.7909883  3.8831890  0.0001031  1.5330621   4.6544
+#> x1          -0.0041512  0.0094343 -0.4400157  0.6599257 -0.0229833   0.0143
+#> x2           0.0862090  0.0320401  2.6906597  0.0071311  0.0230295   0.1495
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.590847    7.590847 0.7640210 0.5837281 10.06503 6.107746
-#> 2      2 7.599650 6.775393    6.775393 0.8337935 0.6952116 12.30620 5.161060
-#> 3      3 5.514137 5.245482    5.245482 0.8229079 0.6771775 15.68794 3.640202
-#> 4      4 3.869326 4.247402    4.247402 0.7360696 0.5417984 17.32988 2.794586
-#> 5      5 6.305063 6.352990    6.352990 0.9388750 0.8814864 14.77848 4.508182
+#> 1      1 8.359527 7.590845    7.590845 0.7640230 0.5837312 10.06506 6.107740
+#> 2      2 7.599650 6.775391    6.775391 0.8337954 0.6952147 12.30623 5.161055
+#> 3      3 5.514137 5.245482    5.245482 0.8229080 0.6771775 15.68794 3.640202
+#> 4      4 3.869326 4.247402    4.247402 0.7360699 0.5417988 17.32988 2.794586
+#> 5      5 6.305063 6.352990    6.352990 0.9388748 0.8814858 14.77847 4.508182
 #> 6      6 3.926807 4.091352    4.091352 0.5837763 0.3407948 14.26854 2.943485
 #>   ci_upper random_effect    vardir
-#> 1 9.103077    2.96522823 0.6618838
-#> 2 8.430371    2.52170497 0.8374691
-#> 3 6.869507    0.77265196 0.8822257
-#> 4 5.682177   -1.47620998 0.6581716
-#> 5 8.195014   -0.09886315 1.2788021
-#> 6 5.233334   -1.08176024 0.3878004
+#> 1 9.103079    2.96522646 0.6618838
+#> 2 8.430373    2.52170336 0.8374691
+#> 3 6.869507    0.77265143 0.8822257
+#> 4 5.682178   -1.47620910 0.6581716
+#> 5 8.195014   -0.09886311 1.2788021
+#> 6 5.233334   -1.08175968 0.3878004
 #> ... and 36 more rows.
 #> 
 #> ── fastsae Small Area Estimation Diagnostic Report ─────────────────────────────

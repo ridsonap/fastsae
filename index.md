@@ -75,9 +75,9 @@ $`u_{ij} \sim N(0, \sigma_u^2)`$: **Subarea-level random effect** -
 $`e_{ij} \sim N(0, D_{ij})`$: Sampling error with known variance
 
 **Available implementations:** -
-[`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
+[`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md):
 Frequentist EBLUP via REML Fisher-scoring (C++) -
-[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md):
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md):
 Bayesian hierarchical model via INLA with spatial support
 
 ------------------------------------------------------------------------
@@ -101,22 +101,22 @@ Bayesian hierarchical model via INLA with spatial support
 
 | Model | Function | Random Effect Structure | MSE Estimation |
 |:---|:---|:---|:---|
-| **Fay-Herriot** (Area-level) | [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md) | Independent area effects | Analytical (Prasad-Rao) |
-| **Spatial Fay-Herriot** | [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md) | SAR(1) spatial autocorrelation | Analytical, Bootstrap |
-| **Spatio-Temporal Fay-Herriot** | [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md) | SAR(1) + Temporal AR(1) | Analytical, Bootstrap |
-| **Battese-Harter-Fuller** (Unit-level) | [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md) | Random intercept nested in domains | Bootstrap |
-| **Two-Fold Subarea** | [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md) | Area + Subarea nested effects | Analytical, Bootstrap |
+| **Fay-Herriot** (Area-level) | [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md) | Independent area effects | Analytical (Prasad-Rao) |
+| **Spatial Fay-Herriot** | [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md) | SAR(1) spatial autocorrelation | Analytical, Bootstrap |
+| **Spatio-Temporal Fay-Herriot** | [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md) | SAR(1) + Temporal AR(1) | Analytical, Bootstrap |
+| **Battese-Harter-Fuller** (Unit-level) | [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md) | Random intercept nested in domains | Bootstrap |
+| **Two-Fold Subarea** | [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md) | Area + Subarea nested effects | Analytical, Bootstrap |
 
 ### Bayesian Models (INLA)
 
 | Model | Function | Distributions | Spatial/Temporal |
 |:---|:---|:---|:---|
-| **Area-level HB** | [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md) | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Full support |
-| **Unit-level HB** | [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md) | Gaussian | ✓ Via nested error |
-| **Two-Fold HB** | [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
+| **Area-level HB** | [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Full support |
+| **Unit-level HB** | [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) | Gaussian | ✓ Via nested error |
+| **Two-Fold HB** | [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
 
 The Bayesian models are fitted with `engine = inla_engine()` (default).
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 can also be fitted by MCMC in Python (JAX/NumPyro) with
 `engine = jax_engine()`.
 
@@ -134,7 +134,7 @@ can also be fitted by MCMC in Python (JAX/NumPyro) with
 
 #### 2. Bayesian Beta models: INLA vs Stan MCMC (largest $`n`$ benchmarked)
 
-| Model | $`n`$ | [`fastsae::hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md) (INLA) | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan) | Speedup |
+| Model | $`n`$ | [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (INLA) | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan) | Speedup |
 |:---|:--:|:--:|:--:|:--:|
 | **Beta** | 1,000 | **1.61 s** (25.9 MB) | 187 s (17.9 GB) | 117x |
 | **Spatial Beta (Besag ICAR)** | 1,000 | **1.87 s** (161 MB) | 404 s (22.5 GB) | 217x |
@@ -148,8 +148,8 @@ Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the
 `sae`/`emdi` rows come from an earlier run of the same design (simulated
 data, 5 covariates) on different random draws, the `tipsae` rows from an
 earlier run on the same data. See the [benchmark
-article](https://ridsonap.github.io/fastsae/articles/benchmarks.html)
-for all sizes.
+article](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html) for
+all sizes.
 
 ------------------------------------------------------------------------
 
@@ -172,28 +172,28 @@ remotes::install_github("ridsonap/fastsae")
 Explore detailed guides, worked examples, and performance analyses:
 
 - [**Getting Started with
-  fastsae**](https://ridsonap.github.io/fastsae/articles/getting-started.md):
+  fastsae**](https://ridsonap.is-a.dev/fastsae/articles/getting-started.md):
   Step-by-step walkthrough of model fitting, diagnostics, and S3
   extraction.
 - [**Spatial & Spatio-Temporal Models
-  (EBLUP)**](https://ridsonap.github.io/fastsae/articles/spatial-temporal.md):
+  (EBLUP)**](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.md):
   Working with spatial weights matrices, spatial kriging, and
   spatio-temporal panels.
 - [**Bayesian Area-Level Models
-  (INLA)**](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md):
+  (INLA)**](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md):
   Hierarchical Bayesian SAE using INLA with 6 distributions and
   spatial-temporal effects.
 - [**Model Diagnostics &
-  Calibration**](https://ridsonap.github.io/fastsae/articles/model-diagnostics.md):
+  Calibration**](https://ridsonap.is-a.dev/fastsae/articles/model-diagnostics.md):
   Diagnostics and benchmarking to aggregate targets.
 - [**Unit-Level Estimation
-  (BHF)**](https://ridsonap.github.io/fastsae/articles/unit-level-bhf.md):
+  (BHF)**](https://ridsonap.is-a.dev/fastsae/articles/unit-level-bhf.md):
   Fitting the Battese-Harter-Fuller model with individual survey data.
 - [**Performance
-  Benchmarks**](https://ridsonap.github.io/fastsae/articles/benchmarks.md):
+  Benchmarks**](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.md):
   Interactive charts and speedup comparisons across sample sizes.
 - [**Function
-  Reference**](https://ridsonap.github.io/fastsae/reference/index.md):
+  Reference**](https://ridsonap.is-a.dev/fastsae/reference/index.md):
   Comprehensive API reference and parameter documentation.
 
 ------------------------------------------------------------------------

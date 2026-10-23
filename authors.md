@@ -13,13 +13,13 @@ Source:
 [`DESCRIPTION`](https://github.com/ridsonap/fastsae/blob/main/DESCRIPTION)
 
 Al Farizal P R, Ubaidillah A (2026). *fastsae: High-Performance
-Frequentist and Bayesian Small Area Estimation in R*. R package version
-1.0.0, <https://ridsonap.github.io/fastsae/>.
+Frequentist and Bayesian Small Area Estimation*. R package version
+1.0.0, <https://ridsonap.is-a.dev/fastsae/>.
 
     @Manual{,
-      title = {fastsae: High-Performance Frequentist and Bayesian Small Area Estimation in R},
+      title = {fastsae: High-Performance Frequentist and Bayesian Small Area Estimation},
       author = {Ridson {Al Farizal P} and Azka Ubaidillah},
       year = {2026},
       note = {R package version 1.0.0},
-      url = {https://ridsonap.github.io/fastsae/},
+      url = {https://ridsonap.is-a.dev/fastsae/},
     }

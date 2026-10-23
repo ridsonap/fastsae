@@ -6,15 +6,15 @@ Negative Binomial, Beta, Gamma) and spatial random effect structures
 (non-spatial, BYM2, BYM, Besag/ICAR, Leroux, SAR). Two estimation
 engines are available through `engine`:
 
-- [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+- [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   (default, or `"inla"`): Integrated Nested Laplace Approximations
   (INLA; Rue et al., 2009).
 
-- [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+- [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   (or `"jax"`): full MCMC with the No-U-Turn sampler of 'NumPyro' (Phan
   et al., 2019) on 'JAX', on the CPU or an NVIDIA GPU. Needs Python with
   `jax` and `numpyro` through reticulate; see
-  [`setup_numpyro_env`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md).
+  [`setup_numpyro_env`](https://ridsonap.is-a.dev/fastsae/reference/setup_numpyro_env.md).
 
 The engine constructors hold all engine settings (priors, approximation
 strategy and further
@@ -137,7 +137,7 @@ hb_area(
   - `"sar"`: Simultaneous autoregressive (SAR) area effect, \\\eta =
     X\beta + u\\, \\u = (I - \rho W)^{-1}\epsilon\\, \\\epsilon \sim
     N(0, \sigma^2 I)\\: the model of
-    [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    [`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
     (Petrucci and Salvati, 2006), with \\\rho\\ uniform on \\\|\rho\|
     \le 0.999\\. With INLA it is the `"slm"` latent model with a zero
     covariate matrix, so that only \\\epsilon\\ is filtered. Not
@@ -147,7 +147,7 @@ hb_area(
   - `"slm"`: Spatial lag model, \\\eta = (I - \rho W)^{-1}(X\beta +
     \epsilon)\\ (INLA `"slm"`). Note that the covariates are spatially
     filtered too, so this is *not* the Bayesian counterpart of
-    [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
+    [`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
     whose SAR structure applies to the random effect only: \\X\beta +
     (I - \rho W)^{-1}\epsilon\\. Use `"sar"` for that model.
 
@@ -229,7 +229,7 @@ hb_area(
   dense matrix such as distance-decay weights becomes a nearly complete
   graph and gives a warning. `"sar"` and `"slm"` use the weights,
   row-standardised (as
-  [`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+  [`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
   expects).
 
 - vardir:
@@ -252,9 +252,9 @@ hb_area(
 - engine:
 
   Estimation engine:
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   or
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
   or the strings `"inla"` (default) and `"jax"` for their default
   settings. See the Engines section.
 
@@ -316,7 +316,7 @@ hb_area(
   `benchmark_draws`, `benchmark_seed` and arguments of
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) are now given
   to
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md);
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md);
   passed here they are forwarded to it with a warning.
 
 ## Value
@@ -328,7 +328,9 @@ containing:
   (if specified), observed `y`, predicted `hb`, linear predictor
   `linear_pred`, posterior standard error `sd`, `mse`, relative error
   `rse` (%), 95% credible interval (`ci_lower`, `ci_upper`), and
-  `random_effect`.
+  `random_effect`. With `vardir`, also `vardir` and, for the beta and
+  gamma families, the `precision` of each area the model was fitted
+  with.
 
 - `estcoef`: Data frame of estimated regression coefficients.
 
@@ -366,9 +368,9 @@ containing:
 
 - `engine`: Name of the estimation engine (`"inla"` or `"jax"`);
   `engine_spec` holds its settings
-  ([`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  ([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   or
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   object).
 
 - `draws`, `rhat_max`, `device`, `elapsed_seconds`: With the JAX engine,
@@ -381,8 +383,8 @@ containing:
 ## Engines
 
 Both engines return the same structure, so `print`, `summary`,
-[`benchmark_sae`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md),
-[`compare_sae`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
+[`benchmark_sae`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md),
+[`compare_sae`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md)
 and the other methods work with either. Feature support:
 
 |  |  |  |
@@ -396,9 +398,9 @@ and the other methods work with either. Feature support:
 | Horseshoe prior, Student-t random effects | – | yes |
 
 By default both engines use the same priors (see `prior_prec` of
-[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 and `priors` of
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)),
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)),
 so their estimates differ only by the INLA approximation and the Monte
 Carlo error.
 
@@ -536,14 +538,14 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 2.880416 
+#> Random effect variance (sigma2_u): 2.880426 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.11016637  0.79793354  3.89777623  0.00009708  1.55566890
-#> x1          -0.00198357  0.01028857 -0.19279346  0.84712072 -0.02259571
-#> x2           0.05569460  0.06348802  0.87724586  0.38035311 -0.06834074
-#> x3           0.03345853  0.05993420  0.55825444  0.57667065 -0.08590249
+#> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7083e-05  1.5557e+00
+#> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02
+#> x2           5.5695e-02  6.3488e-02  8.7724e-01  3.8035e-01 -6.8341e-02
+#> x3           3.3459e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02
 #>             ci_upper
 #> (Intercept)   4.7053
 #> x1            0.0181
@@ -552,19 +554,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.608033    7.608033 0.7646556 0.5846982 10.05063 6.123790
-#> 2      2 7.599650 6.779532    6.779532 0.8360713 0.6990153 12.33229 5.161196
-#> 3      3 5.514137 5.183059    5.183059 0.8343358 0.6961162 16.09736 3.557405
-#> 4      4 3.869326 4.201226    4.201226 0.7385935 0.5455204 17.58043 2.744930
-#> 5      5 6.305063 6.322898    6.322898 0.9421045 0.8875609 14.89989 4.473099
-#> 6      6 3.926807 4.048399    4.048399 0.5872602 0.3448746 14.50599 2.894943
+#> 1      1 8.359527 7.608034    7.608035 0.7646565 0.5846996 10.05065 6.123790
+#> 2      2 7.599650 6.779533    6.779533 0.8360724 0.6990170 12.33230 5.161195
+#> 3      3 5.514137 5.183059    5.183059 0.8343361 0.6961168 16.09737 3.557405
+#> 4      4 3.869326 4.201225    4.201225 0.7385938 0.5455208 17.58044 2.744928
+#> 5      5 6.305063 6.322898    6.322898 0.9421048 0.8875615 14.89989 4.473098
+#> 6      6 3.926807 4.048399    4.048399 0.5872603 0.3448747 14.50599 2.894943
 #>   ci_upper random_effect    vardir
-#> 1 9.121603    2.93893390 0.6618838
-#> 2 8.439307    2.54244831 0.8374691
-#> 3 6.830947    0.96059475 0.8822257
-#> 4 5.642493   -1.31947595 0.6581716
-#> 5 8.172683   -0.03983679 1.2788021
-#> 6 5.198417   -0.82110964 0.3878004
+#> 1 9.121606    2.93893501 0.6618838
+#> 2 8.439310    2.54244942 0.8374691
+#> 3 6.830949    0.96059480 0.8822257
+#> 4 5.642493   -1.31947680 0.6581716
+#> 5 8.172683   -0.03983692 1.2788021
+#> 6 5.198417   -0.82111018 0.3878004
 #> ... and 36 more rows.
 #> 
 #> 
@@ -577,7 +579,7 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Self-Benchmarking: Active (benchmarked posterior draws)
-#> Random effect variance (sigma2_u): 2.880414 
+#> Random effect variance (sigma2_u): 2.880415 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
@@ -593,19 +595,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.547486    7.608031 0.8027364 0.6443857 10.63581 5.975231
-#> 2      2 7.599650 6.732841    6.779529 0.8697606 0.7564835 12.91818 5.031471
-#> 3      3 5.514137 5.136803    5.183057 0.8582960 0.7366720 16.70876 3.466112
-#> 4      4 3.869326 4.135504    4.201227 0.7650964 0.5853725 18.50068 2.648256
-#> 5      5 6.305063 6.330520    6.322898 0.9195209 0.8455186 14.52520 4.527366
-#> 6      6 3.926807 4.019461    4.048399 0.6768418 0.4581148 16.83912 2.745617
+#> 1      1 8.359527 7.549043    7.608032 0.8073203 0.6517660 10.69434 6.047585
+#> 2      2 7.599650 6.730095    6.779530 0.8521016 0.7260771 12.66106 5.023230
+#> 3      3 5.514137 5.137406    5.183058 0.8635270 0.7456790 16.80862 3.484630
+#> 4      4 3.869326 4.133634    4.201227 0.7698831 0.5927200 18.62485 2.686822
+#> 5      5 6.305063 6.336219    6.322898 0.9168416 0.8405985 14.46985 4.555892
+#> 6      6 3.926807 4.019957    4.048399 0.6800331 0.4624451 16.91643 2.731982
 #>   ci_upper random_effect    vardir hb_unbenchmarked
-#> 1 9.090142    2.93893160 0.6618838         7.608031
-#> 2 8.469611    2.54244620 0.8374691         6.779529
-#> 3 6.816768    0.96059417 0.8822257         5.183057
-#> 4 5.626571   -1.31947468 0.6581716         4.201227
-#> 5 8.096963   -0.03983671 1.2788021         6.322898
-#> 6 5.315953   -0.82110881 0.3878004         4.048399
+#> 1 9.179032    2.93893218 0.6618838         7.608032
+#> 2 8.378967    2.54244674 0.8374691         6.779530
+#> 3 6.890367    0.96059428 0.8822257         5.183058
+#> 4 5.634838   -1.31947503 0.6581716         4.201227
+#> 5 8.221587   -0.03983675 1.2788021         6.322898
+#> 6 5.352779   -0.82110905 0.3878004         4.048399
 #> ... and 36 more rows.
 #> 
 #> 
@@ -618,37 +620,37 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (BYM2)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 3.010618 
+#> Random effect variance (sigma2_u): 3.011006 
 #> Spatial autocorrelation (rho): 0.1571 
 #> Spatial mixing fraction (phi): 0.1571 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.08483604  0.79907569  3.86050543  0.00011315  1.52663422
-#> x1          -0.00112330  0.01043023 -0.10769636  0.91423655 -0.02194767
-#> x2           0.05042908  0.06429603  0.78432661  0.43284849 -0.07552775
-#> x3           0.03819568  0.06062970  0.62998299  0.52870571 -0.08231365
+#> (Intercept)  3.08481439  0.79895018  3.86108481  0.00011288  1.52685072
+#> x1          -0.00112392  0.01042812 -0.10777796  0.91417183 -0.02194407
+#> x2           0.05043401  0.06428459  0.78454269  0.43272174 -0.07550210
+#> x3           0.03819159  0.06061927  0.63002388  0.52867896 -0.08229650
 #>             ci_upper
-#> (Intercept)   4.6805
+#> (Intercept)   4.6802
 #> x1            0.0193
-#> x2            0.1782
+#> x2            0.1781
 #> x3            0.1568
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.578872    7.578872 0.7695590 0.5922210 10.15400 6.083736
-#> 2      2 7.599650 6.777234    6.777234 0.8383355 0.7028064 12.36988 5.153331
-#> 3      3 5.514137 5.158493    5.158493 0.8352110 0.6975775 16.19099 3.531681
-#> 4      4 3.869326 4.201966    4.201966 0.7376081 0.5440657 17.55388 2.747627
-#> 5      5 6.305063 6.286971    6.286971 0.9469996 0.8968083 15.06289 4.428638
-#> 6      6 3.926807 4.070623    4.070623 0.5896626 0.3477020 14.48581 2.912478
+#> 1      1 8.359527 7.578629    7.578629 0.7695141 0.5921520 10.15374 6.083625
+#> 2      2 7.599650 6.776932    6.776932 0.8383002 0.7027473 12.36991 5.153139
+#> 3      3 5.514137 5.158410    5.158410 0.8351612 0.6974942 16.19028 3.531695
+#> 4      4 3.869326 4.202074    4.202074 0.7375801 0.5440244 17.55276 2.747785
+#> 5      5 6.305063 6.287036    6.287036 0.9469247 0.8966664 15.06155 4.428836
+#> 6      6 3.926807 4.070621    4.070621 0.5896409 0.3476764 14.48528 2.912519
 #>   ci_upper random_effect    vardir
-#> 1 9.100773     2.8885026 0.6618838
-#> 2 8.440330     2.5410663 0.8374691
-#> 3 6.808526     0.9886788 0.8822257
-#> 4 5.641327    -1.2748293 0.6581716
-#> 5 8.147146    -0.0668853 1.2788021
-#> 6 5.225331    -0.7508230 0.3878004
+#> 1 9.100494    2.88829668 0.6618838
+#> 2 8.440010    2.54078957 0.8374691
+#> 3 6.808351    0.98858064 0.8822257
+#> 4 5.641377   -1.27473942 0.6581716
+#> 5 8.147052   -0.06681955 1.2788021
+#> 6 5.225287   -0.75084539 0.3878004
 #> ... and 36 more rows.
 #> 
 

@@ -1,9 +1,9 @@
 # Estimation engines for the Hierarchical Bayes models
 
 Constructors for the `engine` argument of
-[`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-[`hb_unit`](https://ridsonap.github.io/fastsae/reference/hb_unit.md) and
-[`hb_twofold`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+[`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) and
+[`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
 Each collects the settings of one estimation engine, so that the model
 functions themselves only describe the model. Passing the string
 `"inla"` or `"jax"` is the same as passing `inla_engine()` or
@@ -55,7 +55,7 @@ print(x, ...)
 - link:
 
   Link function for the likelihood
-  ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   only). `NULL` (default) uses the canonical link of the family:
   identity for gaussian, logit for binomial and beta, log for poisson,
   nbinomial and gamma. Binomial and beta also accept `"probit"`,
@@ -93,25 +93,25 @@ print(x, ...)
 - prior_rho:
 
   Prior for the spatial correlation of `spatial = "generic1"` or `"slm"`
-  ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   only); `NULL` uses the INLA default.
 
 - prior_prec_time:
 
   Prior for the precision of the temporal random effect
-  ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   only); `NULL`: the default of `prior_prec`.
 
 - prior_rho_time:
 
   Prior for the autocorrelation of `temporal = "ar1"`
-  ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   only); `NULL` uses the INLA default.
 
 - prior_prec_subarea:
 
   Prior for the precision of the subarea random effect
-  ([`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  ([`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   only). `NULL`: the default of `prior_prec`.
 
 - draws:
@@ -119,13 +119,13 @@ print(x, ...)
   Number of posterior draws: from
   [`INLA::inla.posterior.sample()`](https://rdrr.io/pkg/INLA/man/posterior.sample.html)
   for posterior self-benchmarking in
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   (`NULL`: 1000), and for the area aggregates of the binomial and
   Poisson
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   models (`NULL`: 2000; `0` skips the sampling and approximates the
   aggregate uncertainty from independent sub-area effects).
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   draws them in R from the Gaussian approximation of the latent field at
   each of INLA's hyperparameter configurations, without INLA's skewness
   correction (which changed the aggregates less than the Monte Carlo
@@ -190,7 +190,7 @@ print(x, ...)
   logit links). The priors of the likelihood are the same as with
   `inla_engine()`: half-normal(\\s_y\\) on the Gaussian residual SD
   without `vardir` (and on the unit errors of
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)),
   half-normal(10) on the negative binomial size and the gamma shape, and
   INLA's log-gamma(1, 0.1) on the log beta precision (\\\phi \sim\\
   Exponential(0.1)); `"weakly_informative"` keeps half-normal(10) for
@@ -200,14 +200,14 @@ print(x, ...)
 
   Logical; Student-t instead of normal random effects (the area effects,
   and the sub-area effects of
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)),
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)),
   with the degrees of freedom estimated. Default `FALSE`.
 
 - keep_draws:
 
   Logical; keep the posterior draws of the area parameters in `$draws`
   of the fit (needed by
-  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
+  [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md)
   to propagate the posterior covariance). Default `TRUE`.
 
 - progress:
@@ -230,7 +230,7 @@ approximation (INLA); it is available for all HB models. Priors are
 given in INLA syntax. A prior or setting left at `NULL` takes the
 default of the model function; a setting the model does not use (such as
 `prior_rho_time` in
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md))
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md))
 is ignored with a warning.
 
 ## JAX
@@ -238,15 +238,15 @@ is ignored with a warning.
 `jax_engine()` fits the model by MCMC (NumPyro's No-U-Turn sampler on
 JAX, Phan et al. 2019) on CPU, CUDA GPU or Apple Metal, through
 reticulate. It needs Python with `jax` and `numpyro`; see
-[`setup_numpyro_env`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)
+[`setup_numpyro_env`](https://ridsonap.is-a.dev/fastsae/reference/setup_numpyro_env.md)
 (`check_only = TRUE` checks it). The fixed effects get a normal or a
 regularized horseshoe prior (Piironen and Vehtari 2017); see `priors`
 for the other priors. `spatial = "slm"` and `temporal = "rw2"` are not
 available. `jax_engine()` is available for
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-[`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
 and
-[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
 
 ## MCMC convergence
 
@@ -266,7 +266,7 @@ divergent transitions (warning class `fastsae_mcmc_warning`), and
 informs when R-hat is between 1.01 and 1.05; Vehtari et al. recommend
 R-hat \< 1.01 and ESS \> 100 per chain. `autoplot(fit, type = "trace")`
 and `type = "rank"` plot the chains; see
-[`autoplot.fastsae`](https://ridsonap.github.io/fastsae/reference/autoplot.fastsae.md).
+[`autoplot.fastsae`](https://ridsonap.is-a.dev/fastsae/reference/autoplot.fastsae.md).
 
 Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C.
 (2021). Rank-normalization, folding, and localization: An improved R-hat
@@ -284,9 +284,9 @@ Journal of Statistics*, 11(2), 5018–5051.
 
 ## See also
 
-[`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-[`hb_unit`](https://ridsonap.github.io/fastsae/reference/hb_unit.md),
-[`hb_twofold`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+[`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
+[`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
 
 ## Examples
 

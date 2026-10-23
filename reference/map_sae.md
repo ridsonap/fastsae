@@ -1,9 +1,9 @@
 # Unified Spatial Choropleth Mapping for Small Area Estimates
 
-Provides a comprehensive, single-gateway ("satu pintu") spatial
-choropleth mapping interface for Small Area Estimation models fitted
-with fastsae (e.g. `eblup_fh`, `eblup_sfh`, `eblup_stfh`, `eblup_bhf`,
-`hb_area`, and `benchmark_sae`).
+Provides a comprehensive, single-gateway spatial choropleth mapping
+interface for Small Area Estimation models fitted with fastsae (e.g.
+`eblup_fh`, `eblup_sfh`, `eblup_stfh`, `eblup_bhf`, `hb_area`, and
+`benchmark_sae`).
 
 Intelligently handles:
 
@@ -12,7 +12,7 @@ Intelligently handles:
   reliability classification (`"reliability"`: green for reliable, amber
   for use with caution, red for unreliable; cut-offs from `thresholds`,
   see
-  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
+  [`add_reliability_flags`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)).
 
 - **Direct vs Model Comparisons**: Side-by-side facet maps contrasting
   erratic direct survey estimates against smoothed small area model
@@ -165,7 +165,7 @@ map_sae(
 
   Numeric vector of length 2 defining the RSE (%) thresholds for
   reliability classification (see
-  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
+  [`add_reliability_flags`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)).
   Default is `c(25, 50)`, the BPS-Statistics Indonesia criteria.
 
 - facet_scales:

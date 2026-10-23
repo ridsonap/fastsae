@@ -213,17 +213,17 @@ if (requireNamespace("sae", quietly = TRUE)) {
 
 Explore advanced modeling capabilities in **fastsae**: - **Spatial &
 Spatio-Temporal Models (EBLUP)**:
-[spatial-temporal.html](https://ridsonap.github.io/fastsae/articles/spatial-temporal.md)
+[spatial-temporal.html](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.md)
 (SAR and AR(1) dynamics). - **Bayesian Area-Level SAE with INLA
 (`hb_area`)**:
-[hb-area-inla.html](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md)
+[hb-area-inla.html](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md)
 (Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma,
 Binomial, and spatio-temporal interactions). - **Model Diagnostics and
 Residual Analysis (`diagnose`)**:
-[model-diagnostics.html](https://ridsonap.github.io/fastsae/articles/model-diagnostics.md)
+[model-diagnostics.html](https://ridsonap.is-a.dev/fastsae/articles/model-diagnostics.md)
 (Calibration tests, RSE reduction, and Moran’s I). - **Unit-Level
 Estimation**:
-[unit-level-bhf.html](https://ridsonap.github.io/fastsae/articles/unit-level-bhf.md)
+[unit-level-bhf.html](https://ridsonap.is-a.dev/fastsae/articles/unit-level-bhf.md)
 (Battese-Harter-Fuller model).
 
 ## References

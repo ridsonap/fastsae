@@ -67,14 +67,14 @@ sim_series_data(
 
   Numeric. Domain spatial autoregressive autocorrelation parameter
   (\\\|\rho_s\| \< 1\\, corresponding to `rho1` in
-  [`eblup_stfh`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)).
+  [`eblup_stfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)).
   Default is 0.5.
 
 - rho_t:
 
   Numeric. Temporal AR(1) autocorrelation parameter (\\\|\rho_t\| \<
   1\\, corresponding to `rho2` in
-  [`eblup_stfh`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)).
+  [`eblup_stfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)).
   Default is 0.6.
 
 - sigma_s:
@@ -89,8 +89,8 @@ sim_series_data(
 
 - trend:
 
-  Character. Deterministric temporal trend type: `"linear"`,
-  `"random_walk"`, `"ar1"`, or `"none"`. Default is `"linear"`.
+  Character. Temporal trend type: `"linear"`, `"random_walk"`, `"ar1"`,
+  or `"none"`. Default is `"linear"`.
 
 - trend_slope:
 
@@ -116,12 +116,13 @@ sim_series_data(
 
   Character. Row sorting order: `"domain-major"` (all time periods for
   domain 1, then domain 2, required by
-  [`eblup_stfh`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md))
+  [`eblup_stfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md))
   or `"time-major"`. Default is `"domain-major"`.
 
 - seed:
 
-  Optional integer. Random seed for reproducibility.
+  Optional integer. Random seed for reproducibility; the random number
+  stream of the session is restored afterwards.
 
 ## Value
 
@@ -201,7 +202,6 @@ head(sim_panel$data)
 #> 6    241 0.74524          67  3.2009  0.7883  0.9023
 
 # 2. Directly estimate Spatio-Temporal Fay-Herriot model (eblup_stfh)
-if (FALSE) { # \dontrun{
 fit_stfh <- eblup_stfh(
   y_gaussian ~ x1 + x2,
   data = sim_panel$data,
@@ -210,6 +210,77 @@ fit_stfh <- eblup_stfh(
   vardir = ~vardir,
   W = sim_panel$W_std
 )
+#> ℹ Predicting 21 cells without a direct estimate: 4 unsampled domains (spatial borrowing) and 5 missing periods of sampled domains.
+#> 
+#> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
+#> Call:
+#> eblup_stfh(formula = y_gaussian ~ x1 + x2, vardir = ~vardir, data =
+#> sim_panel$data, domain = ~area, time = ~year, W = sim_panel$W_std)
+#> 
+#> ✔ Convergence: Yes (in 54 iterations)
+#> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
+#> Method: REML
+#> Cells without a direct estimate: 21 of 120 (predicted from the model)
+#> 
+#> Fixed Effects Coefficients:
+#>                  beta std.error    zvalue pvalue
+#> (Intercept)  1.269492  0.337142  3.765448  2e-04
+#> x1           0.732842  0.095006  7.713648  0e+00
+#> x2          -0.514087  0.093151 -5.518876  0e+00
+#> 
+#> EBLUP Estimates (First 6 domains):
+#>   domain time      y     eblup  vardir        mse       rse mse_pb
+#> 1      1 2021 1.4259 1.3231777 0.04593 0.02553239 12.076124     NA
+#> 2      1 2022 0.9198 0.9296162 0.12341 0.02302511 16.322894     NA
+#> 3      1 2023 1.1845 0.9588192 0.08359 0.02673284 17.052412     NA
+#> 4      1 2024 1.0411 1.3837820 0.14610 0.03535159 13.587413     NA
+#> 5      2 2021 1.7132 1.7990165 0.13304 0.03122553  9.822449     NA
+#> 6      2 2022 2.4992 2.2251026 0.05670 0.02387886  6.944752     NA
+#>   random_effect_u1 random_effect_u2 sampled
+#> 1       0.03508106       0.33449464    TRUE
+#> 2       0.03508106       0.32568488    TRUE
+#> 3       0.03508106       0.31805952    TRUE
+#> 4       0.03508106       0.28526816    TRUE
+#> 5      -0.03653546      -0.03536499    TRUE
+#> 6      -0.03653546      -0.03056140    TRUE
+#> ... and 114 more rows.
+#> 
 summary(fit_stfh)
-} # }
+#> 
+#> ── Summary of fastsae Fit ──────────────────────────────────────────────────────
+#> Call :
+#> eblup_stfh(formula = y_gaussian ~ x1 + x2, vardir = ~vardir, data =
+#> sim_panel$data, domain = ~area, time = ~year, W = sim_panel$W_std)
+#> 
+#> ✔ Convergence: Yes (in 54 iterations)
+#> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
+#> Method: REML
+#> Cells without a direct estimate: 21 of 120 (predicted from the model)
+#> 
+#> Variance & Correlation Components:
+#>      estimate  std.error
+#>   0.045254237 0.07942611
+#>  -0.999000000         NA
+#>   0.009138615 0.01672543
+#>   0.964294560 0.07215955
+#> 
+#> Coefficients:
+#>                  beta std.error    zvalue pvalue
+#> (Intercept)  1.269492  0.337142  3.765448  2e-04
+#> x1           0.732842  0.095006  7.713648  0e+00
+#> x2          -0.514087  0.093151 -5.518876  0e+00
+#> 
+#> Goodness of Fit:
+#> loglikelihood           AIC           BIC 
+#>     -54.26026     122.52051     140.68635 
+#> 
+#> EBLUP Summary Statistics:
+#>       mse               rse         
+#>  Min.   :0.01837   Min.   :  5.449  
+#>  1st Qu.:0.02616   1st Qu.:  8.660  
+#>  Median :0.03087   Median : 13.548  
+#>  Mean   :0.05793   Mean   : 27.119  
+#>  3rd Qu.:0.03719   3rd Qu.: 21.625  
+#>  Max.   :0.25638   Max.   :545.769  
+#> 
 ```

@@ -23,15 +23,15 @@ step_sae(
 - object:
 
   A fitted model:
-  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
-  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
-  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md),
-  [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md),
-  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md),
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md),
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md),
+  [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md),
+  [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md),
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   or
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
 
 - scope:
 
@@ -49,9 +49,9 @@ step_sae(
 
   Information criterion to minimise. EBLUP models: `"AIC"`, `"BIC"`
   (default) or `"KIC"`. HB models: `"LCPO"` (default with
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)),
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)),
   `"WAIC"` (default with
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md))
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md))
   or `"DIC"`.
 
 - steps:
@@ -81,7 +81,7 @@ covariates through \\X\\ and cannot compare models with different
 covariates, so models with a `method` argument are fitted by ML during
 the search; the selected model is then refitted with the method of
 `object`.
-[`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+[`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
 has no ML fit and is compared through the likelihood at its REML
 estimates. Only sampled domains enter the criteria.
 
@@ -96,10 +96,10 @@ in a simulation of a binomial area-level model (40 areas, two true and
 two noise covariates) WAIC selected exactly the true covariates in 27%
 of the replicates and dropped a true one in 13%, LCPO in 70%
 (`benchmarks/validation/step_sae.R`). LCPO is therefore the default with
-[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md);
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md);
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 has no CPO and uses WAIC. With
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 every candidate model is an MCMC fit, so the search can take long; the
 criteria then also carry Monte Carlo error.
 
@@ -115,7 +115,7 @@ spatial area effect and a spatially smooth noise covariate, the
 Fay-Herriot model kept that covariate in 20% of the replicates and the
 spatial Fay-Herriot model in 8%. Check the residual spatial
 autocorrelation of the selected model, e.g. with
-[`spatial_test()`](https://ridsonap.github.io/fastsae/reference/spatial_test.md).
+[`spatial_test()`](https://ridsonap.is-a.dev/fastsae/reference/spatial_test.md).
 
 The model is refitted by evaluating its call with a new formula in the
 environment where `step_sae()` is called, so the data and other
@@ -154,8 +154,8 @@ and widely applicable information criterion in singular learning theory.
 
 ## See also
 
-[`compare_sae`](https://ridsonap.github.io/fastsae/reference/compare_sae.md),
-[`spatial_test`](https://ridsonap.github.io/fastsae/reference/spatial_test.md)
+[`compare_sae`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md),
+[`spatial_test`](https://ridsonap.is-a.dev/fastsae/reference/spatial_test.md)
 
 ## Examples
 
@@ -193,5 +193,5 @@ sel
 #>  - x3 141.0402
 sel$model$formula
 #> y ~ x2
-#> <environment: 0x55caf6be7758>
+#> <environment: 0x55daff05a4b8>
 ```

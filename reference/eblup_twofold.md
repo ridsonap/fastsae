@@ -119,7 +119,7 @@ eblup_twofold(
   within each area; if `NULL`, every sub-area of an area gets the same
   weight. Missing or negative weights get weight 0 (with a warning), as
   in
-  [`hb_twofold`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+  [`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
 
 - compute_area:
 

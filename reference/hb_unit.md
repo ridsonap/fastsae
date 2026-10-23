@@ -3,7 +3,7 @@
 Estimates small area parameters using unit-level Hierarchical Bayesian
 models (Battese-Harter-Fuller model and generalized linear mixed models)
 with Integrated Nested Laplace Approximations (INLA) or by full MCMC
-([`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+([`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
 NumPyro NUTS). Supports Gaussian, Binomial (logistic regression for
 binary unit responses), and Poisson likelihoods, with optional spatial
 random effect structures (BYM2, Besag) and finite population
@@ -104,15 +104,15 @@ hb_unit(
 - engine:
 
   Estimation engine: `"inla"` (default) or an
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   object, or `"jax"` or a
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   object for MCMC (see the section Engines). An
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   holds the approximation strategy, the priors (`prior_prec`, default
   half-normal with the scale of the unit responses for
   `family = "gaussian"`, see
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md);
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md);
   `prior_phi` for BYM2), `scale_model` and further
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) arguments.
   The Gaussian model is fitted in INLA's `"classic"` mode, the binomial
@@ -129,7 +129,7 @@ hb_unit(
   Deprecated. `strategy`, `scale_model`, `prior_prec`, `prior_phi` and
   arguments of [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html)
   are now given to
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md);
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md);
   passed here they are forwarded to it with a warning.
 
 ## Value
@@ -194,13 +194,13 @@ containing:
 - `unsampled_domains`: Character vector of unsampled domain identifiers.
 
 - `fit`: Raw fitted INLA model object (the NumPyro output for
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)).
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)).
 
 - `engine`, `engine_spec`: Engine name (`"inla"` or `"jax"`) and its
   settings.
 
 - `draws`, `rhat_max`, `device`, `elapsed_seconds`: With
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
   the domains x draws matrix of the domain means (if
   `keep_draws = TRUE`), the largest split R-hat (`convergence` is
   `rhat_max < 1.05`), the device used and the sampling time.
@@ -236,7 +236,7 @@ sampled unit responses (scale 1 on the link scale for `"binomial"` and
 `jax_engine(priors = "weakly_informative")` uses half-normal(1) standard
 deviations and \\N(0, 10^2)\\ coefficients (\\N(0, 2.5^2)\\ for
 `"binomial"`) on the standardised scale instead. See
-[`vignette("hb-priors", package = "fastsae")`](https://ridsonap.github.io/fastsae/articles/hb-priors.md).
+[`vignette("hb-priors", package = "fastsae")`](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md).
 The domain means, SDs and 2.5%/97.5% quantiles are computed from the
 MCMC draws; with `popsize_var` each draw of the Gaussian domain mean
 includes the mean error of the non-sampled units, \\N(0, \sigma_e^2 /
@@ -245,7 +245,7 @@ posterior mean to the variance and gives a normal interval).
 
 The following comparisons were made with the earlier default priors
 (half-normal(1) on the standardised scale for
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
 INLA's log-gamma priors on the precisions). On simulated data (30
 domains, three unsampled) a Stan fit of the same model and priors gave
 domain means within 0.04 posterior SD and SDs within 5% for the Gaussian

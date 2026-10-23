@@ -96,7 +96,7 @@ autoplot(
 
   Numeric vector of length 2 with the RSE (%) cut-offs drawn in
   `autoplot(type = "rse")` (see
-  [`add_reliability_flags`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md)).
+  [`add_reliability_flags`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)).
   Default `c(25, 50)`.
 
 - top:
@@ -165,8 +165,8 @@ reproducibility. *Biometrics*, 45(1), 255-268.
 ## See also
 
 `autoplot.fastsae_comparison`,
-[`map_sae`](https://ridsonap.github.io/fastsae/reference/map_sae.md),
-[`diagnose`](https://ridsonap.github.io/fastsae/reference/diagnose.md)
+[`map_sae`](https://ridsonap.is-a.dev/fastsae/reference/map_sae.md),
+[`diagnose`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md)
 (model estimates against the direct estimates)
 
 ## Examples

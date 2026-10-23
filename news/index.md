@@ -6,21 +6,21 @@
 
 - New argument `engine`, taking an engine object from the new
   constructors
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   and
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   (or the strings `"inla"`, the default, and `"jax"` for their default
   settings). Each constructor holds all settings of its engine, so
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   itself only describes the model:
   - `inla_engine(strategy, link, scale_model, prior_prec, prior_phi, prior_rho, prior_prec_time, prior_rho_time, prior_prec_subarea, draws, seed, ...)`,
     where `...` goes to
     [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html).
     `control.*` lists given there are merged with the package defaults
     (before, they clashed with them in
-    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
     and replaced them in
-    [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)/[`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)).
+    [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)/[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)).
     Priors and `draws` left at `NULL` take the default of the model
     function, so the defaults of each function are unchanged; settings a
     function does not use are ignored with a warning.
@@ -37,11 +37,11 @@
     `rhat_max` (`convergence` is `rhat_max < 1.05`), and DIC/WAIC in
     `goodness`. Posterior self-benchmarking (also by `benchmark_group`)
     adjusts the MCMC draws exactly as for INLA, and
-    [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
+    [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md)
     uses the draws for the MSE matrix.
   - The engine settings are returned in `engine_spec`; `engine` holds
     the engine name.
-- [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+- [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   also takes `engine = jax_engine()` (or `"jax"`): the two-fold model
   with an iid, Besag or BYM2 area effect and an iid sub-area effect is
   sampled by NumPyro NUTS, for the Gaussian, binomial and Poisson
@@ -52,7 +52,7 @@
   priors); a fit took 7-11 s against 11-31 s for INLA with the area
   aggregates. The result has the structure of the INLA engine plus
   `draws`, `rhat_max`, `device` and `elapsed_seconds`.
-- [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+- [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   also takes `engine = jax_engine()` (or `"jax"`): the nested error
   model (Gaussian, Bernoulli or Poisson units; iid, Besag or BYM2 domain
   effects) is sampled by NumPyro NUTS from the sampled units, and the
@@ -68,7 +68,7 @@
   (`sigma2_e`) and can return the draws of selected rows only
   (`draw_rows`).
 - Convergence diagnostics for
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   fits (Vehtari et al., 2021), identical to
   [`posterior::rhat()`](https://mc-stan.org/posterior/reference/rhat.html),
   `ess_bulk()` and `ess_tail()` (checked to 1e-10): the rank-normalized
@@ -85,18 +85,18 @@
   and divergences.
 - `autoplot(fit, type = "trace")` and `type = "rank"` plot the chains of
   a
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   fit: the hyperparameters, coefficients and the area with the largest
   R-hat by default, or any `pars`, with R-hat and ESS in the panel
   labels.
-- [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md):
+- [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md):
   the WAIC of a Gaussian model with an unknown residual variance
-  ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   without `vardir`,
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md))
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md))
   used the posterior mean of the residual SD in every draw; it now uses
   the SD of each draw (on `mys`: 129.3 instead of 135.9).
-- [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md):
+- [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md):
   the `temporal = "ar1"` effect sums to zero over the periods (as
   `"rw1"` already did) when the model has an intercept, which then
   carries the mean level. Over a few periods the level of a stationary
@@ -110,7 +110,7 @@
   its unconstrained AR(1) effect, so the intercepts of the two engines
   differ by the mean of the time effects (the area estimates are not
   affected by this).
-- [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+- [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   checks that the unit responses are 0 or 1 for `family = "binomial"`
   and non-negative integers for `"poisson"`.
 - [`print()`](https://rdrr.io/r/base/print.html) failed on a fit whose
@@ -120,11 +120,11 @@
 - `jax_engine(robust = TRUE)` is documented as what it does: Student-t
   random effects (it was described as Student-t sampling errors for the
   Gaussian family).
-- [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+- [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   take the same `engine = inla_engine(...)`. In
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md),
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md),
   `prior_prec_area` is now `inla_engine(prior_prec = )`, `n_samples` is
   `inla_engine(draws = )`, and the posterior draws for the area
   aggregates honour `seed`. Their results carry `engine` and
@@ -140,7 +140,7 @@
   dominates (see the “hb_area() engines” benchmark article).
   `device = "auto"` keeps using the CPU on macOS.
 - New
-  [`setup_numpyro_env()`](https://ridsonap.github.io/fastsae/reference/setup_numpyro_env.md)
+  [`setup_numpyro_env()`](https://ridsonap.is-a.dev/fastsae/reference/setup_numpyro_env.md)
   to install the Python side, and `setup_numpyro_env(check_only = TRUE)`
   to check it. Nothing is installed or downloaded by the check. It looks
   only at an initialised Python, `RETICULATE_PYTHON` /
@@ -156,12 +156,12 @@
   `n_samples` or
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) arguments
   directly to
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   or
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
   They still work, with a warning, and are forwarded to
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md).
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md).
 - [`print()`](https://rdrr.io/r/base/print.html)/[`summary()`](https://rdrr.io/r/base/summary.html)
   show the engine, and the self-benchmarking line now names the method
   used (posterior draws or Wang-Fuller-Qu) instead of always reporting
@@ -170,7 +170,7 @@
 #### Covariate selection: `step_sae()`
 
 - New
-  [`step_sae()`](https://ridsonap.github.io/fastsae/reference/step_sae.md)
+  [`step_sae()`](https://ridsonap.is-a.dev/fastsae/reference/step_sae.md)
   selects the covariates of any fitted model by stepwise search
   (backward, forward or both), refitting it with the same settings
   (family, spatial or temporal structure, engine) at every step.
@@ -181,9 +181,9 @@
     the path and the BIC values equal those of `emdi::step()`.
   - HB models of every family: LCPO (leave-one-out through INLA’s
     conditional predictive ordinates; default with
-    [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)),
+    [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)),
     WAIC (default with
-    [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md))
+    [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md))
     or DIC. WAIC is unstable with one observation per area: in a
     binomial simulation it selected exactly the true covariates in 27%
     of the replicates, LCPO in 70% (`benchmarks/validation/step_sae.R`).
@@ -191,14 +191,14 @@
     smooth noise covariate was kept in 20% of the replicates by the
     Fay-Herriot model and in 8% by the spatial one (spatial confounding;
     Hodges and Reich 2010).
-- [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+- [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
   returns `goodness` (full log-likelihood, AIC and BIC), as the other
   EBLUP models; with `method = "ML"` they equal those of
   `lme4::lmer(REML = FALSE)`.
 
 #### Agreement metrics in `compare_sae()`
 
-- [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
+- [`compare_sae()`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md)
   no longer reports Pearson’s correlation: two reasonable models of the
   same data correlate almost perfectly whatever their differences, and a
   correlation measures association, not agreement. It now reports the
@@ -214,16 +214,16 @@
 #### Default priors of the HB models
 
 - The random-effect standard deviations of Gaussian HB models
-  ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md),
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md);
+  ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md);
   area, sub-area, time and interaction effects) get a half-normal prior
   with the scale of the response, sd(y), by default. It replaces INLA’s
   PC prior $`P(\sigma > 1) = 0.01`$
-  ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md))
+  ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md))
   and the log-gamma(0.01, 0.01) prior
-  ([`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)).
+  ([`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)).
   The PC prior depends on the unit of the response: on `mys` with the
   response in tenths it moved the estimates by up to 4.1 posterior SD.
   In a simulation (`benchmarks/validation/default_sd_prior.R`) the 95%
@@ -253,7 +253,7 @@
   default as before.
 - `jax_engine(priors = "inla")`, the new default, gives the NumPyro
   engine the priors of
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md):
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md):
   the default above, INLA’s PC prior on the BYM2 $`\phi`$ (on INLA’s
   support of logit $`\phi`$), INLA’s prior on the AR(1) correlation and
   $`N(0, 1000)`$ coefficients. On `mys` the two engines now agree within
@@ -261,18 +261,18 @@
   of `test_hb_area_sar.R` within 0.05 SD, 0.22 before.
   `priors = "weakly_informative"` keeps the previous priors.
 - `hb_area(family = "gaussian")` without `vardir` was unusable with
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md):
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md):
   INLA’s default log-gamma(1, 5e-5) prior on the residual precision put
   the residual SD near zero, so the area means collapsed onto the direct
   estimates and the 95% intervals covered 0-4% of the true means
   (`benchmarks/validation/likelihood_priors.R`). The residual SD now
   gets the half-normal(sd y) prior of
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   (94-97% coverage in every unit of `y`), as do the unit errors of
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md).
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md).
 - The beta precision without `vardir` or `trials` gets INLA’s
   log-gamma(1, 0.1) prior with both engines
-  ([`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  ([`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   used half-normal(10), which covered 84-97% against 88-96%).
 - `hb_area(family = "beta", vardir = )` fixes the precision of each area
   at the posterior mean of a first fit,
@@ -285,9 +285,12 @@
   precision at the model mean inside the model (`type_disp = "var"`)
   covered 93-95% but its likelihood is bimodal: 11 of 240 fits did not
   converge.
+- The `precision` column of `df_hb` for such a model is the precision
+  the model was fitted with; it still showed the precision at the direct
+  estimate.
 - `hb_area(family = "beta")` warns that `trials` is ignored when
   `vardir` is also given.
-- [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+- [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   computed the WAIC of a beta model with `trials` with a precision of 10
   instead of $`n_d - 1`$.
 - New vignette “Default Priors of the Hierarchical Bayes Models”: the
@@ -310,7 +313,7 @@
   with median relative errors up to a third smaller than without it.
 - The negative binomial size gets a half-normal(10) prior in the INLA
   engine too (as in
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)),
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)),
   instead of INLA’s `pc.mgamma(7)`. With one count per area the size
   follows its prior: `pc.mgamma` estimated sizes of 110-180 for true
   sizes 3-100 (nearly Poisson) and its intervals covered 76-92% when the
@@ -321,7 +324,7 @@
   different size priors). The warning without `vardir` no longer
   suggests `family = "poisson"`: on negative binomial counts a Poisson
   model covered 68-75%.
-- [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+- [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   starts the regression coefficients at 0 instead of the median of 15
   draws of their prior: with the $`N(0, 1000)`$ prior that median can
   lie far out on a log or logit scale, where chains of a model with a
@@ -332,25 +335,25 @@
 
 - `hb_area(spatial = "sar")`: the simultaneous autoregressive area
   effect $`u = (I - \rho W)^{-1}\varepsilon`$ of
-  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
   i.e. its Bayesian counterpart (`"slm"` also filters the covariates).
   $`\rho`$ is uniform on $`|\rho| \le 0.999`$ and `W` is
   row-standardised. INLA fits it as its `"slm"` model with a zero
   covariate matrix (in `"classic"` mode);
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   samples a non-centred $`u`$ through the eigendecomposition of `W` (a
   linear solve when `W` has a complex spectrum). Not combinable with the
   `"type3"`/`"type4"`/`"separable"` interactions.
   - With known `vardir`, INLA is within 0.004 posterior SD of the exact
     posterior (grid over $`\sigma`$ and $`\rho`$), and with 150 domains
     within 0.06 SD of
-    [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
     (SD / $`\sqrt{\mathrm{mse}}`$ 0.98-1.02, also for unsampled
     domains). The JAX engine agrees with INLA within 0.05 SD.
 
 #### Unsampled domains and missing periods in `eblup_stfh()`
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   no longer requires a complete panel. Cells whose response is `NA` –
   missing periods of a sampled domain, or domains that are never sampled
   – stay in the data and are predicted. The model is defined on the full
@@ -383,13 +386,13 @@
 
 #### Area means in `eblup_twofold()`
 
-- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+- [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   now also estimates the area means
   $`\theta_i = \sum_j w_{ij}\theta_{ij}`$, returned in `df_area`
   (`eblup_area`, `mse_area`, `rse_area`, `n_subareas`, `n_sampled`). The
   new argument `weight` gives the sub-area weights (normalised within
   each area, equal by default, as in
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md));
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md));
   `compute_area = FALSE` skips them.
   - The analytical MSE is the second-order estimator of the sub-areas
     applied to the linear target ($`g_1 + g_2 + 2g_3`$, minus the ML
@@ -407,41 +410,41 @@
 
 - All EBLUP functions choose the MSE with `mse_type`, which includes
   `"none"` (no MSE; `mse` and `rse` are `NA`):
-  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)
+  [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md)
   (`"analytical"`, `"none"`),
-  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
   (`"analytical"`, `"pbmse"`, `"npbmse"`, `"none"`),
-  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   and
-  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   (`"analytical"`, `"bootstrap"`, `"none"`) and
-  [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+  [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
   (`"bootstrap"`, `"none"`). The chosen value is returned in `mse_type`.
   - `eblup_sfh(mse_method = )` and `compute_mse =` of
-    [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+    [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
     and
-    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+    [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
     are deprecated and still work with a warning (`compute_mse = FALSE`
     is `mse_type = "none"`).
   - The MSE is now computed by default:
-    [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+    [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
     gives the analytical MSE and
-    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+    [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
     the bootstrap MSE (both gave none before). Use `mse_type = "none"`
     for the previous output.
 - Convergence is reported as a warning that can be caught. Before,
-  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
-  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
-  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md),
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   and
-  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   only printed a message and
-  [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+  [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
   said nothing. INLA fits of
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   now read `convergence` from the INLA mode search (`ok`,
   `mode$mode.status`; it was always `TRUE`), and
   `hb_area(engine = "jax")` warns when the largest split R-hat is 1.05
@@ -454,68 +457,68 @@
     system);
   - there must be more sampled areas than coefficients (all MSEs were
     `NA`), and at least two sampled areas in
-    [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+    [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
     and
-    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md);
+    [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md);
   - `W` of
-    [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
     and
-    [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+    [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
     must be non-negative; a zero row (a domain without neighbours) or
     rows that do not sum to 1 give a warning, since the SAR model with
     `rho` in (-1, 1) assumes a row-standardised `W`, as ‘sae’ requires;
   - the same checks now cover the HB models. A missing covariate is an
     error in
-    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-    [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+    [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+    [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
     and in the `Xpop` means of
-    [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md):
+    [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md):
     INLA treats it as 0, so the estimate of that area was wrong without
     any message.
-    [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+    [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
     replaced a missing, zero or negative `vardir` of a sampled subarea
     by 1, and
-    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
     stopped with an INLA error on a missing one; both now stop with the
     message of the EBLUP functions.
-    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
     also rejects linearly dependent covariates;
   - a missing population mean in
-    [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+    [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
     names the domain (it gave an internal error on the number of rows);
   - duplicated `domain` values give a warning in
-    [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
-    [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+    [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md),
+    [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
     and
-    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
     without `time` (in
-    [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+    [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
     such rows share one area effect).
 - A fixed `seed` of
-  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
-  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md),
-  [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md),
+  [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
   and
-  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   no longer changes the random number stream of the session; the
   bootstrap MSEs are unchanged.
-- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+- [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   uses `B = 100` and `seed = -1` (no seed) by default, as the other
   EBLUP functions (it used `B = 200` and `seed = NULL`; `NULL` still
   means no seed).
 - Gaussian models of
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md),
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md),
   and the Leroux and SLM effects of
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   for any family, are fitted in INLA’s `"classic"` mode (Rue, Martino
   and Chopin, 2009); the other models keep INLA’s default `"compact"`
   mode (van Niekerk et al., 2023), which leaves the linear predictors
   out of the latent field and is designed for data-rich models. Gaussian
   models of
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   with a `"type1"` to `"type4"` interaction and three hyperparameters (a
   Besag or iid area effect, a random walk or iid in time) also integrate
   over a grid of hyperparameters. Larger models (`temporal = "ar1"`, or
@@ -527,14 +530,14 @@
   variances) and with long Stan runs with the same model and priors
   (scripts in `benchmarks/validation`):
   - Gaussian: the compact mode overstated the posterior SDs by up to 18%
-    ([`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
+    ([`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
     when the area variance is small relative to `vardir`; it was
     accurate on `mys`), 8-15%
-    ([`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md),
+    ([`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
     `cornsoybean`) and 10%
-    ([`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)),
+    ([`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)),
     and
-    [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+    [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
     gave different county means on identical calls (up to 3 hectares and
     13% in the SDs). In the classic mode the posterior means were within
     0.07 posterior SD and the SDs within 0.91-1.03 times the reference,
@@ -545,7 +548,7 @@
     means within 0.16 posterior SD, SDs within 0.95-1.08 times), and the
     classic mode was much slower for many areas or units (beta with 2000
     areas: 32 s against 1.3 s;
-    [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+    [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
     binomial with 4000 units: 72 s against 2.6 s). The exception is the
     Leroux and SLM effects, where compact moved Poisson means by
     0.12-0.15 SD (classic: within 0.03 SD).
@@ -553,7 +556,7 @@
     (`random_effect_var`) is biased downwards while the area estimates
     are accurate; this is documented.
     `inla_engine(inla.mode = , control.inla = )` overrides the settings.
-- [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+- [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   space-time interactions with a random walk in time are identified as
   in Knorr-Held (2000). INLA’s default constraints left one level (rw1)
   or one linear trend (rw2) per domain with a flat prior: a domain
@@ -572,10 +575,10 @@
   posterior means were off by up to 0.6 posterior SD against Stan in
   every mode. `"poisson"` or `engine = "jax"` (MCMC) is suggested.
 - CAR models (`spatial = "besag"`, `"bym"`, `"bym2"`, `"leroux"`) of
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md),
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   use only the pattern `W > 0`. A dense `W` such as distance-decay
   weights becomes a (nearly) complete graph and an almost unstructured
   spatial effect; it now gives a warning. `mys_proxmat` is such a matrix
@@ -590,11 +593,11 @@
   (binomial) and -16% (Poisson) for the sampled domains, with 90% and
   78% coverage of the 95% intervals. Unbiased estimation needs
   unit-level population covariates (Molina and Rao, 2010); see
-  [`?hb_unit`](https://ridsonap.github.io/fastsae/reference/hb_unit.md).
+  [`?hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md).
   The Gaussian model is not affected.
 - `hb_twofold(weight = )` warns about missing or negative weights (they
   get weight 0 in `df_area`, as before, but silently).
-- [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
+- [`compare_sae()`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md)
   between a Hierarchical Bayes and an EBLUP model no longer calls the
   model with the smaller posterior variance “more efficient”: it reports
   which one has the lower reported uncertainty and notes that a
@@ -604,21 +607,59 @@
   random seed), and the seed is also set on the R side, since INLA draws
   the hyperparameter configurations with R’s RNG; the session’s random
   number stream is restored. This affects the area aggregates of
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   (their SD changed by up to 9% between identical calls), posterior
   self-benchmarking in
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   and
-  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md).
+  [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md).
 - New vignette “Sub-Area Level Estimation with Two-Fold Models”
-  ([`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md),
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md));
+  ([`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md),
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md));
   the unit-level vignette covers
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md).
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md).
 
 #### Fixes before the 1.0.0 release
 
-- [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
+- [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md)
+  and
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
+  say with a message when the random effect variance is estimated as 0
+  (the (RE)ML estimate is truncated at 0, as in ‘sae’): the EBLUPs are
+  then the synthetic estimates and the MSE estimates can understate
+  their error (Li and Lahiri, 2010).
+- [`sim_area_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_area_data.md),
+  [`sim_series_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_series_data.md)
+  and `sim_spatial_weights()` restore the random number stream of the
+  session after using `seed`; they replaced it before. The simulated
+  data are unchanged.
+- [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md)
+  documentation: the references are corrected. Two-stage benchmarking
+  cites Ghosh and Steorts (2013), optimal benchmarking Datta et
+  al. (2011) and Bell, Datta and Ghosh (2013); the citations of You and
+  Rao (2002), Berg and Fuller (2014) and a non-existent “Steorts, Hall
+  and Ghosh (2014)” are removed.
+- Examples:
+  [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
+  no longer needs ‘dplyr’, the
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
+  example of
+  [`sim_series_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_series_data.md)
+  runs,
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
+  uses `mse_type` instead of the deprecated `mse_method`, and the S3
+  methods ([`print()`](https://rdrr.io/r/base/print.html),
+  [`summary()`](https://rdrr.io/r/base/summary.html),
+  [`coef()`](https://rdrr.io/r/stats/coef.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html),
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html),
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  of
+  [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md))
+  have examples.
+- The website moved to <https://ridsonap.is-a.dev/fastsae/>.
+- [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md)
   stops when a `target` or `national_target` is missing or not finite,
   or a `weight` is missing. Before, a target of `NA` (for example a
   [`weighted.mean()`](https://rdrr.io/r/stats/weighted.mean.html) of
@@ -639,53 +680,53 @@
   sets the link of the likelihood (`"probit"`, `"cloglog"` and
   `"loglog"` for binomial and beta), checked against the family. The
   posterior draws for self-benchmarking and
-  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md)
+  [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md)
   use the matching inverse link, and the link is returned in `link`.
 - `hb_area(spatial = "bym")`: `random_effect_var` is the variance of the
   spatial component (it was the iid one). Interaction terms no longer
   feed `random_effect_var`, `rho` or `rho_time`, and with
   `st_interaction = "separable"` the AR(1) group correlation is returned
   in `rho_time`.
-- [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+- [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   objects have class `c("fastsae_hb_area", "fastsae_hb", "fastsae")`,
   like
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md).
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
 - The documentation of `inla_engine(prior_prec = )` explains the
   different defaults: the PC prior `pc.prec(1, 0.01)` of
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   assumes an area standard deviation of order 1 (proportions, rates, log
   scales), while
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   keeps the vague `loggamma(0.01, 0.01)` because unit-level responses
   are often on a raw scale.
 - `goodness` of
-  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md),
-  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md),
-  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md),
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   and
-  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   follows one convention. `loglikelihood` is the full Gaussian
   log-likelihood at the estimates, and `AIC`/`BIC` are computed from it
   for ML and REML fits, as in ‘sae’ and Marhuenda, Morales and Pardo
   (2014): the restricted likelihood depends on the covariates, so it
   cannot compare models with different covariates and is not reported.
   `goodness` always has these three elements.
-  - [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
+  - [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md):
     `loglikelihood`, `AIC` and `BIC` of REML fits were based on the
     restricted log-likelihood and now use the full one; `BIC` uses the
     number of sampled subareas (it used the number of areas).
-  - [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md):
+  - [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md):
     the element `loglike` is renamed `loglikelihood`, as in the other
     models.
-- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
+- [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md):
   a negative second-order MSE estimate (possible with the ML bias
   correction) is set to `NA` with a warning instead of giving a `NaN`
   RSE.
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   reports `convergence = FALSE` when the fit ends at invalid variance
   components (it reported `TRUE` with no estimates). The documentation
   explains why the model is fitted by REML only (as in Marhuenda, Molina
@@ -695,7 +736,7 @@
 
 #### Statistical corrections (mathematical audit)
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md):
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md):
   the analytical $`g_3`$ was computed with the wrong matrix orientation
   ($`(K_a \Psi V \Psi K_b)_{ii}`$ instead of
   $`\psi_i^2 (K_a V K_b)_{ii}`$), which is wrong whenever `vardir` is
@@ -703,14 +744,14 @@
   $`\partial\tilde\theta/\partial\theta_a = \Psi P V_a P y`$, and the
   REML information at the final estimates.
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   bootstrap MSE: the variance components are now re-estimated in every
   replicate (before, they were held fixed, so the bootstrap missed the
   $`g_3`$ contribution), and the SAR effects are generated with the
   lower Cholesky factor (before,
   $`\mathrm{Var}(u_1) = RR' \ne \Omega_1`$).
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   now sorts the panel internally into the domain-major order the model
   requires and returns results in the caller’s row order. Before,
   unsorted input was silently mis-specified – including the time-major
@@ -718,7 +759,7 @@
   [`sae::eblupSTFH()`](https://rdrr.io/pkg/sae/man/eblupSTFH.html),
   which assumes domain-major data, gave the same wrong fit).
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md):
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md):
   when the classical Fisher scoring fails, or converges to a negative
   variance that would only be truncated to 0, the fit switches to
   constrained REML (variances \>= 0, \|rho\| \<= 0.999; projected
@@ -730,44 +771,44 @@
   correlation whose variance is 0 is unidentified and gets an `NA`
   standard error.
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   bootstrap: non-converged replicates are replaced by new draws until
   `B` valid replicates are obtained (as in the SFH bootstrap).
 
-- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md):
+- [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md):
   the analytical MSE estimator is now $`g_1 + g_2 + 2 g_3`$ (REML) and
   $`g_1 + g_2 + 2 g_3 - b_{ML}'\nabla g_1`$ (ML); before it was
   $`g_1 + g_2 + g_3`$, which ignores the downward bias of the plug-in
   $`g_1`$. The REML Fisher information now includes the cross-area
   terms.
 
-- [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+- [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
   with unsampled domains: the SAR process is defined on all domains of
   `W`, so the sampled domains are now fitted with the marginal
   covariance $`\sigma^2 \Sigma_{full}[s,s]`$ (before: the SAR built from
   the sub-matrix `W[s,s]`), consistent with the kriging of the unsampled
   domains and the bootstrap.
 
-- [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md):
+- [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md):
   an upper-boundary $`\hat\rho = 0.999`$ is no longer mapped to $`1`$
   (singular for a row-standardised `W`); bootstrap replicates are no
   longer rejected when estimates exceed `1e6` (scale-dependent check);
   `npbmse` no longer fails when $`\hat\sigma^2_u = 0`$.
 
-- [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+- [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   with `popsize_var`: the non-sampled part is now predicted at the
   non-sampled covariate mean
   $`\bar x_{d,r} = (N_d \bar X_d - n_d \bar x_{d,s})/(N_d - n_d)`$
   (before: at $`\bar X_d`$), and its posterior SD includes
   $`\sigma_e^2/(N_d - n_d)`$.
 
-- [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+- [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   (Gaussian, non-spatial): INLA’s posterior mode search now starts at
   the REML estimates of the nested error model. Under the vague
   log-gamma prior it could stall near $`\sigma^2_u = 0`$ depending on
   the number of threads (e.g. $`\hat\sigma^2_u \approx 1`$ instead of
   $`\approx 68`$ on `cornsoybean`). A `control.mode` passed through
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   takes precedence.
 
 - `benchmark_sae(method = "optimal")`: the adjustment is now
@@ -776,11 +817,11 @@
   benchmark (before: $`\mathrm{MSE}_i / w_i`$). Results are unchanged
   for equal weights.
 
-- [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+- [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   with one subarea per area (only `s2v + s2u` identified): Fisher
   scoring uses the pseudo-inverse of the singular information.
 
-- [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md):
+- [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md):
   the bootstrap MSE now uses the same population means (`popnmean_xpop`)
   as the estimate.
 
@@ -797,32 +838,32 @@
 - HB models: reported variance components are posterior means of the
   variance, $`E[1/\tau \mid y]`$, instead of $`1/E[\tau \mid y]`$.
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   analytical MSE now includes the second-derivative term $`g_4`$ (V is
   nonlinear in $`\rho_1, \rho_2`$), as the SFH MSE does:
   `mse = g1 + g2 + 2 g3 - g4`, with `g4` returned. Simulation: relative
   bias -1.7% (was +2.4% without $`g_4`$, -6.1% without $`g_3`$).
 
-- [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md):
+- [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md):
   when the classical Fisher scoring fails or ends with
   $`\hat\sigma^2 < 0`$, the (RE)ML likelihood is maximised under the
   constraints (as for
-  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)),
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)),
   also inside the bootstrap. An estimate at $`\rho = -0.999`$ is
   reported as $`-1`$ only when $`I + W`$ is non-singular (not for
   bipartite graphs such as a rook grid, where it made the bootstrap MSE
   explode).
 
-- [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+- [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
   unsampled (kriged) domains: the analytical MSE now includes $`g_3`$
   (exact derivative of the kriging predictor) and the second-order bias
   of the plug-in $`g_1`$ (and the ML bias term):
   `g1 + g2 + g3 - tr(I^{-1} Hess g1)/2`. Simulation (REML): relative
   bias -3.8% (was -7.5%).
 
-- [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+- [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
   /
-  [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+  [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   analytical MSE: a correlation estimated on the boundary
   ($`|\hat\rho| \ge 0.999`$, or reported as $`-1`$) is treated as fixed
   – only the information block of the other parameters is inverted –
@@ -842,7 +883,7 @@
   equals [`sae::mseSFH`](https://rdrr.io/pkg/sae/man/mseSFH.html); REML
   is unchanged.
 
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md)
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
   is much faster: REML scores and Fisher information are computed from
   the block structure of $`V`$ (domain blocks plus a rank-$`D`$ spatial
   part) without forming $`M \times M`$ matrices ($`O(T D^3 + M(D+p)^2)`$
@@ -865,7 +906,7 @@
   benchmarking of the back-transformed estimates on the original scale
   (exact), instead of a WFQ constraint that only held on the log scale.
 
-- [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md):
+- [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md):
   the group MSE used by the hierarchical “optimal” method now includes
   the covariances between area prediction errors (full MSE matrix for
   FH, SFH, STFH and INLA area-level HB fits), and the output has a new
@@ -873,7 +914,7 @@
   estimates ($`mse_i - 2 k_i (Mw)_i + adj_i^2`$; within about 1% of the
   empirical MSE in a simulation).
 
-- [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md):
+- [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md):
   the Brown et al. (2001) goodness-of-fit statistic $`W`$ now uses an
   upper-tail $`\chi^2`$ decision (as
   [`emdi::compare.fh`](https://rdrr.io/pkg/emdi/man/compare.html)); the
@@ -886,12 +927,12 @@
   estimators); it no longer affects `status`. `simulation_metrics$rrmse`
   is the relative RMSE across domains (`mean_rrmse` duplicated
   `mean_abs_rb`). DIC/WAIC/marginal likelihood are now also read for
-  [`hb_unit()`](https://ridsonap.github.io/fastsae/reference/hb_unit.md)
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   and
-  [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   fits, and CPO/PIT are only used when they are per domain.
 
-- [`spatial_test()`](https://ridsonap.github.io/fastsae/reference/spatial_test.md):
+- [`spatial_test()`](https://ridsonap.is-a.dev/fastsae/reference/spatial_test.md):
   the FH vs spatial FH comparison uses ML fits, so the likelihood ratio
   and AIC/BIC are computed from ML log-likelihoods at ML estimates
   (before: at REML estimates). The recommendation now rests on a single
@@ -901,17 +942,17 @@
   sets at `alpha = 0.05`. The Moran’s I, LM-error and LM-lag statistics
   are unchanged and agree with `spdep`.
 
-- [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md):
+- [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md):
   standardised residuals are $`(y - \hat\theta)/\sqrt{vardir - MSE}`$
   (the variance of $`y - \hat\theta`$) instead of $`/\sqrt{vardir}`$,
   which shrank them (sd 0.76 under a correct FH model) and hid outliers
   in the residual and Q-Q plots.
 
 - Reliability tiers
-  ([`add_reliability_flags()`](https://ridsonap.github.io/fastsae/reference/add_reliability_flags.md),
-  [`export_sae()`](https://ridsonap.github.io/fastsae/reference/export_sae.md),
-  [`map_sae()`](https://ridsonap.github.io/fastsae/reference/map_sae.md),
-  [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md),
+  ([`add_reliability_flags()`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md),
+  [`export_sae()`](https://ridsonap.is-a.dev/fastsae/reference/export_sae.md),
+  [`map_sae()`](https://ridsonap.is-a.dev/fastsae/reference/map_sae.md),
+  [`compare_sae()`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md),
   `autoplot(type = "rse")`) default to the BPS-Statistics Indonesia
   criteria: RSE \<= 25% reliable, 25% \< RSE \<= 50% use with caution,
   RSE \> 50% unreliable (was 20%/30%, documented as the BPS standard).
@@ -930,33 +971,33 @@
   distance-decay matrix with almost equal weights (largest weight per
   row 0.03-0.04, against 1/41 = 0.024 for equal weights), which the CAR
   models of
-  [`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   read as a complete graph. Results that use `mys_proxmat` change. On
   `mys` the SAR correlation of
-  [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+  [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
   stays at its bound -1 with either matrix: the residuals of `mys` have
   no positive spatial autocorrelation. `sim_area` and `sim_panel` are
   unchanged (simulated with the old matrix).
 - [`benchmark()`](https://rdrr.io/pkg/tipsae/man/benchmark.html), a
   plain alias of
-  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md),
+  [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md),
   is removed; use
-  [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md).
+  [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md).
 - The leftover handling of `df_ebp`/`ebp` result tables (from the
   removed `ebp_area()`) is removed from the methods and utilities;
   results are in `df_hb` (HB) or `df_eblup` (EBLUP).
-- [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md)
+- [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md)
   returns `brown_test$bias_regression` instead of `brown_test$wald_test`
   and `simulation_metrics$rrmse` instead of `mean_rrmse` (see above).
 
 #### Other fixes in the utilities
 
-- [`map_sae()`](https://ridsonap.github.io/fastsae/reference/map_sae.md)
+- [`map_sae()`](https://ridsonap.is-a.dev/fastsae/reference/map_sae.md)
   works with any name of the `sf` geometry column (it assumed
   `"geometry"`), labels HB fits correctly (they were labelled “EBP-”),
   and stops with a clear message for panel or sub-area tables with
   repeated domains instead of mis-merging them.
-- [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md)
+- [`compare_sae()`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md)
   and
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   plots label panel and sub-area rows uniquely (repeated domains made
@@ -965,18 +1006,18 @@
   of an unnamed list of models names them.
 - [`print()`](https://rdrr.io/r/base/print.html)/[`summary()`](https://rdrr.io/r/base/summary.html)
   show the estimation method of
-  [`eblup_fh()`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)
+  [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md)
   and
-  [`eblup_twofold()`](https://ridsonap.github.io/fastsae/reference/eblup_twofold.md)
+  [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   (REML or ML; was “eblup”) and describe `eblup_stfh(model = "S")`
   correctly.
-- [`export_sae()`](https://ridsonap.github.io/fastsae/reference/export_sae.md)
+- [`export_sae()`](https://ridsonap.is-a.dev/fastsae/reference/export_sae.md)
   lists both variance components of two-fold models in the model
   summary.
 
 #### Performance
 
-- [`hb_twofold()`](https://ridsonap.github.io/fastsae/reference/hb_twofold.md)
+- [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   (INLA): the area aggregates in `df_area` took most of the fit time.
   [`INLA::inla.posterior.sample()`](https://rdrr.io/pkg/INLA/man/posterior.sample.html)
   with a seed runs the inla program once per hyperparameter
@@ -996,12 +1037,12 @@
     correction is not applied; with 20000 draws it moved the aggregates
     less than the Monte Carlo error. INLA’s own sampler is still used if
     the fit has no stored configurations.
-- [`benchmark_sae()`](https://ridsonap.github.io/fastsae/reference/benchmark_sae.md):
+- [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md):
   the MSE covariance between areas is applied as a matrix-free operator
   (FH: $`O(n p^2)`$, no $`n \times n`$ matrices). FH with $`m = 2000`$:
   9.4 s / 490 MB -\> 0.002 s / 1.7 MB; $`m = 20000`$ now runs in about
   0.01 s.
-- [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md):
+- [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md):
   the REML/ML fit and the bootstrap MSE now run in C++
   (`src/eblup_bhf_core.cpp`). The likelihood is profiled to
   $`\gamma = \sigma_u^2/\sigma_e^2 \ge 0`$ and evaluated from
@@ -1016,13 +1057,13 @@
   $`B = 100`$ 0.96 s -\> 0.035 s. `n_threads` now runs replicates in
   parallel (results do not depend on it); for small models R’s
   sequential RNG dominates the run time.
-- [`eblup_bhf()`](https://ridsonap.github.io/fastsae/reference/eblup_bhf.md)
+- [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
   output: `fit$lme` (the `lmerMod` object) is replaced by
   `fit$residuals` (unit-level conditional residuals, used by
   [`residuals()`](https://rdrr.io/r/stats/residuals.html)); `estcoef`
   standard errors are $`(X'\hat V^{-1}X)^{-1}`$ as in `lme4`.
   Rank-deficient designs now give an explicit error.
-- [`eblup_sfh()`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+- [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
   (fit, analytical MSE, kriging and the bootstrap refits) no longer
   forms any $`D \times D`$ inverse or $`D^3`$ product. With
   $`A = (I - \rho W')(I - \rho W)`$ and
@@ -1036,7 +1077,7 @@
   $`D = 400`$ 2.2 s -\> 0.10 s, $`D = 1600`$ 80 s -\> 2.5 s,
   $`D = 2500`$ about 6 s; bootstrap ($`D = 400`$, $`B = 20`$): 16 s -\>
   1.3 s. `RcppEigen` is added to `LinkingTo`.
-- [`eblup_stfh()`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md):
+- [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md):
   the final step (Fisher information at the estimates, SEs,
   $`g_1`$-$`g_4`$ of the analytical MSE) no longer forms $`M \times M`$
   matrices ($`M = DT`$); it uses the same structured representation of
@@ -1047,7 +1088,7 @@
   of $`C = 2\rho W'W - W - W'`$. Results are unchanged (relative
   differences below 3e-11). $`T = 5`$: $`D = 250`$ 28 s -\> 1.6 s,
   $`D = 500`$ about 4 min -\> 10 s, $`D = 1000`$ 75 s.
-- [`create_weights()`](https://ridsonap.github.io/fastsae/reference/create_weights.md):
+- [`create_weights()`](https://ridsonap.is-a.dev/fastsae/reference/create_weights.md):
   distances for `knn`, `distance` and `idw` are computed in blocks of
   rows (at most about 1M distances at a time) instead of a full
   $`D \times D`$ distance matrix, and the weight matrix is filled once
@@ -1060,7 +1101,7 @@
 
 #### Bug fixes
 
-- [`create_weights()`](https://ridsonap.github.io/fastsae/reference/create_weights.md)
+- [`create_weights()`](https://ridsonap.is-a.dev/fastsae/reference/create_weights.md)
   with a coordinate matrix whose columns are named `X`/`Y` (e.g. from
   [`sf::st_coordinates()`](https://r-spatial.github.io/sf/reference/st_coordinates.html))
   failed with “undefined columns selected”; coordinate column names are
@@ -1117,22 +1158,22 @@
     Loss (Datta et al. 2011; Steorts et al. 2014), and Constrained Logit
     benchmarking (Berg & Fuller 2014).
 - **Comprehensive Diagnostics & Visualization**:
-  - [`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md):
+  - [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md):
     Brown et al. (2001) goodness-of-fit and bias diagnostics, residual
     analysis, spatial autocorrelation tests (Moran’s I), and official
     statistical reliability classification (BPS standards).
-  - [`compare_sae()`](https://ridsonap.github.io/fastsae/reference/compare_sae.md):
+  - [`compare_sae()`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md):
     Tabular model comparison across information criteria and error
     metrics.
-  - [`map_sae()`](https://ridsonap.github.io/fastsae/reference/map_sae.md):
+  - [`map_sae()`](https://ridsonap.is-a.dev/fastsae/reference/map_sae.md):
     Spatial thematic choropleth maps integrated with `sf`.
-  - [`export_sae()`](https://ridsonap.github.io/fastsae/reference/export_sae.md):
+  - [`export_sae()`](https://ridsonap.is-a.dev/fastsae/reference/export_sae.md):
     Export estimation results with full statistical metadata to Excel
     (`openxlsx`/`writexl`) and CSV.
 - **Simulation Utilities**:
-  - [`sim_area_data()`](https://ridsonap.github.io/fastsae/reference/sim_area_data.md)
+  - [`sim_area_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_area_data.md)
     and
-    [`sim_series_data()`](https://ridsonap.github.io/fastsae/reference/sim_series_data.md),
+    [`sim_series_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_series_data.md),
     which return the simulated spatial weights (`W`, `W_std`;
     `spatial_type` and the number of neighbours `k` choose the graph).
 - **Reliability & Performance**:

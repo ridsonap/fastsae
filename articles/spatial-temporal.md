@@ -328,7 +328,7 @@ autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "com
 
 In addition to frequentist C++ EBLUP implementations (`eblup_sfh` and
 `eblup_stfh`), **fastsae** provides
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 for Bayesian spatio-temporal modeling powered by **INLA**. This
 supports: - Bounded proportions via Beta regression (matching
 `tipsae`) - Discrete counts via Poisson and Negative Binomial
@@ -338,7 +338,7 @@ dynamic fields, and Knorr-Held Types I–IV.
 
 For full details and a case study on Italian poverty data, see the
 vignette [Bayesian Area-Level Small Area Estimation with
-INLA](https://ridsonap.github.io/fastsae/articles/hb-area-inla.md).
+INLA](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md).
 
 ------------------------------------------------------------------------
 

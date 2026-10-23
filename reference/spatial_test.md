@@ -4,9 +4,9 @@ Evaluates whether spatial autocorrelation is present in direct domain
 estimates and regression residuals, conducts Lagrange Multiplier (LM)
 tests (Anselin, 1988), and performs comparative model fit tests between
 the standard Fay-Herriot
-([`eblup_fh`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md))
+([`eblup_fh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md))
 and Spatial Fay-Herriot
-([`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md))
+([`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md))
 models. Provides an explicit, automated recommendation on whether a
 spatial model is statistically necessary.
 
@@ -44,7 +44,7 @@ spatial_test(
 
   Proximity or spatial adjacency matrix. If `NULL` and `data` is an `sf`
   polygon object, it is automatically constructed via
-  [`create_weights`](https://ridsonap.github.io/fastsae/reference/create_weights.md).
+  [`create_weights`](https://ridsonap.is-a.dev/fastsae/reference/create_weights.md).
 
 - alpha:
 
@@ -96,9 +96,9 @@ domain-specific sampling variances, so they are descriptive. The
 recommendation therefore rests on one test, so that its false positive
 rate is `alpha`: with `vardir`, the likelihood ratio test of \\\rho =
 0\\ between
-[`eblup_fh`](https://ridsonap.github.io/fastsae/reference/eblup_fh.md)
+[`eblup_fh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md)
 and
-[`eblup_sfh`](https://ridsonap.github.io/fastsae/reference/eblup_sfh.md)
+[`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
 fitted by ML (which accounts for the sampling variances); without it,
 the LM-error test.
 

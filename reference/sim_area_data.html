@@ -5,7 +5,7 @@
   and structured spatial random effects (BYM2 / SAR)."><meta property="og:description" content="Generates synthetic area-level datasets for small area estimation,
   including continuous (Gaussian, Gamma), count (Poisson, Negative Binomial),
   and proportion/rate responses (Binomial, Beta), driven by shared covariates
-  and structured spatial random effects (BYM2 / SAR)."><meta property="og:image" content="https://ridsonap.github.io/fastsae/logo.png"><script>
+  and structured spatial random effects (BYM2 / SAR)."><meta property="og:image" content="https://ridsonap.is-a.dev/fastsae/logo.png"><script>
   // Force light mode as default for first-time visitors
   if (!localStorage.getItem('theme')) {
     localStorage.setItem('theme', 'light');
@@ -145,7 +145,8 @@ Default is <code>c(1.0, 0.8, -0.5)</code>.</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>Optional integer. Random seed for reproducibility.</p></dd>
+<dd><p>Optional integer. Random seed for reproducibility; the random number stream
+of the session is restored afterwards.</p></dd>
 
 </dl></div>
     <div class="section level2">

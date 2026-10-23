@@ -32,7 +32,7 @@ autoplot(object, type = c("comparison", "mse", "scatter", "map"), ...)
 
   - For a single `fastsae` object: `"comparison"`, `"ribbon"`, `"mse"`,
     `"estimates"`, `"scatter"`, `"rse"`, or `"map"`; for a fit with
-    [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+    [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
     also `"trace"` and `"rank"`, the MCMC convergence plots (see
     Details).
 

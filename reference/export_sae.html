@@ -29,7 +29,7 @@ Benchmarked (Optional): Pre- vs post-calibration values, adjustments,
 Benchmarked_Groups (Optional): the group-level (stage 1) calibration of a
     hierarchical benchmark.
 With a .csv file, the estimates are written to file and the model summary to
-&amp;lt;file&amp;gt;_summary.csv; the benchmark sheets are only written to Excel workbooks."><meta property="og:image" content="https://ridsonap.github.io/fastsae/logo.png"><script>
+&amp;lt;file&amp;gt;_summary.csv; the benchmark sheets are only written to Excel workbooks."><meta property="og:image" content="https://ridsonap.is-a.dev/fastsae/logo.png"><script>
   // Force light mode as default for first-time visitors
   if (!localStorage.getItem('theme')) {
     localStorage.setItem('theme', 'light');
@@ -164,7 +164,7 @@ to meet official statistics dissemination standards.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.github.io/fastsae/">fastsae</a></span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.is-a.dev/fastsae/">fastsae</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">mys</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">fit_fh</span> <span class="op">&lt;-</span> <span class="fu"><a href="eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>, data <span class="op">=</span> <span class="va">mys</span><span class="op">)</span></span></span>
@@ -196,7 +196,7 @@ to meet official statistics dissemination standards.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="va">tmp_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".xlsx"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">export_sae</span><span class="op">(</span><span class="va">fit_fh</span>, file <span class="op">=</span> <span class="va">tmp_file</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Successfully exported SAE results to Excel: <span style="color: #0000BB;">/tmp/RtmpEun7DT/file25dd4aeca77e.xlsx</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Successfully exported SAE results to Excel: <span style="color: #0000BB;">/tmp/RtmpB3TaFz/file254f6904fddf.xlsx</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">tmp_file</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>

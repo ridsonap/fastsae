@@ -6,11 +6,11 @@ response variables representing various probability distributions
 (Gaussian, Poisson, Binomial, Beta, Negative Binomial, and Gamma) driven
 by domain-level spatial autocorrelation and first-order autoregressive
 AR(1) temporal dynamics. Its 42 areas and centroids are those of
-[`sim_area`](https://ridsonap.github.io/fastsae/reference/sim_area.md)
+[`sim_area`](https://ridsonap.is-a.dev/fastsae/reference/sim_area.md)
 (see
-[`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md)),
+[`mys_proxmat`](https://ridsonap.is-a.dev/fastsae/reference/mys_proxmat.md)),
 in domain-major order for direct use in
-[`eblup_stfh`](https://ridsonap.github.io/fastsae/reference/eblup_stfh.md).
+[`eblup_stfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md).
 
 ## Usage
 
@@ -85,9 +85,9 @@ A data frame with 210 rows and 15 variables in domain-major order:
 ## Source
 
 Simulated using
-[`sim_series_data`](https://ridsonap.github.io/fastsae/reference/sim_series_data.md)
+[`sim_series_data`](https://ridsonap.is-a.dev/fastsae/reference/sim_series_data.md)
 with the dense distance-decay weights that
-[`mys_proxmat`](https://ridsonap.github.io/fastsae/reference/mys_proxmat.md)
+[`mys_proxmat`](https://ridsonap.is-a.dev/fastsae/reference/mys_proxmat.md)
 held until fastsae 1.0.0.
 
 ## Examples

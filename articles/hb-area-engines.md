@@ -1,12 +1,12 @@
 # hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae
 
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 can be estimated by two engines:
 
-- **[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)**
+- **[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)**
   (default): integrated nested Laplace approximation with
   [INLA](https://www.r-inla.org).
-- **[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)**:
+- **[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)**:
   full MCMC with NumPyro’s No-U-Turn sampler on
   [JAX](https://jax.readthedocs.io). It runs on the CPU, on an NVIDIA
   GPU (`device = "cuda"`) or on the GPU of Apple silicon
@@ -16,7 +16,7 @@ The INLA times on this page were measured in INLA’s default `"compact"`
 mode. Since fastsae 1.0.0, Gaussian models are fitted in INLA’s
 `"classic"` mode, which is more accurate for them (see the Engines
 section of
-[`?hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md))
+[`?hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md))
 and took about the same time in our checks; the other families still use
 the compact mode.
 
@@ -55,7 +55,7 @@ at the first fit of a session. Every fit is run 2 times on the same
 data. The first run includes JAX compilation; the tables and figure show
 the faster, warm run (the explorer can also show the first run). JAX
 uses the
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 defaults (2 chains × 1,000 draws after 500 warmup), and tipsae uses its
 own defaults. The code is in
 [`benchmarks/bench_hb_area_engines.R`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/bench_hb_area_engines.R).
@@ -194,7 +194,7 @@ tipsae and JAX with CUDA, then run the same benchmark:
 **In short:**
 
 - For most surveys (hundreds to a few thousand domains),
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   is the fastest choice.
 - For full MCMC, the JAX engine on the CPU alone is faster than Stan via
   tipsae: 2x to 18x here, with the gap narrowing as $`D`$ grows.

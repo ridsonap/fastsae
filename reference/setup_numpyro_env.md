@@ -1,7 +1,7 @@
 # Set up, or check, the Python environment for the NumPyro / JAX engine
 
 Creates (or updates) a Python environment with `jax` and `numpyro` for
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 and activates it for reticulate. With `check_only = TRUE` it only checks
 that the engine can run, and installs nothing.
 
@@ -66,8 +66,8 @@ managed ('uv') Python of reticulate is not provisioned unless the
 
 ## See also
 
-[`jax_engine`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
-[`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md)
+[`jax_engine`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+[`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
 
 ## Examples
 

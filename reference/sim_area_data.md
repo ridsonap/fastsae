@@ -73,7 +73,8 @@ sim_area_data(
 
 - seed:
 
-  Optional integer. Random seed for reproducibility.
+  Optional integer. Random seed for reproducibility; the random number
+  stream of the session is restored afterwards.
 
 ## Value
 

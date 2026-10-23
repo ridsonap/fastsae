@@ -114,24 +114,24 @@ hb_twofold(
 - engine:
 
   Estimation engine: `"inla"` (default) or an
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   object, or `"jax"` or a
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   object.
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   holds the approximation strategy, the priors (`prior_prec` for the
   area effect \\\tau_v\\ and `prior_prec_subarea` for the sub-area
   effect \\\tau_u\\, both by default the prior of
-  [`inla_engine`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)`(prior_prec = )`;
+  [`inla_engine`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)`(prior_prec = )`;
   `prior_phi` for BYM2), `scale_model`, the number of posterior `draws`
   for the area aggregates of the binomial and Poisson models
   (default 2000) and their `seed`, and further
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) arguments.
   The Gaussian model is fitted in INLA's `"classic"` mode, the binomial
   and Poisson models in INLA's default `"compact"` mode, as in
-  [`hb_area`](https://ridsonap.github.io/fastsae/reference/hb_area.md);
+  [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md);
   `inla_engine(inla.mode = )` selects a mode.
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   samples the same model by MCMC (see the Engines section).
 
 - compute_area:
@@ -141,7 +141,7 @@ hb_twofold(
   INLA from the exact posterior of the weighted sums of the sub-area
   predictors (INLA linear combinations), otherwise from joint posterior
   draws (sampled from the INLA fit, or the MCMC draws with
-  [`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)).
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)).
 
 - print_result:
 
@@ -154,7 +154,7 @@ hb_twofold(
   `draws`) and arguments of
   [`INLA::inla()`](https://rdrr.io/pkg/INLA/man/inla.html) are now given
   to
-  [`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md);
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md);
   passed here they are forwarded to it with a warning.
 
 ## Value
@@ -257,11 +257,11 @@ containing:
 ## Engines
 
 Both engines fit the same model and return the same structure. With
-[`jax_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md)
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 the area effect (iid, Besag or BYM2) and the iid sub-area effect have
 half-normal priors on their standard deviations (on the standardised
 response scale for `family = "gaussian"`) instead of the PC priors of
-[`inla_engine()`](https://ridsonap.github.io/fastsae/reference/hb_engine.md),
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
 so the estimates differ slightly. On simulated data (20 areas, 56
 sub-areas; Gaussian, binomial, Poisson and Gaussian with BYM2) the area
 means of the two engines correlated above 0.999 and differed by a median

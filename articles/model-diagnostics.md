@@ -9,7 +9,7 @@ risk of model misspecification, bias, and inappropriate shrinkage.
 
 To address these challenges, **fastsae** provides a unified diagnostic
 framework centered on the
-[`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md)
+[`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md)
 function and its dedicated S3
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 visualization method. It evaluates both **frequentist C++ EBLUP** models
@@ -246,9 +246,9 @@ autoplot(diag_fh, type = "all")
 ## Diagnosing Bayesian Spatio-Temporal Models
 
 The exact same
-[`diagnose()`](https://ridsonap.github.io/fastsae/reference/diagnose.md)
+[`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md)
 function applies directly to Bayesian models fitted with
-[`hb_area()`](https://ridsonap.github.io/fastsae/reference/hb_area.md):
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md):
 
 ``` r
 
@@ -280,14 +280,14 @@ diag_hb$precision
 #> [1] 17.64954
 #> 
 #> $mean_sae_rse
-#> [1] 70.50112
+#> [1] 70.50119
 #> 
 #> $median_sae_rse
-#> [1] 19.57357
+#> [1] 19.57358
 #> 
 #> $eff_ratio_summary
 #>      Min   Q1.25%   Median     Mean   Q3.75%      Max 
-#> 1.109210 1.238711 1.281726 1.288101 1.357724 1.458812 
+#> 1.109209 1.238711 1.281725 1.288101 1.357725 1.458811 
 #> 
 #> $prop_gain
 #> [1] 100

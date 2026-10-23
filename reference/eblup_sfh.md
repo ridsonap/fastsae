@@ -162,7 +162,7 @@ different covariates.
 
 - `mse` Mean Square Error  
 
-- `rse` Relative Standart Error (%)  
+- `rse` Relative Standard Error (%)  
 
 - `mse_pb` or `mse_npb` Parametric / Non Parametric bootstrap MSE  
 
@@ -178,6 +178,10 @@ predicted with a full-spatial synthetic (kriging) estimator that borrows
 strength from sampled neighbors via `W`. The SAR process is defined on
 all domains of `W`, so the sampled domains have covariance \\\sigma^2
 \Sigma\[s,s\]\\ with \\\Sigma = \[(I - \rho W')(I - \rho W)\]^{-1}\\.
+
+An estimate \\\hat\sigma^2 = 0\\ makes the EBLUPs synthetic estimates,
+and the MSE estimates can then understate the error; the function says
+so with a message (see Li and Lahiri, 2010).
 
 Analytical MSE. Sampled domains: \\g_1 + g_2 + 2 g_3 - g_4\\ (Singh et
 al., 2005; as [`sae::mseSFH`](https://rdrr.io/pkg/sae/man/mseSFH.html)),
@@ -226,11 +230,15 @@ weights) uses dense factorisations.
 
 ## References
 
-1.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
+1.  Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method
+    for solving small area estimation problems. *Journal of Multivariate
+    Analysis*, 101(4), 882-892.
+
+2.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
     criteria for Fay-Herriot model selection. *Computational Statistics
     & Data Analysis*, 70, 268-280.
 
-2.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
+3.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
     Sons.
 
 ## Examples
@@ -280,18 +288,16 @@ m2 <- eblup_sfh(
   y ~ x1 + x2 + x3,
   data = mys,
   vardir = ~vardir,
-  mse_method = "pbmse",
+  mse_type = "pbmse",
   B = 50,
   W = mys_proxmat
 )
-#> Warning: The `mse_method` argument of `eblup_sfh()` is deprecated as of fastsae 1.0.0.
-#> ℹ Please use the `mse_type` argument instead.
 #> ℹ 10 unsampled domain(s) detected. Bootstrap MSE (pbmse) is computed for the 32 sampled domain(s); unsampled domain(s) get a full-spatial synthetic (kriging) prediction and analytical MSE instead.
 #> 
 #> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
 #> Call:
-#> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, W =
-#> mys_proxmat, B = 50, mse_method = "pbmse")
+#> eblup_sfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys, mse_type =
+#> "pbmse", W = mys_proxmat, B = 50)
 #> 
 #> ✔ Convergence: Yes (in 18 iterations)
 #> Model: Spatial Fay-Herriot (Area-level SAR)

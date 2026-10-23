@@ -2,7 +2,7 @@
 
 Generates diagnostic visual inspections for small area estimation models
 evaluated via
-[`diagnose`](https://ridsonap.github.io/fastsae/reference/diagnose.md).
+[`diagnose`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md).
 
 ## Usage
 
@@ -20,7 +20,7 @@ autoplot(
 - object:
 
   An object of class `"fastsae_diagnose"` returned by
-  [`diagnose`](https://ridsonap.github.io/fastsae/reference/diagnose.md).
+  [`diagnose`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md).
 
 - type:
 
@@ -46,3 +46,14 @@ autoplot(
 ## Value
 
 A `ggplot` object.
+
+## Examples
+
+``` r
+m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+d <- diagnose(m)
+autoplot(d, type = "calibration")
+
+autoplot(d, type = "qq")
+
+```
