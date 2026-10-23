@@ -18,7 +18,7 @@
 # Designs: a regular grid of n cells with queen adjacency (Besag ICAR random
 # effect), data from sim_area_data(D = n, W = W, n_unsampled = 0, seed = 42 + n):
 #   gaussian  y_gaussian ~ x1 + x2, spatial = "besag"
-#   beta      y_beta ~ x1 + x2, family = "beta", spatial = "besag"
+#   beta      y_beta ~ x1 + x2, family = "beta", spatial = "besag", vardir = y_beta (1 - y_beta) / 26
 #             (tipsae: likelihood = "beta", spatial_error = TRUE)
 #
 # Writes `--out` (default inst/extdata/hb_engine_benchmark.rds) with
@@ -61,6 +61,10 @@ make_data <- function(n) {
   dimnames(W) <- list(grid_sf$domain, grid_sf$domain)
   df <- fastsae::sim_area_data(D = n, W = W, n_unsampled = 0, seed = 42 + n)$data
   df$domain <- as.character(df$domain)
+  # Sampling variance of the Beta direct estimate, y (1 - y) / (kappa + 1) with the precision
+  # kappa = 25 of the simulator, computed from the estimate as a survey would. The Gaussian
+  # `vardir` exceeds mu (1 - mu) / 2 in about half of the areas, which floors the precision at 1.
+  df$vardir_beta <- df$y_beta * (1 - df$y_beta) / 26
   list(df = df, nb = nb, grid_sf = grid_sf)
 }
 
@@ -69,7 +73,7 @@ fit_engine <- function(design, engine, d) {
   if (engine == "tipsae") {
     fit <- tipsae::fit_sae(
       formula_fixed = y_beta ~ x1 + x2, data = d$df, domains = "domain",
-      disp_direct = "vardir", type_disp = "var", likelihood = "beta",
+      disp_direct = "vardir_beta", type_disp = "var", likelihood = "beta",
       spatial_error = TRUE, spatial_df = d$grid_sf, domains_spatial_df = "domain",
       temporal_error = FALSE, refresh = 0, seed = 42
     )
@@ -87,7 +91,8 @@ fit_engine <- function(design, engine, d) {
     fastsae::jax_engine(device = engine, progress = FALSE)
   )
   fml <- if (design == "gaussian") y_gaussian ~ x1 + x2 else y_beta ~ x1 + x2
-  fit <- fastsae::hb_area(fml, vardir = "vardir", data = d$df, domain = "domain",
+  vardir <- if (design == "gaussian") "vardir" else "vardir_beta"
+  fit <- fastsae::hb_area(fml, vardir = vardir, data = d$df, domain = "domain",
                           family = design, spatial = "besag", W = d$nb,
                           engine = eng, print_result = FALSE)
   out <- data.frame(domain = as.character(fit$df_hb$domain), hb = fit$df_hb$hb, sd = fit$df_hb$sd)
