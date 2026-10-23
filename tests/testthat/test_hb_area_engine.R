@@ -476,6 +476,19 @@ test_that("engine = 'jax' passes vardir of a gamma model to the backend", {
   expect_equal(env$args$vardir, df$v)
 })
 
+test_that("engine = 'jax' reports the beta precision of the second stage", {
+  env <- new.env()
+  local_fake_backend(env)
+  df <- sim_engine_df()
+  df$y <- stats::plogis(df$y - 1)
+  df$v <- 0.002
+  fit <- hb_area(y ~ x,
+    data = df, domain = "area", vardir = "v", family = "beta",
+    engine = jax_engine(samples = 50, device = "cpu"), print_result = FALSE
+  )
+  expect_equal(fit$df_hb$precision, env$args$beta_phi)
+})
+
 test_that("engine = 'jax' gamma model without vardir warns as INLA does", {
   env <- new.env()
   local_fake_backend(env)

@@ -445,6 +445,10 @@ test_that("hb_area Beta likelihood and vardir validation checks work", {
   fit_beta_v <- hb_area(y ~ x, data = df_beta, domain = "area", family = "beta", vardir = "vardir", print_result = FALSE)
   expect_s3_class(fit_beta_v, "fastsae_hb_area")
   expect_true("precision" %in% names(fit_beta_v$df_hb))
+  # The precision the model was fitted with (second stage), not the one at the direct estimate
+  expect_equal(fit_beta_v$df_hb$precision, fit_beta_v$fit$.args$scale)
+  phi_direct <- pmax(df_beta$y * (1 - df_beta$y) / df_beta$vardir - 1, 1)
+  expect_false(isTRUE(all.equal(fit_beta_v$df_hb$precision, phi_direct)))
 
   # 2. Beta with trials (no vardir)
   fit_beta_t <- hb_area(y ~ x, data = df_beta, domain = "area", family = "beta", trials = "n", print_result = FALSE)

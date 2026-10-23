@@ -211,6 +211,8 @@ An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containi
     \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},
     posterior standard error \code{sd}, \code{mse}, relative error \code{rse} (\%),
     95\% credible interval (\code{ci_lower}, \code{ci_upper}), and \code{random_effect}.
+    With \code{vardir}, also \code{vardir} and, for the beta and gamma families, the
+    \code{precision} of each area the model was fitted with.
   \item \code{estcoef}: Data frame of estimated regression coefficients.
   \item \code{hyperpar}: Data frame of hyperparameter posterior estimates.
   \item \code{random_effect_var}: Posterior mean of the area random effect variance (see
