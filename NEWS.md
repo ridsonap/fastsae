@@ -380,6 +380,9 @@
 * `benchmark_sae()` stops when a `target` or `national_target` is missing or not finite, or a
   `weight` is missing. Before, a target of `NA` (for example a `weighted.mean()` of direct
   estimates that include unsampled domains) silently made every benchmarked estimate `NA`.
+* A subset of a `benchmark_sae()` result, such as `bm[, c("domain", "benchmarked")]`, prints as
+  a data frame. It printed the header of the full result with the method "Ratio" whatever
+  method had been used, because `[` drops the attributes that the header reads.
 * `hb_area(st_interaction = "type2" / "type3" / "type4")` now fit with INLA. They always failed
   before (the interaction reused the index of a main effect, which INLA rejects), and with
   `spatial = "none"` the type III/IV interaction was silently dropped. The interaction is now a
