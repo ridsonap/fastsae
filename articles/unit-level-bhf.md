@@ -201,15 +201,17 @@ fit_hbu <- hb_unit(
   popsize_var = "PopnSegments",
   print_result = FALSE
 )
+#> 
+#>  *** inla.core.safe:  rerun to try to solve negative eigenvalue(s) in the Hessian
 
 head(fit_hbu$df_hb[, c("domain", "samp_size", "hb", "sd", "ci_lower", "ci_upper")])
-#>   domain samp_size       hb       sd  ci_lower ci_upper
-#> 1      1         1 122.6736 8.716047 105.59013 139.7570
-#> 2      2         1 123.6363 8.564598 106.84966 140.4229
-#> 3      3         1 112.4794 9.376989  94.10050 130.8583
-#> 4      4         2 114.8841 7.873655  99.45176 130.3165
-#> 5      5         3 136.5023 8.588158 119.66952 153.3351
-#> 6      6         3 108.6597 7.325088  94.30256 123.0169
+#>   domain samp_size       hb        sd  ci_lower ci_upper
+#> 1      1         1 123.2470  9.514737 104.59814 141.8959
+#> 2      2         1 124.0713  9.373449 105.69933 142.4432
+#> 3      3         1 111.3954 10.149972  91.50149 131.2894
+#> 4      4         2 114.3575  8.502685  97.69219 131.0227
+#> 5      5         3 138.0302  8.667924 121.04112 155.0194
+#> 6      6         3 109.4356  7.681062  94.38072 124.4905
 ```
 
 County by county, the posterior means are close to the EBLUP:
@@ -225,37 +227,39 @@ data.frame(
   sd_hb = round(fit_hbu$df_hb$sd, 1)
 )
 #>    County n eblup    hb rmse_eblup sd_hb
-#> 1       1 1 122.6 122.7        9.0   8.7
-#> 2       2 1 123.5 123.6        8.4   8.6
-#> 3       3 1 113.0 112.5        9.0   9.4
-#> 4       4 2 115.0 114.9        7.3   7.9
-#> 5       5 3 137.3 136.5        5.7   8.6
-#> 6       6 3 109.0 108.7        7.7   7.3
-#> 7       7 3 116.5 116.6        7.0   6.8
-#> 8       8 3 122.8 122.6        6.6   6.8
-#> 9       9 4 111.6 111.0        6.2   6.9
-#> 10     10 5 124.2 124.4        6.2   6.0
-#> 11     11 5 112.5 113.5        5.0   7.3
-#> 12     12 6 131.3 131.3        5.3   5.7
+#> 1       1 1 122.6 123.2        9.0   9.5
+#> 2       2 1 123.5 124.1        8.4   9.4
+#> 3       3 1 113.0 111.4        9.0  10.1
+#> 4       4 2 115.0 114.4        7.3   8.5
+#> 5       5 3 137.3 138.0        5.7   8.7
+#> 6       6 3 109.0 109.4        7.7   7.7
+#> 7       7 3 116.5 116.2        7.0   7.3
+#> 8       8 3 122.8 122.8        6.6   7.3
+#> 9       9 4 111.6 111.8        6.2   7.1
+#> 10     10 5 124.2 124.1        6.2   6.3
+#> 11     11 5 112.5 112.2        5.0   7.2
+#> 12     12 6 131.3 131.2        5.3   6.0
 ```
 
-The two sets of estimates differ by less than 5 hectares (about 4% of
-the county means), most in counties 5 and 11. The bootstrap root MSE and
-the posterior SD are different quantities: the SDs are mostly smaller
-here because much of the posterior mass of $`\sigma_u^2`$ lies near 0
-(its exact posterior median is about 7, against a REML estimate of 63),
-which shrinks the county means more strongly towards the regression.
+The two sets of estimates differ by about 1 hectare at most (under 1% of
+the county means). The bootstrap root MSE and the posterior SD are
+different quantities; here the SDs are larger in 10 of the 12 counties
+(by up to half in counties 5 and 11), and with `B = 50` the bootstrap
+MSE is itself noisy.
 
-With 12 counties and the default vague log-gamma prior on the precision
-of the county effect, the posterior of $`\sigma_u^2`$ is very skewed,
-with much mass near 0, and INLA’s summary of it (`random_effect_var`) is
-not accurate. Do not compare it with the REML estimate of
+The prior of $`\sigma_u`$ is half-normal with the scale of the unit
+responses (see
+[`vignette("hb-priors")`](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md)).
+With 12 counties the posterior of $`\sigma_u^2`$ is still skewed: its
+exact posterior mean is about 100 and its median 68, against a REML
+estimate of 63, and INLA’s summary of it (`random_effect_var`, 115 on
+these data) is not accurate. Do not compare it with the REML estimate of
 [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md).
 The county estimates in `df_hb` are reliable:
 [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
 fits in INLA’s `"classic"` mode, which on these data matches the exact
-posterior (computed by numerical integration over the two variances) and
-is stable from call to call.
+posterior (computed by numerical integration over the two variances)
+within 0.06 posterior SD, with SDs within 2%.
 
 ### MCMC with `engine = jax_engine()`
 
@@ -279,16 +283,11 @@ fit_hbu_jax <- hb_unit(
 fit_hbu_jax$rhat_max
 ```
 
-Its priors are half-normal on the standard deviations of the county
-effect and of the unit errors (on the standardised response scale). With
-12 counties the prior of $`\sigma_u^2`$ shapes its posterior, so the
-county SDs differ between engines: on these data they are 1.1-1.4 times
-those of INLA, whose log-gamma prior puts more mass near
-$`\sigma_u^2 = 0`$, and 0.8-1.0 times those of
-`hbsae::fSAE(method = "HB")`, with its flat prior on the variance ratio.
-With more domains the data dominate: for 30 simulated domains the three
-agreed within 0.1 posterior SD, and a Stan fit with the same priors as
-the JAX engine agreed within Monte Carlo error.
+It uses the same priors as the INLA engine. On these data its county
+means were within 0.16 posterior SD of INLA’s and its SDs 0.98-1.06
+times INLA’s (four chains of 2,000 draws, largest R-hat 1.002). The
+differences are Monte Carlo error: against the exact posterior the JAX
+means were within 0.14 SD.
 
 ### Counties without a sample
 
@@ -311,7 +310,7 @@ fit_hbu1$unsampled_domains
 #> [1] 1
 fit_hbu1$df_hb[fit_hbu1$df_hb$domain == 1, c("domain", "samp_size", "hb", "sd")]
 #>   domain samp_size       hb       sd
-#> 1      1         0 119.4752 10.87434
+#> 1      1         0 119.4832 11.07213
 ```
 
 The population means in `Xpop` must be complete: a missing mean is an

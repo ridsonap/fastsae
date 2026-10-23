@@ -174,8 +174,11 @@ schooling)</td>
 <td align="left">
 <code>vardir</code> or <code>trials</code>
 </td>
-<td align="left">Sampling dispersion via Janicki (2020):
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ϕ</mi><mi>d</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>y</mi><mi>d</mi></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>y</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><msub><mi>V</mi><mi>d</mi></msub></mfrac><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\phi_d = \frac{y_d(1 - y_d)}{V_d} - 1</annotation></semantics></math>
+<td align="left">Precision
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ϕ</mi><mi>d</mi></msub><mo>=</mo><msub><mover><mi>μ</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mover><mi>μ</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo><mi>/</mi><msub><mi>V</mi><mi>d</mi></msub><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\phi_d = \hat\mu_d(1 - \hat\mu_d)/V_d - 1</annotation></semantics></math>
+from a first fit (Janicki, 2020), or
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi>d</mi></msub><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n_d - 1</annotation></semantics></math>
+from <code>trials</code>
 </td>
 </tr>
 <tr class="odd">
@@ -191,8 +194,13 @@ offset)</td>
 <tr class="even">
 <td align="left"><strong><code>"nbinomial"</code></strong></td>
 <td align="left">Overdispersed counts and clustered events</td>
-<td align="left"><code>exposure</code></td>
-<td align="left">Log-link offset with negative binomial dispersion</td>
+<td align="left">
+<code>exposure</code>; optional
+<code>vardir</code>
+</td>
+<td align="left">Log-link offset; size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mover><mi>μ</mi><mo accent="true">̂</mo></mover><mi>d</mi><mn>2</mn></msubsup><mi>/</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>V</mi><mi>d</mi></msub><mo>−</mo><msub><mover><mi>μ</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\hat\mu_d^2/(V_d - \hat\mu_d)</annotation></semantics></math>
+from a first fit when <code>vardir</code> is given</td>
 </tr>
 <tr class="odd">
 <td align="left"><strong><code>"binomial"</code></strong></td>
@@ -207,8 +215,9 @@ offset)</td>
 <td align="left">Positive, right-skewed indicators (e.g.,
 expenditures)</td>
 <td align="left"><code>vardir</code></td>
-<td align="left">Shape-rate parameterization with known sampling
-variance</td>
+<td align="left">Precision (shape)
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>y</mi><mi>d</mi><mn>2</mn></msubsup><mi>/</mi><msub><mi>V</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">y_d^2/V_d</annotation></semantics></math>
+</td>
 </tr>
 </tbody>
 </table>
@@ -295,31 +304,50 @@ to the mean
 <div class="section level3">
 <h3 id="level-2-prior-on-fixed-effects">Level 2: Prior on Fixed Effects<a class="anchor" aria-label="anchor" href="#level-2-prior-on-fixed-effects"></a>
 </h3>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>τ</mi><mi>β</mi><mn>2</mn></msubsup><msub><mi>I</mi><mi>p</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\beta \sim N(0, \tau_\beta^2 I_p)</annotation></semantics></math></p>
-<p>A weakly informative normal prior with large variance
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>τ</mi><mi>β</mi><mn>2</mn></msubsup><annotation encoding="application/x-tex">\tau_\beta^2</annotation></semantics></math>
-is placed on regression coefficients.</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mn>0</mn></msub><mo>∝</mo><mn>1</mn><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>β</mi><mi>j</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1000</mn><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="1.0em"></mspace><mi>j</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>p</mi></mrow><annotation encoding="application/x-tex">\beta_0 \propto 1, \qquad \beta_j \sim N(0, 1000), \quad j = 1, \ldots, p</annotation></semantics></math></p>
+<p>The intercept has INLA’s flat prior and the other coefficients a
+normal prior with variance 1000, which is nearly flat on the scale of
+most covariates.</p>
 </div>
 <div class="section level3">
 <h3 id="level-3-prior-on-random-effects">Level 3: Prior on Random Effects<a class="anchor" aria-label="anchor" href="#level-3-prior-on-random-effects"></a>
 </h3>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi mathvariant="normal">Σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">u \sim N(0, \Sigma)</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>∣</mo><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><msup><mi>R</mi><mo>−</mo></msup><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo><mtext mathvariant="normal">half-normal</mtext><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">u \mid \sigma_u \sim N(0, \sigma_u^2 R^{-}), \qquad \sigma_u \sim \text{half-normal}(s)</annotation></semantics></math></p>
 <p>The random effects
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>u</mi><mi>m</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mi>⊤</mi></msup></mrow><annotation encoding="application/x-tex">u = (u_1, \ldots, u_m)^\top</annotation></semantics></math>
-follow a zero-mean Gaussian Markov Random Field (GMRF) with precision
-matrix
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi mathvariant="normal">Σ</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><annotation encoding="application/x-tex">\Sigma^{-1}</annotation></semantics></math>
-encoding the chosen spatial or temporal structure (BYM2, Besag ICAR,
-RW1, etc.).</p>
+follow a zero-mean Gaussian Markov random field whose structure matrix
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>R</mi><annotation encoding="application/x-tex">R</annotation></semantics></math>
+encodes the chosen spatial or temporal dependence
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mi>I</mi></mrow><annotation encoding="application/x-tex">R = I</annotation></semantics></math>
+for iid effects; Besag, BYM2, RW1 and so on otherwise). The scale of the
+half-normal prior on their standard deviation is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>s</mi><mo>=</mo><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">s = \mathrm{sd}(y)</annotation></semantics></math>,
+the standard deviation of the direct estimates, for Gaussian models and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>s</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">s = 1</annotation></semantics></math>
+on the logit or log scale for the other families. The further
+hyperparameters (the BYM2 mixing parameter, autocorrelations, dispersion
+parameters) and the reasons for these defaults are listed in
+<code><a href="../articles/hb-priors.html">vignette("hb-priors")</a></code>; <code><a href="../reference/hb_engine.html">inla_engine()</a></code> replaces
+any of them.</p>
 </div>
 <div class="section level3">
 <h3 id="inla-approximation">INLA Approximation<a class="anchor" aria-label="anchor" href="#inla-approximation"></a>
 </h3>
-<p>Rather than MCMC sampling, INLA approximates the posterior
-marginals:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>∣</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo></mrow><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>∣</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">\pi(\theta \mid y) \approx \tilde{\pi}(\theta \mid y) = \frac{\pi(\theta) \pi(y \mid \theta)}{\pi(y \mid \theta)}</annotation></semantics></math></p>
-<p>and</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>d</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>d</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><munder><mo>∑</mo><mi>k</mi></munder><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>d</mi></msub><mo>∣</mo><msub><mi>θ</mi><mi>k</mi></msub><mo>,</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>θ</mi><mi>k</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><msub><mi mathvariant="normal">Δ</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">\pi(u_d \mid y) \approx \tilde{\pi}(u_d \mid y) = \sum_k \tilde{\pi}(u_d \mid \theta_k, y) \tilde{\pi}(\theta_k \mid y) \Delta_k</annotation></semantics></math></p>
+<p>Rather than MCMC sampling, INLA approximates the posterior marginals
+of the hyperparameters
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>
+and of the latent field
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>u</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">x = (\beta, u)</annotation></semantics></math>
+(Rue et al., 2009):</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>∝</mo><msub><mrow><mfrac><mrow><mi>π</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>θ</mi><mo>,</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo></mrow><mrow><msub><mover><mi>π</mi><mo accent="true">̃</mo></mover><mi>G</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>∣</mo><mi>θ</mi><mo>,</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac><mo stretchy="true" form="postfix">|</mo></mrow><mrow><mi>x</mi><mo>=</mo><msup><mi>x</mi><mo>*</mo></msup><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo></mrow></msub></mrow><annotation encoding="application/x-tex">\tilde{\pi}(\theta \mid y) \propto \left. \frac{\pi(x, \theta, y)}{\tilde{\pi}_G(x \mid \theta, y)} \right|_{x = x^*(\theta)}</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mover><mi>π</mi><mo accent="true">̃</mo></mover><mi>G</mi></msub><annotation encoding="application/x-tex">\tilde{\pi}_G</annotation></semantics></math>
+is the Gaussian approximation of the full conditional of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mo>*</mo></msup><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">x^*(\theta)</annotation></semantics></math>
+its mode, and</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>d</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><munder><mo>∑</mo><mi>k</mi></munder><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>d</mi></msub><mo>∣</mo><msub><mi>θ</mi><mi>k</mi></msub><mo>,</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mover><mi>π</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>θ</mi><mi>k</mi></msub><mo>∣</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><msub><mi mathvariant="normal">Δ</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">\tilde{\pi}(x_d \mid y) = \sum_k \tilde{\pi}(x_d \mid \theta_k, y) \, \tilde{\pi}(\theta_k \mid y) \, \Delta_k</annotation></semantics></math></p>
 <p>where the integrals are evaluated using <strong>Laplace
 approximations</strong> and <strong>numerical integration</strong>.
 Three computational strategies are available through
@@ -367,14 +395,16 @@ parameter is the problem:</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>BYM2 (<code>spatial = "bym2"</code>)</strong>: The scaled
-Besag-York-Mollié model (Simpson et al., 2017) decomposes area random
+Besag-York-Mollié model (Riebler et al., 2016) decomposes area random
 effects into a spatial structured component and an unstructured IID
 component:
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mi>d</mi></msub><mo>=</mo><mfrac><mn>1</mn><msqrt><msub><mi>τ</mi><mi>u</mi></msub></msqrt></mfrac><mrow><mo stretchy="true" form="prefix">(</mo><msqrt><mrow><mn>1</mn><mo>−</mo><mi>ϕ</mi></mrow></msqrt><mspace width="0.167em"></mspace><msub><mi>v</mi><mi>d</mi></msub><mo>+</mo><msqrt><mi>ϕ</mi></msqrt><mspace width="0.167em"></mspace><msub><mi>u</mi><mo>*</mo></msub><mi>d</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">u_d = \frac{1}{\sqrt{\tau_u}} \left( \sqrt{1 - \phi} \, v_d + \sqrt{\phi} \, u_* d \right)</annotation></semantics></math>
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mi>d</mi></msub><mo>=</mo><mfrac><mn>1</mn><msqrt><msub><mi>τ</mi><mi>u</mi></msub></msqrt></mfrac><mrow><mo stretchy="true" form="prefix">(</mo><msqrt><mrow><mn>1</mn><mo>−</mo><mi>ϕ</mi></mrow></msqrt><mspace width="0.167em"></mspace><msub><mi>v</mi><mi>d</mi></msub><mo>+</mo><msqrt><mi>ϕ</mi></msqrt><mspace width="0.167em"></mspace><msubsup><mi>u</mi><mi>d</mi><mo>*</mo></msubsup><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">u_d = \frac{1}{\sqrt{\tau_u}} \left( \sqrt{1 - \phi} \, v_d + \sqrt{\phi} \, u^*_d \right)</annotation></semantics></math>
 where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mo>∈</mo><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\phi \in [0, 1]</annotation></semantics></math>
-measures the proportion of variance explained by spatial structure,
-regulated by Penalized Complexity (PC) priors.</li>
+measures the proportion of variance explained by spatial structure and
+has the penalised complexity (PC) prior
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo>&lt;</mo><mn>0.5</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">P(\phi &lt; 0.5) = 0.5</annotation></semantics></math>
+(Simpson et al., 2017).</li>
 <li>
 <strong>Besag ICAR (<code>spatial = "besag"</code>)</strong>:
 Intrinsic Conditional Autoregressive spatial model.</li>
@@ -532,23 +562,23 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.25266  5.508584   7.224435  14.33821   28.60639</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   136.59496 57.257328  60.483200 125.04439  281.20949</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.25256  5.508585   7.224279  14.33813   28.60623</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   136.59206 57.254961  60.482435 125.04222  281.19991</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  12.67083</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   104.92203</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  12.67077</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   104.92099</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -971.94523 </span></span>
+<span><span class="co">#&gt;                                            -971.94505 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              60.69141 </span></span>
+<span><span class="co">#&gt;                                              60.69160 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -979.78119 </span></span>
+<span><span class="co">#&gt;                                            -979.78118 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              42.46183 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                             432.98608 </span></span>
+<span><span class="co">#&gt;                                             432.98607 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; HB Summary Statistics:</span></span>
 <span><span class="co">#&gt;        hb           linear_pred           sd                mse           </span></span>
@@ -574,18 +604,18 @@ standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                domain time      y         hb          sd       rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102827 0.005596847 10.968131 0.04062434</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182496 0.006281346  7.676564 0.07003563</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310378 0.010890447 11.697106 0.07366716</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365560 0.006408101 10.066831 0.05185447</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937250 0.007927310 11.427164 0.05493784</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446580 0.014070624 14.894940 0.06968689</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102825 0.005596843 10.968127 0.04062433</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182494 0.006281349  7.676571 0.07003561</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310382 0.010890456 11.697110 0.07366717</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365559 0.006408108 10.066842 0.05185446</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937250 0.007927316 11.427174 0.05493783</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446576 0.014070659 14.894984 0.06968678</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06256397</span></span>
+<span><span class="co">#&gt; 1 0.06256395</span></span>
 <span><span class="co">#&gt; 2 0.09467500</span></span>
-<span><span class="co">#&gt; 3 0.11635690</span></span>
-<span><span class="co">#&gt; 4 0.07700997</span></span>
-<span><span class="co">#&gt; 5 0.08602892</span></span>
+<span><span class="co">#&gt; 3 0.11635695</span></span>
+<span><span class="co">#&gt; 4 0.07700999</span></span>
+<span><span class="co">#&gt; 5 0.08602893</span></span>
 <span><span class="co">#&gt; 6 0.12479131</span></span></code></pre></div>
 <hr>
 </div>
@@ -1067,19 +1097,19 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01</span></span>
 <span><span class="co">#&gt; x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0477e-19 -3.6547e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0480e-19 -3.6547e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4149</span></span>
 <span><span class="co">#&gt; x1            0.4853</span></span>
 <span><span class="co">#&gt; x2           -0.2327</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                   mean        sd  0.025quant   0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 15.6289871 4.4994272 8.488615000 15.0603847</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.1595232 0.1562681 0.007220916  0.1055176</span></span>
-<span><span class="co">#&gt;                             0.975quant        mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 26.0450104 14.01276494</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.5934027  0.01700195</span></span>
+<span><span class="co">#&gt;                                  mean        sd  0.025quant   0.5quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 15.628989 4.4994340 8.488621359 15.0603806</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.159523 0.1562685 0.007220778  0.1055171</span></span>
+<span><span class="co">#&gt;                             0.975quant       mode</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  26.045043 14.0127471</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..         0.593404  0.0170015</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
@@ -1087,9 +1117,9 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;                                                    pD </span></span>
 <span><span class="co">#&gt;                                              31.88700 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.67485 </span></span>
+<span><span class="co">#&gt;                                             309.67484 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              17.15907 </span></span>
+<span><span class="co">#&gt;                                              17.15906 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
 <span><span class="co">#&gt;                                            -185.87987 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1098,9 +1128,9 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;  Min.   :0.3061   Min.   :-1.1959   Min.   :0.02962   Min.   :0.0008776  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7648   1st Qu.:-0.2791   1st Qu.:0.05813   1st Qu.:0.0033800  </span></span>
 <span><span class="co">#&gt;  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690515  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690516  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  </span></span>
-<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859674  </span></span>
+<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859682  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.791  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.164  </span></span>
@@ -1114,14 +1144,20 @@ distributions with population offsets:</p>
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ul>
-<li>De Nicolò, S., &amp; Gardini, A. (2022). tipsae: Mapping proportions
-and rates using spatio-temporal Beta small area models. <em>Journal of
-Statistical Software</em>.</li>
-<li>Janicki, H. (2020). Properties of the Beta-logistic model for small
-area estimation. <em>Survey Methodology</em>, 46(1), 89–112.</li>
+<li>De Nicolò, S., &amp; Gardini, A. (2024). The R package tipsae: Tools
+for mapping proportions and indicators on the unit interval. <em>Journal
+of Statistical Software</em>, 108(1), 1–36.</li>
+<li>Janicki, R. (2020). Properties of the beta regression model for
+small area estimation of proportions and application to estimation of
+poverty rates. <em>Communications in Statistics - Theory and
+Methods</em>, 49(9), 2264–2284.</li>
 <li>Knorr-Held, L. (2000). Bayesian modelling of inhomogeneous spatial
 and temporal variation in rates. <em>Statistics in Medicine</em>,
 19(17-18), 2555–2567.</li>
+<li>Riebler, A., Sørbye, S. H., Simpson, D., &amp; Rue, H. (2016). An
+intuitive Bayesian spatial model for disease mapping that accounts for
+scaling. <em>Statistical Methods in Medical Research</em>, 25(4),
+1145–1165.</li>
 <li>Rue, H., Martino, S., &amp; Chopin, N. (2009). Approximate Bayesian
 inference for latent Gaussian models by using integrated nested Laplace
 approximations. <em>Journal of the Royal Statistical Society: Series

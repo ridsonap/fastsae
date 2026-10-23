@@ -38,11 +38,11 @@ supports 6 probability distributions for the direct response:
 | Family | Typical SAE Use Case | Required Sampling Input | Model Scale Parameter |
 |:---|:---|:---|:---|
 | **`"gaussian"`** | Continuous indicators (e.g., mean income, mean years of schooling) | `vardir` (sampling variance $`D_d`$) | Inverted sampling variance $`\text{scale} = 1/D_d`$ |
-| **`"beta"`** | Rates and proportions strictly in $`(0, 1)`$ | `vardir` or `trials` | Sampling dispersion via Janicki (2020): $`\phi_d = \frac{y_d(1 - y_d)}{V_d} - 1`$ |
+| **`"beta"`** | Rates and proportions strictly in $`(0, 1)`$ | `vardir` or `trials` | Precision $`\phi_d = \hat\mu_d(1 - \hat\mu_d)/V_d - 1`$ from a first fit (Janicki, 2020), or $`n_d - 1`$ from `trials` |
 | **`"poisson"`** | Counts and rare event rates | `exposure` (expected count / population offset) | Log-link offset $`\log(E_d)`$ |
-| **`"nbinomial"`** | Overdispersed counts and clustered events | `exposure` | Log-link offset with negative binomial dispersion |
+| **`"nbinomial"`** | Overdispersed counts and clustered events | `exposure`; optional `vardir` | Log-link offset; size $`\hat\mu_d^2/(V_d - \hat\mu_d)`$ from a first fit when `vardir` is given |
 | **`"binomial"`** | Aggregated binary proportions | `trials` (domain sample size $`n_d`$) | Number of trials per domain |
-| **`"gamma"`** | Positive, right-skewed indicators (e.g., expenditures) | `vardir` | Shape-rate parameterization with known sampling variance |
+| **`"gamma"`** | Positive, right-skewed indicators (e.g., expenditures) | `vardir` | Precision (shape) $`y_d^2/V_d`$ |
 
 ------------------------------------------------------------------------
 
@@ -78,35 +78,47 @@ $`\mu_d = E(y_d)`$:
 ### Level 2: Prior on Fixed Effects
 
 ``` math
-\beta \sim N(0, \tau_\beta^2 I_p)
+\beta_0 \propto 1, \qquad \beta_j \sim N(0, 1000), \quad j = 1, \ldots, p
 ```
 
-A weakly informative normal prior with large variance $`\tau_\beta^2`$
-is placed on regression coefficients.
+The intercept has INLA’s flat prior and the other coefficients a normal
+prior with variance 1000, which is nearly flat on the scale of most
+covariates.
 
 ### Level 3: Prior on Random Effects
 
 ``` math
-u \sim N(0, \Sigma)
+u \mid \sigma_u \sim N(0, \sigma_u^2 R^{-}), \qquad \sigma_u \sim \text{half-normal}(s)
 ```
 
 The random effects $`u = (u_1, \ldots, u_m)^\top`$ follow a zero-mean
-Gaussian Markov Random Field (GMRF) with precision matrix
-$`\Sigma^{-1}`$ encoding the chosen spatial or temporal structure (BYM2,
-Besag ICAR, RW1, etc.).
+Gaussian Markov random field whose structure matrix $`R`$ encodes the
+chosen spatial or temporal dependence ($`R = I`$ for iid effects; Besag,
+BYM2, RW1 and so on otherwise). The scale of the half-normal prior on
+their standard deviation is $`s = \mathrm{sd}(y)`$, the standard
+deviation of the direct estimates, for Gaussian models and $`s = 1`$ on
+the logit or log scale for the other families. The further
+hyperparameters (the BYM2 mixing parameter, autocorrelations, dispersion
+parameters) and the reasons for these defaults are listed in
+[`vignette("hb-priors")`](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md);
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+replaces any of them.
 
 ### INLA Approximation
 
-Rather than MCMC sampling, INLA approximates the posterior marginals:
+Rather than MCMC sampling, INLA approximates the posterior marginals of
+the hyperparameters $`\theta`$ and of the latent field
+$`x = (\beta, u)`$ (Rue et al., 2009):
 
 ``` math
-\pi(\theta \mid y) \approx \tilde{\pi}(\theta \mid y) = \frac{\pi(\theta) \pi(y \mid \theta)}{\pi(y \mid \theta)}
+\tilde{\pi}(\theta \mid y) \propto \left. \frac{\pi(x, \theta, y)}{\tilde{\pi}_G(x \mid \theta, y)} \right|_{x = x^*(\theta)}
 ```
 
-and
+where $`\tilde{\pi}_G`$ is the Gaussian approximation of the full
+conditional of $`x`$ and $`x^*(\theta)`$ its mode, and
 
 ``` math
-\pi(u_d \mid y) \approx \tilde{\pi}(u_d \mid y) = \sum_k \tilde{\pi}(u_d \mid \theta_k, y) \tilde{\pi}(\theta_k \mid y) \Delta_k
+\tilde{\pi}(x_d \mid y) = \sum_k \tilde{\pi}(x_d \mid \theta_k, y) \, \tilde{\pi}(\theta_k \mid y) \, \Delta_k
 ```
 
 where the integrals are evaluated using **Laplace approximations** and
@@ -150,14 +162,14 @@ autoplot(fit_jax, type = "trace", pars = c("sigma2_u", "hb[5]"))
 ### Spatial Priors
 
 1.  **BYM2 (`spatial = "bym2"`)**: The scaled Besag-York-Mollié model
-    (Simpson et al., 2017) decomposes area random effects into a spatial
+    (Riebler et al., 2016) decomposes area random effects into a spatial
     structured component and an unstructured IID component:
     ``` math
-    u_d = \frac{1}{\sqrt{\tau_u}} \left( \sqrt{1 - \phi} \, v_d + \sqrt{\phi} \, u_* d \right)
+    u_d = \frac{1}{\sqrt{\tau_u}} \left( \sqrt{1 - \phi} \, v_d + \sqrt{\phi} \, u^*_d \right)
     ```
     where $`\phi \in [0, 1]`$ measures the proportion of variance
-    explained by spatial structure, regulated by Penalized Complexity
-    (PC) priors.
+    explained by spatial structure and has the penalised complexity (PC)
+    prior $`P(\phi < 0.5) = 0.5`$ (Simpson et al., 2017).
 2.  **Besag ICAR (`spatial = "besag"`)**: Intrinsic Conditional
     Autoregressive spatial model.
 3.  **SAR area effect (`spatial = "sar"`)**:
@@ -284,23 +296,23 @@ summary(fit_beta_st)
 #> 
 #> Hyperparameters:
 #>                                  mean        sd 0.025quant  0.5quant 0.975quant
-#> Precision for ..domain_id..  15.25266  5.508584   7.224435  14.33821   28.60639
-#> Precision for ..time_id..   136.59496 57.257328  60.483200 125.04439  281.20949
+#> Precision for ..domain_id..  15.25256  5.508585   7.224279  14.33813   28.60623
+#> Precision for ..time_id..   136.59206 57.254961  60.482435 125.04222  281.19991
 #>                                  mode
-#> Precision for ..domain_id..  12.67083
-#> Precision for ..time_id..   104.92203
+#> Precision for ..domain_id..  12.67077
+#> Precision for ..time_id..   104.92099
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -971.94523 
+#>                                            -971.94505 
 #>                                                    pD 
-#>                                              60.69141 
+#>                                              60.69160 
 #>                                                  WAIC 
-#>                                            -979.78119 
+#>                                            -979.78118 
 #>                                                 pWAIC 
 #>                                              42.46183 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                             432.98608 
+#>                                             432.98607 
 #> 
 #> HB Summary Statistics:
 #>        hb           linear_pred           sd                mse           
@@ -328,18 +340,18 @@ standard errors, and 95% Credible Intervals:
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 #>                domain time      y         hb          sd       rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102827 0.005596847 10.968131 0.04062434
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182496 0.006281346  7.676564 0.07003563
-#> 3               IMOLA 2014 0.1033 0.09310378 0.010890447 11.697106 0.07366716
-#> 4         PIANURA EST 2014 0.0633 0.06365560 0.006408101 10.066831 0.05185447
-#> 5       PIANURA OVEST 2014 0.0625 0.06937250 0.007927310 11.427164 0.05493784
-#> 6      PORRETTA TERME 2014 0.1276 0.09446580 0.014070624 14.894940 0.06968689
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102825 0.005596843 10.968127 0.04062433
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182494 0.006281349  7.676571 0.07003561
+#> 3               IMOLA 2014 0.1033 0.09310382 0.010890456 11.697110 0.07366717
+#> 4         PIANURA EST 2014 0.0633 0.06365559 0.006408108 10.066842 0.05185446
+#> 5       PIANURA OVEST 2014 0.0625 0.06937250 0.007927316 11.427174 0.05493783
+#> 6      PORRETTA TERME 2014 0.1276 0.09446576 0.014070659 14.894984 0.06968678
 #>     ci_upper
-#> 1 0.06256397
+#> 1 0.06256395
 #> 2 0.09467500
-#> 3 0.11635690
-#> 4 0.07700997
-#> 5 0.08602892
+#> 3 0.11635695
+#> 4 0.07700999
+#> 5 0.08602893
 #> 6 0.12479131
 ```
 
@@ -451,19 +463,19 @@ summary(fit_pois)
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01
 #> x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01
-#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0477e-19 -3.6547e-01
+#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0480e-19 -3.6547e-01
 #>             ci_upper
 #> (Intercept)   0.4149
 #> x1            0.4853
 #> x2           -0.2327
 #> 
 #> Hyperparameters:
-#>                                   mean        sd  0.025quant   0.5quant
-#> Precision for ..domain_id.. 15.6289871 4.4994272 8.488615000 15.0603847
-#> Phi for ..domain_id..        0.1595232 0.1562681 0.007220916  0.1055176
-#>                             0.975quant        mode
-#> Precision for ..domain_id.. 26.0450104 14.01276494
-#> Phi for ..domain_id..        0.5934027  0.01700195
+#>                                  mean        sd  0.025quant   0.5quant
+#> Precision for ..domain_id.. 15.628989 4.4994340 8.488621359 15.0603806
+#> Phi for ..domain_id..        0.159523 0.1562685 0.007220778  0.1055171
+#>                             0.975quant       mode
+#> Precision for ..domain_id..  26.045043 14.0127471
+#> Phi for ..domain_id..         0.593404  0.0170015
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
@@ -471,9 +483,9 @@ summary(fit_pois)
 #>                                                    pD 
 #>                                              31.88700 
 #>                                                  WAIC 
-#>                                             309.67485 
+#>                                             309.67484 
 #>                                                 pWAIC 
-#>                                              17.15907 
+#>                                              17.15906 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
 #>                                            -185.87987 
 #> 
@@ -482,9 +494,9 @@ summary(fit_pois)
 #>  Min.   :0.3061   Min.   :-1.1959   Min.   :0.02962   Min.   :0.0008776  
 #>  1st Qu.:0.7648   1st Qu.:-0.2791   1st Qu.:0.05813   1st Qu.:0.0033800  
 #>  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  
-#>  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690515  
+#>  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690516  
 #>  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  
-#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859674  
+#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859682  
 #>       rse        
 #>  Min.   : 2.791  
 #>  1st Qu.: 5.164  
@@ -498,14 +510,19 @@ summary(fit_pois)
 
 ## References
 
-- De Nicolò, S., & Gardini, A. (2022). tipsae: Mapping proportions and
-  rates using spatio-temporal Beta small area models. *Journal of
-  Statistical Software*.
-- Janicki, H. (2020). Properties of the Beta-logistic model for small
-  area estimation. *Survey Methodology*, 46(1), 89–112.
+- De Nicolò, S., & Gardini, A. (2024). The R package tipsae: Tools for
+  mapping proportions and indicators on the unit interval. *Journal of
+  Statistical Software*, 108(1), 1–36.
+- Janicki, R. (2020). Properties of the beta regression model for small
+  area estimation of proportions and application to estimation of
+  poverty rates. *Communications in Statistics - Theory and Methods*,
+  49(9), 2264–2284.
 - Knorr-Held, L. (2000). Bayesian modelling of inhomogeneous spatial and
   temporal variation in rates. *Statistics in Medicine*, 19(17-18),
   2555–2567.
+- Riebler, A., Sørbye, S. H., Simpson, D., & Rue, H. (2016). An
+  intuitive Bayesian spatial model for disease mapping that accounts for
+  scaling. *Statistical Methods in Medical Research*, 25(4), 1145–1165.
 - Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian
   inference for latent Gaussian models by using integrated nested
   Laplace approximations. *Journal of the Royal Statistical Society:

@@ -31,7 +31,7 @@ underlying data consist of discrete individual binary outcomes
 ($`y_{di} \in \{0, 1\}`$). - Design-based sampling variances
 $`\widehat{\text{Var}}(\hat{p}_d)`$ with finite population corrections
 are accurately handled by the linking model. - Model credible intervals
-maintain exact nominal 95% coverage under repeated survey sampling.
+keep close to nominal 95% coverage under repeated survey sampling.
 
 ------------------------------------------------------------------------
 
@@ -65,9 +65,9 @@ Susenas or EU-SILC):
     |    - Bayesian INLA (Full Laplace)  | |    - Hamiltonian Monte Carlo (Stan)|
     |    - Family: "beta"                | |    - Likelihood: "beta"            |
     |    - Spatial: "besag"              | |    - Spatial error: TRUE           |
-    |    - Strategy: "laplace"           | |    - Execution: ~10-37 sec / fit   |
-    |    - Calibrated PC-Prior (1, 0.05) | |                                    |
-    |    - Execution: ~3-4 sec / fit     | |                                    |
+    |    - Strategy: "laplace"           | |    - Execution: ~12-40 sec / fit   |
+    |    - Default priors (hb-priors)    | |                                    |
+    |    - Execution: ~6-9 sec / fit     | |                                    |
     +------------------------------------+ +------------------------------------+
                        |                                     |
                        +------------------+------------------+
@@ -113,9 +113,15 @@ properties for each domain $`d = 1, \dots, D`$ are defined as:
 
 The table below summarizes the macro-averaged empirical metrics across
 all 60 domains from the full $`R = 100`$ Monte Carlo simulation,
-evaluating `fastsae` with Full Laplace approximation
-(`inla_engine(strategy = "laplace")`) and calibrated PC-Prior
-(`param = c(1, 0.05)`):
+evaluating
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+with its default engine and priors
+([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md);
+see
+[`vignette("hb-priors")`](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md))
+and [`tipsae::fit_sae()`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)
+with `type_disp = "var"` (one chain of 600 iterations). Runtimes are per
+fit, with five replicates running in parallel.
 
 *(Cells highlighted in green indicate superior performance for each
 evaluation criterion).*
@@ -123,24 +129,31 @@ evaluation criterion).*
 | Estimator / Model | Empirical RMSE | Empirical RRMSE (%) | Empirical MARB (%) | Empirical RB (%) | Empirical 95% CrI Coverage | Mean CrI Width | Efficiency Gain (vs Direct) | Runtime (s/fit) |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 | **Direct Estimator (Sample $`\hat{p}_d`$)** | 0.0681 | 26.27% | 20.71% | +2.27% | — | — | 1.000x | — |
-| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0485 | 19.56% | 17.04% | +5.81% | 88.27% | 0.1717 | 1.737x | 3.25 s |
-| **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.0491 | 19.16% | 15.89% | +1.06% | 93.18% | 0.1979 | 1.806x | 9.69 s |
+| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.04913 | 19.31% | 16.09% | +2.36% | 92.13% | 0.1855 | 1.783x | 6.18 s |
+| **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.04911 | 19.16% | 15.89% | +1.06% | 93.18% | 0.1979 | 1.806x | 11.65 s |
 
 ### Key Empirical Findings:
 
 1.  **Substantial Variance & Error Reduction**: Both `fastsae` and
-    `tipsae` reduce empirical RMSE from **0.0681** down to **0.0485**,
-    translating to an empirical efficiency gain of **\> 1.7x** relative
-    to direct survey estimation. `fastsae` achieves the lowest overall
-    empirical RMSE ($`0.04848`$).
-2.  **Sharper Uncertainty Quantification**: `fastsae` yields narrower
-    credible intervals ($`0.1717`$ vs $`0.1979`$), offering sharper
-    regional estimates.
+    `tipsae` reduce the empirical RMSE from **0.0681** to **0.0491**, an
+    empirical efficiency gain of about **1.8x** relative to direct
+    survey estimation. The two Bayesian fits are practically equally
+    accurate.
+2.  **Uncertainty Quantification**: `fastsae` gives slightly narrower
+    credible intervals ($`0.186`$ vs $`0.198`$) with a coverage of
+    92.1%, against 93.2% for `tipsae`; both are a little below the
+    nominal 95%.
 3.  **Computational Scalability**:
     [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
-    evaluates in a fraction of the time required by Stan MCMC,
-    completing 100 full spatial Bayesian SAE estimations in just
-    minutes.
+    fits in about half the time of the Stan MCMC run here; its Beta
+    model with `vardir` is fitted twice (see
+    [`?hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)).
+
+An earlier run of this simulation used a PC prior with
+`param = c(1, 0.05)` on the area SD and the precision of the Beta
+likelihood at the direct estimate; its intervals covered 88.3% of the
+true proportions (RMSE 0.0485, mean width 0.172). The current defaults
+widen the intervals and bring the coverage close to that of `tipsae`.
 
 ------------------------------------------------------------------------
 
@@ -159,18 +172,21 @@ were drawn across $`R = 25`$ Monte Carlo replications.
 | Estimator / Model | Empirical RMSE | Empirical RRMSE (%) | Empirical MARB (%) | Empirical RB (%) | 95% CrI Coverage (%) | Mean CrI Width | Efficiency Gain (vs Direct) | Runtime (s/fit) |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 | **Direct Estimator (Sample $`\hat{p}_d`$)** | 0.0719 | 27.14% | 21.75% | +2.96% | — | — | 1.000x | — |
-| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0481 | 19.13% | 16.95% | +6.70% | 88.97% | 0.1725 | 1.917x | 4.17 s |
-| **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.0487 | 18.68% | 15.66% | +2.00% | 93.69% | 0.2017 | 2.014x | 36.86 s |
+| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0489 | 18.85% | 15.82% | +2.81% | 93.38% | 0.1935 | 1.991x | 8.53 s |
+| **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.0487 | 18.68% | 15.66% | +2.00% | 93.69% | 0.2017 | 2.014x | 40.00 s |
 
 ### Key National Scalability Takeaways:
 
-- **8.8x Speedup**: `fastsae` fits the full 500-domain spatial model in
-  **$`4.17`$ seconds**, compared to **$`36.86`$ seconds** for Stan MCMC.
-- **Superior RMSE**: `fastsae` yields the lowest empirical RMSE
-  ($`0.0481`$ vs $`0.0487`$ vs $`0.0719`$).
-- **Sharper Credible Intervals**: Average 95% CrI width of `fastsae`
-  ($`0.1725`$) is significantly sharper than MCMC ($`0.2017`$),
-  improving statistical precision across all 500 areas.
+- **4.7x Speedup**: `fastsae` fits the full 500-domain spatial model in
+  **$`8.5`$ seconds**, compared to **$`40.0`$ seconds** for Stan MCMC
+  (one chain of 500 iterations).
+- **Equivalent accuracy**: the empirical RMSE of the two Bayesian fits
+  is practically the same ($`0.0489`$ vs $`0.0487`$, against $`0.0719`$
+  for the direct estimator).
+- **Coverage**: 93.4% for `fastsae` and 93.7% for `tipsae`, with
+  slightly narrower intervals for `fastsae` ($`0.194`$ vs $`0.202`$).
+  The earlier run with a PC prior and the precision at the direct
+  estimate covered 89.0%.
 
 ------------------------------------------------------------------------
 
@@ -192,9 +208,9 @@ ggplot(df_rmse, aes(x = DomainIdx, y = RMSE, color = Method)) +
 
 ### 2. Empirical 95% Credible Interval Coverage
 
-The empirical coverage rates hover steadily around the nominal 95%
-dashed reference line across all domains, verifying absence of
-undercoverage.
+The empirical coverage rates of the domains scatter around the nominal
+95% dashed reference line, on average 92.1% for `fastsae` and 93.2% for
+`tipsae`.
 
 ------------------------------------------------------------------------
 

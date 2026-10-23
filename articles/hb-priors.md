@@ -18,6 +18,72 @@ variance or dispersion parameter is not a technicality: the data hardly
 inform it, and its prior decides how much the estimates are shrunk and
 how wide the intervals are.
 
+## The models at a glance
+
+The three functions fit generalised linear mixed models. Written out
+with their default priors, where $`s`$ is the scale of the standard
+deviations: $`s = \mathrm{sd}(y)`$ for Gaussian models (the standard
+deviation of the direct estimates, or of the unit responses for
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md))
+and $`s = 1`$ on the logit or log scale of the other families.
+
+**Area level,
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md).**
+For area $`d`$ (and period $`t`$ in a panel),
+
+``` math
+y_d \mid \mu_d \sim f(\mu_d, \psi_d), \qquad g(\mu_d) = x_d^\top \beta + u_d \; [+\, \gamma_t + \delta_{dt}] \; [+\, \log E_d],
+```
+
+with the likelihood $`f`$, its dispersion $`\psi_d`$ and the link $`g`$
+set by `family` (see [Priors of the
+likelihood](#priors-of-the-likelihood)), and
+
+| Term | Argument | Model | Default prior |
+|----|----|----|----|
+| $`\beta`$ | `formula` | fixed effects | intercept flat; others $`N(0, 1000)`$ |
+| $`u_d`$ | `spatial = "none"` | iid $`N(0, \sigma_u^2)`$ | $`\sigma_u \sim`$ half-normal$`(s)`$ |
+|  | `"besag"` | intrinsic CAR (ICAR) on the graph of `W`, scaled | $`\sigma_u \sim`$ half-normal$`(s)`$ |
+|  | `"bym"` | iid + ICAR, each with its own SD | both SDs half-normal$`(s)`$ |
+|  | `"bym2"` | $`\sigma_u(\sqrt{1 - \phi}\, v_d + \sqrt{\phi}\, u^*_d)`$, $`u^*`$ a scaled ICAR | $`\sigma_u \sim`$ half-normal$`(s)`$; PC prior $`P(\phi < 0.5) = 0.5`$ |
+|  | `"leroux"` | precision $`\sigma_u^{-2}\{(1 - \lambda) I + \lambda R\}`$, $`R`$ the ICAR structure | $`\sigma_u \sim`$ half-normal$`(s)`$; $`\lambda \sim`$ Uniform$`(0, 1)`$ |
+|  | `"sar"` | $`u = (I - \rho W)^{-1} \varepsilon`$, $`\varepsilon_d \sim N(0, \sigma_u^2)`$ | $`\sigma_u \sim`$ half-normal$`(s)`$; $`\rho \sim`$ Uniform$`(-0.999, 0.999)`$ |
+|  | `"slm"` | $`\eta = (I - \rho W)^{-1}(X\beta + \varepsilon)`$ | $`\sigma_u \sim`$ half-normal$`(s)`$; $`\rho`$ uniform on the range allowed by the eigenvalues of `W` |
+| $`\gamma_t`$ | `temporal` | `"rw1"`, `"rw2"`, `"ar1"` or `"iid"` | $`\sigma_\gamma \sim`$ half-normal$`(s)`$; AR(1): $`N(0, 1/0.15)`$ on $`\log\{(1 + \rho)/(1 - \rho)\}`$ |
+| $`\delta_{dt}`$ | `st_interaction` | domain-specific trends, a separable field or Knorr-Held types I-IV | its SD half-normal$`(s)`$; AR(1) correlation as for $`\gamma_t`$ |
+
+**Unit level,
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md).**
+For unit $`j`$ in domain $`d`$,
+
+``` math
+y_{dj} \mid \mu_{dj} \sim f(\mu_{dj}), \qquad g(\mu_{dj}) = x_{dj}^\top \beta + u_d,
+```
+
+with $`f`$ normal ($`e_{dj} \sim N(0, \sigma_e^2)`$, $`\sigma_e \sim`$
+half-normal$`(s)`$), Bernoulli or Poisson, $`u_d`$ iid, Besag or BYM2
+with the priors above, and the target the population mean of domain
+$`d`$, computed from the population means of the covariates in `Xpop`.
+
+**Sub-area level,
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).**
+For sub-area $`j`$ in area $`i`$,
+
+``` math
+y_{ij} \mid \mu_{ij} \sim f(\mu_{ij}), \qquad g(\mu_{ij}) = x_{ij}^\top \beta + v_i + u_{ij},
+```
+
+with $`f`$ normal with the known sampling variance $`V_{ij}`$, binomial
+or Poisson, $`v_i`$ iid, Besag or BYM2 and $`u_{ij}`$ iid; both SDs have
+half-normal$`(s)`$ priors, with $`s`$ from the sub-area direct
+estimates. The area targets aggregate the sub-area means with the
+weights in `weight`.
+
+All intrinsic models (Besag, BYM, BYM2 and the random walks) are scaled
+(`scale_model = TRUE`) so that $`\sigma`$ is a typical marginal standard
+deviation whatever the graph, which is what makes one prior scale
+sensible for all of them (Sørbye and Rue 2014).
+
 ## Priors of the model parameters
 
 | Parameter | Default ([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md), `jax_engine(priors = "inla")`) | `jax_engine(priors = "weakly_informative")` |
@@ -31,6 +97,9 @@ how wide the intervals are.
 Here $`\mathrm{sd}(y)`$ is the standard deviation of the observed direct
 estimates (of the unit responses for
 [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)).
+With `benchmark_method = "wfq"` the coefficients get nearly flat priors
+($`N(0, 10^6)`$, intercept $`N(0, 10^4)`$) instead, so that the
+benchmarking covariate is not shrunk.
 [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
 writes the half-normal prior as an `expression:` prior on the log
 precision $`\theta = -2 \log \sigma`$, so that INLA and NumPyro use the
@@ -55,7 +124,7 @@ slab $`c^2 \sim`$ Inv-Gamma$`(2, 8)`$.
 | Gamma precision | no `vardir` | Half-normal$`(10)`$, both engines |
 | Negative binomial size | no `vardir` | Half-normal$`(10)`$, both engines |
 | Gaussian residual SD | no `vardir` (and the unit errors of [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)) | Half-normal$`(\mathrm{sd}(y))`$, both engines |
-| Beta precision $`\phi`$ | no `vardir`, no `trials` | Log-gamma$`(1, 0.1)`$ on $`\log\phi`$, i.e. $`\phi \sim`$ Exponential$`(0.1)`$, both engines |
+| Beta precision $`\phi`$ | no `vardir`, no `trials` | Log-gamma$`(1, 0.1)`$ on $`\log\phi`$, i.e. $`\phi \sim`$ Exponential$`(0.1)`$, both engines (half-normal$`(10)`$ with `jax_engine(priors = "weakly_informative")`) |
 
 ## Why half-normal standard deviations
 
@@ -211,6 +280,51 @@ precision, which gives the likelihood a second mode near 0. Coverage of
 tipsae covered as well, but 11 of its 240 fits did not converge (R-hat
 up to 8.7).
 
+## Checking the priors of a fit
+
+The priors that INLA actually used, including any given in
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+are listed by
+[`INLA::inla.priors.used()`](https://rdrr.io/pkg/INLA/man/priors.used.html).
+The half-normal priors appear as `expression:` priors on the log
+precision, with their scale $`s`$ written out:
+
+``` r
+
+fit <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
+INLA::inla.priors.used(fit$fit)
+#> section=[random]
+#>   tag=[..domain_id..] component=[..domain_id..]
+#>     theta1:
+#>       parameter=[log precision]
+#>       prior=[expression: s = 2.20822220299071; sigma = exp(-theta/2); ...]
+```
+
+`print(fit$engine_spec)` shows the engine settings, and for
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+the prior set (`"inla"` or `"weakly_informative"`).
+
+## When to change a prior
+
+The defaults are meant to be safe without tuning, not to encode
+knowledge of a particular survey. Consider changing them when
+
+- **you have real prior knowledge of the variation between areas.** A PC
+  prior $`P(\sigma_u > U) = \alpha`$ with $`U`$ the largest plausible
+  area SD in the unit of the response (or on the link scale) states this
+  directly; see the first example below.
+- **the areas differ a lot on the link scale.** Half-normal$`(1)`$ gives
+  $`P(\sigma_u > 2) = 0.046`$; if logit- or log-scale area effects with
+  an SD above 2 are plausible, raise the scale.
+- **a dispersion parameter follows its prior.** Without `vardir` (or
+  `trials`) the dispersion of the gamma, negative binomial and beta
+  likelihoods is weakly identified, and the intervals depend on its
+  prior. Giving the sampling variances is better than tuning that prior.
+
+With few areas, refit with a second prior and compare the estimates in
+`df_hb`: if they move by a sizeable fraction of their posterior SD,
+report the sensitivity.
+
 ## Changing the priors
 
 [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
@@ -235,8 +349,8 @@ fit_nb <- hb_area(y ~ x,
 )
 ```
 
-The other arguments are `prior_phi` (BYM2), `prior_rho` (Leroux, SAR),
-`prior_prec_time` and `prior_rho_time` (temporal effect) and
+The other arguments are `prior_phi` (BYM2), `prior_rho` (Leroux, SAR,
+SLM), `prior_prec_time` and `prior_rho_time` (temporal effect) and
 `prior_prec_subarea`
 ([`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)).
 [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
@@ -267,3 +381,6 @@ fit_jax <- hb_area(y ~ x1 + x2 + x3,
 - Simpson, D., Rue, H., Riebler, A., Martins, T. G. and Sørbye, S. H.
   (2017). Penalising model component complexity: a principled approach
   to constructing priors. *Statistical Science*, 32(1), 1-28.
+- Sørbye, S. H. and Rue, H. (2014). Scaling intrinsic Gaussian Markov
+  random field priors in spatial modelling. *Spatial Statistics*, 8,
+  39-51.

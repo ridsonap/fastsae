@@ -177,7 +177,7 @@ also uses an ICAR effect.</li>
 <td align="left">Apple M4</td>
 <td align="left">R 4.6.1; fastsae 1.0.0; INLA 26.8.7; tipsae 1.0.3; jax
 0.5.0, jaxlib 0.5.0, jax-metal 0.1.1, numpyro 0.19.0</td>
-<td align="left">2026-10-14</td>
+<td align="left">2026-10-24</td>
 </tr></tbody>
 </table>
 <p>Each engine runs in a separate R process, because JAX fixes its
@@ -196,7 +196,7 @@ machine are: GPU vs CPU, and INLA vs tipsae.</p>
 <p>Pick a model, a machine and the timing to show. Hover over a point
 for the time, the device and the R-hat of the fit.</p>
 <script>
-window.ENGINE_BENCH = {"rows":[{"machine":"Apple M4","design":"gaussian","engine":"inla","n":100,"time_warm":1.359,"time_first":1.811,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"inla","n":500,"time_warm":1.447,"time_first":1.44,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"inla","n":1000,"time_warm":1.526,"time_first":1.664,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"inla","n":2500,"time_warm":2.499,"time_first":2.832,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":100,"time_warm":6.383,"time_first":12.558,"device":"cpu","rhat_max":1.001105},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":500,"time_warm":44.889,"time_first":46.723,"device":"cpu","rhat_max":1.002419},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":1000,"time_warm":94.396,"time_first":109.809,"device":"cpu","rhat_max":1.003533},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":2500,"time_warm":712.926,"time_first":759.145,"device":"cpu","rhat_max":1.004522},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":100,"time_warm":128.595,"time_first":135.56,"device":"metal:METAL:0","rhat_max":1.001481},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":500,"time_warm":155.156,"time_first":158.013,"device":"metal:METAL:0","rhat_max":1.00239},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":1000,"time_warm":204.951,"time_first":215.847,"device":"metal:METAL:0","rhat_max":1.003254},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":2500,"time_warm":474.448,"time_first":492.947,"device":"metal:METAL:0","rhat_max":1.004257},{"machine":"Apple M4","design":"beta","engine":"inla","n":100,"time_warm":1.24,"time_first":2.581,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"inla","n":500,"time_warm":1.441,"time_first":1.451,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"inla","n":1000,"time_warm":1.789,"time_first":1.853,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"inla","n":2500,"time_warm":3.199,"time_first":3.091,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"cpu","n":100,"time_warm":5.965,"time_first":11.925,"device":"cpu","rhat_max":1.001479},{"machine":"Apple M4","design":"beta","engine":"cpu","n":500,"time_warm":35.982,"time_first":38.729,"device":"cpu","rhat_max":1.004452},{"machine":"Apple M4","design":"beta","engine":"cpu","n":1000,"time_warm":78.077,"time_first":80.711,"device":"cpu","rhat_max":1.004135},{"machine":"Apple M4","design":"beta","engine":"cpu","n":2500,"time_warm":538.146,"time_first":537.363,"device":"cpu","rhat_max":1.001812},{"machine":"Apple M4","design":"beta","engine":"metal","n":100,"time_warm":110.468,"time_first":114.408,"device":"metal:METAL:0","rhat_max":1.001929},{"machine":"Apple M4","design":"beta","engine":"metal","n":500,"time_warm":136.28,"time_first":139.685,"device":"metal:METAL:0","rhat_max":1.006305},{"machine":"Apple M4","design":"beta","engine":"metal","n":1000,"time_warm":200.78,"time_first":199.594,"device":"metal:METAL:0","rhat_max":1.00109},{"machine":"Apple M4","design":"beta","engine":"metal","n":2500,"time_warm":393.048,"time_first":399.37,"device":"metal:METAL:0","rhat_max":1.007059},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":100,"time_warm":107.496,"time_first":109.616,"device":"cpu (Stan)","rhat_max":1.005577},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":500,"time_warm":268.243,"time_first":268.84,"device":"cpu (Stan)","rhat_max":1.017935},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":1000,"time_warm":400.755,"time_first":395.774,"device":"cpu (Stan)","rhat_max":1.082652},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":2500,"time_warm":945.842,"time_first":961.971,"device":"cpu (Stan)","rhat_max":1.040592}],"machines":["Apple M4"],"engines":["inla","cpu","metal","tipsae"],"labels":{"inla":"INLA (inla_engine)","cpu":"JAX NUTS, CPU","metal":"JAX NUTS, Apple GPU (Metal)","tipsae":"tipsae (Stan NUTS)"},"colours":{"inla":"#1D6A5C","cpu":"#E69F00","metal":"#7B5EA7","tipsae":"#C0392B"},"designs":{"gaussian":"Gaussian","beta":"Beta"}};
+window.ENGINE_BENCH = {"rows":[{"machine":"Apple M4","design":"gaussian","engine":"inla","n":100,"time_warm":0.728,"time_first":1.474,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"inla","n":500,"time_warm":3.123,"time_first":0.802,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"inla","n":1000,"time_warm":0.796,"time_first":0.922,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"inla","n":2500,"time_warm":1.415,"time_first":1.58,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":100,"time_warm":4.506,"time_first":9.08,"device":"cpu","rhat_max":1.007488},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":500,"time_warm":32.478,"time_first":33.257,"device":"cpu","rhat_max":1.010873},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":1000,"time_warm":92.719,"time_first":82.047,"device":"cpu","rhat_max":1.011514},{"machine":"Apple M4","design":"gaussian","engine":"cpu","n":2500,"time_warm":841.006,"time_first":643.404,"device":"cpu","rhat_max":1.012323},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":100,"time_warm":136.316,"time_first":145.867,"device":"metal:METAL:0","rhat_max":1.006868},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":500,"time_warm":245.043,"time_first":212.85,"device":"metal:METAL:0","rhat_max":1.010718},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":1000,"time_warm":377.02,"time_first":304.123,"device":"metal:METAL:0","rhat_max":1.012579},{"machine":"Apple M4","design":"gaussian","engine":"metal","n":2500,"time_warm":724.844,"time_first":726.125,"device":"metal:METAL:0","rhat_max":1.011757},{"machine":"Apple M4","design":"beta","engine":"inla","n":100,"time_warm":2.596,"time_first":3.579,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"inla","n":500,"time_warm":3.114,"time_first":3.297,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"inla","n":1000,"time_warm":3.716,"time_first":4.147,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"inla","n":2500,"time_warm":6.324,"time_first":7.514,"device":"cpu (INLA)","rhat_max":null},{"machine":"Apple M4","design":"beta","engine":"cpu","n":100,"time_warm":23.997,"time_first":33.731,"device":"cpu","rhat_max":1.007627},{"machine":"Apple M4","design":"beta","engine":"cpu","n":500,"time_warm":146.034,"time_first":153.507,"device":"cpu","rhat_max":1.011985},{"machine":"Apple M4","design":"beta","engine":"cpu","n":1000,"time_warm":374.023,"time_first":389.573,"device":"cpu","rhat_max":1.011521},{"machine":"Apple M4","design":"beta","engine":"cpu","n":2500,"time_warm":1268.932,"time_first":1457.626,"device":"cpu","rhat_max":1.012935},{"machine":"Apple M4","design":"beta","engine":"metal","n":100,"time_warm":220.805,"time_first":233.25,"device":"metal:METAL:0","rhat_max":1.006872},{"machine":"Apple M4","design":"beta","engine":"metal","n":500,"time_warm":281.041,"time_first":286.132,"device":"metal:METAL:0","rhat_max":1.011679},{"machine":"Apple M4","design":"beta","engine":"metal","n":1000,"time_warm":376.41,"time_first":375.948,"device":"metal:METAL:0","rhat_max":1.011095},{"machine":"Apple M4","design":"beta","engine":"metal","n":2500,"time_warm":819.081,"time_first":814.149,"device":"metal:METAL:0","rhat_max":1.015673},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":100,"time_warm":66.735,"time_first":67.34,"device":"cpu (Stan)","rhat_max":3.710302},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":500,"time_warm":151.878,"time_first":155.408,"device":"cpu (Stan)","rhat_max":1.083974},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":1000,"time_warm":234.545,"time_first":235.941,"device":"cpu (Stan)","rhat_max":1.041933},{"machine":"Apple M4","design":"beta","engine":"tipsae","n":2500,"time_warm":619.837,"time_first":623.542,"device":"cpu (Stan)","rhat_max":1.12551}],"machines":["Apple M4"],"engines":["inla","cpu","metal","tipsae"],"labels":{"inla":"INLA (inla_engine)","cpu":"JAX NUTS, CPU","metal":"JAX NUTS, Apple GPU (Metal)","tipsae":"tipsae (Stan NUTS)"},"colours":{"inla":"#1D6A5C","cpu":"#E69F00","metal":"#7B5EA7","tipsae":"#C0392B"},"designs":{"gaussian":"Gaussian","beta":"Beta"}};
 </script><div class="my-4 p-3 border rounded bg-light" id="engine-explorer">
   <div class="d-flex flex-wrap gap-3 mb-3">
     <div class="btn-group" role="group" aria-label="Model" id="eng-design-group"></div>
@@ -375,10 +375,10 @@ machine.
 <td align="left">Apple M4</td>
 <td align="left">Gaussian</td>
 <td align="left">100</td>
-<td align="right">1.4 s</td>
-<td align="right">6.4 s</td>
-<td align="right">129 s (metal)</td>
-<td align="right">20.1x slower</td>
+<td align="right">0.7 s</td>
+<td align="right">4.5 s</td>
+<td align="right">136 s (metal)</td>
+<td align="right">30.3x slower</td>
 <td align="right">-</td>
 <td align="right">-</td>
 </tr>
@@ -386,10 +386,10 @@ machine.
 <td align="left">Apple M4</td>
 <td align="left">Gaussian</td>
 <td align="left">500</td>
-<td align="right">1.4 s</td>
-<td align="right">45 s</td>
-<td align="right">155 s (metal)</td>
-<td align="right">3.5x slower</td>
+<td align="right">3.1 s</td>
+<td align="right">32 s</td>
+<td align="right">245 s (metal)</td>
+<td align="right">7.5x slower</td>
 <td align="right">-</td>
 <td align="right">-</td>
 </tr>
@@ -397,10 +397,10 @@ machine.
 <td align="left">Apple M4</td>
 <td align="left">Gaussian</td>
 <td align="left">1,000</td>
-<td align="right">1.5 s</td>
-<td align="right">94 s</td>
-<td align="right">205 s (metal)</td>
-<td align="right">2.2x slower</td>
+<td align="right">0.8 s</td>
+<td align="right">93 s</td>
+<td align="right">377 s (metal)</td>
+<td align="right">4.1x slower</td>
 <td align="right">-</td>
 <td align="right">-</td>
 </tr>
@@ -408,10 +408,10 @@ machine.
 <td align="left">Apple M4</td>
 <td align="left">Gaussian</td>
 <td align="left">2,500</td>
-<td align="right">2.5 s</td>
-<td align="right">713 s</td>
-<td align="right">474 s (metal)</td>
-<td align="right"><strong>1.5x faster</strong></td>
+<td align="right">1.4 s</td>
+<td align="right">841 s</td>
+<td align="right">725 s (metal)</td>
+<td align="right"><strong>1.2x faster</strong></td>
 <td align="right">-</td>
 <td align="right">-</td>
 </tr>
@@ -419,45 +419,45 @@ machine.
 <td align="left">Apple M4</td>
 <td align="left">Beta</td>
 <td align="left">100</td>
-<td align="right">1.2 s</td>
-<td align="right">6.0 s</td>
-<td align="right">110 s (metal)</td>
-<td align="right">18.5x slower</td>
-<td align="right">107 s</td>
-<td align="right">87x faster</td>
+<td align="right">2.6 s</td>
+<td align="right">24 s</td>
+<td align="right">221 s (metal)</td>
+<td align="right">9.2x slower</td>
+<td align="right">67 s</td>
+<td align="right">26x faster</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
 <td align="left">Beta</td>
 <td align="left">500</td>
-<td align="right">1.4 s</td>
-<td align="right">36 s</td>
-<td align="right">136 s (metal)</td>
-<td align="right">3.8x slower</td>
-<td align="right">268 s</td>
-<td align="right">186x faster</td>
+<td align="right">3.1 s</td>
+<td align="right">146 s</td>
+<td align="right">281 s (metal)</td>
+<td align="right">1.9x slower</td>
+<td align="right">152 s</td>
+<td align="right">49x faster</td>
 </tr>
 <tr class="odd">
 <td align="left">Apple M4</td>
 <td align="left">Beta</td>
 <td align="left">1,000</td>
-<td align="right">1.8 s</td>
-<td align="right">78 s</td>
-<td align="right">201 s (metal)</td>
-<td align="right">2.6x slower</td>
-<td align="right">401 s</td>
-<td align="right">224x faster</td>
+<td align="right">3.7 s</td>
+<td align="right">374 s</td>
+<td align="right">376 s (metal)</td>
+<td align="right">1.0x slower</td>
+<td align="right">235 s</td>
+<td align="right">63x faster</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
 <td align="left">Beta</td>
 <td align="left">2,500</td>
-<td align="right">3.2 s</td>
-<td align="right">538 s</td>
-<td align="right">393 s (metal)</td>
-<td align="right"><strong>1.4x faster</strong></td>
-<td align="right">946 s</td>
-<td align="right">296x faster</td>
+<td align="right">6.3 s</td>
+<td align="right">1,269 s</td>
+<td align="right">819 s (metal)</td>
+<td align="right"><strong>1.5x faster</strong></td>
+<td align="right">620 s</td>
+<td align="right">98x faster</td>
 </tr>
 </tbody>
 </table>
@@ -467,13 +467,13 @@ machine.
 <strong>INLA is the fastest engine at every size.</strong> It does
 not sample. For example, on Apple M4 the spatial Gaussian model at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
-takes 2.5 s.</li>
+takes 1.4 s.</li>
 <li>
 <strong>tipsae.</strong> At
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
-on Apple M4, tipsae takes 946 s for the spatial Beta model, INLA takes
-3.2 s (296x faster), and JAX on the CPU takes 538 s. So the JAX engine
-on the CPU is 2x to 18x faster than tipsae on the sizes both ran.</li>
+on Apple M4, tipsae takes 620 s for the spatial Beta model, INLA takes
+6.3 s (98x faster), and JAX on the CPU takes 1,269 s. So the JAX engine
+on the CPU is 0x to 3x faster than tipsae on the sizes both ran.</li>
 <li>
 <strong>The JAX engine’s time grows quickly with
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
@@ -533,8 +533,8 @@ deviations (engine / INLA).</p>
 <td align="left">JAX CPU</td>
 <td align="left">100</td>
 <td align="left">1.0000</td>
-<td align="right">0.02200</td>
-<td align="left">1.012</td>
+<td align="right">0.0088</td>
+<td align="left">1.000</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
@@ -542,8 +542,8 @@ deviations (engine / INLA).</p>
 <td align="left">JAX CPU</td>
 <td align="left">500</td>
 <td align="left">1.0000</td>
-<td align="right">0.01700</td>
-<td align="left">1.001</td>
+<td align="right">0.0200</td>
+<td align="left">1.000</td>
 </tr>
 <tr class="odd">
 <td align="left">Apple M4</td>
@@ -551,8 +551,8 @@ deviations (engine / INLA).</p>
 <td align="left">JAX CPU</td>
 <td align="left">1,000</td>
 <td align="left">1.0000</td>
-<td align="right">0.01900</td>
-<td align="left">1.001</td>
+<td align="right">0.0150</td>
+<td align="left">1.000</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
@@ -560,7 +560,7 @@ deviations (engine / INLA).</p>
 <td align="left">JAX CPU</td>
 <td align="left">2,500</td>
 <td align="left">1.0000</td>
-<td align="right">0.01900</td>
+<td align="right">0.0200</td>
 <td align="left">0.999</td>
 </tr>
 <tr class="odd">
@@ -569,8 +569,8 @@ deviations (engine / INLA).</p>
 <td align="left">JAX Metal</td>
 <td align="left">100</td>
 <td align="left">1.0000</td>
-<td align="right">0.01400</td>
-<td align="left">1.011</td>
+<td align="right">0.0098</td>
+<td align="left">0.998</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
@@ -578,8 +578,8 @@ deviations (engine / INLA).</p>
 <td align="left">JAX Metal</td>
 <td align="left">500</td>
 <td align="left">1.0000</td>
-<td align="right">0.01700</td>
-<td align="left">1.001</td>
+<td align="right">0.0140</td>
+<td align="left">0.998</td>
 </tr>
 <tr class="odd">
 <td align="left">Apple M4</td>
@@ -587,8 +587,8 @@ deviations (engine / INLA).</p>
 <td align="left">JAX Metal</td>
 <td align="left">1,000</td>
 <td align="left">1.0000</td>
-<td align="right">0.02000</td>
-<td align="left">1.001</td>
+<td align="right">0.0190</td>
+<td align="left">1.000</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
@@ -596,7 +596,7 @@ deviations (engine / INLA).</p>
 <td align="left">JAX Metal</td>
 <td align="left">2,500</td>
 <td align="left">1.0000</td>
-<td align="right">0.01800</td>
+<td align="right">0.0180</td>
 <td align="left">0.999</td>
 </tr>
 <tr class="odd">
@@ -604,108 +604,108 @@ deviations (engine / INLA).</p>
 <td align="left">Beta</td>
 <td align="left">JAX CPU</td>
 <td align="left">100</td>
-<td align="left">1.0000</td>
-<td align="right">0.00300</td>
-<td align="left">1.044</td>
+<td align="left">0.9999</td>
+<td align="right">0.0140</td>
+<td align="left">1.014</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
 <td align="left">Beta</td>
 <td align="left">JAX CPU</td>
 <td align="left">500</td>
-<td align="left">1.0000</td>
-<td align="right">0.00200</td>
-<td align="left">0.987</td>
+<td align="left">0.9999</td>
+<td align="right">0.0160</td>
+<td align="left">1.016</td>
 </tr>
 <tr class="odd">
 <td align="left">Apple M4</td>
 <td align="left">Beta</td>
 <td align="left">JAX CPU</td>
 <td align="left">1,000</td>
-<td align="left">1.0000</td>
-<td align="right">0.00170</td>
-<td align="left">0.980</td>
+<td align="left">0.9999</td>
+<td align="right">0.0140</td>
+<td align="left">1.013</td>
 </tr>
 <tr class="even">
 <td align="left">Apple M4</td>
 <td align="left">Beta</td>
 <td align="left">JAX CPU</td>
-<td align="left">2,500</td>
-<td align="left">1.0000</td>
-<td align="right">0.00075</td>
-<td align="left">0.963</td>
-</tr>
-<tr class="odd">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">JAX Metal</td>
-<td align="left">100</td>
-<td align="left">1.0000</td>
-<td align="right">0.00360</td>
-<td align="left">1.019</td>
-</tr>
-<tr class="even">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">JAX Metal</td>
-<td align="left">500</td>
-<td align="left">1.0000</td>
-<td align="right">0.00110</td>
-<td align="left">0.983</td>
-</tr>
-<tr class="odd">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">JAX Metal</td>
-<td align="left">1,000</td>
-<td align="left">1.0000</td>
-<td align="right">0.00130</td>
-<td align="left">0.985</td>
-</tr>
-<tr class="even">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">JAX Metal</td>
-<td align="left">2,500</td>
-<td align="left">1.0000</td>
-<td align="right">0.00050</td>
-<td align="left">0.968</td>
-</tr>
-<tr class="odd">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">tipsae</td>
-<td align="left">100</td>
-<td align="left">0.9939</td>
-<td align="right">0.08100</td>
-<td align="left">0.837</td>
-</tr>
-<tr class="even">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">tipsae</td>
-<td align="left">500</td>
-<td align="left">0.9992</td>
-<td align="right">0.06900</td>
-<td align="left">0.798</td>
-</tr>
-<tr class="odd">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">tipsae</td>
-<td align="left">1,000</td>
-<td align="left">0.9991</td>
-<td align="right">0.03500</td>
-<td align="left">0.793</td>
-</tr>
-<tr class="even">
-<td align="left">Apple M4</td>
-<td align="left">Beta</td>
-<td align="left">tipsae</td>
 <td align="left">2,500</td>
 <td align="left">0.9999</td>
-<td align="right">0.04800</td>
-<td align="left">0.766</td>
+<td align="right">0.0150</td>
+<td align="left">1.014</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">100</td>
+<td align="left">0.9999</td>
+<td align="right">0.0140</td>
+<td align="left">1.022</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">500</td>
+<td align="left">0.9999</td>
+<td align="right">0.0150</td>
+<td align="left">1.017</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">1,000</td>
+<td align="left">0.9999</td>
+<td align="right">0.0140</td>
+<td align="left">1.014</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">JAX Metal</td>
+<td align="left">2,500</td>
+<td align="left">0.9999</td>
+<td align="right">0.0160</td>
+<td align="left">1.013</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">tipsae</td>
+<td align="left">100</td>
+<td align="left">0.9865</td>
+<td align="right">0.3200</td>
+<td align="left">1.068</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">tipsae</td>
+<td align="left">500</td>
+<td align="left">0.9983</td>
+<td align="right">0.0640</td>
+<td align="left">1.039</td>
+</tr>
+<tr class="odd">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">tipsae</td>
+<td align="left">1,000</td>
+<td align="left">0.9982</td>
+<td align="right">0.0580</td>
+<td align="left">1.038</td>
+</tr>
+<tr class="even">
+<td align="left">Apple M4</td>
+<td align="left">Beta</td>
+<td align="left">tipsae</td>
+<td align="left">2,500</td>
+<td align="left">0.9976</td>
+<td align="right">0.0910</td>
+<td align="left">1.035</td>
 </tr>
 </tbody>
 </table>
@@ -718,13 +718,13 @@ different order from the CPU, so the chains differ slightly, but they
 give the same estimates.</li>
 <li>
 <strong>tipsae.</strong> tipsae agrees with INLA with correlations
-of at least 0.993. Its posterior standard deviations are smaller (median
-ratio 0.77 to 0.84), probably because the two packages use different
-priors.</li>
+of at least 0.986. Its posterior standard deviations are different
+(median ratio 1.03 to 1.07), probably because the two packages use
+different priors.</li>
 <li>
 <strong>Convergence.</strong> Over all JAX fits, the largest split
-R-hat is 1.007. For tipsae it is 1.083 (at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">D = 1,000</annotation></semantics></math>
+R-hat is 1.016. For tipsae it is 3.710 (at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">D = 100</annotation></semantics></math>
 on Apple M4), above the usual 1.05 threshold, so its default run length
 is not quite enough there.</li>
 </ul>
@@ -767,7 +767,7 @@ until the run finishes.</li>
 <li>For most surveys (hundreds to a few thousand domains),
 <code><a href="../reference/hb_engine.html">inla_engine()</a></code> is the fastest choice.</li>
 <li>For full MCMC, the JAX engine on the CPU alone is faster than Stan
-via tipsae: 2x to 18x here, with the gap narrowing as
+via tipsae: 0x to 3x here, with the gap narrowing as
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
 grows.</li>
 <li>A GPU becomes worthwhile for the JAX engine on large spatial

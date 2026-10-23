@@ -295,6 +295,26 @@
   instead of $`n_d - 1`$.
 - New vignette “Default Priors of the Hierarchical Bayes Models”: the
   default priors of both engines and the simulations behind the choices.
+  It also writes out the three models with all their default priors
+  (including the Leroux, SAR and SLM correlations, the space-time
+  interactions and the coefficients under `benchmark_method = "wfq"`),
+  shows how to list the priors of a fit with
+  [`INLA::inla.priors.used()`](https://rdrr.io/pkg/INLA/man/priors.used.html)
+  and when to change them.
+- The documentation no longer describes the earlier priors as the
+  defaults:
+  [`?hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
+  (which still contrasted the half-normal priors of
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  with PC priors of
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)),
+  the unit-level vignette (re-run on `cornsoybean`: the two engines now
+  agree within Monte Carlo error and INLA matches the exact posterior
+  within 0.06 posterior SD), the INLA vignette (which also gave a wrong
+  formula for INLA’s approximation and the plug-in beta precision) and
+  the finite population vignette, whose simulations were re-run with the
+  default priors (coverage of the 95% intervals 92-93%, against 88-89%
+  with the PC prior and the plug-in beta precision used before).
 
 #### Gamma and negative binomial dispersion
 
@@ -665,6 +685,12 @@
   [`weighted.mean()`](https://rdrr.io/r/stats/weighted.mean.html) of
   direct estimates that include unsampled domains) silently made every
   benchmarked estimate `NA`.
+- A subset of a
+  [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md)
+  result, such as `bm[, c("domain", "benchmarked")]`, prints as a data
+  frame. It printed the header of the full result with the method
+  “Ratio” whatever method had been used, because `[` drops the
+  attributes that the header reads.
 - `hb_area(st_interaction = "type2" / "type3" / "type4")` now fit with
   INLA. They always failed before (the interaction reused the index of a
   main effect, which INLA rejects), and with `spatial = "none"` the type

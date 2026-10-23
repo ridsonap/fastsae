@@ -119,6 +119,208 @@ variance or dispersion parameter is not a technicality: the data hardly
 inform it, and its prior decides how much the estimates are shrunk and
 how wide the intervals are.</p>
 <div class="section level2">
+<h2 id="the-models-at-a-glance">The models at a glance<a class="anchor" aria-label="anchor" href="#the-models-at-a-glance"></a>
+</h2>
+<p>The three functions fit generalised linear mixed models. Written out
+with their default priors, where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>s</mi><annotation encoding="application/x-tex">s</annotation></semantics></math>
+is the scale of the standard deviations:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>s</mi><mo>=</mo><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">s = \mathrm{sd}(y)</annotation></semantics></math>
+for Gaussian models (the standard deviation of the direct estimates, or
+of the unit responses for <code><a href="../reference/hb_unit.html">hb_unit()</a></code>) and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>s</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">s = 1</annotation></semantics></math>
+on the logit or log scale of the other families.</p>
+<p><strong>Area level, <code><a href="../reference/hb_area.html">hb_area()</a></code>.</strong> For area
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math>
+(and period
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
+in a panel),</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>d</mi></msub><mo>∣</mo><msub><mi>μ</mi><mi>d</mi></msub><mo>∼</mo><mi>f</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>d</mi></msub><mo>,</mo><msub><mi>ψ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mi>g</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub><mspace width="0.278em"></mspace><mo stretchy="false" form="prefix">[</mo><mi>+</mi><mspace width="0.167em"></mspace><msub><mi>γ</mi><mi>t</mi></msub><mo>+</mo><msub><mi>δ</mi><mrow><mi>d</mi><mi>t</mi></mrow></msub><mo stretchy="false" form="postfix">]</mo><mspace width="0.278em"></mspace><mo stretchy="false" form="prefix">[</mo><mi>+</mi><mspace width="0.167em"></mspace><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>E</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">y_d \mid \mu_d \sim f(\mu_d, \psi_d), \qquad g(\mu_d) = x_d^\top \beta + u_d \; [+\, \gamma_t + \delta_{dt}] \; [+\, \log E_d],</annotation></semantics></math></p>
+<p>with the likelihood
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>,
+its dispersion
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ψ</mi><mi>d</mi></msub><annotation encoding="application/x-tex">\psi_d</annotation></semantics></math>
+and the link
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>
+set by <code>family</code> (see <a href="#priors-of-the-likelihood">Priors of the likelihood</a>), and</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th>Term</th>
+<th>Argument</th>
+<th>Model</th>
+<th>Default prior</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math></td>
+<td><code>formula</code></td>
+<td>fixed effects</td>
+<td>intercept flat; others
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1000</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N(0, 1000)</annotation></semantics></math>
+</td>
+</tr>
+<tr class="even">
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mi>d</mi></msub><annotation encoding="application/x-tex">u_d</annotation></semantics></math></td>
+<td><code>spatial = "none"</code></td>
+<td>iid
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N(0, \sigma_u^2)</annotation></semantics></math>
+</td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_u \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>
+</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td><code>"besag"</code></td>
+<td>intrinsic CAR (ICAR) on the graph of <code>W</code>, scaled</td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_u \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>
+</td>
+</tr>
+<tr class="even">
+<td></td>
+<td><code>"bym"</code></td>
+<td>iid + ICAR, each with its own SD</td>
+<td>both SDs
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>
+</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td><code>"bym2"</code></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>u</mi></msub><mo stretchy="false" form="prefix">(</mo><msqrt><mrow><mn>1</mn><mo>−</mo><mi>ϕ</mi></mrow></msqrt><mspace width="0.167em"></mspace><msub><mi>v</mi><mi>d</mi></msub><mo>+</mo><msqrt><mi>ϕ</mi></msqrt><mspace width="0.167em"></mspace><msubsup><mi>u</mi><mi>d</mi><mo>*</mo></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\sigma_u(\sqrt{1 - \phi}\, v_d + \sqrt{\phi}\, u^*_d)</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>u</mi><mo>*</mo></msup><annotation encoding="application/x-tex">u^*</annotation></semantics></math>
+a scaled ICAR</td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_u \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>;
+PC prior
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo>&lt;</mo><mn>0.5</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">P(\phi &lt; 0.5) = 0.5</annotation></semantics></math>
+</td>
+</tr>
+<tr class="even">
+<td></td>
+<td><code>"leroux"</code></td>
+<td>precision
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>σ</mi><mi>u</mi><mrow><mi>−</mi><mn>2</mn></mrow></msubsup><mo stretchy="false" form="prefix">{</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>λ</mi><mo stretchy="false" form="postfix">)</mo><mi>I</mi><mo>+</mo><mi>λ</mi><mi>R</mi><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\sigma_u^{-2}\{(1 - \lambda) I + \lambda R\}</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>R</mi><annotation encoding="application/x-tex">R</annotation></semantics></math>
+the ICAR structure</td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_u \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>λ</mi><mo>∼</mo></mrow><annotation encoding="application/x-tex">\lambda \sim</annotation></semantics></math>
+Uniform<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0, 1)</annotation></semantics></math>
+</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td><code>"sar"</code></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>ρ</mi><mi>W</mi><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn></mrow></msup><mi>ε</mi></mrow><annotation encoding="application/x-tex">u = (I - \rho W)^{-1} \varepsilon</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ε</mi><mi>d</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varepsilon_d \sim N(0, \sigma_u^2)</annotation></semantics></math>
+</td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_u \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>∼</mo></mrow><annotation encoding="application/x-tex">\rho \sim</annotation></semantics></math>
+Uniform<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mn>0.999</mn><mo>,</mo><mn>0.999</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(-0.999, 0.999)</annotation></semantics></math>
+</td>
+</tr>
+<tr class="even">
+<td></td>
+<td><code>"slm"</code></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>η</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>ρ</mi><mi>W</mi><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn></mrow></msup><mo stretchy="false" form="prefix">(</mo><mi>X</mi><mi>β</mi><mo>+</mo><mi>ε</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta = (I - \rho W)^{-1}(X\beta + \varepsilon)</annotation></semantics></math></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>u</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_u \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+uniform on the range allowed by the eigenvalues of <code>W</code>
+</td>
+</tr>
+<tr class="odd">
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>γ</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\gamma_t</annotation></semantics></math></td>
+<td><code>temporal</code></td>
+<td>
+<code>"rw1"</code>, <code>"rw2"</code>, <code>"ar1"</code> or
+<code>"iid"</code>
+</td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>γ</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_\gamma \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>;
+AR(1):
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mi>/</mi><mn>0.15</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N(0, 1/0.15)</annotation></semantics></math>
+on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">{</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mi>ρ</mi><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>ρ</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\log\{(1 + \rho)/(1 - \rho)\}</annotation></semantics></math>
+</td>
+</tr>
+<tr class="even">
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>δ</mi><mrow><mi>d</mi><mi>t</mi></mrow></msub><annotation encoding="application/x-tex">\delta_{dt}</annotation></semantics></math></td>
+<td><code>st_interaction</code></td>
+<td>domain-specific trends, a separable field or Knorr-Held types
+I-IV</td>
+<td>its SD
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>;
+AR(1) correlation as for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>γ</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\gamma_t</annotation></semantics></math>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Unit level, <code><a href="../reference/hb_unit.html">hb_unit()</a></code>.</strong> For unit
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>
+in domain
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math>,</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mrow><mi>d</mi><mi>j</mi></mrow></msub><mo>∣</mo><msub><mi>μ</mi><mrow><mi>d</mi><mi>j</mi></mrow></msub><mo>∼</mo><mi>f</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mrow><mi>d</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mi>g</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mrow><mi>d</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msubsup><mi>x</mi><mrow><mi>d</mi><mi>j</mi></mrow><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">y_{dj} \mid \mu_{dj} \sim f(\mu_{dj}), \qquad g(\mu_{dj}) = x_{dj}^\top \beta + u_d,</annotation></semantics></math></p>
+<p>with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
+normal
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mrow><mi>d</mi><mi>j</mi></mrow></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>σ</mi><mi>e</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">e_{dj} \sim N(0, \sigma_e^2)</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>e</mi></msub><mo>∼</mo></mrow><annotation encoding="application/x-tex">\sigma_e \sim</annotation></semantics></math>
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>),
+Bernoulli or Poisson,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mi>d</mi></msub><annotation encoding="application/x-tex">u_d</annotation></semantics></math>
+iid, Besag or BYM2 with the priors above, and the target the population
+mean of domain
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math>,
+computed from the population means of the covariates in
+<code>Xpop</code>.</p>
+<p><strong>Sub-area level, <code><a href="../reference/hb_twofold.html">hb_twofold()</a></code>.</strong> For
+sub-area
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>
+in area
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>,</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>∣</mo><msub><mi>μ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>∼</mo><mi>f</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mi>g</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msubsup><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>v</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">y_{ij} \mid \mu_{ij} \sim f(\mu_{ij}), \qquad g(\mu_{ij}) = x_{ij}^\top \beta + v_i + u_{ij},</annotation></semantics></math></p>
+<p>with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
+normal with the known sampling variance
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>V</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">V_{ij}</annotation></semantics></math>,
+binomial or Poisson,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>v</mi><mi>i</mi></msub><annotation encoding="application/x-tex">v_i</annotation></semantics></math>
+iid, Besag or BYM2 and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">u_{ij}</annotation></semantics></math>
+iid; both SDs have
+half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s)</annotation></semantics></math>
+priors, with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>s</mi><annotation encoding="application/x-tex">s</annotation></semantics></math>
+from the sub-area direct estimates. The area targets aggregate the
+sub-area means with the weights in <code>weight</code>.</p>
+<p>All intrinsic models (Besag, BYM, BYM2 and the random walks) are
+scaled (<code>scale_model = TRUE</code>) so that
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
+is a typical marginal standard deviation whatever the graph, which is
+what makes one prior scale sensible for all of them (Sørbye and Rue
+2014).</p>
+</div>
+<div class="section level2">
 <h2 id="priors-of-the-model-parameters">Priors of the model parameters<a class="anchor" aria-label="anchor" href="#priors-of-the-model-parameters"></a>
 </h2>
 <table class="table">
@@ -195,9 +397,15 @@ for logit links)</td>
 <p>Here
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{sd}(y)</annotation></semantics></math>
 is the standard deviation of the observed direct estimates (of the unit
-responses for <code><a href="../reference/hb_unit.html">hb_unit()</a></code>). <code><a href="../reference/hb_engine.html">inla_engine()</a></code> writes
-the half-normal prior as an <code>expression:</code> prior on the log
-precision
+responses for <code><a href="../reference/hb_unit.html">hb_unit()</a></code>). With
+<code>benchmark_method = "wfq"</code> the coefficients get nearly flat
+priors
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mn>10</mn><mn>6</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N(0, 10^6)</annotation></semantics></math>,
+intercept
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mn>10</mn><mn>4</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N(0, 10^4)</annotation></semantics></math>)
+instead, so that the benchmarking covariate is not shrunk.
+<code><a href="../reference/hb_engine.html">inla_engine()</a></code> writes the half-normal prior as an
+<code>expression:</code> prior on the log precision
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mo>=</mo><mi>−</mi><mn>2</mn><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>σ</mi></mrow><annotation encoding="application/x-tex">\theta = -2 \log \sigma</annotation></semantics></math>,
 so that INLA and NumPyro use the same density.</p>
 <p><code><a href="../reference/hb_engine.html">jax_engine()</a></code> has two priors that INLA does not have.
@@ -299,7 +507,9 @@ on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>ϕ</mi></mrow><annotation encoding="application/x-tex">\log\phi</annotation></semantics></math>,
 i.e. <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mo>∼</mo></mrow><annotation encoding="application/x-tex">\phi \sim</annotation></semantics></math>
 Exponential<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.1)</annotation></semantics></math>,
-both engines</td>
+both engines
+(half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>10</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(10)</annotation></semantics></math>
+with <code>jax_engine(priors = "weakly_informative")</code>)</td>
 </tr>
 </tbody>
 </table>
@@ -727,11 +937,64 @@ the true sampling variance):</p>
 </div>
 </div>
 <div class="section level2">
+<h2 id="checking-the-priors-of-a-fit">Checking the priors of a fit<a class="anchor" aria-label="anchor" href="#checking-the-priors-of-a-fit"></a>
+</h2>
+<p>The priors that INLA actually used, including any given in
+<code><a href="../reference/hb_engine.html">inla_engine()</a></code>, are listed by
+<code><a href="https://rdrr.io/pkg/INLA/man/priors.used.html" class="external-link">INLA::inla.priors.used()</a></code>. The half-normal priors appear as
+<code>expression:</code> priors on the log precision, with their scale
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>s</mi><annotation encoding="application/x-tex">s</annotation></semantics></math>
+written out:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span><span class="op">)</span></span>
+<span><span class="fu">INLA</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/INLA/man/priors.used.html" class="external-link">inla.priors.used</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; section=[random]</span></span>
+<span><span class="co">#&gt;   tag=[..domain_id..] component=[..domain_id..]</span></span>
+<span><span class="co">#&gt;     theta1:</span></span>
+<span><span class="co">#&gt;       parameter=[log precision]</span></span>
+<span><span class="co">#&gt;       prior=[expression: s = 2.20822220299071; sigma = exp(-theta/2); ...]</span></span></code></pre></div>
+<p><code>print(fit$engine_spec)</code> shows the engine settings, and
+for <code><a href="../reference/hb_engine.html">jax_engine()</a></code> the prior set (<code>"inla"</code> or
+<code>"weakly_informative"</code>).</p>
+</div>
+<div class="section level2">
+<h2 id="when-to-change-a-prior">When to change a prior<a class="anchor" aria-label="anchor" href="#when-to-change-a-prior"></a>
+</h2>
+<p>The defaults are meant to be safe without tuning, not to encode
+knowledge of a particular survey. Consider changing them when</p>
+<ul>
+<li>
+<strong>you have real prior knowledge of the variation between
+areas.</strong> A PC prior
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>σ</mi><mi>u</mi></msub><mo>&gt;</mo><mi>U</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>α</mi></mrow><annotation encoding="application/x-tex">P(\sigma_u &gt; U) = \alpha</annotation></semantics></math>
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>U</mi><annotation encoding="application/x-tex">U</annotation></semantics></math>
+the largest plausible area SD in the unit of the response (or on the
+link scale) states this directly; see the first example below.</li>
+<li>
+<strong>the areas differ a lot on the link scale.</strong>
+Half-normal<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1)</annotation></semantics></math>
+gives
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>σ</mi><mi>u</mi></msub><mo>&gt;</mo><mn>2</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0.046</mn></mrow><annotation encoding="application/x-tex">P(\sigma_u &gt; 2) = 0.046</annotation></semantics></math>;
+if logit- or log-scale area effects with an SD above 2 are plausible,
+raise the scale.</li>
+<li>
+<strong>a dispersion parameter follows its prior.</strong> Without
+<code>vardir</code> (or <code>trials</code>) the dispersion of the
+gamma, negative binomial and beta likelihoods is weakly identified, and
+the intervals depend on its prior. Giving the sampling variances is
+better than tuning that prior.</li>
+</ul>
+<p>With few areas, refit with a second prior and compare the estimates
+in <code>df_hb</code>: if they move by a sizeable fraction of their
+posterior SD, report the sensitivity.</p>
+</div>
+<div class="section level2">
 <h2 id="changing-the-priors">Changing the priors<a class="anchor" aria-label="anchor" href="#changing-the-priors"></a>
 </h2>
 <p><code><a href="../reference/hb_engine.html">inla_engine()</a></code> takes INLA prior specifications for every
 hyperparameter. A prior given there replaces the default.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.is-a.dev/fastsae/">fastsae</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mys"</span><span class="op">)</span></span>
 <span></span>
@@ -747,12 +1010,12 @@ hyperparameter. A prior given there replaces the default.</p>
 <span>  engine <span class="op">=</span> <span class="fu"><a href="../reference/hb_engine.html">inla_engine</a></span><span class="op">(</span>control.family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>hyper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>prior <span class="op">=</span> <span class="st">"pc.mgamma"</span>, param <span class="op">=</span> <span class="fl">7</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The other arguments are <code>prior_phi</code> (BYM2),
-<code>prior_rho</code> (Leroux, SAR), <code>prior_prec_time</code> and
-<code>prior_rho_time</code> (temporal effect) and
+<code>prior_rho</code> (Leroux, SAR, SLM), <code>prior_prec_time</code>
+and <code>prior_rho_time</code> (temporal effect) and
 <code>prior_prec_subarea</code> (<code><a href="../reference/hb_twofold.html">hb_twofold()</a></code>).
 <code><a href="../reference/hb_engine.html">jax_engine()</a></code> offers the two prior sets of the first
 table:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_jax</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>
 <span>  engine <span class="op">=</span> <span class="fu"><a href="../reference/hb_engine.html">jax_engine</a></span><span class="op">(</span>priors <span class="op">=</span> <span class="st">"weakly_informative"</span><span class="op">)</span></span>
@@ -778,6 +1041,9 @@ scaling. <em>Statistical Methods in Medical Research</em>, 25(4),
 <li>Simpson, D., Rue, H., Riebler, A., Martins, T. G. and Sørbye, S. H.
 (2017). Penalising model component complexity: a principled approach to
 constructing priors. <em>Statistical Science</em>, 32(1), 1-28.</li>
+<li>Sørbye, S. H. and Rue, H. (2014). Scaling intrinsic Gaussian Markov
+random field priors in spatial modelling. <em>Spatial Statistics</em>,
+8, 39-51.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
