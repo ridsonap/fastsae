@@ -43,7 +43,8 @@ Default is \code{c(1.0, 0.8, -0.5)}.}
 
 \item{n_unsampled}{Integer. Number of domains to mark as unsampled (where response variables are set to \code{NA}). Default is 6.}
 
-\item{seed}{Optional integer. Random seed for reproducibility.}
+\item{seed}{Optional integer. Random seed for reproducibility; the random number stream
+of the session is restored afterwards.}
 }
 \value{
 An object of class \code{c("fastsae_sim_data", "list")} containing:

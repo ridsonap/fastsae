@@ -205,15 +205,16 @@ spatial_test <- function(
 
     tryCatch(
       {
-        fit_fh <- eblup_fh(
+        # only the likelihoods are used: no message about the EBLUPs
+        fit_fh <- suppressMessages(eblup_fh(
           formula = formula,
           vardir = vardir_vec,
           data = data,
           method = "ML",
           print_result = FALSE
-        )
+        ))
 
-        fit_sfh <- eblup_sfh(
+        fit_sfh <- suppressMessages(eblup_sfh(
           formula = formula,
           vardir = vardir_vec,
           data = data,
@@ -221,7 +222,7 @@ spatial_test <- function(
           method = "ML",
           mse_type = "analytical",
           print_result = FALSE
-        )
+        ))
 
         ll_fh <- as.numeric(fit_fh$goodness["loglikelihood"])
         ll_sfh <- as.numeric(fit_sfh$goodness["loglikelihood"])

@@ -31,3 +31,10 @@ A \code{ggplot} object.
 Generates diagnostic visual inspections for small area estimation models evaluated
 via \code{\link{diagnose}}.
 }
+\examples{
+m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+d <- diagnose(m)
+autoplot(d, type = "calibration")
+autoplot(d, type = "qq")
+
+}

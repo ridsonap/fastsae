@@ -67,9 +67,11 @@ test_that("eblup_stfh analytical MSE works for Spatial-only model S", {
 })
 
 # Small, well-identified ST panel (interior parameters) for exact checks.
-.sim_st_panel <- function(D = 16, Tt = 4, seed = 99) {
+.sim_st_panel <- function(D = 16, Tt = 4, seed = 1) {
+  # W and the data come from one stream; seed = 1 gives the panel these tests were
+  # written for (sim_spatial_weights(seed = 1) used to leave the stream at that seed)
   set.seed(seed)
-  W <- sim_spatial_weights(D = D, type = "knn", style = "W", k = 4, seed = 1)
+  W <- sim_spatial_weights(D = D, type = "knn", style = "W", k = 4)
   M <- D * Tt
   dom <- rep(seq_len(D), each = Tt)
   tim <- rep(seq_len(Tt), D)

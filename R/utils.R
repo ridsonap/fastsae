@@ -438,6 +438,29 @@ utils::globalVariables(c("density", ".data"))
   code
 }
 
+#' Set a seed for the rest of the calling function, then restore the stream
+#'
+#' A NULL seed leaves the stream as it is.
+#' @noRd
+.local_seed <- function(seed, envir = parent.frame()) {
+  if (is.null(seed)) {
+    return(invisible())
+  }
+  old <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  }
+  restore <- function() {
+    if (is.null(old)) {
+      if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) rm(".Random.seed", envir = globalenv())
+    } else {
+      assign(".Random.seed", old, envir = globalenv())
+    }
+  }
+  do.call(on.exit, list(substitute(restore()), add = TRUE), envir = envir)
+  set.seed(as.integer(seed))
+  invisible()
+}
+
 #' Check the spatial weight matrix of the SAR models (SFH, STFH)
 #'
 #' The SAR effect (I - rho W)^{-1} with rho in (-1, 1) assumes a non-negative,
@@ -480,6 +503,19 @@ utils::globalVariables(c("density", ".data"))
     "After {n_iter %||% 'the maximum number of'} iteration{?s}, the fit has not converged.",
     "i" = "The estimates are returned but are not reliable; increase {.arg maxiter} or check the model."
   ), call = call)
+}
+
+#' Tell the user when the random effect variance is estimated at its bound 0
+#' @noRd
+.inform_zero_variance <- function(sigma2_u) {
+  if (isTRUE(sigma2_u <= 0)) {
+    cli::cli_inform(c(
+      "!" = "The random effect variance is estimated as 0.",
+      "i" = "The EBLUPs equal the synthetic (regression) estimates, and the MSE estimates can understate their error.",
+      "i" = "A zero estimate is common with few areas or large sampling variances; adjusted likelihoods avoid it (Li and Lahiri, 2010)."
+    ))
+  }
+  invisible()
 }
 
 #' Remove the MSE of a result table (mse_type = "none")

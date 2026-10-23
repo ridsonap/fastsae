@@ -54,11 +54,12 @@
 #'
 #' @examples
 #'
-#' library(dplyr)
-#' df_meanpop <- cornsoybeanmeans |>
-#'   rename(CornPix = MeanCornPixPerSeg, SoyBeansPix = MeanSoyBeansPixPerSeg)
-#' df_cornsoybean <- cornsoybean |>
-#'   rename(CountyIndex = County)
+#' # the population means of the covariates must carry the names used in the formula
+#' df_meanpop <- cornsoybeanmeans
+#' names(df_meanpop)[match(c("MeanCornPixPerSeg", "MeanSoyBeansPixPerSeg"), names(df_meanpop))] <-
+#'   c("CornPix", "SoyBeansPix")
+#' df_cornsoybean <- cornsoybean
+#' names(df_cornsoybean)[names(df_cornsoybean) == "County"] <- "CountyIndex"
 #'
 #' res <- eblup_bhf(
 #'   formula = CornHec ~ CornPix + SoyBeansPix,

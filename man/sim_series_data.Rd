@@ -53,7 +53,7 @@ corresponding to \code{rho2} in \code{\link{eblup_stfh}}). Default is 0.6.}
 
 \item{sigma_t}{Numeric. Standard deviation of stationary spatio-temporal effects (\eqn{u_2}). Default is 0.3.}
 
-\item{trend}{Character. Deterministric temporal trend type: \code{"linear"}, \code{"random_walk"},
+\item{trend}{Character. Temporal trend type: \code{"linear"}, \code{"random_walk"},
 \code{"ar1"}, or \code{"none"}. Default is \code{"linear"}.}
 
 \item{trend_slope}{Numeric. Slope / scale of the temporal trend. Default is 0.05.}
@@ -69,7 +69,8 @@ Default is \code{c(1.0, 0.8, -0.5)}.}
 \item{sort_order}{Character. Row sorting order: \code{"domain-major"} (all time periods for domain 1,
 then domain 2, required by \code{\link{eblup_stfh}}) or \code{"time-major"}. Default is \code{"domain-major"}.}
 
-\item{seed}{Optional integer. Random seed for reproducibility.}
+\item{seed}{Optional integer. Random seed for reproducibility; the random number stream
+of the session is restored afterwards.}
 }
 \value{
 An object of class \code{c("fastsae_sim_series", "list")} containing:
@@ -99,7 +100,6 @@ print(sim_panel)
 head(sim_panel$data)
 
 # 2. Directly estimate Spatio-Temporal Fay-Herriot model (eblup_stfh)
-\dontrun{
 fit_stfh <- eblup_stfh(
   y_gaussian ~ x1 + x2,
   data = sim_panel$data,
@@ -109,6 +109,5 @@ fit_stfh <- eblup_stfh(
   W = sim_panel$W_std
 )
 summary(fit_stfh)
-}
 
 }

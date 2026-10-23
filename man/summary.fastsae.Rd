@@ -17,3 +17,8 @@ An object of class \code{summary.fastsae}.
 \description{
 Summarize a fastsae object
 }
+\examples{
+m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+s <- summary(m)
+s$coefficients
+}

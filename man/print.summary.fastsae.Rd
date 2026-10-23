@@ -17,3 +17,7 @@ The original object invisibly.
 \description{
 Print summary of a fastsae object
 }
+\examples{
+m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+print(summary(m))
+}

@@ -1,5 +1,0 @@
-EBLUP
-REML
-RcppArmadillo
-SAE
-Herriot

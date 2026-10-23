@@ -114,7 +114,7 @@ The Bayesian models are fitted with `engine = inla_engine()` (default). `hb_area
 | **Spatial Beta (Besag ICAR)** | 1,000 | **1.87 s** (161 MB) | 404 s (22.5 GB) | 217x |
 | **Spatio-Temporal Beta (Besag + RW1, $T = 5$)** | 50 | **1.71 s** (17.1 MB) | 908 s (4.77 GB) | 530x |
 
-Times are medians of `bench::mark()`; memory is the total memory allocated by R during one call (`bench::mark()$mem_alloc`), not the peak resident memory. The `fastsae` rows were re-measured with fastsae 1.0.0 (frequentist on 2026-10-13, `benchmarks/bench_frequentist_fastsae.R`; Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the `sae`/`emdi` rows come from an earlier run of the same design (simulated data, 5 covariates) on different random draws, the `tipsae` rows from an earlier run on the same data. See the [benchmark article](https://ridsonap.github.io/fastsae/articles/benchmarks.html) for all sizes.
+Times are medians of `bench::mark()`; memory is the total memory allocated by R during one call (`bench::mark()$mem_alloc`), not the peak resident memory. The `fastsae` rows were re-measured with fastsae 1.0.0 (frequentist on 2026-10-13, `benchmarks/bench_frequentist_fastsae.R`; Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the `sae`/`emdi` rows come from an earlier run of the same design (simulated data, 5 covariates) on different random draws, the `tipsae` rows from an earlier run on the same data. See the [benchmark article](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html) for all sizes.
 
 <!-- BENCH-README:END -->
 

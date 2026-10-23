@@ -14,7 +14,7 @@
 #' \itemize{
 #'   \item \strong{Single-Stage Benchmarking}: Calibrates small areas directly to an aggregate target
 #'     (either globally or within sub-regions/provinces via \code{group}).
-#'   \item \strong{Two-Stage Hierarchical Benchmarking} (Rao and Molina, 2015, Sec 10.4; Steorts et al., 2014):
+#'   \item \strong{Two-Stage Hierarchical Benchmarking} (Rao and Molina, 2015, Sec 10.4; in the spirit of Ghosh and Steorts, 2013):
 #'     Calibrates small areas (e.g. 500 Kabupaten/Kota) within overarching groups (e.g. 34 Provinces)
 #'     while \emph{simultaneously} harmonizing the provincial aggregates to match an overarching National Target
 #'     (\code{national_target}). Guarantees simultaneous mathematical consistency across all administrative tiers:
@@ -24,11 +24,11 @@
 #'
 #' Methods implemented:
 #' \itemize{
-#'   \item \code{"ratio"}: Proportional / multiplicative adjustment. Preserves area proportions and non-negativity (You and Rao, 2002; Rao and Molina, 2015).
+#'   \item \code{"ratio"}: Proportional / multiplicative adjustment. Preserves area proportions and non-negativity (Rao and Molina, 2015).
 #'   \item \code{"difference"}: Uniform additive adjustment (Rao and Molina, 2015, Section 10.3).
-#'   \item \code{"optimal"}: Variance-weighted quadratic loss benchmarking (Datta et al., 2011; Steorts et al., 2014).
+#'   \item \code{"optimal"}: Variance-weighted quadratic loss benchmarking (Datta et al., 2011; Bell, Datta and Ghosh, 2013).
 #'     Domains with higher MSE absorb larger adjustments while precise domains remain minimally perturbed.
-#'   \item \code{"logit"}: Logit-scale additive shift for bounded indicators \eqn{\theta_d \in (0, 1)} (Berg and Fuller, 2014).
+#'   \item \code{"logit"}: Logit-scale additive shift for bounded indicators \eqn{\theta_d \in (0, 1)}: one shift per group on the logit scale, so the benchmarked estimates stay in (0, 1).
 #' }
 #'
 #' @param object A fitted \code{fastsae} model object (e.g., from \code{hb_area},
@@ -80,16 +80,12 @@
 #' \enumerate{
 #'   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.).
 #'     John Wiley & Sons. Chapter 10: "Benchmarking and Other Practical Issues", pp. 297-315.
-#'   \item You, Y., and Rao, J. N. K. (2002). A pseudo-empirical best linear unbiased
-#'     prediction approach to small area estimation using survey weights.
-#'     \emph{The Canadian Journal of Statistics}, 30(3), 431-439.
-#'   \item Steorts, R. C., Hall, P., and Ghosh, M. (2014). General benchmarking under
-#'     quadratic loss with applications to small area estimation.
-#'     \emph{Journal of Survey Statistics and Methodology}, 2(2), 173-193.
+#'   \item Bell, W. R., Datta, G. S., and Ghosh, M. (2013). Benchmarking small area
+#'     estimators. \emph{Biometrika}, 100(1), 189-202.
+#'   \item Ghosh, M., and Steorts, R. C. (2013). Two-stage benchmarking as applied to small
+#'     area estimation. \emph{TEST}, 22(4), 670-687.
 #'   \item Datta, G. S., Ghosh, M., Steorts, R., and Maples, J. (2011). Bayesian
-#'     benchmarking with applications to small area estimation. \emph{Test}, 20(3), 574-588.
-#'   \item Berg, E., and Fuller, W. A. (2014). Small area prediction of proportions
-#'     with a constrained multinomial logit model. \emph{Journal of Survey Statistics and Methodology}, 2(3), 256-283.
+#'     benchmarking with applications to small area estimation. \emph{TEST}, 20(3), 574-588.
 #' }
 #'
 #' @export
@@ -480,7 +476,7 @@ benchmark_sae.default <- function(
     agg_initial <- sum(w_calc * y_g)
 
     if (method == "ratio") {
-      # Ratio / Multiplicative Benchmarking (You and Rao, 2002; Rao and Molina, 2015)
+      # Ratio / Multiplicative Benchmarking (Rao and Molina, 2015)
       if (abs(agg_initial) < .Machine$double.eps) {
         cli::cli_abort("Initial weighted aggregation for group {.val {g}} is virtually zero; ratio benchmarking is undefined.")
       }
@@ -491,7 +487,7 @@ benchmark_sae.default <- function(
       diff_val <- T_g - agg_initial
       df_work$y_bm[idx_g] <- y_g + (diff_val / sum(w_calc))
     } else if (method == "optimal") {
-      # Optimal Quadratic Loss / Variance-Weighted Benchmarking (Datta et al., 2011; Steorts et al., 2014)
+      # Optimal Quadratic Loss / Variance-Weighted Benchmarking (Datta et al., 2011; Bell, Datta and Ghosh, 2013)
       mse_g <- df_work$mse[idx_g]
       diff_val <- T_g - agg_initial
 
@@ -506,7 +502,7 @@ benchmark_sae.default <- function(
         df_work$y_bm[idx_g] <- y_g + w_calc * mse_pos * diff_val / sum(w_calc^2 * mse_pos)
       }
     } else if (method == "logit") {
-      # Logit-scale additive shift for bounded indicators in (0, 1) (Berg and Fuller, 2014)
+      # Logit-scale additive shift for bounded indicators in (0, 1)
       if (any(y_g <= 0 | y_g >= 1)) {
         cli::cli_abort(c(
           "Logit benchmarking requires model estimates to be strictly within (0, 1).",

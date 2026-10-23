@@ -513,6 +513,12 @@ autoplot.list <- function(object, type = c("comparison", "mse", "scatter", "map"
 #'
 #' @return A \code{ggplot} object.
 #'
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' d <- diagnose(m)
+#' autoplot(d, type = "calibration")
+#' autoplot(d, type = "qq")
+#'
 #' @export
 autoplot.fastsae_diagnose <- function(object,
                                       type = c("all", "calibration", "rse", "residuals", "qq", "pit", "cpo"),

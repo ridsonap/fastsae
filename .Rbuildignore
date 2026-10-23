@@ -37,6 +37,7 @@
 ^calc_cov\.R$
 ^cov_res\.rds$
 ^playground$
+^paper$
 ^inst/python/__pycache__$
 ^\.git$
 ^vignettes/articles$
