@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # ==============================================================================
-# Benchmark: fastsae (hb_area) vs hbsae (fSAE.Area) vs fastsaehb (hb_normal)
+# Benchmark: fastsae (hb_area) vs hbsae (fSAE.Area)
 # Fay-Herriot Normal / Gaussian Hierarchical Bayes Model
 # Across Domain Sizes n = 30, 50, 100, 250
 # ==============================================================================
@@ -9,7 +9,6 @@
 suppressPackageStartupMessages({
   library(fastsae)
   library(hbsae)
-  library(fastsaehb)
   library(bench)
   library(tibble)
   library(dplyr)
@@ -31,11 +30,11 @@ D_values <- if (length(n_args) > 0) n_args else c(30, 50, 100, 250)
 
 cat("==============================================================================\n")
 cat("BENCHMARK HIERARCHICAL BAYES NORMAL (FAY-HERRIOT AREA LEVEL)\n")
-cat("Metode yang diuji: fastsae (hb_area) vs hbsae (fSAE.Area) vs fastsaehb (hb_normal)\n")
+cat("Methods: fastsae (hb_area) vs hbsae (fSAE.Area)\n")
 cat(sprintf("Domain sizes (n): %s | Iterations: %d each\n", paste(D_values, collapse = ", "), iter_arg))
 cat("==============================================================================\n\n")
 
-out_dirs <- c("inst/extdata", "inst/extdata")
+out_dirs <- "inst/extdata"
 for (d in out_dirs) {
   if (!dir.exists(d)) dir.create(d, recursive = TRUE)
 }
@@ -67,13 +66,6 @@ for (n_val in D_values) {
       var.init = df$vardir,
       X = X,
       method = "HB"
-    ),
-    fastsaehb = fastsaehb::hb_normal(
-      formula = y_gaussian ~ x1 + x2,
-      vardir = "vardir",
-      data = df,
-      n.iter = 5000,
-      n.burnin = 1000
     ),
     check = FALSE,
     iterations = current_iter,
@@ -120,7 +112,7 @@ for (n_val in D_values) {
   sub <- df_all[df_all$n == n_val, ]
   cat(sprintf("\n--- Domain n = %d ---\n", n_val))
   for (i in seq_len(nrow(sub))) {
-    cat(sprintf("  %-10s | Median: %8.4f s | Memori: %8.2f MB | Itr/sec: %7.2f\n",
+    cat(sprintf("  %-10s | Median: %8.4f s | Memory: %8.2f MB | Itr/sec: %7.2f\n",
                 sub$Method[i], sub$`Median (s)`[i], sub$`Memory (MB)`[i], sub$`Iterations/sec`[i]))
   }
 }
