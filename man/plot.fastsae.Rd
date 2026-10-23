@@ -22,3 +22,7 @@ Automatically routes to \code{\link{map_sae}} if spatial geometry is supplied,
 to two-model comparison if a second \code{fastsae} model is provided, or
 to \code{\link[ggplot2]{autoplot}} for diagnostic and estimate plots.
 }
+\examples{
+m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+plot(m)
+}

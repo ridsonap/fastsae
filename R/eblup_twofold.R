@@ -236,7 +236,7 @@ eblup_twofold <- function(
   if (length(neg_mse) > 0) {
     cli::cli_warn(c(
       "The MSE estimate is negative for {length(neg_mse)} subarea{?s}; set to {.code NA}.",
-      "i" = "Consider {.code method = \"REML\"} or {.code mse = \"bootstrap\"}."
+      "i" = "Consider {.code method = \"REML\"} or {.code mse_type = \"bootstrap\"}."
     ))
     res$df_eblup$mse[neg_mse] <- NA_real_
     res$df_eblup$rse[neg_mse] <- NA_real_

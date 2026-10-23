@@ -101,7 +101,7 @@ Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the
 `sae`/`emdi` rows come from an earlier run of the same design (simulated
 data, 5 covariates) on different random draws, the `tipsae` rows from an
 earlier run on the same data. See the [benchmark
-article](https://ridsonap.github.io/fastsae/articles/benchmarks.html)
+article](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html)
 for all sizes.
 
 <!-- BENCH-README:END -->
@@ -156,18 +156,18 @@ Explore comprehensive guides, mathematical formulations, and worked
 examples:
 
 👉
-[**https://ridsonap.github.io/fastsae/**](https://ridsonap.github.io/fastsae/)
+[**https://ridsonap.is-a.dev/fastsae/**](https://ridsonap.is-a.dev/fastsae/)
 
 - [Getting Started with
-  fastsae](https://ridsonap.github.io/fastsae/articles/getting-started.html)
+  fastsae](https://ridsonap.is-a.dev/fastsae/articles/getting-started.html)
 - [Spatial & Spatio-Temporal
-  Models](https://ridsonap.github.io/fastsae/articles/spatial-temporal.html)
+  Models](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.html)
 - [Bayesian Area-Level Models via
-  INLA](https://ridsonap.github.io/fastsae/articles/hb-area-inla.html)
+  INLA](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.html)
 - [Model Diagnostics &
-  Calibration](https://ridsonap.github.io/fastsae/articles/model-diagnostics.html)
+  Calibration](https://ridsonap.is-a.dev/fastsae/articles/model-diagnostics.html)
 - [Interactive
-  Benchmarks](https://ridsonap.github.io/fastsae/articles/benchmarks.html)
+  Benchmarks](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html)
 
 ------------------------------------------------------------------------
 

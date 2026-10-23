@@ -16,7 +16,8 @@
 #'   Default is 4. Must be between 1 and \code{D - 1}.
 #' @param coords Optional numeric matrix of dimension \code{c(D, 2)} containing 2D spatial coordinates.
 #'   If provided and \code{type = "knn"}, distances are computed from these coordinates.
-#' @param seed Optional integer. Random seed for reproducible coordinate generation.
+#' @param seed Optional integer. Random seed for reproducible coordinate generation; the
+#'   random number stream of the session is restored afterwards.
 #'
 #' @return A square numeric matrix of dimension \eqn{D \times D} with row and column names
 #'   set to domain identifiers (\code{"1"}, \code{"2"}, ..., \code{"D"}).
@@ -41,9 +42,7 @@ sim_spatial_weights <- function(D = 40,
                                 k = 4,
                                 coords = NULL,
                                 seed = NULL) {
-  if (!is.null(seed)) {
-    set.seed(as.integer(seed))
-  }
+  .local_seed(seed)
 
   D <- as.integer(D)
   if (is.na(D) || D < 2L) {

@@ -191,3 +191,25 @@ test_that("setup_numpyro_env(check_only = TRUE) only runs the check", {
   local_mocked_bindings(check_numpyro_available = function(device = "auto") paste("checked", device))
   expect_equal(setup_numpyro_env(check_only = TRUE, device = "cpu"), "checked cpu")
 })
+
+test_that("a seed of the simulation functions leaves the session's random numbers unchanged", {
+  sims <- list(
+    area = function() sim_area_data(D = 20, seed = 5),
+    series = function() sim_series_data(D = 10, T = 3, seed = 5),
+    weights = function() sim_spatial_weights(D = 10, seed = 5)
+  )
+  for (nm in names(sims)) {
+    set.seed(11)
+    before <- stats::runif(2)
+    set.seed(11)
+    first <- sims[[nm]]()
+    # set.seed() inside the function replaced the stream of the session
+    expect_identical(stats::runif(2), before, label = nm)
+    expect_identical(sims[[nm]](), first, label = nm)
+  }
+  # without a seed the draws come from the stream of the session
+  set.seed(3)
+  a <- sim_area_data(D = 20)
+  set.seed(3)
+  expect_identical(sim_area_data(D = 20), a)
+})

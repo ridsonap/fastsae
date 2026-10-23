@@ -88,7 +88,7 @@ compare models with different covariates.,
 \item \code{random_effect} random effect for each area \cr
 \item \code{vardir} variance sampling from the direct estimator for each area \cr
 \item \code{mse} Mean Square Error \cr
-\item \code{rse} Relative Standart Error (\%) \cr
+\item \code{rse} Relative Standard Error (\%) \cr
 \code{self_benchmark} logical indicating whether self-benchmarking was active, \cr
 \code{benchmark_summary} summary table of benchmark calibration (if self-benchmarking). \cr
 }
@@ -100,6 +100,11 @@ This function gives the Empirical Best Linear Unbiased Prediction (EBLUP) or Emp
 The model has a form that is response ~ auxiliary variables.
 where numeric type response variables can contain NA.
 When the response variable contains NA it will be estimated with synthetic estimator.
+
+The random effect variance is estimated by (RE)ML and truncated at 0, as in \pkg{sae}.
+An estimate of 0 makes every EBLUP the synthetic estimate, and the MSE estimates can
+then understate the error; the function says so with a message. Such estimates are
+common with few areas or large sampling variances (Li and Lahiri, 2010).
 }
 \examples{
 library(fastsae)
@@ -131,10 +136,8 @@ m1_bench <- eblup_fh(
 }
 \references{
 \enumerate{
-\item Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
-}
-
-\enumerate{
+\item Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method for solving
+small area estimation problems. \emph{Journal of Multivariate Analysis}, 101(4), 882-892.
 \item Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information criteria for Fay-Herriot model selection. \emph{Computational Statistics & Data Analysis}, 70, 268-280.
 \item Rao, J. N. K., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
 \item Slud, E. V., & Maiti, T. (2006). Small-area estimation via Fay-Herriot models with logit and log transformations. \emph{Communications in Statistics - Theory and Methods}, 35(10), 1957-1971.

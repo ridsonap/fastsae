@@ -22,7 +22,7 @@
 #'   corresponding to \code{rho2} in \code{\link{eblup_stfh}}). Default is 0.6.
 #' @param sigma_s Numeric. Standard deviation of domain spatial random effects (\eqn{u_1}). Default is 0.4.
 #' @param sigma_t Numeric. Standard deviation of stationary spatio-temporal effects (\eqn{u_2}). Default is 0.3.
-#' @param trend Character. Deterministric temporal trend type: \code{"linear"}, \code{"random_walk"},
+#' @param trend Character. Temporal trend type: \code{"linear"}, \code{"random_walk"},
 #'   \code{"ar1"}, or \code{"none"}. Default is \code{"linear"}.
 #' @param trend_slope Numeric. Slope / scale of the temporal trend. Default is 0.05.
 #' @param beta Numeric vector of length 3 giving fixed regression coefficients \eqn{(\beta_0, \beta_1, \beta_2)}.
@@ -32,7 +32,8 @@
 #'   (excluding persistent unsampled domains). Default is 0.05.
 #' @param sort_order Character. Row sorting order: \code{"domain-major"} (all time periods for domain 1,
 #'   then domain 2, required by \code{\link{eblup_stfh}}) or \code{"time-major"}. Default is \code{"domain-major"}.
-#' @param seed Optional integer. Random seed for reproducibility.
+#' @param seed Optional integer. Random seed for reproducibility; the random number stream
+#'   of the session is restored afterwards.
 #'
 #' @return An object of class \code{c("fastsae_sim_series", "list")} containing:
 #'   \describe{
@@ -55,7 +56,6 @@
 #' head(sim_panel$data)
 #'
 #' # 2. Directly estimate Spatio-Temporal Fay-Herriot model (eblup_stfh)
-#' \dontrun{
 #' fit_stfh <- eblup_stfh(
 #'   y_gaussian ~ x1 + x2,
 #'   data = sim_panel$data,
@@ -65,7 +65,6 @@
 #'   W = sim_panel$W_std
 #' )
 #' summary(fit_stfh)
-#' }
 #'
 #' @export
 sim_series_data <- function(D = 42,
@@ -85,9 +84,7 @@ sim_series_data <- function(D = 42,
                             prop_intermittent = 0.05,
                             sort_order = c("domain-major", "time-major"),
                             seed = NULL) {
-  if (!is.null(seed)) {
-    set.seed(as.integer(seed))
-  }
+  .local_seed(seed)
 
   T <- as.integer(T)
   if (is.na(T) || T < 2L) stop("'T' must be an integer >= 2.", call. = FALSE)

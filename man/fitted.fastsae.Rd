@@ -17,3 +17,7 @@ Vector of fitted estimates.
 \description{
 Extract fitted values (EBLUP or HB) from a fastsae object
 }
+\examples{
+m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+head(fitted(m))
+}

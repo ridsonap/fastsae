@@ -722,3 +722,25 @@ test_that("the negative binomial model of hb_area() warns about its accuracy", {
     "weakly identified"
   )
 })
+
+test_that("a random effect variance estimated as 0 is reported with a message", {
+  set.seed(1)
+  d <- data.frame(x = rnorm(25), v = 4)
+  # sampling variances far above the spread of y around the regression line
+  d$y <- 1 + d$x + rnorm(25, sd = 0.5)
+  W <- mys_proxmat[1:25, 1:25]
+  W <- W / rowSums(W)
+  expect_message(
+    f <- eblup_fh(y ~ x, vardir = "v", data = d, print_result = FALSE),
+    "random effect variance is estimated as 0"
+  )
+  expect_equal(f$random_effect_var, 0)
+  expect_message(
+    s <- eblup_sfh(y ~ x, vardir = "v", data = d, W = W, print_result = FALSE),
+    "random effect variance is estimated as 0"
+  )
+  expect_equal(s$random_effect_var, 0)
+  # a positive estimate gives no such message
+  expect_no_message(f <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE))
+  expect_gt(f$random_effect_var, 0)
+})

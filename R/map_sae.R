@@ -5,7 +5,7 @@
 #' Unified Spatial Choropleth Mapping for Small Area Estimates
 #'
 #' @description
-#' Provides a comprehensive, single-gateway ("satu pintu") spatial choropleth mapping
+#' Provides a comprehensive, single-gateway spatial choropleth mapping
 #' interface for Small Area Estimation models fitted with \pkg{fastsae} (e.g. \code{eblup_fh},
 #' \code{eblup_sfh}, \code{eblup_stfh}, \code{eblup_bhf}, \code{hb_area}, and \code{benchmark_sae}).
 #'

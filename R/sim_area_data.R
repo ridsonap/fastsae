@@ -20,7 +20,8 @@
 #' @param beta Numeric vector of length 3 giving true regression coefficients \eqn{(\beta_0, \beta_1, \beta_2)}.
 #'   Default is \code{c(1.0, 0.8, -0.5)}.
 #' @param n_unsampled Integer. Number of domains to mark as unsampled (where response variables are set to \code{NA}). Default is 6.
-#' @param seed Optional integer. Random seed for reproducibility.
+#' @param seed Optional integer. Random seed for reproducibility; the random number stream
+#'   of the session is restored afterwards.
 #'
 #' @return An object of class \code{c("fastsae_sim_data", "list")} containing:
 #'   \describe{
@@ -62,9 +63,7 @@ sim_area_data <- function(D = 42,
                           beta = c(1.0, 0.8, -0.5),
                           n_unsampled = 6,
                           seed = NULL) {
-  if (!is.null(seed)) {
-    set.seed(as.integer(seed))
-  }
+  .local_seed(seed)
 
   spatial_type <- match.arg(spatial_type)
 

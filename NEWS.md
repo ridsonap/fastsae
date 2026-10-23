@@ -360,6 +360,21 @@
   `hb_twofold()`); the unit-level vignette covers `hb_unit()`.
 
 ### Fixes before the 1.0.0 release
+* `eblup_fh()` and `eblup_sfh()` say with a message when the random effect variance is
+  estimated as 0 (the (RE)ML estimate is truncated at 0, as in 'sae'): the EBLUPs are then the
+  synthetic estimates and the MSE estimates can understate their error (Li and Lahiri, 2010).
+* `sim_area_data()`, `sim_series_data()` and `sim_spatial_weights()` restore the random number
+  stream of the session after using `seed`; they replaced it before. The simulated data are
+  unchanged.
+* `benchmark_sae()` documentation: the references are corrected. Two-stage benchmarking cites
+  Ghosh and Steorts (2013), optimal benchmarking Datta et al. (2011) and Bell, Datta and Ghosh
+  (2013); the citations of You and Rao (2002), Berg and Fuller (2014) and a non-existent
+  "Steorts, Hall and Ghosh (2014)" are removed.
+* Examples: `eblup_bhf()` no longer needs 'dplyr', the `eblup_stfh()` example of
+  `sim_series_data()` runs, `eblup_sfh()` uses `mse_type` instead of the deprecated `mse_method`,
+  and the S3 methods (`print()`, `summary()`, `coef()`, `fitted()`, `residuals()`, `plot()`,
+  `autoplot()` of `diagnose()`) have examples.
+* The website moved to <https://ridsonap.is-a.dev/fastsae/>.
 * `benchmark_sae()` stops when a `target` or `national_target` is missing or not finite, or a
   `weight` is missing. Before, a target of `NA` (for example a `weighted.mean()` of direct
   estimates that include unsampled domains) silently made every benchmarked estimate `NA`.

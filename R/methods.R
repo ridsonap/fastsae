@@ -48,6 +48,9 @@
 #' @param ... Additional arguments passed to print methods.
 #'
 #' @return The original object invisibly.
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' print(m)
 #' @export
 print.fastsae <- function(x, ...) {
   cli::cli_h1("Fast Small Area Estimation (fastsae)")
@@ -160,6 +163,10 @@ print.fastsae <- function(x, ...) {
 #' @param ... Additional arguments.
 #'
 #' @return An object of class \code{summary.fastsae}.
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' s <- summary(m)
+#' s$coefficients
 #' @export
 summary.fastsae <- function(object, ...) {
   ans <- list(
@@ -204,6 +211,9 @@ summary.fastsae <- function(object, ...) {
 #' @param ... Additional arguments.
 #'
 #' @return The original object invisibly.
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' print(summary(m))
 #' @export
 print.summary.fastsae <- function(x, ...) {
   cli::cli_h1("Summary of fastsae Fit")
@@ -327,6 +337,9 @@ print.summary.fastsae <- function(x, ...) {
 #' @param ... Additional arguments.
 #'
 #' @return Named vector of estimated coefficients.
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' coef(m)
 #' @export
 coef.fastsae <- function(object, ...) {
   if (!is.null(object$estcoef) && "beta" %in% names(object$estcoef)) {
@@ -344,6 +357,9 @@ coef.fastsae <- function(object, ...) {
 #' @param ... Additional arguments.
 #'
 #' @return Vector of fitted estimates.
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' head(fitted(m))
 #' @export
 fitted.fastsae <- function(object, ...) {
   if (!is.null(object$df_hb) && "hb" %in% names(object$df_hb)) {
@@ -361,6 +377,9 @@ fitted.fastsae <- function(object, ...) {
 #' @param ... Additional arguments.
 #'
 #' @return Vector of residuals for sampled areas.
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' head(residuals(m))
 #' @export
 residuals.fastsae <- function(object, ...) {
   if (!is.null(object$df_hb) && all(c("y", "hb") %in% names(object$df_hb))) {
@@ -388,6 +407,9 @@ residuals.fastsae <- function(object, ...) {
 #' @param ... Additional arguments passed to \code{\link{map_sae}} or \code{\link[ggplot2]{autoplot}}.
 #'
 #' @return A \code{ggplot} object.
+#' @examples
+#' m <- eblup_fh(y ~ x1 + x2 + x3, vardir = "vardir", data = mys, print_result = FALSE)
+#' plot(m)
 #' @export
 plot.fastsae <- function(x, y = NULL, ...) {
   dots <- list(...)

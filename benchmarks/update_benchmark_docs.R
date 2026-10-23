@@ -135,7 +135,7 @@ readme_block <- c(
   "",
   beta_table,
   "",
-  paste(mem_note, freq_note, "See the [benchmark article](https://ridsonap.github.io/fastsae/articles/benchmarks.html) for all sizes."),
+  paste(mem_note, freq_note, "See the [benchmark article](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html) for all sizes."),
   ""
 )
 rme <- replace_block(rme, "<!-- BENCH-README:START -->", "<!-- BENCH-README:END -->", readme_block)
