@@ -132,6 +132,12 @@ test_that("benchmark print, summary, and autoplot methods work", {
   expect_output(print(bm), "fastsae Small Area Benchmark Calibration")
   expect_output(summary(bm), "Adjustment Statistics")
 
+  # `[` keeps the class but drops the attributes; a subset printed the default method "Ratio"
+  bm_d <- benchmark_sae(fit_fh, target = 7.0, method = "difference")
+  out <- capture.output(print(bm_d[, c("domain", "benchmarked")]))
+  expect_false(any(grepl("Ratio", out)))
+  expect_true(any(grepl("benchmarked", out)))
+
   p <- autoplot(bm)
   expect_s3_class(p, "ggplot")
 

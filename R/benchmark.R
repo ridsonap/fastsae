@@ -645,6 +645,11 @@ benchmark_sae.default <- function(
 #' @rdname benchmark_sae
 #' @export
 print.fastsae_benchmark <- function(x, all_groups = FALSE, ...) {
+  # `[` keeps the class but drops the attributes, so a subset is printed as a data frame
+  if (is.null(attr(x, "method"))) {
+    print(as.data.frame(x), ...)
+    return(invisible(x))
+  }
   is_hierarchical <- isTRUE(attr(x, "hierarchical"))
 
   if (is_hierarchical) {
