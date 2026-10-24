@@ -1,5 +1,6 @@
 ## Test environments
-* local macOS 26.6 (aarch64), R 4.6.1
+* local macOS 26.6.2 (aarch64), R 4.6.1, `--as-cran`
+* win-builder: Windows, R-devel and R-release
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release, oldrel-1)
 * GitHub Actions, CRAN-like: Ubuntu (release), `--as-cran`, without the non-CRAN package 'INLA'
 
@@ -8,21 +9,20 @@
 0 errors | 0 warnings | 1 note
 
 * checking CRAN incoming feasibility ... NOTE
-  Suggests or Enhances not in mainstream repositories: INLA
-  Availability using Additional_repositories specification: INLA yes
-  https://inla.r-inla-download.org/R/stable
-
-  'INLA' is only in Suggests and used conditionally (`requireNamespace()`): the
-  examples that fit INLA models run only inside `if (requireNamespace("INLA"))`, the
-  tests call `skip_if_not_installed("INLA")`, and the vignette chunks that fit
-  INLA models are evaluated only when 'INLA' is installed.
-
   Possibly misspelled words in DESCRIPTION:
     BYM, Besag, ICAR, Phan, RW, Rao, Torabi, spatio
 
   These are author names (Besag, Phan, Rao, Torabi) and standard terms of the
   field: BYM (Besag-York-Mollie model), ICAR (intrinsic conditional
   autoregressive), RW (random walk, as in RW1/RW2) and "spatio-temporal".
+
+The same check also reports, as INFO, that 'INLA' (Suggests) is not in a
+mainstream repository; it is available from the `Additional_repositories` entry
+(https://inla.r-inla-download.org/R/stable). 'INLA' is used conditionally
+(`requireNamespace()`): the examples that fit INLA models run only inside
+`if (requireNamespace("INLA"))`, the tests call `skip_if_not_installed("INLA")`,
+and the vignette chunks that fit INLA models are evaluated only when 'INLA' is
+installed.
 
 ## Optional Python backend
 `hb_area(engine = jax_engine())` fits models by MCMC with the Python libraries
