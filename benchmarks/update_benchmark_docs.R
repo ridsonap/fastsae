@@ -21,6 +21,8 @@ sig <- function(x, d = 4) formatC(signif(x, d), format = "fg", digits = d, flag 
 num <- function(x, d = 4) sig(x, d)
 
 js_rows <- function(df, algo = NULL) {
+  # the charts compare packages; the extra fastsae row with the STFH analytical MSE is left out
+  df <- df[df$Method != "fastsae_mse", ]
   df <- df[order(df$n, df$Method), ]
   sprintf("    { Method: \"%s\", Median: %s, Mem: %s, IPS: %s, n: %d%s }",
           df$Method, num(df$`Median (s)`), num(df$`Memory (MB)`), num(df$`Iterations/sec`), as.integer(df$n),
@@ -37,6 +39,8 @@ replace_block <- function(lines, start_pat, end_pat, new) {
 
 med <- function(df, m, n) { v <- df$`Median (s)`[df$Method == m & df$n == n]; if (length(v)) v[1] else NA_real_ }
 mem <- function(df, m, n) { v <- df$`Memory (MB)`[df$Method == m & df$n == n]; if (length(v)) v[1] else NA_real_ }
+# Increase of the peak resident memory of the R process (benchmarks/bench_frequentist.R)
+peak <- function(df, m, n) { v <- df$`Peak RSS (MB)`[df$Method == m & df$n == n]; if (length(v)) v[1] else NA_real_ }
 fmt_s <- function(x) ifelse(is.na(x), "\\-", paste0(sig(x, 3), " s"))
 fmt_mb <- function(x) ifelse(is.na(x), "\\-", ifelse(x >= 1024, paste0(sig(x / 1024, 3), " GB"), paste0(sig(x, 3), " MB")))
 fmt_x <- function(x) ifelse(is.na(x), "\\-", paste0(format(round(x), big.mark = ","), "x"))
@@ -45,43 +49,49 @@ N <- 1000
 # ---- frequentist summary table (n = 1000) ------------------------------------
 freq_rows <- unlist(lapply(names(freq), function(a) {
   df <- freq[[a]]
-  lab <- c(FH = "Fay-Herriot", SFH = "Spatial Fay-Herriot", STFH = "Spatio-Temporal FH ($T = 5$)")[[a]]
+  lab <- c(FH = "Fay-Herriot", SFH = "Spatial Fay-Herriot",
+           STFH = "Spatio-Temporal FH ($T = 5$), point estimates")[[a]]
   f <- med(df, "fastsae", N); s <- med(df, "sae", N); e <- med(df, "emdi", N)
   cell <- function(m, v) if (is.na(v)) "\\-" else
-    sprintf("%s (%s; %s slower)", fmt_s(v), fmt_mb(mem(df, m, N)), fmt_x(v / f))
+    sprintf("%s (%s; %s slower)", fmt_s(v), fmt_mb(peak(df, m, N)), fmt_x(v / f))
   sprintf("| **%s** | **%s** (%s) | %s | %s |",
-          lab, fmt_s(f), fmt_mb(mem(df, "fastsae", N)), cell("sae", s), cell("emdi", e))
+          lab, fmt_s(f), fmt_mb(peak(df, "fastsae", N)), cell("sae", s), cell("emdi", e))
 }))
 freq_table <- c(
   "| Model ($n = 1,000$ domains, 5 covariates) | `fastsae` | `sae` | `emdi` |",
   "|:---|:--:|:--:|:--:|",
   freq_rows
 )
+# Times only: bench's mem_alloc counts neither the memory of the external inla program
+# nor that of the Stan sampler, so it cannot compare the two packages
 beta_rows <- unlist(lapply(names(beta), function(a) {
   df <- beta[[a]]
   n_use <- max(df$n)
   lab <- c(STD = "Beta", SPATIAL = "Spatial Beta (Besag ICAR)", ST = "Spatio-Temporal Beta (Besag + RW1, $T = 5$)")[[a]]
   f <- med(df, "fastsae", n_use); t <- med(df, "tipsae", n_use)
-  sprintf("| **%s** | %s | **%s** (%s) | %s (%s) | %s |", lab, format(n_use, big.mark = ","),
-          fmt_s(f), fmt_mb(mem(df, "fastsae", n_use)), fmt_s(t), fmt_mb(mem(df, "tipsae", n_use)), fmt_x(t / f))
+  sprintf("| **%s** | %s | **%s** | %s | %s |", lab, format(n_use, big.mark = ","),
+          fmt_s(f), fmt_s(t), fmt_x(t / f))
 }))
 beta_table <- c(
-  "| Model | $n$ | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) | Speedup |",
+  "| Model | $n$ | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) | Ratio of times |",
   "|:---|:--:|:--:|:--:|:--:|",
   beta_rows
 )
-mem_note <- paste(
-  "Times are medians of `bench::mark()`; memory is the total memory allocated by R during one call",
-  "(`bench::mark()$mem_alloc`), not the peak resident memory."
+fmeta <- readRDS("inst/extdata/frequentist_benchmark_meta.rds")
+date_bayes <- "2026-10-14"  # benchmarks/bench_bayes_fastsae.R (update when re-running it)
+mem_note <- paste0(
+  "Times are medians of `bench::mark()`. The frequentist rows were measured on ", fmeta$date,
+  " with fastsae ", fmeta$versions[["fastsae"]], ", sae ", fmeta$versions[["sae"]], " and emdi ",
+  fmeta$versions[["emdi"]], " on the same simulated data sets (", fmeta$cpu, ", ", fmeta$r,
+  "; `benchmarks/bench_frequentist.R`), each in its own R process; memory is the increase of the peak ",
+  "resident memory of that process during the fits, which includes memory allocated by compiled code ",
+  "(increases of a few tens of MB vary from run to run and should not be compared). ",
+  "'sae' has no analytical MSE for the spatio-temporal model, so that row compares point estimates; with ",
+  "its analytical MSE, fastsae took ", fmt_s(med(freq$STFH, "fastsae_mse", N)), "."
 )
-# Dates of the last fastsae re-measurement (update when re-running the generators)
-date_freq <- "2026-10-13"   # benchmarks/bench_frequentist_fastsae.R
-date_bayes <- "2026-10-14"  # benchmarks/bench_bayes_fastsae.R
 freq_note <- paste0(
-  "The `fastsae` rows were re-measured with fastsae ", as.character(utils::packageVersion("fastsae")),
-  " (frequentist on ", date_freq, ", `benchmarks/bench_frequentist_fastsae.R`; Bayesian on ", date_bayes,
-  ", `benchmarks/bench_bayes_fastsae.R`); the `sae`/`emdi` rows come from an earlier run of the same design ",
-  "(simulated data, 5 covariates) on different random draws, the `tipsae` rows from an earlier run on the same data."
+  "The Bayesian `fastsae` rows were re-measured on ", date_bayes, " (`benchmarks/bench_bayes_fastsae.R`), ",
+  "the `tipsae` rows (4 chains of 2,000 iterations) come from an earlier run on the same data."
 )
 
 # ---- vignette ------------------------------------------------------------------
@@ -107,7 +117,7 @@ summary_block <- c(
   "",
   sprintf("- **Fay-Herriot**: %s faster than `sae` and %s faster than `emdi`.", fmt_x(f1000("FH", "sae")), fmt_x(f1000("FH", "emdi"))),
   sprintf("- **Spatial Fay-Herriot**: %s faster than `sae` and %s faster than `emdi`.", fmt_x(f1000("SFH", "sae")), fmt_x(f1000("SFH", "emdi"))),
-  sprintf("- **Spatio-Temporal Fay-Herriot** ($T = 5$): %s faster than `sae`.", fmt_x(f1000("STFH", "sae"))),
+  sprintf("- **Spatio-Temporal Fay-Herriot** ($T = 5$, point estimates): %s faster than `sae`.", fmt_x(f1000("STFH", "sae"))),
   "",
   "---",
   "",
@@ -127,7 +137,7 @@ writeLines(hb_vig, "vignettes/hb-area-inla.Rmd")
 # ---- README --------------------------------------------------------------------
 rme <- readLines("README.Rmd")
 readme_block <- c(
-  "#### 1. Frequentist EBLUP with analytical MSE",
+  "#### 1. Frequentist EBLUP with analytical MSE (time and peak memory)",
   "",
   freq_table,
   "",

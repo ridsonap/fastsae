@@ -58,11 +58,22 @@ mem <- function(x, m, n) {
   v <- x$`Memory (MB)`[x$Method == m & x$n == n]
   if (length(v) == 0) NA_real_ else v[1]
 }
+# increase of the peak resident memory of the R process (benchmarks/bench_frequentist.R)
+peak <- function(x, m, n) {
+  v <- x$`Peak RSS (MB)`[x$Method == m & x$n == n]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+converged <- function(x, m, n) {
+  v <- x$converged[x$Method == m & x$n == n]
+  if (length(v) == 0) NA else v[1]
+}
+fmeta <- readRDS(ext("frequentist_benchmark_meta.rds"))
+agr <- readRDS(ext("agreement_reference.rds"))
 speedup <- function(x, m, n) med(x, m, n) / med(x, "fastsae", n)
 conc <- readRDS(ext("beta_concordance_n1000.rds"))
 cm <- conc$metrics
 ca <- conc$agreement
-mc <- readRDS(file.path("..", "benchmarks", "output", "mc_finite_population_results_D500_R25.rds"))
+mc <- readRDS(file.path("..", "benchmarks", "output", "mc_design_based_D500_R200.rds"))
 
 
 ## ----pkg-comparison-----------------------------------------------------------
@@ -133,27 +144,45 @@ rj_table(fns, caption = "Main functions of fastsae.") |>
   kableExtra::column_spec(2, width = "8.5cm")
 
 
+## ----agreement----------------------------------------------------------------
+ag <- agr$agreement
+fmt_e <- function(x) ifelse(is.na(x), "--", formatC(x, format = "e", digits = 0))
+ag_tab <- data.frame(
+  Model = ag$Model, Data = ag$Data, Method = ag$Method, Reference = ag$Reference,
+  Coefficients = fmt_e(ag$Coefficients), Variances = fmt_e(ag$Variances),
+  EBLUP = fmt_e(ag$EBLUP), MSE = fmt_e(ag$MSE)
+)
+rj_table(ag_tab, align = "llllrrrr", font_size = 8,
+         caption = sprintf("Largest relative difference, $\\max|a - b| / \\max|b|$, between fastsae ($a$) and sae %s or emdi %s ($b$) fitted to the same data: regression coefficients, variance parameters (including $\\rho$), EBLUPs and analytical MSEs. sae has no analytical MSE for the spatio-temporal model, and both packages estimate the MSE of the unit-level model by bootstrap.",
+                           agr$versions[["sae"]], agr$versions[["emdi"]]))
+
+
 ## ----freq-table---------------------------------------------------------------
 ns <- c(30, 100, 500, 1000)
+cell_t <- function(x, m, n) {
+  v <- fmt_s(med(x, m, n))
+  ifelse(isFALSE(converged(x, m, n)), paste0(v, "$^\\dagger$"), v)
+}
 freq_rows <- function(x, has_emdi = TRUE) {
   data.frame(
     D = format(ns, big.mark = ","),
-    f = fmt_s(sapply(ns, function(n) med(x, "fastsae", n))),
-    s = fmt_s(sapply(ns, function(n) med(x, "sae", n))),
-    e = if (has_emdi) fmt_s(sapply(ns, function(n) med(x, "emdi", n))) else "--",
-    mf = fmt_s(sapply(ns, function(n) mem(x, "fastsae", n))),
-    ms = fmt_s(sapply(ns, function(n) mem(x, "sae", n))),
-    me = if (has_emdi) fmt_s(sapply(ns, function(n) mem(x, "emdi", n))) else "--"
+    f = sapply(ns, function(n) cell_t(x, "fastsae", n)),
+    s = sapply(ns, function(n) cell_t(x, "sae", n)),
+    e = if (has_emdi) sapply(ns, function(n) cell_t(x, "emdi", n)) else "--",
+    mf = fmt_s(sapply(ns, function(n) peak(x, "fastsae", n))),
+    ms = fmt_s(sapply(ns, function(n) peak(x, "sae", n))),
+    me = if (has_emdi) fmt_s(sapply(ns, function(n) peak(x, "emdi", n))) else "--"
   )
 }
 ft <- rbind(freq_rows(b_fh), freq_rows(b_sfh), freq_rows(b_st, has_emdi = FALSE))
 names(ft) <- c("$D$", "fastsae", "sae", "emdi", "fastsae ", "sae ", "emdi ")
 rj_table(ft, align = "rrrrrrr",
-         caption = "Median time and memory allocated by R for point estimates and analytical MSEs. The spatio-temporal model has $T = 5$ periods. The fastsae rows were measured with fastsae 1.0.0; the sae and emdi rows come from an earlier run of the same design on other random draws.",
-         header = c(" " = 1, "Time (s)" = 3, "Memory allocated (MB)" = 3),
+         caption = "Median time and increase of the peak resident memory of the R process for point estimates and analytical MSEs, except for the spatio-temporal model ($T = 5$ periods), where only point estimates are timed because sae has no analytical MSE for it. All packages fitted the same data sets. Memory increases of a few tens of MB vary from run to run. $^\\dagger$The fit did not converge within the iteration limit.",
+         header = c(" " = 1, "Time (s)" = 3, "Peak memory (MB)" = 3),
          groups = list(list(label = "Fay-Herriot", from = 1, to = 4),
                        list(label = "Spatial Fay-Herriot", from = 5, to = 8),
-                       list(label = "Spatio-temporal Fay-Herriot", from = 9, to = 12)))
+                       list(label = "Spatio-temporal Fay-Herriot, point estimates", from = 9, to = 12)))
+st_nc <- b_st$n[b_st$Method == "sae" & b_st$converged %in% FALSE]
 
 
 ## ----beta-table---------------------------------------------------------------
@@ -220,24 +249,27 @@ rj_table(e_rows, align = "rrrrr",
 
 
 ## ----mc-data------------------------------------------------------------------
-mcs <- as.data.frame(mc$summary_table)
-mc_se <- function(dom) 100 * stats::sd(dom$Emp_CR / 100) / sqrt(nrow(dom))
+mcs <- mc$summary_table
+lab_mc <- c(Direct = "Direct", FH = "Fay-Herriot EBLUP", SFH = "Spatial Fay-Herriot EBLUP",
+            fastsae = "Beta-ICAR, fastsae (INLA)", tipsae = "Beta-ICAR, tipsae (Stan)")
 mc_tab <- data.frame(
-  Estimator = c("Direct", "fastsae", "tipsae"),
-  RMSE = fmt(mcs[["Empirical RMSE"]], 4),
-  RRMSE = fmt(mcs[["Empirical RRMSE (%)"]], 1),
-  MARB = fmt(mcs[["Empirical MARB (%)"]], 1),
-  Coverage = c("--", sprintf("%s (%s)", fmt(mcs[["Empirical 95% CrI Coverage (%)"]][2:3], 1),
-                             fmt(c(mc_se(mc$dom_fast), mc_se(mc$dom_tip)), 1))),
-  Width = c("--", fmt(mcs[["Empirical Mean CrI Width"]][2:3], 3)),
-  Time = c("--", fmt(mcs[["Avg Runtime (s/fit)"]][2:3], 1))
+  Estimator = lab_mc[mcs$Estimator],
+  RMSE = fmt(mcs$RMSE, 4),
+  RRMSE = fmt(mcs$RRMSE, 1),
+  MARB = fmt(mcs$MARB, 1),
+  Coverage = sprintf("%s (%s)", fmt(mcs$Coverage, 1), fmt(mcs$Coverage_mcse, 1)),
+  Width = fmt(mcs$Width, 3),
+  Ratio = fmt(mcs$MSE_ratio, 2),
+  Time = fmt_s(mcs$Time)
 )
-names(mc_tab) <- c("Estimator", "RMSE", "RRMSE (%)", "MARB (%)", "Coverage (%)", "Width", "Time (s)")
+names(mc_tab) <- c("Estimator", "RMSE", "RRMSE (%)", "MARB (%)", "Coverage (%)", "Width", "Variance ratio", "Time (s)")
+mrow <- function(e) mcs[mcs$Estimator == e, ]
+tip <- mc$tipsae_settings
 
 
 ## ----mc-----------------------------------------------------------------------
-rj_table(mc_tab, align = "lrrrrrr",
-         caption = "Design-based simulation ($D = 500$, $R = 25$): root mean squared error, relative RMSE and mean absolute relative bias, averaged over areas, coverage of the 95% intervals (standard error across areas in parentheses), mean interval width, and time per fit with five replicates running in parallel.")
+rj_table(mc_tab, align = "lrrrrrrr", font_size = 9,
+         caption = sprintf("Design-based simulation ($D = %d$, $R = %d$): root mean squared error, relative RMSE and mean absolute relative bias, averaged over areas; coverage of the 95%% intervals (Monte Carlo standard error across replicates in parentheses) and their mean width; median over areas of the ratio of the mean estimated MSE (posterior variance for the HB fits) to the empirical MSE; and time per fit with %d replicates running in parallel.", mc$D, mc$R, mc$workers))
 
 
 ## ----data, echo = TRUE--------------------------------------------------------

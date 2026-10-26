@@ -13,7 +13,8 @@
 #'
 #' @param formula an object of class formula that contains a description of the model to be fitted.
 #' @param data a data frame or a data frame extension (e.g. a tibble), one row per subarea.
-#' @param vardir vector or column names from data that contain variance sampling from the direct estimator.
+#' @param vardir sampling variances of the sub-area direct estimates: a numeric vector, the name
+#'   of a column of \code{data} or a one-sided formula.
 #' @param domain vector, column name or one-sided formula referencing the area identifier column
 #'   in \code{data}. Must be supplied.
 #' @param subarea vector, column name or one-sided formula referencing the subarea identifier column
@@ -66,8 +67,10 @@
 #'
 #' @details
 #' The model has a form that is response ~ auxiliary variables, with one row per subarea.
-#' When the response contains NA the subarea is treated as non-sampled and predicted
-#' with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
+#' When the response contains NA the subarea is treated as non-sampled. It is predicted by
+#' \eqn{x_{ij}'\hat\beta + \hat v_i}, borrowing the area effect from the sampled sub-areas of
+#' its area; only the sub-areas of an area without any sampled sub-area get the synthetic
+#' estimator \eqn{x_{ij}'\hat\beta}. MSE is estimated either analytically (Prasad-Rao
 #' g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
 #' derivation for g3) or by parametric bootstrap.
 #'
@@ -83,6 +86,8 @@
 #' \code{mse_type = "bootstrap"} the area MSE comes from the same bootstrap replicates.
 #' Sub-areas of the population that are not rows of \code{data} are not part of the area mean.
 #'
+#' @seealso \code{\link{hb_twofold}} for the hierarchical Bayes counterpart, and
+#'   \code{vignette("twofold-subarea", package = "fastsae")}.
 #' @export
 #' @examples
 #' library(fastsae)

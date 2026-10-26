@@ -52,7 +52,8 @@ An object of class \code{c("fastsae_sim_data", "list")} containing:
     \item{data}{A data frame with columns: \code{domain}, \code{x1}, \code{x2},
       \code{y_gaussian}, \code{vardir}, \code{y_poisson}, \code{exposure},
       \code{y_binomial}, \code{trials}, \code{y_beta}, \code{y_nbinomial},
-      \code{y_gamma}, \code{x_coord}, \code{y_coord}.}
+      \code{y_gamma}, \code{truth_gaussian} (the true Gaussian area mean
+      \eqn{x_d'\beta + u_d}), \code{x_coord}, \code{y_coord}.}
     \item{W}{Binary adjacency matrix \eqn{D \times D}.}
     \item{W_std}{Row-standardized proximity matrix \eqn{D \times D}.}
     \item{coords}{Coordinates of domain centroids.}

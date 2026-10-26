@@ -104,7 +104,9 @@
 #' head(bm_ratio)
 #'
 #' # 3. Two-Stage Hierarchical Calibration (e.g. Regency -> Province -> National)
-#' # Calibrate domains within provinces while matching overarching national target:
+#' # Calibrate domains within provinces while matching overarching national target
+#' # (the sample sizes n of mys are used only for illustration; benchmarking normally
+#' # weights the areas by population shares):
 #' bm_hier <- benchmark_sae(
 #'   fit_fh,
 #'   group = "province",

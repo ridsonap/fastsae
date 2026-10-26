@@ -209,7 +209,9 @@ An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containi
 \itemize{
   \item \code{df_hb}: Data frame with domain estimates, including \code{domain},
     \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},
-    posterior standard error \code{sd}, \code{mse}, relative error \code{rse} (\%),
+    posterior standard deviation \code{sd}, \code{mse} (the posterior variance
+    \eqn{sd^2}, named as in the EBLUP results; it is not a frequentist MSE), relative error
+    \code{rse} (\%),
     95\% credible interval (\code{ci_lower}, \code{ci_upper}), and \code{random_effect}.
     With \code{vardir}, also \code{vardir} and, for the beta and gamma families, the
     \code{precision} of each area the model was fitted with.
@@ -248,7 +250,7 @@ Two estimation engines are available through \code{engine}:
   \item \code{\link{inla_engine}()} (default, or \code{"inla"}): Integrated Nested
     Laplace Approximations (\pkg{INLA}; Rue et al., 2009).
   \item \code{\link{jax_engine}()} (or \code{"jax"}): full MCMC with the No-U-Turn sampler
-    of 'NumPyro' (Phan et al., 2019) on 'JAX', on the CPU or an NVIDIA GPU. Needs Python
+    of 'NumPyro' (Phan et al., 2019) on 'JAX', on the CPU, an NVIDIA GPU or the Apple silicon GPU. Needs Python
     with \code{jax} and \code{numpyro} through \pkg{reticulate}; see
     \code{\link{setup_numpyro_env}}.
 }
@@ -319,7 +321,8 @@ if (requireNamespace("INLA", quietly = TRUE)) {
     family = "gaussian"
   )
 
-  # 2. Self-benchmarking Fay-Herriot with INLA (benchmarked posterior draws)
+  # 2. Self-benchmarking Fay-Herriot with INLA (benchmarked posterior draws); the
+  #    sample sizes n are used only for illustration (normally population shares)
   m_bench <- hb_area(
     y ~ x1 + x2 + x3,
     data = mys,
@@ -356,6 +359,15 @@ if (setup_numpyro_env(check_only = TRUE)) {
 \references{
 \enumerate{
   \item Rao, J. N. K., and Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
+  \item Besag, J., York, J., and Mollie, A. (1991). Bayesian image restoration, with two
+    applications in spatial statistics. \emph{Annals of the Institute of Statistical
+    Mathematics}, 43(1), 1-20.
+  \item Janicki, R. (2020). Properties of the beta regression model for small area estimation
+    of proportions and application to estimation of poverty rates. \emph{Communications in
+    Statistics - Theory and Methods}, 49(9), 2264-2284.
+  \item Leroux, B. G., Lei, X., and Breslow, N. (2000). Estimation of disease rates in small
+    areas: a new mixed model for spatial dependence. In \emph{Statistical Models in
+    Epidemiology, the Environment, and Clinical Trials}, 135-178. Springer.
   \item Petrucci, A., and Salvati, N. (2006). Small area estimation for spatial correlation in
     watershed erosion assessment. \emph{Journal of Agricultural, Biological, and Environmental
     Statistics}, 11(2), 169-182.

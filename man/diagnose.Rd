@@ -86,8 +86,10 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 }
 \references{
 \enumerate{
-  \item Brown, G., Chambers, R., Heady, P., & Heasman, D. (2001). Evaluation of small area estimation methods:
-    An application to the British Labour Force Survey. \emph{ONS Internal Report}.
+  \item Brown, G., Chambers, R., Heady, P., & Heasman, D. (2001). Evaluation of small area
+    estimation methods: an application to unemployment estimates from the UK LFS.
+    \emph{Proceedings of Statistics Canada Symposium 2001: Achieving Data Quality in a
+    Statistical Agency}.
   \item Rao, J. N. K., & Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.). John Wiley & Sons.
   \item Cliff, A. D., & Ord, J. K. (1981). \emph{Spatial Processes: Models & Applications}. Pion London.
 }

@@ -14,8 +14,9 @@
 #'     cautionary note on sampling variability.
 #'   \item \strong{Unreliable} (\eqn{\text{RSE} > 50\%}): suppress or aggregate to a higher level.
 #' }
-#' Other agencies use other cut-offs (for example 25\% and 50\% at the Australian Bureau of
-#' Statistics); set \code{thresholds} accordingly.
+#' The Australian Bureau of Statistics uses the same cut-offs; for other agencies' criteria,
+#' set \code{thresholds} accordingly. For hierarchical Bayes fits the RSE is computed from the
+#' posterior standard deviation.
 #'
 #' @param object A \code{fastsae} model object or a data frame containing an RSE column.
 #' @param rse_col Character string specifying the name of the RSE column. Default is \code{"rse"}.

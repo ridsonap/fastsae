@@ -27,10 +27,14 @@ data(cornsoybeanmeans)
 County means of number of pixels per segment of corn and soy beans,
 from satellite data, for 12 counties in Iowa. The dataset includes
 population size, sample size, and means of auxiliary variables used in
-the dataset \code{\link[sae]{cornsoybean}}.
+the dataset \code{\link{cornsoybean}}.
 }
 \details{
 This dataset is provided for demonstration purposes and is originally
 distributed with the \pkg{sae} package.
+}
+\examples{
+data(cornsoybeanmeans)
+head(cornsoybeanmeans)
 }
 \keyword{datasets}

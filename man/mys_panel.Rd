@@ -3,21 +3,25 @@
 \docType{data}
 \name{mys_panel}
 \alias{mys_panel}
-\title{mys_panel: mean years of schooling people with disabilities 2016 - 2026.}
+\title{mys_panel: mean years of schooling of people with disabilities, 2016-2026}
 \format{
-A data frame with 462 rows and 10 variables.
+A data frame (tibble) with 462 rows and 10 variables:
 
 \describe{
-  \item{area}{regency municipality identifier}
-  \item{year}{year of observation (2016 to 2026)}
-  \item{y}{mean years of schooling people with disabilities (NA for unsampled areas)}
-  \item{vardir}{variance sampling from the direct estimator for each area}
-  \item{rse}{relative standard error (\%)}
-  \item{x1}{Number of Elementary Schools}
-  \item{x2}{Number of Junior High Schools}
-  \item{x3}{Number of Senior High Schools}
-  \item{n}{Number of eligible samples}
-  \item{weight}{Weight}
+  \item{area}{area identifier, 1 to 42.}
+  \item{year}{year of observation (2016 to 2026).}
+  \item{y}{direct estimate of the mean years of schooling (\code{NA} for areas 21 and 25).}
+  \item{vardir}{sampling variance of the direct estimate (\code{NA} where \code{y} is
+    \code{NA}).}
+  \item{rse}{relative standard error of the direct estimate (\%).}
+  \item{x1}{number of elementary schools.}
+  \item{x2}{number of junior high schools.}
+  \item{x3}{number of senior high schools.}
+  \item{n}{number of people with disabilities in the Susenas sample of the area in that
+    year (eligible sample size; synthetic, hence not an integer, and positive also for
+    areas 21 and 25). \code{vardir} was not derived from it.}
+  \item{weight}{sample share, \code{n / sum(n)} over all rows of the panel (the weights sum
+    to 1 over the panel, not within a year).}
 }
 }
 \source{
@@ -27,6 +31,15 @@ Simulated panel data based on empirical characteristics of the National Socio-Ec
 mys_panel
 }
 \description{
-A synthetic panel dataset containing the mean years of schooling for people with disabilities across 42 regencies/municipalities over 11 time periods (2016 - 2026).
+A synthetic panel dataset with direct estimates of the mean years of schooling
+  of people with disabilities in the 42 areas of \code{\link{mys}} over 11 years
+  (2016-2026). Areas 21 and 25 are never sampled (\code{y = NA} in every year). The rows
+  are in time-major order (all areas of 2016, then 2017, ...); \code{\link{eblup_stfh}}
+  sorts them internally, but \code{sae::eblupSTFH()} needs domain-major order.
+}
+\examples{
+data(mys_panel)
+head(mys_panel)
+table(sampled = !is.na(mys_panel$y), mys_panel$year)[, 1:3]
 }
 \keyword{datasets}

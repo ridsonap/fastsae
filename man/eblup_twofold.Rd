@@ -28,7 +28,8 @@ eblup_twofold(
 \arguments{
 \item{formula}{an object of class formula that contains a description of the model to be fitted.}
 
-\item{vardir}{vector or column names from data that contain variance sampling from the direct estimator.}
+\item{vardir}{sampling variances of the sub-area direct estimates: a numeric vector, the name
+of a column of \code{data} or a one-sided formula.}
 
 \item{domain}{vector, column name or one-sided formula referencing the area identifier column
 in \code{data}. Must be supplied.}
@@ -104,8 +105,10 @@ with an area random effect \eqn{v_i} and a subarea random effect \eqn{u_{ij}}.
 }
 \details{
 The model has a form that is response ~ auxiliary variables, with one row per subarea.
-When the response contains NA the subarea is treated as non-sampled and predicted
-with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
+When the response contains NA the subarea is treated as non-sampled. It is predicted by
+\eqn{x_{ij}'\hat\beta + \hat v_i}, borrowing the area effect from the sampled sub-areas of
+its area; only the sub-areas of an area without any sampled sub-area get the synthetic
+estimator \eqn{x_{ij}'\hat\beta}. MSE is estimated either analytically (Prasad-Rao
 g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
 derivation for g3) or by parametric bootstrap.
 
@@ -148,4 +151,8 @@ m1 <- eblup_twofold(y ~ x1,
 level model. \emph{Journal of Multivariate Analysis}, 127, 36--55.
 \item Rao, J. N. K., & Molina, I. (2015). \emph{Small Area Estimation}. John Wiley & Sons.
 }
+}
+\seealso{
+\code{\link{hb_twofold}} for the hierarchical Bayes counterpart, and
+\code{vignette("twofold-subarea", package = "fastsae")}.
 }

@@ -28,7 +28,8 @@ eblup_sfh(
 \arguments{
 \item{formula}{an object of class formula that contains a description of the model to be fitted. The variables included in the formula must be contained in the data.}
 
-\item{vardir}{vector or column names from data that contain variance sampling from the direct estimator for each area.}
+\item{vardir}{sampling variances of the direct estimates: a numeric vector, the name of a
+column of \code{data} or a one-sided formula (e.g. \code{~vardir}).}
 
 \item{domain}{vector, column name or one-sided formula referencing a domain names column
 in \code{data}. If NULL, the domains are numbered consecutively.}
@@ -56,8 +57,7 @@ prediction relies on their relation (in \code{W}) to sampled neighbors.}
 Values less than or equal to 0 use all available cores.}
 
 \item{seed}{Integer seed for bootstrap resampling; \code{-1} (default) sets no seed. A fixed
-seed does not change the random number stream of the session.
-A value of -1 leaves the current R RNG state unchanged.}
+seed does not change the random number stream of the session.}
 
 \item{maxiter}{maximum number of iterations allowed in the Fisher-scoring algorithm. Default is 100 iterations.}
 
@@ -95,25 +95,31 @@ estimates, for ML and REML fits alike), \code{AIC} and \code{BIC} computed from 
 \pkg{sae} does and as in Marhuenda, Morales and Pardo (2014). The restricted (REML)
 likelihood is not reported: it depends on the covariates through X, so it cannot
 compare models with different covariates. \cr
-\code{df_eblup} a data frame that contains the following columns: \cr
+\code{df_eblup} a data frame with one row per domain: \cr
 \itemize{
-\item \code{y} variable response \cr
+\item \code{domain} domain identifier \cr
+\item \code{y} direct estimate (\code{NA} for unsampled domains) \cr
 \item \code{eblup} estimated results for each area \cr
 \item \code{random_effect} random effect for each area \cr
-\item \code{vardir} variance sampling from the direct estimator for each area \cr
-\item \code{mse} Mean Square Error \cr
+\item \code{vardir} sampling variance of the direct estimate \cr
+\item \code{mse} Mean Square Error (the bootstrap MSE for \code{"pbmse"}/\code{"npbmse"}) \cr
 \item \code{rse} Relative Standard Error (\%) \cr
 \item \code{mse_pb} or \code{mse_npb} Parametric / Non Parametric bootstrap MSE\cr
 \item \code{mse_pbbc} or \code{mse_npbbc} Bias Corrected Parametric / Non Parametric bootstrap MSE \cr
+\code{convergence}, \code{n_iter} whether the fit converged, and its iterations, \cr
+\code{model}, \code{method}, \code{mse_type}, \code{formula}, \code{call}, \code{data},
+\code{W} the settings, the matched call, the data and the weight matrix used. \cr
 }
 }
 \description{
 This function gives the Spatial Empirical Best Linear Unbiased Prediction (EBLUP) or Empirical Best (EB) predictor under normality based on a Fay-Herriot model.
 }
 \details{
-The model has a form that is response ~ auxiliary variables.
-where numeric type response variables can contain NA.
-When the response variable contains NA, that domain is treated as unsampled: it is
+The spatial Fay-Herriot model (Petrucci and Salvati, 2006; Pratesi and Salvati, 2008) is
+\eqn{y = X\beta + u + e} with a simultaneous autoregressive area effect
+\eqn{u = \rho W u + \varepsilon}, \eqn{\varepsilon \sim N(0, \sigma^2 I)}, and sampling errors
+\eqn{e \sim N(0, \mathrm{diag}(\psi_d))} with known \eqn{\psi_d} (\code{vardir}).
+When the response is \code{NA}, that domain is treated as unsampled: it is
 predicted with a full-spatial synthetic (kriging) estimator that borrows strength from
 sampled neighbors via \code{W}. The SAR process is defined on all domains of \code{W}, so the
 sampled domains have covariance \eqn{\sigma^2 \Sigma[s,s]} with
@@ -124,7 +130,7 @@ estimates can then understate the error; the function says so with a message (se
 Li and Lahiri, 2010).
 
 Analytical MSE. Sampled domains: \eqn{g_1 + g_2 + 2 g_3 - g_4} (Singh et al., 2005;
-as \code{sae::mseSFH}), minus \eqn{b_{ML}'\nabla g_1} for ML. Unsampled domains:
+as \code{sae::mseSFH}; the bootstrap MSEs are those of Molina et al., 2009), minus \eqn{b_{ML}'\nabla g_1} for ML. Unsampled domains:
 \eqn{g_1 + g_2 + g_3 - \frac{1}{2}\mathrm{tr}(I^{-1}\nabla^2 g_1)} (minus
 \eqn{b_{ML}'\nabla g_1} for ML), with \eqn{g_3} from the exact derivative of the
 kriging predictor; for sampled domains this second-order form agrees, up to o(1/m), with
@@ -184,6 +190,21 @@ m2 <- eblup_sfh(
 \item Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method for solving
 small area estimation problems. \emph{Journal of Multivariate Analysis}, 101(4), 882-892.
 \item Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information criteria for Fay-Herriot model selection. \emph{Computational Statistics & Data Analysis}, 70, 268-280.
+\item Molina, I., Salvati, N., & Pratesi, M. (2009). Bootstrap for estimating the MSE of the
+spatial EBLUP. \emph{Computational Statistics}, 24(3), 441-458.
+\item Petrucci, A., & Salvati, N. (2006). Small area estimation for spatial correlation in
+watershed erosion assessment. \emph{Journal of Agricultural, Biological, and Environmental
+Statistics}, 11(2), 169-182.
+\item Pratesi, M., & Salvati, N. (2008). Small area estimation: the EBLUP estimator based on
+spatially correlated random area effects. \emph{Statistical Methods & Applications}, 17(1),
+113-141.
 \item Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley & Sons.
+\item Singh, B. B., Shukla, G. K., & Kundu, D. (2005). Spatio-temporal models in small area
+estimation. \emph{Survey Methodology}, 31(2), 183-195.
 }
+}
+\seealso{
+\code{\link{eblup_fh}}, \code{\link{eblup_stfh}} for repeated surveys,
+\code{\link{spatial_test}} to check whether a spatial model is needed,
+\code{\link{create_weights}} to build \code{W}.
 }

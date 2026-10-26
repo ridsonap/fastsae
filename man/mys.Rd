@@ -3,20 +3,25 @@
 \docType{data}
 \name{mys}
 \alias{mys}
-\title{mys: mean years of schooling people with disabilities.}
+\title{mys: mean years of schooling of people with disabilities}
 \format{
-A data frame with 42 rows and 9 variables with 10 domains as non-sampled areas.
+A data frame (tibble) with 42 rows and 9 variables:
 
 \describe{
-  \item{area}{regency municipality identifier}
-  \item{y}{mean years of schooling people with disabilities (NA for unsampled areas)}
-  \item{vardir}{variance sampling from the direct estimator for each area}
-  \item{rse}{relative standard error (\%)}
-  \item{x1}{Number of Elementary Schools}
-  \item{x2}{Number of Junior High Schools}
-  \item{x3}{Number of Senior High Schools}
-  \item{n}{Number of eligible samples}
-  \item{weight}{Weight}
+  \item{area}{area (regency/municipality) identifier, 1 to 42.}
+  \item{y}{direct estimate of the mean years of schooling (\code{NA} for the 10 unsampled
+    areas).}
+  \item{vardir}{sampling variance of the direct estimate (0 for the unsampled areas, where
+    it is not used).}
+  \item{rse}{relative standard error of the direct estimate (\%),
+    \eqn{100\sqrt{vardir}/y} (0 for the unsampled areas).}
+  \item{x1}{number of elementary schools.}
+  \item{x2}{number of junior high schools.}
+  \item{x3}{number of senior high schools.}
+  \item{n}{number of people with disabilities in the Susenas sample of the area (eligible
+    sample size; synthetic, hence not an integer, and positive also for the unsampled
+    areas). \code{vardir} was not derived from it.}
+  \item{weight}{sample share of the area, \code{n / sum(n)}.}
 }
 }
 \source{
@@ -26,6 +31,15 @@ Simulated based on empirical characteristics of the National Socio-Economic Surv
 mys
 }
 \description{
-A synthetic dataset containing the mean years of schooling for people with disabilities across 42 regencies/municipalities.
+A synthetic area-level dataset with direct estimates of the mean years of
+  schooling of people with disabilities in 42 regencies/municipalities, 10 of which are not
+  sampled (\code{y = NA}). Used in the examples of the area-level models; its spatial
+  weights are \code{\link{mys_proxmat}}.
+}
+\examples{
+data(mys)
+head(mys)
+# unsampled areas
+mys$area[is.na(mys$y)]
 }
 \keyword{datasets}

@@ -1,8 +1,8 @@
 #' Two-Fold Hierarchical Bayes for Sub-Area Level Small Area Estimation
 #'
 #' @description
-#' Estimates small area parameters under a two-fold sub-area level model
-#' (Torabi & Rao, 2014 Bayesian hierarchical framework) using Integrated Nested
+#' Estimates small area parameters under the two-fold sub-area level model of
+#' Torabi and Rao (2014), formulated as a hierarchical Bayes model, using Integrated Nested
 #' Laplace Approximations (\pkg{INLA}) or, with \code{engine = jax_engine()}, MCMC
 #' (NumPyro's No-U-Turn sampler on JAX). The model accounts for nested random effects
 #' at both the primary area level (\eqn{v_i}) and the nested sub-area level (\eqn{u_{ij}}),
@@ -73,7 +73,7 @@
 #'       \item \code{linear_pred}: Posterior mean of linear predictor.
 #'       \item \code{vardir}: Direct sampling variance (for Gaussian).
 #'       \item \code{sd}: Posterior standard deviation (standard error).
-#'       \item \code{mse}: Posterior Mean Squared Error (\eqn{\text{sd}^2}).
+#'       \item \code{mse}: Posterior variance (\eqn{\text{sd}^2}), named as in the EBLUP results.
 #'       \item \code{rse}: Relative Standard Error (\%).
 #'       \item \code{ci_lower}: 2.5\% quantile of posterior credible interval.
 #'       \item \code{ci_upper}: 97.5\% quantile of posterior credible interval.
@@ -85,7 +85,7 @@
 #'       \item \code{domain}: Primary area identifier.
 #'       \item \code{hb_area}: Aggregate area mean estimate.
 #'       \item \code{sd_area}: Posterior standard error of area estimate.
-#'       \item \code{mse_area}: Posterior Mean Squared Error of area estimate.
+#'       \item \code{mse_area}: Posterior variance of the area estimate.
 #'       \item \code{rse_area}: Relative Standard Error of area estimate (\%).
 #'       \item \code{ci_lower_area}: 2.5\% quantile of area credible interval.
 #'       \item \code{ci_upper_area}: 97.5\% quantile of area credible interval.

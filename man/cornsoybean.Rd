@@ -32,4 +32,8 @@ the 1978 growing season.
 This dataset is included for demonstration purposes and is originally
 provided in the \pkg{sae} package.
 }
+\examples{
+data(cornsoybean)
+head(cornsoybean)
+}
 \keyword{datasets}

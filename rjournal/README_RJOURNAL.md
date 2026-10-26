@@ -18,15 +18,17 @@ renders in a few minutes:
 
 | Result | Script | Stored in |
 |---|---|---|
-| Frequentist timings | `benchmarks/bench_frequentist_fastsae.R` (fastsae rows) | `inst/extdata/{eblup,seblup,steblup}_benchmark.rds` |
+| Agreement with sae and emdi | `benchmarks/validation/agreement_reference.R` | `inst/extdata/agreement_reference.rds` |
+| Frequentist timings (fastsae, sae, emdi on the same data) | `benchmarks/bench_frequentist.R` (calls `bench_frequentist_child.R`) | `inst/extdata/{eblup,seblup,steblup}_benchmark.rds`, `frequentist_benchmark_meta.rds` |
 | Beta timings | `benchmarks/bench_beta_tipsae.R`, `bench_spatial_beta.R`, `bench_spatio_temporal_beta.R` | `inst/extdata/{beta,spatial_beta,spatio_temporal_beta}_benchmark.rds` |
 | fastsae vs tipsae estimates | `benchmarks/bench_beta_concordance.R` | `inst/extdata/beta_concordance_n1000.rds` |
 | Estimation engines | `benchmarks/bench_hb_area_engines.R` | `inst/extdata/hb_engine_benchmark.rds` |
 | Gaussian HB, fastsae vs hbsae | `benchmarks/bench_hb_normal.R` | `inst/extdata/hb_normal_benchmark.rds` |
-| Design-based simulation | `benchmarks/sim_mc_finite_pop_d500.R` | `benchmarks/output/mc_finite_population_results_D500_R25.rds` |
+| Design-based simulation | `benchmarks/sim_mc_finite_pop_d500.R` | `benchmarks/output/mc_design_based_D500_R200.rds` |
 
-The sae and emdi rows of the frequentist timings come from an earlier run whose data
-generator is no longer available; the article says so.
+The frequentist timings run every cell in its own R process; run them on an otherwise idle
+machine (about two hours, most of it `sae::eblupSTFH()` at 500 and 1,000 areas). The
+design-based simulation takes about an hour with 5 workers of 2 cores each.
 
 ## Build and check
 
