@@ -114,17 +114,22 @@
 designed to produce reliable estimates for sub-populations or
 geographical domains where sample sizes are too small for direct survey
 estimators to achieve acceptable precision.</p>
-<p>The <strong>fastsae</strong> package provides high-performance C++
-implementations (via <code>Rcpp</code> and <code>RcppArmadillo</code>)
-for standard and advanced SAE models. It offers:</p>
+<p>The <strong>fastsae</strong> package fits frequentist EBLUP models in
+compiled C++ (via <code>Rcpp</code>, <code>RcppArmadillo</code> and
+<code>RcppEigen</code>) and hierarchical Bayes models with INLA. It
+offers:</p>
 <ul>
 <li>
-<strong>Ultra-fast computation</strong>: Fisher-scoring and
-numerical solvers compiled in C++.</li>
+<strong>Fast computation</strong>: Fisher scoring and the MSE
+computations in compiled C++, with sparse linear algebra for the spatial
+models.</li>
 <li>
-<strong>Exact numerical equivalence</strong>: Parameter estimates
-and variance components match gold-standard implementations in the
-<code>sae</code> package to machine precision.</li>
+<strong>Agreement with <code>sae</code></strong>: where both
+packages use the same method, the estimates, variance components and
+analytical MSEs agree with <code>sae</code> to rounding error (shown
+below for the Fay-Herriot model). The documented exceptions concern the
+spatial model: a spatial correlation estimated on the boundary, and the
+MSE of ML fits (see <code><a href="../reference/eblup_sfh.html">?eblup_sfh</a></code>).</li>
 <li>
 <strong>Modern S3 interface</strong>: Seamless integration with
 standard R methods (<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>,
@@ -135,27 +140,50 @@ standard R methods (<code><a href="https://rdrr.io/r/base/summary.html" class="e
 <div class="section level2">
 <h2 id="the-fay-herriot-model">The Fay-Herriot Model<a class="anchor" aria-label="anchor" href="#the-fay-herriot-model"></a>
 </h2>
-<p>The area-level model introduced by Fay and Herriot (1979) links
-direct survey estimators
+<p>The area-level model introduced by Fay and Herriot (1979) links the
+direct survey estimates
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>d</mi></msub><annotation encoding="application/x-tex">y_d</annotation></semantics></math>
+of the area parameters
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>θ</mi><mi>d</mi></msub><annotation encoding="application/x-tex">\theta_d</annotation></semantics></math>
 with auxiliary variables
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>d</mi></msub><annotation encoding="application/x-tex">x_d</annotation></semantics></math>:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>d</mi></msub><mo>=</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>u</mi><mi>d</mi></msub><mo>+</mo><msub><mi>e</mi><mi>d</mi></msub><mo>,</mo><mspace width="1.0em"></mspace><mi>d</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>D</mi></mrow><annotation encoding="application/x-tex">y_d = x_d^\top \beta + u_d + e_d, \quad d = 1, \dots, D</annotation></semantics></math></p>
 <p>where: -
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mi>d</mi></msub><mo>∼</mo><mrow><mtext mathvariant="normal">i.i.d. </mtext><mspace width="0.333em"></mspace></mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">u_d \sim \text{i.i.d. } N(0, \sigma_u^2)</annotation></semantics></math>
 represents domain-specific random effects. -
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mi>d</mi></msub><mo>∼</mo><mrow><mtext mathvariant="normal">ind. </mtext><mspace width="0.333em"></mspace></mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msub><mi>D</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">e_d \sim \text{ind. } N(0, D_d)</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mi>d</mi></msub><mo>∼</mo><mrow><mtext mathvariant="normal">ind. </mtext><mspace width="0.333em"></mspace></mrow><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msub><mi>ψ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">e_d \sim \text{ind. } N(0, \psi_d)</annotation></semantics></math>
 represents sampling errors with known sampling variance
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>d</mi></msub><annotation encoding="application/x-tex">D_d</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ψ</mi><mi>d</mi></msub><annotation encoding="application/x-tex">\psi_d</annotation></semantics></math>
 (<code>vardir</code>).</p>
 <p>The Empirical Best Linear Unbiased Predictor (EBLUP) is a weighted
 combination of the direct estimator and the regression-synthetic
 estimator:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>θ</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub><mo>=</mo><msub><mi>γ</mi><mi>d</mi></msub><msub><mi>y</mi><mi>d</mi></msub><mo>+</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>γ</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mover><mi>β</mi><mo accent="true">̂</mo></mover></mrow><annotation encoding="application/x-tex">\hat{\theta}_d = \gamma_d y_d + (1 - \gamma_d) x_d^\top \hat{\beta}</annotation></semantics></math></p>
 <p>where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>γ</mi><mi>d</mi></msub><mo>=</mo><mfrac><msubsup><mover><mi>σ</mi><mo accent="true">̂</mo></mover><mi>u</mi><mn>2</mn></msubsup><mrow><msubsup><mover><mi>σ</mi><mo accent="true">̂</mo></mover><mi>u</mi><mn>2</mn></msubsup><mo>+</mo><msub><mi>D</mi><mi>d</mi></msub></mrow></mfrac></mrow><annotation encoding="application/x-tex">\gamma_d = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + D_d}</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>γ</mi><mi>d</mi></msub><mo>=</mo><mfrac><msubsup><mover><mi>σ</mi><mo accent="true">̂</mo></mover><mi>u</mi><mn>2</mn></msubsup><mrow><msubsup><mover><mi>σ</mi><mo accent="true">̂</mo></mover><mi>u</mi><mn>2</mn></msubsup><mo>+</mo><msub><mi>ψ</mi><mi>d</mi></msub></mrow></mfrac></mrow><annotation encoding="application/x-tex">\gamma_d = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + \psi_d}</annotation></semantics></math>
 is the shrinkage factor
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>≤</mo><msub><mi>γ</mi><mi>d</mi></msub><mo>≤</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">0 \le \gamma_d \le 1</annotation></semantics></math>).</p>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>≤</mo><msub><mi>γ</mi><mi>d</mi></msub><mo>≤</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">0 \le \gamma_d \le 1</annotation></semantics></math>)
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>β</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat\beta</annotation></semantics></math>
+is the generalized least squares estimator. Areas without a direct
+estimate
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>d</mi></msub><annotation encoding="application/x-tex">y_d</annotation></semantics></math>
+missing) get the synthetic estimate
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>x</mi><mi>d</mi><mi>⊤</mi></msubsup><mover><mi>β</mi><mo accent="true">̂</mo></mover></mrow><annotation encoding="application/x-tex">x_d^\top \hat{\beta}</annotation></semantics></math>.</p>
+<p>The MSE of the EBLUP is estimated by the second-order approximation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mrow><mn>1</mn><mi>d</mi></mrow></msub><mo>+</mo><msub><mi>g</mi><mrow><mn>2</mn><mi>d</mi></mrow></msub><mo>+</mo><mn>2</mn><msub><mi>g</mi><mrow><mn>3</mn><mi>d</mi></mrow></msub></mrow><annotation encoding="application/x-tex">g_{1d} + g_{2d} + 2 g_{3d}</annotation></semantics></math>
+(Prasad and Rao, 1990; Datta and Lahiri, 2000), where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mrow><mn>1</mn><mi>d</mi></mrow></msub><mo>=</mo><msub><mi>γ</mi><mi>d</mi></msub><msub><mi>ψ</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">g_{1d} = \gamma_d \psi_d</annotation></semantics></math>
+is the MSE with known parameters,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>g</mi><mrow><mn>2</mn><mi>d</mi></mrow></msub><annotation encoding="application/x-tex">g_{2d}</annotation></semantics></math>
+accounts for the estimation of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>g</mi><mrow><mn>3</mn><mi>d</mi></mrow></msub><annotation encoding="application/x-tex">g_{3d}</annotation></semantics></math>
+for that of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><annotation encoding="application/x-tex">\sigma_u^2</annotation></semantics></math>.
+For ML fits a bias term is subtracted. The relative standard error is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi><mi mathvariant="normal">E</mi></mrow><mi>d</mi></msub><mo>=</mo><mn>100</mn><msqrt><msub><mrow><mi mathvariant="normal">M</mi><mi mathvariant="normal">S</mi><mi mathvariant="normal">E</mi></mrow><mi>d</mi></msub></msqrt><mi>/</mi><msub><mover><mi>θ</mi><mo accent="true">̂</mo></mover><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">\mathrm{RSE}_d = 100 \sqrt{\mathrm{MSE}_d} / \hat{\theta}_d</annotation></semantics></math>.</p>
 </div>
 <div class="section level2">
 <h2 id="step-by-step-example">Step-by-Step Example<a class="anchor" aria-label="anchor" href="#step-by-step-example"></a>
@@ -163,8 +191,8 @@ is the shrinkage factor
 <div class="section level3">
 <h3 id="load-package-and-dataset">1. Load Package and Dataset<a class="anchor" aria-label="anchor" href="#load-package-and-dataset"></a>
 </h3>
-<p>We use the built-in <code>mys</code> dataset (mean years of
-schooling):</p>
+<p>We use the built-in <code>mys</code> dataset (mean years of schooling
+of people with disabilities in 42 areas, 10 of them not sampled):</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.is-a.dev/fastsae/">fastsae</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
@@ -277,26 +305,32 @@ towards the regression synthetic line:</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="exact-numerical-equivalence-with-sae">Exact Numerical Equivalence with <code>sae</code><a class="anchor" aria-label="anchor" href="#exact-numerical-equivalence-with-sae"></a>
+<h2 id="agreement-with-sae">Agreement with <code>sae</code><a class="anchor" aria-label="anchor" href="#agreement-with-sae"></a>
 </h2>
-<p><code>fastsae</code> produces results that are mathematically
-identical to <code><a href="https://rdrr.io/pkg/sae/man/eblupFH.html" class="external-link">sae::eblupFH</a></code>:</p>
+<p>On the same data, <code>fastsae</code> reproduces
+<code><a href="https://rdrr.io/pkg/sae/man/mseFH.html" class="external-link">sae::mseFH()</a></code>, which returns the EBLUPs and their analytical
+MSE.</p>
+<p><code><a href="https://rdrr.io/pkg/sae/man/mseFH.html" class="external-link">sae::mseFH()</a></code> needs complete data, so we compare the fits
+on the 32 sampled areas:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"sae"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">mys_clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">mys</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">fit_fast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_clean</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span>  <span class="va">fit_sae</span> <span class="op">&lt;-</span> <span class="fu">sae</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/sae/man/eblupFH.html" class="external-link">eblupFH</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_clean</span><span class="op">)</span></span>
+<span>  <span class="va">mys_sampled</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">mys</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys</span><span class="op">$</span><span class="va">y</span><span class="op">)</span>, <span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">fit_fast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_sampled</span>,</span>
+<span>                       print_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="va">fit_sae</span> <span class="op">&lt;-</span> <span class="fu">sae</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/sae/man/mseFH.html" class="external-link">mseFH</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_sampled</span><span class="op">)</span></span>
 <span></span>
-<span>  <span class="co"># Check EBLUP estimates</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">fit_sae</span><span class="op">$</span><span class="va">eblup</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span>  <span class="co"># Check regression coefficients</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">fit_sae</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">estcoef</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span>  <span class="co"># Check random effect variance (sigma2_u)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">$</span><span class="va">random_effect_var</span>, <span class="va">fit_sae</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">refvar</span><span class="op">)</span></span>
+<span>  <span class="co"># EBLUPs, coefficients, variance component and analytical MSE</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    eblup <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">eblup</span>, <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">fit_sae</span><span class="op">$</span><span class="va">est</span><span class="op">$</span><span class="va">eblup</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">fit_sae</span><span class="op">$</span><span class="va">est</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">estcoef</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    sigma2_u <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">$</span><span class="va">random_effect_var</span>, <span class="va">fit_sae</span><span class="op">$</span><span class="va">est</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">refvar</span><span class="op">)</span>,</span>
+<span>    mse <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">fit_fast</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">$</span><span class="va">mse</span>, <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">fit_sae</span><span class="op">$</span><span class="va">mse</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt;    eblup     beta sigma2_u      mse </span></span>
+<span><span class="co">#&gt;     TRUE     TRUE     TRUE     TRUE</span></span></code></pre></div>
+<p>Each comparison returns <code>TRUE</code>: the two packages agree to
+the tolerance of <code><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal()</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="next-steps">Next Steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
@@ -310,16 +344,25 @@ interactions). - <strong>Model Diagnostics and Residual Analysis
 (<code>diagnose</code>)</strong>: <a href="model-diagnostics.html">model-diagnostics.html</a> (Calibration
 tests, RSE reduction, and Moran’s I). - <strong>Unit-Level
 Estimation</strong>: <a href="unit-level-bhf.html">unit-level-bhf.html</a>
-(Battese-Harter-Fuller model).</p>
+(Battese-Harter-Fuller model and its HB counterpart). - <strong>Sub-Area
+Level Two-Fold Models</strong>: <a href="twofold-subarea.html">twofold-subarea.html</a>
+(<code><a href="../reference/eblup_twofold.html">eblup_twofold()</a></code>, <code><a href="../reference/hb_twofold.html">hb_twofold()</a></code>). -
+<strong>Default Priors of the HB Models</strong>: <a href="hb-priors.html">hb-priors.html</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ul>
+<li>Datta, G. S., &amp; Lahiri, P. (2000). A unified measure of
+uncertainty of estimated best linear unbiased predictors in small area
+estimation problems. <em>Statistica Sinica</em>, 10(2), 613–627.</li>
 <li>Fay, R. E., &amp; Herriot, R. A. (1979). Estimates of income for
 small places: An application of James-Stein procedures to Census data.
 <em>Journal of the American Statistical Association</em>, 74(366),
 269–277.</li>
+<li>Prasad, N. G. N., &amp; Rao, J. N. K. (1990). The estimation of the
+mean squared error of small-area estimators. <em>Journal of the American
+Statistical Association</em>, 85(409), 163–171.</li>
 <li>Rao, J. N. K., &amp; Molina, I. (2015). <em>Small Area
 Estimation</em> (2nd ed.). John Wiley &amp; Sons.</li>
 </ul>

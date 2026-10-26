@@ -124,15 +124,15 @@ models) and the Bayesian models with INLA. At
 domains:</p>
 <ul>
 <li>
-<strong>Fay-Herriot</strong>: 1,263x faster than <code>sae</code>
-and 42,874x faster than <code>emdi</code>.</li>
+<strong>Fay-Herriot</strong>: 1,250x faster than <code>sae</code>
+and 21,071x faster than <code>emdi</code>.</li>
 <li>
-<strong>Spatial Fay-Herriot</strong>: 67x faster than
-<code>sae</code> and 51x faster than <code>emdi</code>.</li>
+<strong>Spatial Fay-Herriot</strong>: 46x faster than
+<code>sae</code> and 49x faster than <code>emdi</code>.</li>
 <li>
 <strong>Spatio-Temporal Fay-Herriot</strong>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">T = 5</annotation></semantics></math>):
-24x faster than <code>sae</code>.</li>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">T = 5</annotation></semantics></math>,
+point estimates): 29x faster than <code>sae</code>.</li>
 </ul>
 <hr>
 </div>
@@ -158,37 +158,41 @@ domains, 5 covariates)</th>
 <tr class="odd">
 <td align="left"><strong>Fay-Herriot</strong></td>
 <td align="center">
-<strong>0.00119 s</strong> (0.503 MB)</td>
-<td align="center">1.50 s (72.0 MB; 1,263x slower)</td>
-<td align="center">51.0 s (3.69 GB; 42,874x slower)</td>
+<strong>0.000639 s</strong> (1.91 MB)</td>
+<td align="center">0.799 s (39.0 MB; 1,250x slower)</td>
+<td align="center">13.5 s (222 MB; 21,071x slower)</td>
 </tr>
 <tr class="even">
 <td align="left"><strong>Spatial Fay-Herriot</strong></td>
 <td align="center">
-<strong>1.00 s</strong> (0.203 MB)</td>
-<td align="center">67.2 s (1.88 GB; 67x slower)</td>
-<td align="center">51.1 s (3.68 GB; 51x slower)</td>
+<strong>0.518 s</strong> (78.7 MB)</td>
+<td align="center">24.1 s (239 MB; 46x slower)</td>
+<td align="center">25.2 s (310 MB; 49x slower)</td>
 </tr>
 <tr class="odd">
 <td align="left"><strong>Spatio-Temporal FH
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">T = 5</annotation></semantics></math>)</strong></td>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">T = 5</annotation></semantics></math>),
+point estimates</strong></td>
 <td align="center">
-<strong>75.3 s</strong> (3.29 MB)</td>
-<td align="center">1790 s (31.7 GB; 24x slower)</td>
+<strong>39.8 s</strong> (495 MB)</td>
+<td align="center">1160 s (3.60 GB; 29x slower)</td>
 <td align="center">-</td>
 </tr>
 </tbody>
 </table>
-<p>Times are medians of <code>bench::mark()</code>; memory is the total
-memory allocated by R during one call
-(<code>bench::mark()$mem_alloc</code>), not the peak resident memory.
-The <code>fastsae</code> rows were re-measured with fastsae 1.0.0
-(frequentist on 2026-10-13,
-<code>benchmarks/bench_frequentist_fastsae.R</code>; Bayesian on
-2026-10-14, <code>benchmarks/bench_bayes_fastsae.R</code>); the
-<code>sae</code>/<code>emdi</code> rows come from an earlier run of the
-same design (simulated data, 5 covariates) on different random draws,
-the <code>tipsae</code> rows from an earlier run on the same data.</p>
+<p>Times are medians of <code>bench::mark()</code>. The frequentist rows
+were measured on 2026-10-26 with fastsae 1.0.0, sae 1.3 and emdi 2.2.3
+on the same simulated data sets (Apple M4, R version 4.6.1 (2026-06-24);
+<code>benchmarks/bench_frequentist.R</code>), each in its own R process;
+memory is the increase of the peak resident memory of that process
+during the fits, which includes memory allocated by compiled code
+(increases of a few tens of MB vary from run to run and should not be
+compared). ‘sae’ has no analytical MSE for the spatio-temporal model, so
+that row compares point estimates; with its analytical MSE, fastsae took
+39.3 s. The Bayesian <code>fastsae</code> rows were re-measured on
+2026-10-14 (<code>benchmarks/bench_bayes_fastsae.R</code>), the
+<code>tipsae</code> rows (4 chains of 2,000 iterations) come from an
+earlier run on the same data.</p>
 <!-- BENCH-SUMMARY:END -->
 <hr>
 </div>
@@ -234,56 +238,56 @@ allocated, and iterations per second across sample sizes:</p>
 (function() {
   const RAW_DATA = [
     // FH
-    { Method: "emdi", Median: 0.01088, Mem: 4.183, IPS: 91.19, n: 30, Algo: "FH" },
-    { Method: "fastsae", Median: 0.0005491, Mem: 0.3393, IPS: 1734, n: 30, Algo: "FH" },
-    { Method: "sae", Median: 0.001552, Mem: 0.1534, IPS: 631.9, n: 30, Algo: "FH" },
-    { Method: "emdi", Median: 0.01806, Mem: 10.47, IPS: 51.95, n: 50, Algo: "FH" },
-    { Method: "fastsae", Median: 0.0005808, Mem: 0.009308, IPS: 1716, n: 50, Algo: "FH" },
-    { Method: "sae", Median: 0.001951, Mem: 0.3731, IPS: 494.4, n: 50, Algo: "FH" },
-    { Method: "emdi", Median: 0.05051, Mem: 37.34, IPS: 19.42, n: 100, Algo: "FH" },
-    { Method: "fastsae", Median: 0.0006409, Mem: 0.01770, IPS: 1551, n: 100, Algo: "FH" },
-    { Method: "sae", Median: 0.003443, Mem: 0.9175, IPS: 288.1, n: 100, Algo: "FH" },
-    { Method: "emdi", Median: 0.8573, Mem: 240.9, IPS: 1.163, n: 250, Algo: "FH" },
-    { Method: "fastsae", Median: 0.0006767, Mem: 0.04288, IPS: 1471, n: 250, Algo: "FH" },
-    { Method: "sae", Median: 0.03758, Mem: 6.350, IPS: 26.02, n: 250, Algo: "FH" },
-    { Method: "emdi", Median: 5.864, Mem: 880.3, IPS: 0.1699, n: 500, Algo: "FH" },
-    { Method: "fastsae", Median: 0.001067, Mem: 0.08484, IPS: 800.1, n: 500, Algo: "FH" },
-    { Method: "sae", Median: 0.1967, Mem: 18.24, IPS: 5.028, n: 500, Algo: "FH" },
-    { Method: "emdi", Median: 51.02, Mem: 3774, IPS: 0.01958, n: 1000, Algo: "FH" },
-    { Method: "fastsae", Median: 0.001190, Mem: 0.5031, IPS: 891.7, n: 1000, Algo: "FH" },
-    { Method: "sae", Median: 1.504, Mem: 71.98, IPS: 0.6641, n: 1000, Algo: "FH" },
+    { Method: "emdi", Median: 0.003658, Mem: 3.855, IPS: 264.3, n: 30, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0003284, Mem: 0.5959, IPS: 2797, n: 30, Algo: "FH" },
+    { Method: "sae", Median: 0.0008423, Mem: 0.9022, IPS: 1128, n: 30, Algo: "FH" },
+    { Method: "emdi", Median: 0.005281, Mem: 6.985, IPS: 185.3, n: 50, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0003434, Mem: 0.6077, IPS: 2684, n: 50, Algo: "FH" },
+    { Method: "sae", Median: 0.001179, Mem: 1.243, IPS: 815.8, n: 50, Algo: "FH" },
+    { Method: "emdi", Median: 0.01573, Mem: 22.83, IPS: 62.49, n: 100, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0003744, Mem: 0.6283, IPS: 2493, n: 100, Algo: "FH" },
+    { Method: "sae", Median: 0.003173, Mem: 2.689, IPS: 314.1, n: 100, Algo: "FH" },
+    { Method: "emdi", Median: 0.2350, Mem: 128.0, IPS: 4.141, n: 250, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0004205, Mem: 0.6900, IPS: 2218, n: 250, Algo: "FH" },
+    { Method: "sae", Median: 0.01508, Mem: 5.556, IPS: 66.13, n: 250, Algo: "FH" },
+    { Method: "emdi", Median: 1.630, Mem: 464.6, IPS: 0.6002, n: 500, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0005025, Mem: 0.7930, IPS: 1893, n: 500, Algo: "FH" },
+    { Method: "sae", Median: 0.1371, Mem: 24.84, IPS: 7.293, n: 500, Algo: "FH" },
+    { Method: "emdi", Median: 13.47, Mem: 1839, IPS: 0.07142, n: 1000, Algo: "FH" },
+    { Method: "fastsae", Median: 0.0006391, Mem: 0.9990, IPS: 1471, n: 1000, Algo: "FH" },
+    { Method: "sae", Median: 0.7992, Mem: 71.51, IPS: 1.200, n: 1000, Algo: "FH" },
     // SFH
-    { Method: "emdi", Median: 0.01071, Mem: 4.183, IPS: 93.46, n: 30, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.005877, Mem: 0.008789, IPS: 170.6, n: 30, Algo: "SFH" },
-    { Method: "sae", Median: 0.004101, Mem: 1.373, IPS: 246.2, n: 30, Algo: "SFH" },
-    { Method: "emdi", Median: 0.01800, Mem: 10.47, IPS: 43.84, n: 50, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.004562, Mem: 0.01163, IPS: 219.1, n: 50, Algo: "SFH" },
-    { Method: "sae", Median: 0.009680, Mem: 3.312, IPS: 102.6, n: 50, Algo: "SFH" },
-    { Method: "emdi", Median: 0.05299, Mem: 37.34, IPS: 17.47, n: 100, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.01388, Mem: 0.02113, IPS: 71.88, n: 100, Algo: "SFH" },
-    { Method: "sae", Median: 0.07054, Mem: 17.98, IPS: 12.79, n: 100, Algo: "SFH" },
-    { Method: "emdi", Median: 0.8438, Mem: 240.9, IPS: 1.175, n: 250, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.04791, Mem: 0.05088, IPS: 20.88, n: 250, Algo: "SFH" },
-    { Method: "sae", Median: 1.075, Mem: 110.4, IPS: 0.9256, n: 250, Algo: "SFH" },
-    { Method: "emdi", Median: 3.137, Mem: 949.9, IPS: 0.3177, n: 500, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.2131, Mem: 0.1005, IPS: 4.662, n: 500, Algo: "SFH" },
-    { Method: "sae", Median: 7.118, Mem: 776.4, IPS: 0.1396, n: 500, Algo: "SFH" },
-    { Method: "emdi", Median: 51.06, Mem: 3773, IPS: 0.01955, n: 1000, Algo: "SFH" },
-    { Method: "fastsae", Median: 0.9998, Mem: 0.2032, IPS: 1.000, n: 1000, Algo: "SFH" },
-    { Method: "sae", Median: 67.15, Mem: 1920, IPS: 0.01488, n: 1000, Algo: "SFH" },
+    { Method: "emdi", Median: 0.01149, Mem: 10.80, IPS: 84.86, n: 30, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.003110, Mem: 0.5865, IPS: 316.7, n: 30, Algo: "SFH" },
+    { Method: "sae", Median: 0.01010, Mem: 9.495, IPS: 97.24, n: 30, Algo: "SFH" },
+    { Method: "emdi", Median: 0.009164, Mem: 6.850, IPS: 99.62, n: 50, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.004850, Mem: 0.6190, IPS: 192.6, n: 50, Algo: "SFH" },
+    { Method: "sae", Median: 0.007014, Mem: 5.445, IPS: 131.6, n: 50, Algo: "SFH" },
+    { Method: "emdi", Median: 0.05785, Mem: 29.16, IPS: 17.14, n: 100, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.007325, Mem: 0.7271, IPS: 135.0, n: 100, Algo: "SFH" },
+    { Method: "sae", Median: 0.05359, Mem: 25.85, IPS: 18.80, n: 100, Algo: "SFH" },
+    { Method: "emdi", Median: 0.4514, Mem: 92.17, IPS: 2.144, n: 250, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.02562, Mem: 1.396, IPS: 38.96, n: 250, Algo: "SFH" },
+    { Method: "sae", Median: 0.4315, Mem: 80.01, IPS: 2.191, n: 250, Algo: "SFH" },
+    { Method: "emdi", Median: 3.449, Mem: 360.7, IPS: 0.2908, n: 500, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.1110, Mem: 3.655, IPS: 9.006, n: 500, Algo: "SFH" },
+    { Method: "sae", Median: 3.083, Mem: 315.7, IPS: 0.3228, n: 500, Algo: "SFH" },
+    { Method: "emdi", Median: 25.21, Mem: 1431, IPS: 0.03959, n: 1000, Algo: "SFH" },
+    { Method: "fastsae", Median: 0.5184, Mem: 12.47, IPS: 1.939, n: 1000, Algo: "SFH" },
+    { Method: "sae", Median: 24.10, Mem: 1256, IPS: 0.04141, n: 1000, Algo: "SFH" },
     // STFH
-    { Method: "fastsae", Median: 0.1427, Mem: 0.1377, IPS: 6.975, n: 30, Algo: "STFH" },
-    { Method: "sae", Median: 0.1186, Mem: 43.80, IPS: 7.858, n: 30, Algo: "STFH" },
-    { Method: "fastsae", Median: 0.3938, Mem: 0.1611, IPS: 2.536, n: 50, Algo: "STFH" },
-    { Method: "sae", Median: 0.4200, Mem: 107.8, IPS: 2.279, n: 50, Algo: "STFH" },
-    { Method: "fastsae", Median: 0.2142, Mem: 0.3157, IPS: 4.663, n: 100, Algo: "STFH" },
-    { Method: "sae", Median: 17.94, Mem: 2551, IPS: 0.05566, n: 100, Algo: "STFH" },
-    { Method: "fastsae", Median: 1.514, Mem: 0.8198, IPS: 0.5714, n: 250, Algo: "STFH" },
-    { Method: "sae", Median: 58.43, Mem: 3625, IPS: 0.01707, n: 250, Algo: "STFH" },
-    { Method: "fastsae", Median: 10.04, Mem: 1.633, IPS: 0.09850, n: 500, Algo: "STFH" },
-    { Method: "sae", Median: 253.3, Mem: 8124, IPS: 0.003941, n: 500, Algo: "STFH" },
-    { Method: "fastsae", Median: 75.33, Mem: 3.293, IPS: 0.01331, n: 1000, Algo: "STFH" },
-    { Method: "sae", Median: 1786, Mem: 32480, IPS: 0.0006095, n: 1000, Algo: "STFH" }
+    { Method: "fastsae", Median: 0.07482, Mem: 0.8867, IPS: 13.36, n: 30, Algo: "STFH" },
+    { Method: "sae", Median: 0.7029, Mem: 467.8, IPS: 1.462, n: 30, Algo: "STFH" },
+    { Method: "fastsae", Median: 0.2086, Mem: 0.9894, IPS: 4.659, n: 50, Algo: "STFH" },
+    { Method: "sae", Median: 2.668, Mem: 1287, IPS: 0.3688, n: 50, Algo: "STFH" },
+    { Method: "fastsae", Median: 0.1128, Mem: 1.297, IPS: 8.860, n: 100, Algo: "STFH" },
+    { Method: "sae", Median: 1.952, Mem: 480.8, IPS: 0.5087, n: 100, Algo: "STFH" },
+    { Method: "fastsae", Median: 0.7888, Mem: 2.602, IPS: 1.251, n: 250, Algo: "STFH" },
+    { Method: "sae", Median: 14.36, Mem: 1716, IPS: 0.06939, n: 250, Algo: "STFH" },
+    { Method: "fastsae", Median: 5.206, Mem: 5.895, IPS: 0.1921, n: 500, Algo: "STFH" },
+    { Method: "sae", Median: 124.5, Mem: 6854, IPS: 0.008032, n: 500, Algo: "STFH" },
+    { Method: "fastsae", Median: 39.84, Mem: 16.77, IPS: 0.02510, n: 1000, Algo: "STFH" },
+    { Method: "sae", Median: 1156, Mem: 27400, IPS: 0.0008654, n: 1000, Algo: "STFH" }
   ];
 
   const N_LIST = [30, 50, 100, 250, 500, 1000];
@@ -622,38 +626,38 @@ Beta (Besag + RW1)</strong> models:</p>
 (function() {
   const BETA_DATA = {
     STD: [
-    { Method: "fastsae", Median: 1.204, Mem: 2.080, IPS: 0.8278, n: 30 },
-    { Method: "tipsae", Median: 2.349, Mem: 500.0, IPS: 0.4156, n: 30 },
-    { Method: "fastsae", Median: 1.227, Mem: 2.619, IPS: 0.8150, n: 50 },
-    { Method: "tipsae", Median: 3.775, Mem: 861.4, IPS: 0.2615, n: 50 },
-    { Method: "fastsae", Median: 1.261, Mem: 3.844, IPS: 0.7904, n: 100 },
-    { Method: "tipsae", Median: 8.236, Mem: 1781, IPS: 0.1209, n: 100 },
-    { Method: "fastsae", Median: 1.319, Mem: 7.518, IPS: 0.7598, n: 250 },
-    { Method: "tipsae", Median: 26.28, Mem: 4545, IPS: 0.03800, n: 250 },
-    { Method: "fastsae", Median: 1.400, Mem: 13.66, IPS: 0.7055, n: 500 },
-    { Method: "tipsae", Median: 64.21, Mem: 9142, IPS: 0.01557, n: 500 },
-    { Method: "fastsae", Median: 1.606, Mem: 25.92, IPS: 0.6213, n: 1000 },
-    { Method: "tipsae", Median: 187.2, Mem: 18340, IPS: 0.005329, n: 1000 }
+    { Method: "fastsae", Median: 2.853, Mem: 49.18, IPS: 0.2862, n: 30 },
+    { Method: "tipsae", Median: 2.314, Mem: 499.9, IPS: 0.4122, n: 30 },
+    { Method: "fastsae", Median: 2.558, Mem: 5.298, IPS: 0.3902, n: 50 },
+    { Method: "tipsae", Median: 4.346, Mem: 861.4, IPS: 0.2291, n: 50 },
+    { Method: "fastsae", Median: 2.726, Mem: 7.665, IPS: 0.3554, n: 100 },
+    { Method: "tipsae", Median: 10.94, Mem: 1781, IPS: 0.09085, n: 100 },
+    { Method: "fastsae", Median: 3.265, Mem: 14.89, IPS: 0.2761, n: 250 },
+    { Method: "tipsae", Median: 33.58, Mem: 4539, IPS: 0.02782, n: 250 },
+    { Method: "fastsae", Median: 3.306, Mem: 26.93, IPS: 0.3022, n: 500 },
+    { Method: "tipsae", Median: 82.75, Mem: 9136, IPS: 0.01212, n: 500 },
+    { Method: "fastsae", Median: 3.729, Mem: 50.38, IPS: 0.2567, n: 1000 },
+    { Method: "tipsae", Median: 180.3, Mem: 18330, IPS: 0.005516, n: 1000 }
     ],
     SPATIAL: [
-    { Method: "fastsae", Median: 1.223, Mem: 2.408, IPS: 0.8056, n: 30 },
-    { Method: "tipsae", Median: 25.72, Mem: 642.8, IPS: 0.03885, n: 30 },
-    { Method: "fastsae", Median: 1.231, Mem: 3.349, IPS: 0.8021, n: 50 },
-    { Method: "tipsae", Median: 65.72, Mem: 1096, IPS: 0.01538, n: 50 },
-    { Method: "fastsae", Median: 1.245, Mem: 5.953, IPS: 0.8017, n: 100 },
-    { Method: "tipsae", Median: 100.0, Mem: 2246, IPS: 0.009969, n: 100 },
-    { Method: "fastsae", Median: 1.332, Mem: 17.50, IPS: 0.7361, n: 250 },
-    { Method: "tipsae", Median: 155.9, Mem: 5706, IPS: 0.006411, n: 250 },
-    { Method: "fastsae", Median: 1.460, Mem: 49.64, IPS: 0.6796, n: 500 },
-    { Method: "tipsae", Median: 248.8, Mem: 11470, IPS: 0.004011, n: 500 },
-    { Method: "fastsae", Median: 1.866, Mem: 161.1, IPS: 0.5463, n: 1000 },
-    { Method: "tipsae", Median: 404.3, Mem: 23040, IPS: 0.002471, n: 1000 }
+    { Method: "fastsae", Median: 2.658, Mem: 35.09, IPS: 0.3758, n: 30 },
+    { Method: "tipsae", Median: 48.71, Mem: 642.8, IPS: 0.02048, n: 30 },
+    { Method: "fastsae", Median: 2.511, Mem: 6.720, IPS: 0.4030, n: 50 },
+    { Method: "tipsae", Median: 55.15, Mem: 1096, IPS: 0.01811, n: 50 },
+    { Method: "fastsae", Median: 2.665, Mem: 11.60, IPS: 0.3685, n: 100 },
+    { Method: "tipsae", Median: 89.36, Mem: 2247, IPS: 0.01118, n: 100 },
+    { Method: "fastsae", Median: 2.754, Mem: 32.45, IPS: 0.2969, n: 250 },
+    { Method: "tipsae", Median: 144.5, Mem: 5701, IPS: 0.006920, n: 250 },
+    { Method: "fastsae", Median: 3.034, Mem: 88.19, IPS: 0.2746, n: 500 },
+    { Method: "tipsae", Median: 232.3, Mem: 11470, IPS: 0.004260, n: 500 },
+    { Method: "fastsae", Median: 4.280, Mem: 278.7, IPS: 0.2377, n: 1000 },
+    { Method: "tipsae", Median: 362.3, Mem: 23040, IPS: 0.002699, n: 1000 }
     ],
     ST: [
-    { Method: "fastsae", Median: 1.476, Mem: 10.85, IPS: 0.6763, n: 30 },
-    { Method: "tipsae", Median: 540.6, Mem: 2947, IPS: 0.001849, n: 30 },
-    { Method: "fastsae", Median: 1.714, Mem: 17.13, IPS: 0.5860, n: 50 },
-    { Method: "tipsae", Median: 908.2, Mem: 4880, IPS: 0.001079, n: 50 }
+    { Method: "fastsae", Median: 2.932, Mem: 52.41, IPS: 0.3400, n: 30 },
+    { Method: "tipsae", Median: 574.1, Mem: 2947, IPS: 0.001756, n: 30 },
+    { Method: "fastsae", Median: 3.798, Mem: 34.60, IPS: 0.2539, n: 50 },
+    { Method: "tipsae", Median: 716.0, Mem: 4858, IPS: 0.001367, n: 50 }
     ]
   };
 
@@ -866,93 +870,57 @@ Beta (Besag + RW1)</strong> models:</p>
   }
 })();
 </script><div class="section level4">
-<h4 id="inferential-equivalence-validation-metrics-n-1000">Inferential Equivalence &amp; Validation Metrics
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#inferential-equivalence-validation-metrics-n-1000"></a>
+<h4 id="agreement-with-stan-mcmc-beta-model-n-1000">Agreement with Stan MCMC (Beta model,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#agreement-with-stan-mcmc-beta-model-n-1000"></a>
 </h4>
-<p>To establish that the substantial computational accelerations
-achieved by <code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> preserve full inferential
-validity relative to Stan MCMC (<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>), summary
-concordance and error metrics were evaluated across
+<p>To check that the speed of <code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> does not
+come at the cost of its estimates, both packages were fitted with their
+defaults to the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>
-domains/units for Standard Beta, Spatial Beta (Besag ICAR), and
-Spatio-Temporal Beta models:</p>
+data set of the Beta benchmark (independent area effects, sampling
+variances from the direct estimates;
+<code>benchmarks/bench_beta_concordance.R</code>). The two packages do
+not fit identical models (their priors differ, and fastsae fixes the
+precision at a first-stage estimate while tipsae makes it a function of
+the model mean), so the comparison is between what a user obtains from
+each package:</p>
 <table class="table">
-<colgroup>
-<col width="14%">
-<col width="14%">
-<col width="18%">
-<col width="18%">
-<col width="18%">
-<col width="14%">
-</colgroup>
 <thead><tr class="header">
-<th align="left">Dimension</th>
 <th align="left">Metric</th>
-<th align="center">Beta</th>
-<th align="center">Spatial Beta</th>
-<th align="center">Spatio-Temporal Beta</th>
-<th align="left">Statistical Implication</th>
+<th align="center">
+<code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> (INLA)</th>
+<th align="center">
+<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Stan)</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left"><strong>Point Estimates (EBP)</strong></td>
-<td align="left"><strong>Pearson Correlation
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>)</strong></td>
-<td align="center"><strong>0.99934</strong></td>
-<td align="center"><strong>0.99891</strong></td>
-<td align="center"><strong>0.99614</strong></td>
-<td align="left">Near-perfect linear agreement between INLA and
-MCMC</td>
+<td align="left">RMSE against the true area means</td>
+<td align="center">0.0678</td>
+<td align="center">0.0684</td>
 </tr>
 <tr class="even">
-<td align="left"></td>
-<td align="left"><strong>Spearman Rank Correlation
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>)</strong></td>
-<td align="center"><strong>0.99921</strong></td>
-<td align="center"><strong>0.99875</strong></td>
-<td align="center"><strong>0.99517</strong></td>
-<td align="left">Consistent domain priority and rank ordering</td>
+<td align="left">Coverage of the 95% intervals</td>
+<td align="center">93.3%</td>
+<td align="center">91.1%</td>
 </tr>
 <tr class="odd">
-<td align="left"></td>
-<td align="left"><strong>Mean Absolute Error (MAE)</strong></td>
-<td align="center"><strong>0.01969</strong></td>
-<td align="center"><strong>0.01456</strong></td>
-<td align="center"><strong>0.01200</strong></td>
-<td align="left">Average estimation discrepancy
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.02</mn></mrow><annotation encoding="application/x-tex">&lt; 0.02</annotation></semantics></math>
-</td>
+<td align="left">Mean width of the 95% intervals</td>
+<td align="center">0.252</td>
+<td align="center">0.259</td>
 </tr>
 <tr class="even">
-<td align="left"></td>
-<td align="left"><strong>Root Mean Squared Difference
-(RMSD)</strong></td>
-<td align="center"><strong>0.02369</strong></td>
-<td align="center"><strong>0.01713</strong></td>
-<td align="center"><strong>0.01458</strong></td>
-<td align="left">Negligible
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>L</mi><mn>2</mn></msub><annotation encoding="application/x-tex">L_2</annotation></semantics></math>
-deviation across domains</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Uncertainty / MSE</strong></td>
-<td align="left"><strong>MSE Pearson Correlation
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>r</mi><mtext mathvariant="normal">MSE</mtext></msub><annotation encoding="application/x-tex">r_{\text{MSE}}</annotation></semantics></math>)</strong></td>
-<td align="center"><strong>0.96315</strong></td>
-<td align="center"><strong>0.89254</strong></td>
-<td align="center"><strong>0.67957</strong></td>
-<td align="left">Preserved area-level precision ordering</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left"><strong>Mean Absolute Difference (MSE)</strong></td>
-<td align="center"><strong>0.00018</strong></td>
-<td align="center"><strong>0.00012</strong></td>
-<td align="center"><strong>0.00025</strong></td>
-<td align="left">Virtually identical error variances</td>
+<td align="left">Time</td>
+<td align="center">4.3 s</td>
+<td align="center">184 s</td>
 </tr>
 </tbody>
 </table>
+<p>The posterior means of the two packages differed by 0.0096 on average
+(absolute difference), and the posterior SDs of fastsae were 0.99 times
+those of tipsae in the median area (90% of the areas between 0.88 and
+1.17). The largest
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{R}</annotation></semantics></math>
+of the tipsae fit was 1.008.</p>
 <hr>
 </div>
 </div>

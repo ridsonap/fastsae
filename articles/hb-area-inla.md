@@ -283,36 +283,36 @@ fit_beta_st <- hb_area(
 summary(fit_beta_st)
 #> 
 #> Variance Components:
-#> sigma2_u: 0.074071 
+#> sigma2_u: 0.074072 
 #> sigma2_t (temporal): 0.008529 
 #> 
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept) -2.2696e+00  1.5370e-02 -1.4766e+02  0.0000e+00 -2.2998e+00
-#> x            4.1691e-01  6.6161e-02  6.3015e+00  2.9475e-10  2.8685e-01
+#> x            4.1691e-01  6.6161e-02  6.3015e+00  2.9476e-10  2.8685e-01
 #>             ci_upper
 #> (Intercept)  -2.2395
 #> x             0.5465
 #> 
 #> Hyperparameters:
-#>                                  mean        sd 0.025quant 0.5quant 0.975quant
-#> Precision for ..domain_id..  15.25279  5.508665   7.224507  14.3383   28.60677
-#> Precision for ..time_id..   136.59632 57.257819  60.484921 125.0454  281.21286
+#>                                 mean        sd 0.025quant 0.5quant 0.975quant
+#> Precision for ..domain_id..  15.2527  5.508661   7.224458  14.3382    28.6067
+#> Precision for ..time_id..   136.5939 57.256239  60.483820 125.0435   281.2059
 #>                                  mode
-#> Precision for ..domain_id..  12.67086
-#> Precision for ..time_id..   104.92242
+#> Precision for ..domain_id..  12.67075
+#> Precision for ..time_id..   104.92129
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -971.94531 
+#>                                            -971.94523 
 #>                                                    pD 
-#>                                              60.69146 
+#>                                              60.69164 
 #>                                                  WAIC 
-#>                                            -979.78126 
+#>                                            -979.78136 
 #>                                                 pWAIC 
 #>                                              42.46186 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                             432.98608 
+#>                                             432.98607 
 #> 
 #> HB Summary Statistics:
 #>        hb           linear_pred           sd                mse           
@@ -339,20 +339,20 @@ standard errors, and 95% Credible Intervals:
 ``` r
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
-#>                domain time      y         hb          sd      rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102825 0.005596856 10.96815 0.04062430
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182496 0.006281351  7.67657 0.07003562
-#> 3               IMOLA 2014 0.1033 0.09310380 0.010890463 11.69712 0.07366717
-#> 4         PIANURA EST 2014 0.0633 0.06365560 0.006408107 10.06684 0.05185446
-#> 5       PIANURA OVEST 2014 0.0625 0.06937249 0.007927315 11.42717 0.05493782
-#> 6      PORRETTA TERME 2014 0.1276 0.09446582 0.014070622 14.89493 0.06968691
+#>                domain time      y         hb          sd       rse   ci_lower
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102821 0.005596853 10.968154 0.04062428
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182495 0.006281353  7.676574 0.07003561
+#> 3               IMOLA 2014 0.1033 0.09310382 0.010890474 11.697130 0.07366715
+#> 4         PIANURA EST 2014 0.0633 0.06365558 0.006408114 10.066853 0.05185444
+#> 5       PIANURA OVEST 2014 0.0625 0.06937248 0.007927324 11.427189 0.05493780
+#> 6      PORRETTA TERME 2014 0.1276 0.09446591 0.014070669 14.894971 0.06968690
 #>     ci_upper
-#> 1 0.06256397
+#> 1 0.06256393
 #> 2 0.09467501
-#> 3 0.11635697
-#> 4 0.07700998
-#> 5 0.08602893
-#> 6 0.12479135
+#> 3 0.11635700
+#> 4 0.07700999
+#> 5 0.08602894
+#> 6 0.12479150
 ```
 
 ------------------------------------------------------------------------
@@ -404,25 +404,30 @@ Execution time (median, seconds) — Standard Beta · log scale
 Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Standard
 Beta
 
-#### Inferential Equivalence & Validation Metrics ($`n = 1,000`$)
+#### Agreement with Stan MCMC (Beta model, $`n = 1,000`$)
 
-To establish that the substantial computational accelerations achieved
-by
+To check that the speed of
 [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
-preserve full inferential validity relative to Stan MCMC
-([`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)),
-summary concordance and error metrics were evaluated across
-$`n = 1,000`$ domains/units for Standard Beta, Spatial Beta (Besag
-ICAR), and Spatio-Temporal Beta models:
+does not come at the cost of its estimates, both packages were fitted
+with their defaults to the $`n = 1,000`$ data set of the Beta benchmark
+(independent area effects, sampling variances from the direct estimates;
+`benchmarks/bench_beta_concordance.R`). The two packages do not fit
+identical models (their priors differ, and fastsae fixes the precision
+at a first-stage estimate while tipsae makes it a function of the model
+mean), so the comparison is between what a user obtains from each
+package:
 
-| Dimension | Metric | Beta | Spatial Beta | Spatio-Temporal Beta | Statistical Implication |
-|:---|:---|:--:|:--:|:--:|:---|
-| **Point Estimates (EBP)** | **Pearson Correlation ($`r`$)** | **0.99934** | **0.99891** | **0.99614** | Near-perfect linear agreement between INLA and MCMC |
-|  | **Spearman Rank Correlation ($`\rho`$)** | **0.99921** | **0.99875** | **0.99517** | Consistent domain priority and rank ordering |
-|  | **Mean Absolute Error (MAE)** | **0.01969** | **0.01456** | **0.01200** | Average estimation discrepancy $`< 0.02`$ |
-|  | **Root Mean Squared Difference (RMSD)** | **0.02369** | **0.01713** | **0.01458** | Negligible $`L_2`$ deviation across domains |
-| **Uncertainty / MSE** | **MSE Pearson Correlation ($`r_{\text{MSE}}`$)** | **0.96315** | **0.89254** | **0.67957** | Preserved area-level precision ordering |
-|  | **Mean Absolute Difference (MSE)** | **0.00018** | **0.00012** | **0.00025** | Virtually identical error variances |
+| Metric | [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (INLA) | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan) |
+|:---|:--:|:--:|
+| RMSE against the true area means | 0.0678 | 0.0684 |
+| Coverage of the 95% intervals | 93.3% | 91.1% |
+| Mean width of the 95% intervals | 0.252 | 0.259 |
+| Time | 4.3 s | 184 s |
+
+The posterior means of the two packages differed by 0.0096 on average
+(absolute difference), and the posterior SDs of fastsae were 0.99 times
+those of tipsae in the median area (90% of the areas between 0.88 and
+1.17). The largest $`\hat{R}`$ of the tipsae fit was 1.008.
 
 ------------------------------------------------------------------------
 
@@ -462,8 +467,8 @@ summary(fit_pois)
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01
-#> x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2219e-14  2.8774e-01
-#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0474e-19 -3.6547e-01
+#> x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01
+#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0476e-19 -3.6547e-01
 #>             ci_upper
 #> (Intercept)   0.4149
 #> x1            0.4853
@@ -471,11 +476,11 @@ summary(fit_pois)
 #> 
 #> Hyperparameters:
 #>                                   mean        sd  0.025quant   0.5quant
-#> Precision for ..domain_id.. 15.6289944 4.4994336 8.488605342 15.0603934
-#> Phi for ..domain_id..        0.1595261 0.1562756 0.007219712  0.1055163
+#> Precision for ..domain_id.. 15.6289899 4.4994307 8.488612071 15.0603871
+#> Phi for ..domain_id..        0.1595249 0.1562741 0.007219787  0.1055158
 #>                             0.975quant        mode
-#> Precision for ..domain_id.. 26.0450251 14.01277801
-#> Phi for ..domain_id..        0.5934283  0.01699771
+#> Precision for ..domain_id.. 26.0450209 14.01276684
+#> Phi for ..domain_id..        0.5934228  0.01699803
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
@@ -483,7 +488,7 @@ summary(fit_pois)
 #>                                                    pD 
 #>                                              31.88700 
 #>                                                  WAIC 
-#>                                             309.67486 
+#>                                             309.67485 
 #>                                                 pWAIC 
 #>                                              17.15907 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
@@ -494,9 +499,9 @@ summary(fit_pois)
 #>  Min.   :0.3061   Min.   :-1.1959   Min.   :0.02962   Min.   :0.0008776  
 #>  1st Qu.:0.7648   1st Qu.:-0.2791   1st Qu.:0.05813   1st Qu.:0.0033800  
 #>  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  
-#>  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690514  
+#>  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690515  
 #>  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  
-#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76548   Max.   :0.5859664  
+#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76548   Max.   :0.5859672  
 #>       rse        
 #>  Min.   : 2.791  
 #>  1st Qu.: 5.164  

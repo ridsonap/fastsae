@@ -1,8 +1,8 @@
 # Empirical Best Linear Unbiased Prediction (EBLUP) for the Battese-Harter-Fuller Model
 
-This function estimates small area means or totals using the unit-level
-model proposed by Battese, Harter, and Fuller (1988), which combines
-survey data (sample units) and auxiliary population information.
+This function estimates small area means using the unit-level model
+proposed by Battese, Harter, and Fuller (1988), which combines survey
+data (sample units) and auxiliary population information.
 
 ## Usage
 
@@ -28,15 +28,19 @@ eblup_bhf(
 
 - formula:
 
-  An object of class \`formula\` describing the model.
+  An object of class `formula` describing the model.
 
 - unit_data:
 
-  A \`data.frame\` containing the unit-level survey data.
+  A `data.frame` containing the unit-level survey data.
 
 - Xpop:
 
-  A \`data.frame\` containing auxiliary variables and domain info.
+  A `data.frame` with one row per domain: the domain identifier
+  (`domain_var`), the population size (`popsize_var`) and the population
+  means of the covariates, in columns named as the covariates in
+  `formula`. Domains in `Xpop` without sampled units are predicted
+  synthetically.
 
 - domain_var:
 
@@ -52,7 +56,10 @@ eblup_bhf(
 
 - popnmean_xpop:
 
-  Population mean of auxiliary variables per domain.
+  Optional matrix or data frame of the population means of the
+  covariates (one row per domain, in the order of `Xpop`, columns as in
+  the design matrix, with or without the intercept); if `NULL`, they are
+  taken from `Xpop`.
 
 - B:
 
@@ -86,9 +93,13 @@ eblup_bhf(
 
 ## Value
 
-List containing EBLUP estimates, fit, and optionally MSE. The `fit`
-element holds the variance components, `beta`, the predicted random
-effects and the unit-level conditional residuals. `goodness` is a named
+An object of class `c("fastsae", "fastsae_unit")`, a list with
+`df_eblup` (one row per domain: `domain`, `eblup`, `samp_size`, `mse`,
+`rse`), `estcoef` (coefficients, standard errors, z-statistics and
+p-values), `random_effect_var`, `fit` (the fitting method, the variance
+components `random_effect_var` and `sigma2_e`, `beta`, the predicted
+random effects and the unit-level conditional residuals), `convergence`,
+`mse_type`, `formula`, `model`, `data` and `call`. `goodness` is a named
 vector: `loglikelihood` (the full Gaussian log-likelihood of the sampled
 units at the estimates, for ML and REML fits alike, as in
 [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md)),
@@ -117,8 +128,18 @@ result for any number of threads.
 
 Battese, G. E., Harter, R. M., and Fuller, W. A. (1988). An
 error-components model for prediction of county crop areas using survey
-and satellite data. \*Journal of the American Statistical Association\*,
+and satellite data. *Journal of the American Statistical Association*,
 83(401), 28-36.
+
+Gonzalez-Manteiga, W., Lombardia, M. J., Molina, I., Morales, D., and
+Santamaria, L. (2008). Bootstrap mean squared error of a small-area
+EBLUP. *Journal of Statistical Computation and Simulation*, 78(5),
+443-462.
+
+## See also
+
+[`hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) for
+the hierarchical Bayes counterpart.
 
 ## Examples
 

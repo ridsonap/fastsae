@@ -111,7 +111,8 @@ with an area random effect \(v_i\) and a subarea random effect \(u_{ij}\).</p>
 
 
 <dt id="arg-vardir">vardir<a class="anchor" aria-label="anchor" href="#arg-vardir"></a></dt>
-<dd><p>vector or column names from data that contain variance sampling from the direct estimator.</p></dd>
+<dd><p>sampling variances of the sub-area direct estimates: a numeric vector, the name
+of a column of <code>data</code> or a one-sided formula.</p></dd>
 
 
 <dt id="arg-domain">domain<a class="anchor" aria-label="anchor" href="#arg-domain"></a></dt>
@@ -216,8 +217,10 @@ random_effect_area, random_effect_subarea, mse, and rse. <br><code>df_area</code
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The model has a form that is response ~ auxiliary variables, with one row per subarea.
-When the response contains NA the subarea is treated as non-sampled and predicted
-with the synthetic estimator. MSE is estimated either analytically (Prasad-Rao
+When the response contains NA the subarea is treated as non-sampled. It is predicted by
+\(x_{ij}'\hat\beta + \hat v_i\), borrowing the area effect from the sampled sub-areas of
+its area; only the sub-areas of an area without any sampled sub-area get the synthetic
+estimator \(x_{ij}'\hat\beta\). MSE is estimated either analytically (Prasad-Rao
 g1+g2+2*g3 for REML, minus the ML bias term b'grad(g1) for ML, with an exact matrix
 derivation for g3) or by parametric bootstrap.</p>
 <p>Area means. The target of area \(i\) is \(\theta_i = \sum_j w_{ij}\theta_{ij}\) over
@@ -239,6 +242,11 @@ Sub-areas of the population that are not rows of <code>data</code> are not part 
 level model. <em>Journal of Multivariate Analysis</em>, 127, 36–55.</p></li>
 <li><p>Rao, J. N. K., &amp; Molina, I. (2015). <em>Small Area Estimation</em>. John Wiley &amp; Sons.</p></li>
 </ol></div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="hb_twofold.html">hb_twofold</a></code> for the hierarchical Bayes counterpart, and
+<code><a href="../articles/twofold-subarea.html">vignette("twofold-subarea", package = "fastsae")</a></code>.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

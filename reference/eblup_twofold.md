@@ -39,8 +39,8 @@ eblup_twofold(
 
 - vardir:
 
-  vector or column names from data that contain variance sampling from
-  the direct estimator.
+  sampling variances of the sub-area direct estimates: a numeric vector,
+  the name of a column of `data` or a one-sided formula.
 
 - domain:
 
@@ -154,10 +154,12 @@ domain, `eblup_area`, `mse_area`, `rse_area`, `n_subareas` (sub-areas in
 
 The model has a form that is response ~ auxiliary variables, with one
 row per subarea. When the response contains NA the subarea is treated as
-non-sampled and predicted with the synthetic estimator. MSE is estimated
-either analytically (Prasad-Rao g1+g2+2\*g3 for REML, minus the ML bias
-term b'grad(g1) for ML, with an exact matrix derivation for g3) or by
-parametric bootstrap.
+non-sampled. It is predicted by \\x\_{ij}'\hat\beta + \hat v_i\\,
+borrowing the area effect from the sampled sub-areas of its area; only
+the sub-areas of an area without any sampled sub-area get the synthetic
+estimator \\x\_{ij}'\hat\beta\\. MSE is estimated either analytically
+(Prasad-Rao g1+g2+2\*g3 for REML, minus the ML bias term b'grad(g1) for
+ML, with an exact matrix derivation for g3) or by parametric bootstrap.
 
 Area means. The target of area \\i\\ is \\\theta_i = \sum_j
 w\_{ij}\theta\_{ij}\\ over the sub-areas of the area in `data` (sampled
@@ -182,6 +184,12 @@ not part of the area mean.
 
 2.  Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation*. John
     Wiley & Sons.
+
+## See also
+
+[`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
+for the hierarchical Bayes counterpart, and
+[`vignette("twofold-subarea", package = "fastsae")`](https://ridsonap.is-a.dev/fastsae/articles/twofold-subarea.md).
 
 ## Examples
 

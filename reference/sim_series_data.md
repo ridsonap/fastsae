@@ -157,8 +157,9 @@ An object of class `c("fastsae_sim_series", "list")` containing:
 
 - parameters:
 
-  List of true simulation parameters (`rho_s`, `rho_t`, `sigma_s`,
-  `sigma_t`, `beta`, `trend`).
+  List of the simulation settings and true parameters (`D`, `T`,
+  `rho_s`, `rho_t`, `sigma_s`, `sigma_t`, `beta`, `trend`,
+  `trend_slope`, `sort_order`).
 
 ## Examples
 

@@ -351,9 +351,9 @@ INLA](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md).
 - Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation
   with spatio-temporal Fay-Herriot models. *Computational Statistics &
   Data Analysis*, 58, 308–325.
-- Pratesi, M., & Salvati, N. (2008). Small area estimation for spatially
-  correlated data: A Fay-Herriot with the spatial linear spline model.
-  *Journal of Applied Statistics*, 35(7), 781–794.
+- Pratesi, M., & Salvati, N. (2008). Small area estimation: The EBLUP
+  estimator based on spatially correlated random area effects.
+  *Statistical Methods & Applications*, 17(1), 113–141.
 - Saei, A., & Chambers, R. (2005). Out of sample estimation for small
   areas using area level data. Southampton Statistical Sciences Research
   Institute, Methodology Working Paper M05/11.

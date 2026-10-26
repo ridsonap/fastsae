@@ -280,14 +280,14 @@ diag_hb$precision
 #> [1] 17.64954
 #> 
 #> $mean_sae_rse
-#> [1] 70.50118
+#> [1] 70.49316
 #> 
 #> $median_sae_rse
-#> [1] 19.57358
+#> [1] 19.57027
 #> 
 #> $eff_ratio_summary
 #>      Min   Q1.25%   Median     Mean   Q3.75%      Max 
-#> 1.109209 1.238711 1.281725 1.288101 1.357725 1.458811 
+#> 1.108098 1.238707 1.281716 1.288164 1.357667 1.459160 
 #> 
 #> $prop_gain
 #> [1] 100
@@ -300,8 +300,9 @@ diag_hb$status
 ## References
 
 - Brown, G., Chambers, R., Heady, P., & Heasman, D. (2001). Evaluation
-  criteria for small area estimation methods. *Statistics in
-  Transition*, 5(2), 185–200.
+  of small area estimation methods: An application to unemployment
+  estimates from the UK LFS. *Proceedings of Statistics Canada Symposium
+  2001: Achieving Data Quality in a Statistical Agency*.
 - Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small
   places: An application of James-Stein procedures to Census data.
   *Journal of the American Statistical Association*, 74(366), 269–277.

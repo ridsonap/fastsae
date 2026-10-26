@@ -248,8 +248,8 @@ otherwise.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with the same structure as <code>seblup_area()</code>, with additional
-<code>estvarcomp</code> for spatio-temporal variance/autocorrelation components:</p><dl><dt><code>estcoef</code></dt>
+    <p>A list with the same structure as the result of <code><a href="eblup_sfh.html">eblup_sfh()</a></code>, with
+<code>estvarcomp</code> for the spatio-temporal variance and autocorrelation components:</p><dl><dt><code>estcoef</code></dt>
 <dd><p>data frame with <code>beta</code>, <code>std.error</code>, <code>tvalue</code>,
 <code>pvalue</code>, as in <code><a href="https://rdrr.io/pkg/sae/man/eblupSTFH.html" class="external-link">sae::eblupSTFH()</a></code>, plus <code>stderr_beta</code> and <code>zvalue</code>
 (copies, for the column names of the other fastsae models). The p-values use the
@@ -336,6 +336,11 @@ Working Paper M05/11.</p></li>
 Handling out-of-sample areas to estimate the unemployment rate at local labour market
 areas in Italy. International Statistical Review. <a href="https://doi.org/10.1111/insr.12596" class="external-link">doi:10.1111/insr.12596</a></p></li>
 </ol></div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="eblup_sfh.html">eblup_sfh</a></code>, <code><a href="hb_area.html">hb_area</a></code> (with <code>time</code>) for the
+hierarchical Bayes counterpart.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

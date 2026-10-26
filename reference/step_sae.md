@@ -193,5 +193,5 @@ sel
 #>  - x3 141.0402
 sel$model$formula
 #> y ~ x2
-#> <environment: 0x5591f78e3908>
+#> <environment: 0x555a0264d430>
 ```

@@ -122,8 +122,9 @@ two-sided.
 ## References
 
 1.  Brown, G., Chambers, R., Heady, P., & Heasman, D. (2001). Evaluation
-    of small area estimation methods: An application to the British
-    Labour Force Survey. *ONS Internal Report*.
+    of small area estimation methods: an application to unemployment
+    estimates from the UK LFS. *Proceedings of Statistics Canada
+    Symposium 2001: Achieving Data Quality in a Statistical Agency*.
 
 2.  Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd
     ed.). John Wiley & Sons.
@@ -200,29 +201,29 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 2.829983 
+#> Random effect variance (sigma2_u): 2.829986 
 #> 
 #> Fixed Effects Coefficients:
 #>                   beta  std.error     zvalue     pvalue   ci_lower ci_upper
-#> (Intercept)  3.0715572  0.7909882  3.8831897  0.0001031  1.5330623   4.6544
-#> x1          -0.0041512  0.0094343 -0.4400158  0.6599257 -0.0229833   0.0143
-#> x2           0.0862090  0.0320401  2.6906598  0.0071311  0.0230295   0.1495
+#> (Intercept)  3.0715573  0.7909886  3.8831878  0.0001031  1.5330617   4.6544
+#> x1          -0.0041512  0.0094343 -0.4400157  0.6599257 -0.0229833   0.0143
+#> x2           0.0862090  0.0320401  2.6906586  0.0071311  0.0230295   0.1495
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.590846    7.590846 0.7640223 0.5837301 10.06505 6.107742
-#> 2      2 7.599650 6.775392    6.775392 0.8337947 0.6952136 12.30622 5.161057
-#> 3      3 5.514137 5.245482    5.245482 0.8229080 0.6771776 15.68794 3.640202
-#> 4      4 3.869326 4.247402    4.247402 0.7360698 0.5417987 17.32988 2.794586
-#> 5      5 6.305063 6.352990    6.352990 0.9388749 0.8814861 14.77847 4.508182
+#> 1      1 8.359527 7.590846    7.590846 0.7640228 0.5837309 10.06505 6.107741
+#> 2      2 7.599650 6.775392    6.775392 0.8337952 0.6952145 12.30623 5.161056
+#> 3      3 5.514137 5.245482    5.245482 0.8229081 0.6771777 15.68794 3.640202
+#> 4      4 3.869326 4.247402    4.247402 0.7360699 0.5417989 17.32989 2.794586
+#> 5      5 6.305063 6.352990    6.352990 0.9388750 0.8814863 14.77847 4.508182
 #> 6      6 3.926807 4.091352    4.091352 0.5837763 0.3407948 14.26854 2.943485
 #>   ci_upper random_effect    vardir
-#> 1 9.103078    2.96522731 0.6618838
-#> 2 8.430373    2.52170414 0.8374691
-#> 3 6.869507    0.77265164 0.8822257
-#> 4 5.682178   -1.47620956 0.6581716
-#> 5 8.195014   -0.09886315 1.2788021
-#> 6 5.233334   -1.08175997 0.3878004
+#> 1 9.103079    2.96522746 0.6618838
+#> 2 8.430374    2.52170430 0.8374691
+#> 3 6.869508    0.77265163 0.8822257
+#> 4 5.682178   -1.47620971 0.6581716
+#> 5 8.195014   -0.09886318 1.2788021
+#> 6 5.233334   -1.08176003 0.3878004
 #> ... and 36 more rows.
 #> 
 #> ── fastsae Small Area Estimation Diagnostic Report ─────────────────────────────

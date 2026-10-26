@@ -39,8 +39,8 @@ eblup_sfh(
 
 - vardir:
 
-  vector or column names from data that contain variance sampling from
-  the direct estimator for each area.
+  sampling variances of the direct estimates: a numeric vector, the name
+  of a column of `data` or a one-sided formula (e.g. `~vardir`).
 
 - domain:
 
@@ -87,8 +87,7 @@ eblup_sfh(
 - seed:
 
   Integer seed for bootstrap resampling; `-1` (default) sets no seed. A
-  fixed seed does not change the random number stream of the session. A
-  value of -1 leaves the current R RNG state unchanged.
+  fixed seed does not change the random number stream of the session.
 
 - maxiter:
 
@@ -150,17 +149,19 @@ log-likelihood at the estimates, for ML and REML fits alike), `AIC` and
 Pardo (2014). The restricted (REML) likelihood is not reported: it
 depends on the covariates through X, so it cannot compare models with
 different covariates.  
-`df_eblup` a data frame that contains the following columns:  
+`df_eblup` a data frame with one row per domain:  
 
-- `y` variable response  
+- `domain` domain identifier  
+
+- `y` direct estimate (`NA` for unsampled domains)  
 
 - `eblup` estimated results for each area  
 
 - `random_effect` random effect for each area  
 
-- `vardir` variance sampling from the direct estimator for each area  
+- `vardir` sampling variance of the direct estimate  
 
-- `mse` Mean Square Error  
+- `mse` Mean Square Error (the bootstrap MSE for `"pbmse"`/`"npbmse"`)  
 
 - `rse` Relative Standard Error (%)  
 
@@ -168,15 +169,22 @@ different covariates.
 
 - `mse_pbbc` or `mse_npbbc` Bias Corrected Parametric / Non Parametric
   bootstrap MSE  
+  `convergence`, `n_iter` whether the fit converged, and its
+  iterations,  
+  `model`, `method`, `mse_type`, `formula`, `call`, `data`, `W` the
+  settings, the matched call, the data and the weight matrix used.  
 
 ## Details
 
-The model has a form that is response ~ auxiliary variables. where
-numeric type response variables can contain NA. When the response
-variable contains NA, that domain is treated as unsampled: it is
-predicted with a full-spatial synthetic (kriging) estimator that borrows
-strength from sampled neighbors via `W`. The SAR process is defined on
-all domains of `W`, so the sampled domains have covariance \\\sigma^2
+The spatial Fay-Herriot model (Petrucci and Salvati, 2006; Pratesi and
+Salvati, 2008) is \\y = X\beta + u + e\\ with a simultaneous
+autoregressive area effect \\u = \rho W u + \varepsilon\\, \\\varepsilon
+\sim N(0, \sigma^2 I)\\, and sampling errors \\e \sim N(0,
+\mathrm{diag}(\psi_d))\\ with known \\\psi_d\\ (`vardir`). When the
+response is `NA`, that domain is treated as unsampled: it is predicted
+with a full-spatial synthetic (kriging) estimator that borrows strength
+from sampled neighbors via `W`. The SAR process is defined on all
+domains of `W`, so the sampled domains have covariance \\\sigma^2
 \Sigma\[s,s\]\\ with \\\Sigma = \[(I - \rho W')(I - \rho W)\]^{-1}\\.
 
 An estimate \\\hat\sigma^2 = 0\\ makes the EBLUPs synthetic estimates,
@@ -184,14 +192,15 @@ and the MSE estimates can then understate the error; the function says
 so with a message (see Li and Lahiri, 2010).
 
 Analytical MSE. Sampled domains: \\g_1 + g_2 + 2 g_3 - g_4\\ (Singh et
-al., 2005; as [`sae::mseSFH`](https://rdrr.io/pkg/sae/man/mseSFH.html)),
-minus \\b\_{ML}'\nabla g_1\\ for ML. Unsampled domains: \\g_1 + g_2 +
-g_3 - \frac{1}{2}\mathrm{tr}(I^{-1}\nabla^2 g_1)\\ (minus
-\\b\_{ML}'\nabla g_1\\ for ML), with \\g_3\\ from the exact derivative
-of the kriging predictor; for sampled domains this second-order form
-agrees, up to o(1/m), with \\g_1 + g_2 + 2 g_3 - g_4\\. The inverse
-information used for \\g_3\\ and \\b\_{ML}\\ is the one of the fitting
-method: REML information for REML and ML information for ML.
+al., 2005; as [`sae::mseSFH`](https://rdrr.io/pkg/sae/man/mseSFH.html);
+the bootstrap MSEs are those of Molina et al., 2009), minus
+\\b\_{ML}'\nabla g_1\\ for ML. Unsampled domains: \\g_1 + g_2 + g_3 -
+\frac{1}{2}\mathrm{tr}(I^{-1}\nabla^2 g_1)\\ (minus \\b\_{ML}'\nabla
+g_1\\ for ML), with \\g_3\\ from the exact derivative of the kriging
+predictor; for sampled domains this second-order form agrees, up to
+o(1/m), with \\g_1 + g_2 + 2 g_3 - g_4\\. The inverse information used
+for \\g_3\\ and \\b\_{ML}\\ is the one of the fitting method: REML
+information for REML and ML information for ML.
 ([`sae::mseSFH`](https://rdrr.io/pkg/sae/man/mseSFH.html) uses the REML
 information also for ML; the two agree asymptotically, but with few
 domains, or \\\hat\sigma^2 \approx 0\\ with \\\hat\rho \approx 1\\, the
@@ -238,8 +247,35 @@ weights) uses dense factorisations.
     criteria for Fay-Herriot model selection. *Computational Statistics
     & Data Analysis*, 70, 268-280.
 
-3.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
+3.  Molina, I., Salvati, N., & Pratesi, M. (2009). Bootstrap for
+    estimating the MSE of the spatial EBLUP. *Computational Statistics*,
+    24(3), 441-458.
+
+4.  Petrucci, A., & Salvati, N. (2006). Small area estimation for
+    spatial correlation in watershed erosion assessment. *Journal of
+    Agricultural, Biological, and Environmental Statistics*, 11(2),
+    169-182.
+
+5.  Pratesi, M., & Salvati, N. (2008). Small area estimation: the EBLUP
+    estimator based on spatially correlated random area effects.
+    *Statistical Methods & Applications*, 17(1), 113-141.
+
+6.  Rao, J. N., & Molina, I. (2015). Small area estimation. John Wiley &
     Sons.
+
+7.  Singh, B. B., Shukla, G. K., & Kundu, D. (2005). Spatio-temporal
+    models in small area estimation. *Survey Methodology*, 31(2),
+    183-195.
+
+## See also
+
+[`eblup_fh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md),
+[`eblup_stfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
+for repeated surveys,
+[`spatial_test`](https://ridsonap.is-a.dev/fastsae/reference/spatial_test.md)
+to check whether a spatial model is needed,
+[`create_weights`](https://ridsonap.is-a.dev/fastsae/reference/create_weights.md)
+to build `W`.
 
 ## Examples
 

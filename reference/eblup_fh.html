@@ -101,7 +101,9 @@
 
 
 <dt id="arg-vardir">vardir<a class="anchor" aria-label="anchor" href="#arg-vardir"></a></dt>
-<dd><p>vector or column names from data that contain variance sampling from the direct estimator.</p></dd>
+<dd><p>sampling variances of the direct estimates: a numeric vector, the name of a
+column of <code>data</code>, a one-sided formula (e.g. <code>~vardir</code>) or a
+<code><a href="gvf_smooth.html">gvf_smooth</a></code> object, whose smoothed variances are then used.</p></dd>
 
 
 <dt id="arg-domain">domain<a class="anchor" aria-label="anchor" href="#arg-domain"></a></dt>
@@ -184,18 +186,28 @@ estimates, for ML and REML fits alike), <code>AIC</code> and <code>BIC</code> co
 <span class="pkg">sae</span> does and as in Marhuenda, Morales and Pardo (2014). The restricted (REML)
 likelihood is not reported: it depends on the covariates through X, so it cannot
 compare models with different covariates.,
-<code>df_eblup</code> a data frame that contains y, eblup, random_effect, vardir, mse, and rse. <br></p><ul><li><p><code>y</code> variable response <br></p></li>
+<code>df_eblup</code> a data frame with one row per domain: <br></p><ul><li><p><code>domain</code> domain identifier <br></p></li>
+<li><p><code>y</code> direct estimate (<code>NA</code> for unsampled domains) <br></p></li>
 <li><p><code>eblup</code> estimated results for each area <br></p></li>
 <li><p><code>random_effect</code> random effect for each area <br></p></li>
-<li><p><code>vardir</code> variance sampling from the direct estimator for each area <br></p></li>
+<li><p><code>vardir</code> sampling variance of the direct estimate <br></p></li>
 <li><p><code>mse</code> Mean Square Error <br></p></li>
-<li><p><code>rse</code> Relative Standard Error (%) <br><code>self_benchmark</code> logical indicating whether self-benchmarking was active, <br><code>benchmark_summary</code> summary table of benchmark calibration (if self-benchmarking). <br></p></li>
+<li><p><code>rse</code> Relative Standard Error (%) <br></p></li>
+<li><p><code>eblup_log</code>, <code>mse_log</code> EBLUP and MSE on the log scale (<code>transform = "log"</code>) <br></p></li>
+<li><p><code>eblup_unbenchmarked</code> the estimate before ratio benchmarking (<code>transform = "log"</code>
+with self-benchmarking) <br><code>convergence</code>, <code>n_iter</code> whether Fisher scoring converged, and its iterations, <br><code>model</code>, <code>method</code>, <code>transform</code>, <code>mse_type</code>, <code>formula</code>, <code>call</code>,
+<code>data</code> the settings, the matched call and the data used, <br><code>self_benchmark</code> logical indicating whether self-benchmarking was active, <br><code>benchmark_summary</code> summary table of benchmark calibration (if self-benchmarking). <br></p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The model has a form that is response ~ auxiliary variables.
-where numeric type response variables can contain NA.
-When the response variable contains NA it will be estimated with synthetic estimator.</p>
+    <p>The Fay-Herriot model is \(y_d = x_d'\beta + u_d + e_d\), with
+\(u_d \sim N(0, \sigma^2_u)\) and sampling errors \(e_d \sim N(0, \psi_d)\) with
+known variances \(\psi_d\) (<code>vardir</code>). The EBLUP is
+\(\hat\theta_d = \hat\gamma_d y_d + (1 - \hat\gamma_d) x_d'\hat\beta\) with
+\(\hat\gamma_d = \hat\sigma^2_u / (\hat\sigma^2_u + \psi_d)\). Domains whose response is
+<code>NA</code> are not sampled and get the synthetic estimate \(x_d'\hat\beta\).</p>
+<p>The analytical MSE is \(g_1 + g_2 + 2 g_3\) (Prasad and Rao, 1990, for REML as shown by
+Datta and Lahiri, 2000), minus the bias term of Datta and Lahiri (2000) for ML.</p>
 <p>The random effect variance is estimated by (RE)ML and truncated at 0, as in <span class="pkg">sae</span>.
 An estimate of 0 makes every EBLUP the synthetic estimate, and the MSE estimates can
 then understate the error; the function says so with a message. Such estimates are
@@ -204,14 +216,29 @@ common with few areas or large sampling variances (Li and Lahiri, 2010).</p>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
 
-<ol><li><p>Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method for solving
+<ol><li><p>Datta, G. S., and Lahiri, P. (2000). A unified measure of uncertainty of estimated best
+linear unbiased predictors in small area estimation problems. <em>Statistica Sinica</em>, 10(2),
+613-627.</p></li>
+<li><p>Fay, R. E., and Herriot, R. A. (1979). Estimates of income for small places: an
+application of James-Stein procedures to census data. <em>Journal of the American
+Statistical Association</em>, 74(366), 269-277.</p></li>
+<li><p>Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method for solving
 small area estimation problems. <em>Journal of Multivariate Analysis</em>, 101(4), 882-892.</p></li>
 <li><p>Marhuenda, Y., Morales, D., &amp; Pardo, M. C. (2014). Information criteria for Fay-Herriot model selection. <em>Computational Statistics &amp; Data Analysis</em>, 70, 268-280.</p></li>
+<li><p>Prasad, N. G. N., and Rao, J. N. K. (1990). The estimation of the mean squared error of
+small-area estimators. <em>Journal of the American Statistical Association</em>, 85(409),
+163-171.</p></li>
 <li><p>Rao, J. N. K., &amp; Molina, I. (2015). Small area estimation. John Wiley &amp; Sons.</p></li>
-<li><p>Slud, E. V., &amp; Maiti, T. (2006). Small-area estimation via Fay-Herriot models with logit and log transformations. <em>Communications in Statistics - Theory and Methods</em>, 35(10), 1957-1971.</p></li>
+<li><p>Slud, E. V., &amp; Maiti, T. (2006). Mean-squared error estimation in transformed
+Fay-Herriot models. <em>Journal of the Royal Statistical Society: Series B</em>, 68(2), 239-257.</p></li>
 <li><p>Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
 <em>Survey Methodology</em>, 34(1), 29-36.</p></li>
 </ol></div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="eblup_sfh.html">eblup_sfh</a></code> for spatially correlated area effects,
+<code><a href="hb_area.html">hb_area</a></code> for the hierarchical Bayes counterpart, <code><a href="benchmark_sae.html">benchmark_sae</a></code>.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -251,7 +278,7 @@ small area estimation problems. <em>Journal of Multivariate Analysis</em>, 101(4
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Log-Fay-Herriot with Slud-Maiti bias correction</span></span></span>
+<span class="r-in"><span><span class="co"># Log-Fay-Herriot (conditional-mean back-transformation)</span></span></span>
 <span class="r-in"><span><span class="va">m_log</span> <span class="op">&lt;-</span> <span class="fu">eblup_fh</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span></span>
 <span class="r-in"><span>  data <span class="op">=</span> <span class="va">mys</span>,</span></span>
@@ -294,7 +321,8 @@ small area estimation problems. <em>Journal of Multivariate Analysis</em>, 101(4
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Self-benchmarking Fay-Herriot model</span></span></span>
+<span class="r-in"><span><span class="co"># Self-benchmarking Fay-Herriot model (the sample sizes n of mys are used only for</span></span></span>
+<span class="r-in"><span><span class="co"># illustration; benchmarking normally weights the areas by population shares)</span></span></span>
 <span class="r-in"><span><span class="va">m1_bench</span> <span class="op">&lt;-</span> <span class="fu">eblup_fh</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span></span>
 <span class="r-in"><span>  data <span class="op">=</span> <span class="va">mys</span>,</span></span>

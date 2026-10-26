@@ -103,14 +103,14 @@
 </div>
 <!-- badges: start -->
 
-<p><strong>fastsae</strong> implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled <strong>C++</strong> (<code>RcppArmadillo</code>) with <strong>OpenMP</strong> multi-threading, and Bayesian estimation uses <strong>INLA</strong> (Integrated Nested Laplace Approximations). It is orders of magnitude faster than existing R implementations (see <a href="#performance-at-a-glance">Performance at a Glance</a>) while agreeing numerically with reference packages such as <code>sae</code>.</p>
+<p><strong>fastsae</strong> implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled <strong>C++</strong> (<code>RcppArmadillo</code>) with <strong>OpenMP</strong> multi-threading, and Bayesian estimation uses <strong>INLA</strong> (Integrated Nested Laplace Approximations). With hundreds to thousands of domains it is much faster than existing R implementations (see <a href="#performance-at-a-glance">Performance at a Glance</a>; with a few dozen domains <code>sae</code> is about as fast), while agreeing numerically with reference packages such as <code>sae</code>.</p>
 <hr>
 <div class="section level2">
 <h2 id="why-fastsae">Why fastsae?<a class="anchor" aria-label="anchor" href="#why-fastsae"></a>
 </h2>
 <ul>
-<li>⚡ <strong>Speed</strong>: optimized C++ Fisher-scoring algorithms turn fits that take seconds in other R packages into milliseconds.</li>
-<li>🎯 <strong>Numerical agreement</strong>: point estimates (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>β</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{\beta}</annotation></semantics></math>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>θ</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{\theta}</annotation></semantics></math>) and variance components (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mover><mi>σ</mi><mo accent="true">̂</mo></mover><mi>u</mi><mn>2</mn></msubsup><annotation encoding="application/x-tex">\hat{\sigma}_u^2</annotation></semantics></math>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>ρ</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{\rho}</annotation></semantics></math>) match <code>sae</code> (Molina &amp; Marhuenda) to numerical tolerance.</li>
+<li>⚡ <strong>Speed</strong>: with 1,000 domains, the C++ Fisher-scoring fits with analytical MSE are 29 to 1,250 times faster than <code>sae</code> (spatio-temporal model: 40 s instead of 19 minutes); with a few dozen domains the differences are a fraction of a second.</li>
+<li>🎯 <strong>Numerical agreement</strong>: on the same data, coefficients, variance components, EBLUPs and analytical MSEs match <code>sae</code> (Molina &amp; Marhuenda) to about <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>14</mn></mrow></msup><annotation encoding="application/x-tex">10^{-14}</annotation></semantics></math>; the documented exceptions are a spatial correlation on the boundary and the ML MSE of the spatial model.</li>
 <li>🔀 <strong>Frequentist and Bayesian in one package</strong>: EBLUP models in C++ and hierarchical Bayesian models through INLA.</li>
 <li>🧵 <strong>Parallel bootstrap</strong>: multi-core OpenMP parametric and non-parametric bootstrap MSE estimation.</li>
 <li>🗺️ <strong>Unsampled areas</strong>: domains with missing observations (<code>y = NA</code>) are predicted automatically.</li>
@@ -136,13 +136,13 @@
 <li>
 <strong>6 likelihood families</strong>: Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma</li>
 <li>
-<strong>Spatial random effects</strong>: BYM2, Besag ICAR, Spatial Lag</li>
+<strong>Spatial random effects</strong>: Besag ICAR, BYM, BYM2, Leroux, SAR, spatial lag</li>
 <li>
 <strong>Temporal random effects</strong>: RW1, RW2, AR(1)</li>
 <li>
 <strong>Spatio-temporal interactions</strong>: separable and non-separable structures</li>
 </ul>
-<p><strong>Key advantage over MCMC</strong>: No convergence diagnostics, no burn-in, reproducible results, and 10–100× speedups.</p>
+<p><strong>Compared with MCMC</strong>: no chains to run and monitor, deterministic results, and fits in seconds. INLA is an approximation: fastsae chose its settings by comparing them with exact posteriors and long Stan runs, and <code>engine = jax_engine()</code> fits the same models by MCMC when a check is needed.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -187,22 +187,22 @@
 <td align="center">Optional foreach/parallel</td>
 </tr>
 <tr>
-<td align="left"><strong>Numerical Consistency</strong></td>
-<td align="center"><strong>Reference baseline</strong></td>
-<td align="center">Baseline</td>
-<td align="center">Approximations</td>
+<td align="left"><strong>Agreement with <code>sae</code> on the same data</strong></td>
+<td align="center"><strong>About <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>14</mn></mrow></msup><annotation encoding="application/x-tex">10^{-14}</annotation></semantics></math></strong></td>
+<td align="center">Reference</td>
+<td align="center">About <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>6</mn></mrow></msup><annotation encoding="application/x-tex">10^{-6}</annotation></semantics></math> (convergence tolerance)</td>
 </tr>
 <tr>
 <td align="left"><strong>Unsampled Area Support</strong></td>
-<td align="center"><strong>Automatic (Spatial Kriging)</strong></td>
+<td align="center"><strong>Automatic (synthetic, kriging for spatial models)</strong></td>
 <td align="center">Manual subsetting required</td>
-<td align="center">Limited</td>
+<td align="center">Synthetic (out-of-sample domains)</td>
 </tr>
 <tr>
-<td align="left"><strong>Bootstrap Speed</strong></td>
-<td align="center"><strong>Parallel C++ (Ultra-Fast)</strong></td>
-<td align="center">Slow (Interpreted R loops)</td>
-<td align="center">Moderate</td>
+<td align="left"><strong>Bootstrap MSE</strong></td>
+<td align="center"><strong>Parallel C++ (OpenMP)</strong></td>
+<td align="center">R</td>
+<td align="center">R</td>
 </tr>
 <tr>
 <td align="left"><strong>S3 Methods Support</strong></td>
@@ -297,8 +297,8 @@
 <tr>
 <td align="left"><strong>Unit-level HB</strong></td>
 <td align="left"><code><a href="reference/hb_unit.html">hb_unit()</a></code></td>
-<td align="left">Gaussian</td>
-<td align="left">✓ Via nested error</td>
+<td align="left">Gaussian, Binomial, Poisson</td>
+<td align="left">✓ BYM2/Besag</td>
 </tr>
 <tr>
 <td align="left"><strong>Two-Fold HB</strong></td>
@@ -308,7 +308,7 @@
 </tr>
 </tbody>
 </table>
-<p>The Bayesian models are fitted with <code>engine = inla_engine()</code> (default). <code><a href="reference/hb_area.html">hb_area()</a></code> can also be fitted by MCMC in Python (JAX/NumPyro) with <code>engine = jax_engine()</code>.</p>
+<p>The Bayesian models are fitted with <code>engine = inla_engine()</code> (default). <code><a href="reference/hb_area.html">hb_area()</a></code>, <code><a href="reference/hb_unit.html">hb_unit()</a></code> and <code><a href="reference/hb_twofold.html">hb_twofold()</a></code> can also be fitted by MCMC in Python (JAX/NumPyro) with <code>engine = jax_engine()</code>.</p>
 <hr>
 </div>
 </div>
@@ -317,7 +317,7 @@
 </h2>
 <!-- BENCH-README:START -->
 <div class="section level4">
-<h4 id="id_1-frequentist-eblup-with-analytical-mse">1. Frequentist EBLUP with analytical MSE<a class="anchor" aria-label="anchor" href="#id_1-frequentist-eblup-with-analytical-mse"></a>
+<h4 id="id_1-frequentist-eblup-with-analytical-mse-time-and-peak-memory">1. Frequentist EBLUP with analytical MSE (time and peak memory)<a class="anchor" aria-label="anchor" href="#id_1-frequentist-eblup-with-analytical-mse-time-and-peak-memory"></a>
 </h4>
 <table class="table">
 <colgroup>
@@ -336,22 +336,22 @@
 <tr>
 <td align="left"><strong>Fay-Herriot</strong></td>
 <td align="center">
-<strong>0.00119 s</strong> (0.503 MB)</td>
-<td align="center">1.50 s (72.0 MB; 1,263x slower)</td>
-<td align="center">51.0 s (3.69 GB; 42,874x slower)</td>
+<strong>0.000639 s</strong> (1.91 MB)</td>
+<td align="center">0.799 s (39.0 MB; 1,250x slower)</td>
+<td align="center">13.5 s (222 MB; 21,071x slower)</td>
 </tr>
 <tr>
 <td align="left"><strong>Spatial Fay-Herriot</strong></td>
 <td align="center">
-<strong>1.00 s</strong> (0.203 MB)</td>
-<td align="center">67.2 s (1.88 GB; 67x slower)</td>
-<td align="center">51.1 s (3.68 GB; 51x slower)</td>
+<strong>0.518 s</strong> (78.7 MB)</td>
+<td align="center">24.1 s (239 MB; 46x slower)</td>
+<td align="center">25.2 s (310 MB; 49x slower)</td>
 </tr>
 <tr>
-<td align="left"><strong>Spatio-Temporal FH (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">T = 5</annotation></semantics></math>)</strong></td>
+<td align="left"><strong>Spatio-Temporal FH (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">T = 5</annotation></semantics></math>), point estimates</strong></td>
 <td align="center">
-<strong>75.3 s</strong> (3.29 MB)</td>
-<td align="center">1790 s (31.7 GB; 24x slower)</td>
+<strong>39.8 s</strong> (495 MB)</td>
+<td align="center">1160 s (3.60 GB; 29x slower)</td>
 <td align="center">-</td>
 </tr>
 </tbody>
@@ -375,36 +375,33 @@
 <code><a href="reference/hb_area.html">fastsae::hb_area</a></code> (INLA)</th>
 <th align="center">
 <code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Stan)</th>
-<th align="center">Speedup</th>
+<th align="center">Ratio of times</th>
 </tr></thead>
 <tbody>
 <tr>
 <td align="left"><strong>Beta</strong></td>
 <td align="center">1,000</td>
-<td align="center">
-<strong>1.61 s</strong> (25.9 MB)</td>
-<td align="center">187 s (17.9 GB)</td>
-<td align="center">117x</td>
+<td align="center"><strong>3.73 s</strong></td>
+<td align="center">180 s</td>
+<td align="center">48x</td>
 </tr>
 <tr>
 <td align="left"><strong>Spatial Beta (Besag ICAR)</strong></td>
 <td align="center">1,000</td>
-<td align="center">
-<strong>1.87 s</strong> (161 MB)</td>
-<td align="center">404 s (22.5 GB)</td>
-<td align="center">217x</td>
+<td align="center"><strong>4.28 s</strong></td>
+<td align="center">362 s</td>
+<td align="center">85x</td>
 </tr>
 <tr>
 <td align="left"><strong>Spatio-Temporal Beta (Besag + RW1, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">T = 5</annotation></semantics></math>)</strong></td>
 <td align="center">50</td>
-<td align="center">
-<strong>1.71 s</strong> (17.1 MB)</td>
-<td align="center">908 s (4.77 GB)</td>
-<td align="center">530x</td>
+<td align="center"><strong>3.80 s</strong></td>
+<td align="center">716 s</td>
+<td align="center">189x</td>
 </tr>
 </tbody>
 </table>
-<p>Times are medians of <code>bench::mark()</code>; memory is the total memory allocated by R during one call (<code>bench::mark()$mem_alloc</code>), not the peak resident memory. The <code>fastsae</code> rows were re-measured with fastsae 1.0.0 (frequentist on 2026-10-13, <code>benchmarks/bench_frequentist_fastsae.R</code>; Bayesian on 2026-10-14, <code>benchmarks/bench_bayes_fastsae.R</code>); the <code>sae</code>/<code>emdi</code> rows come from an earlier run of the same design (simulated data, 5 covariates) on different random draws, the <code>tipsae</code> rows from an earlier run on the same data. See the <a href="https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html">benchmark article</a> for all sizes.</p>
+<p>Times are medians of <code>bench::mark()</code>. The frequentist rows were measured on 2026-10-26 with fastsae 1.0.0, sae 1.3 and emdi 2.2.3 on the same simulated data sets (Apple M4, R version 4.6.1 (2026-06-24); <code>benchmarks/bench_frequentist.R</code>), each in its own R process; memory is the increase of the peak resident memory of that process during the fits, which includes memory allocated by compiled code (increases of a few tens of MB vary from run to run and should not be compared). ‘sae’ has no analytical MSE for the spatio-temporal model, so that row compares point estimates; with its analytical MSE, fastsae took 39.3 s. The Bayesian <code>fastsae</code> rows were re-measured on 2026-10-14 (<code>benchmarks/bench_bayes_fastsae.R</code>), the <code>tipsae</code> rows (4 chains of 2,000 iterations) come from an earlier run on the same data. See the <a href="https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html">benchmark article</a> for all sizes.</p>
 <!-- BENCH-README:END -->
 <hr>
 </div>

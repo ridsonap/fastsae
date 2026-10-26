@@ -176,8 +176,10 @@ eblup_stfh(
 
 ## Value
 
-A list with the same structure as `seblup_area()`, with additional
-`estvarcomp` for spatio-temporal variance/autocorrelation components:
+A list with the same structure as the result of
+[`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
+with `estvarcomp` for the spatio-temporal variance and autocorrelation
+components:
 
 - `estcoef`:
 
@@ -286,6 +288,12 @@ of each group.
     unemployment rate at local labour market areas in Italy.
     International Statistical Review.
     [doi:10.1111/insr.12596](https://doi.org/10.1111/insr.12596)
+
+## See also
+
+[`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md),
+[`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+(with `time`) for the hierarchical Bayes counterpart.
 
 ## Examples
 

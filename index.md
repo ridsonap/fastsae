@@ -3,21 +3,26 @@
 **fastsae** implements widely used Small Area Estimation (SAE) models
 for survey data. Frequentist estimation runs in compiled **C++**
 (`RcppArmadillo`) with **OpenMP** multi-threading, and Bayesian
-estimation uses **INLA** (Integrated Nested Laplace Approximations). It
-is orders of magnitude faster than existing R implementations (see
-[Performance at a Glance](#performance-at-a-glance)) while agreeing
-numerically with reference packages such as `sae`.
+estimation uses **INLA** (Integrated Nested Laplace Approximations).
+With hundreds to thousands of domains it is much faster than existing R
+implementations (see [Performance at a
+Glance](#performance-at-a-glance); with a few dozen domains `sae` is
+about as fast), while agreeing numerically with reference packages such
+as `sae`.
 
 ------------------------------------------------------------------------
 
 ## Why fastsae?
 
-- ⚡ **Speed**: optimized C++ Fisher-scoring algorithms turn fits that
-  take seconds in other R packages into milliseconds.
-- 🎯 **Numerical agreement**: point estimates ($`\hat{\beta}`$,
-  $`\hat{\theta}`$) and variance components ($`\hat{\sigma}_u^2`$,
-  $`\hat{\rho}`$) match `sae` (Molina & Marhuenda) to numerical
-  tolerance.
+- ⚡ **Speed**: with 1,000 domains, the C++ Fisher-scoring fits with
+  analytical MSE are 29 to 1,250 times faster than `sae`
+  (spatio-temporal model: 40 s instead of 19 minutes); with a few dozen
+  domains the differences are a fraction of a second.
+- 🎯 **Numerical agreement**: on the same data, coefficients, variance
+  components, EBLUPs and analytical MSEs match `sae` (Molina &
+  Marhuenda) to about $`10^{-14}`$; the documented exceptions are a
+  spatial correlation on the boundary and the ML MSE of the spatial
+  model.
 - 🔀 **Frequentist and Bayesian in one package**: EBLUP models in C++
   and hierarchical Bayesian models through INLA.
 - 🧵 **Parallel bootstrap**: multi-core OpenMP parametric and
@@ -50,13 +55,17 @@ Bayesian small area models with:
 
 - **6 likelihood families**: Gaussian, Beta, Binomial, Poisson, Negative
   Binomial, Gamma
-- **Spatial random effects**: BYM2, Besag ICAR, Spatial Lag
+- **Spatial random effects**: Besag ICAR, BYM, BYM2, Leroux, SAR,
+  spatial lag
 - **Temporal random effects**: RW1, RW2, AR(1)
 - **Spatio-temporal interactions**: separable and non-separable
   structures
 
-**Key advantage over MCMC**: No convergence diagnostics, no burn-in,
-reproducible results, and 10–100× speedups.
+**Compared with MCMC**: no chains to run and monitor, deterministic
+results, and fits in seconds. INLA is an approximation: fastsae chose
+its settings by comparing them with exact posteriors and long Stan runs,
+and `engine = jax_engine()` fits the same models by MCMC when a check is
+needed.
 
 ------------------------------------------------------------------------
 
@@ -88,9 +97,9 @@ Bayesian hierarchical model via INLA with spatial support
 |:---|:--:|:--:|:--:|
 | **Core Computation** | **C++ (RcppArmadillo)** | Pure R | R / lme4 / nlme |
 | **Multi-Threading** | **Native OpenMP** (`n_threads`) | Single-threaded | Optional foreach/parallel |
-| **Numerical Consistency** | **Reference baseline** | Baseline | Approximations |
-| **Unsampled Area Support** | **Automatic (Spatial Kriging)** | Manual subsetting required | Limited |
-| **Bootstrap Speed** | **Parallel C++ (Ultra-Fast)** | Slow (Interpreted R loops) | Moderate |
+| **Agreement with `sae` on the same data** | **About $`10^{-14}`$** | Reference | About $`10^{-6}`$ (convergence tolerance) |
+| **Unsampled Area Support** | **Automatic (synthetic, kriging for spatial models)** | Manual subsetting required | Synthetic (out-of-sample domains) |
+| **Bootstrap MSE** | **Parallel C++ (OpenMP)** | R | R |
 | **S3 Methods Support** | `print`, `summary`, `coef`, `fitted`, `residuals`, `autoplot` | Custom lists | Standard S3 |
 
 ------------------------------------------------------------------------
@@ -112,11 +121,14 @@ Bayesian hierarchical model via INLA with spatial support
 | Model | Function | Distributions | Spatial/Temporal |
 |:---|:---|:---|:---|
 | **Area-level HB** | [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Full support |
-| **Unit-level HB** | [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) | Gaussian | ✓ Via nested error |
+| **Unit-level HB** | [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
 | **Two-Fold HB** | [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
 
 The Bayesian models are fitted with `engine = inla_engine()` (default).
-[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
+and
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
 can also be fitted by MCMC in Python (JAX/NumPyro) with
 `engine = jax_engine()`.
 
@@ -124,30 +136,35 @@ can also be fitted by MCMC in Python (JAX/NumPyro) with
 
 ## Performance at a Glance
 
-#### 1. Frequentist EBLUP with analytical MSE
+#### 1. Frequentist EBLUP with analytical MSE (time and peak memory)
 
 | Model ($`n = 1,000`$ domains, 5 covariates) | `fastsae` | `sae` | `emdi` |
 |:---|:--:|:--:|:--:|
-| **Fay-Herriot** | **0.00119 s** (0.503 MB) | 1.50 s (72.0 MB; 1,263x slower) | 51.0 s (3.69 GB; 42,874x slower) |
-| **Spatial Fay-Herriot** | **1.00 s** (0.203 MB) | 67.2 s (1.88 GB; 67x slower) | 51.1 s (3.68 GB; 51x slower) |
-| **Spatio-Temporal FH ($`T = 5`$)** | **75.3 s** (3.29 MB) | 1790 s (31.7 GB; 24x slower) | \- |
+| **Fay-Herriot** | **0.000639 s** (1.91 MB) | 0.799 s (39.0 MB; 1,250x slower) | 13.5 s (222 MB; 21,071x slower) |
+| **Spatial Fay-Herriot** | **0.518 s** (78.7 MB) | 24.1 s (239 MB; 46x slower) | 25.2 s (310 MB; 49x slower) |
+| **Spatio-Temporal FH ($`T = 5`$), point estimates** | **39.8 s** (495 MB) | 1160 s (3.60 GB; 29x slower) | \- |
 
 #### 2. Bayesian Beta models: INLA vs Stan MCMC (largest $`n`$ benchmarked)
 
-| Model | $`n`$ | [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (INLA) | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan) | Speedup |
+| Model | $`n`$ | [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (INLA) | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan) | Ratio of times |
 |:---|:--:|:--:|:--:|:--:|
-| **Beta** | 1,000 | **1.61 s** (25.9 MB) | 187 s (17.9 GB) | 117x |
-| **Spatial Beta (Besag ICAR)** | 1,000 | **1.87 s** (161 MB) | 404 s (22.5 GB) | 217x |
-| **Spatio-Temporal Beta (Besag + RW1, $`T = 5`$)** | 50 | **1.71 s** (17.1 MB) | 908 s (4.77 GB) | 530x |
+| **Beta** | 1,000 | **3.73 s** | 180 s | 48x |
+| **Spatial Beta (Besag ICAR)** | 1,000 | **4.28 s** | 362 s | 85x |
+| **Spatio-Temporal Beta (Besag + RW1, $`T = 5`$)** | 50 | **3.80 s** | 716 s | 189x |
 
-Times are medians of `bench::mark()`; memory is the total memory
-allocated by R during one call (`bench::mark()$mem_alloc`), not the peak
-resident memory. The `fastsae` rows were re-measured with fastsae 1.0.0
-(frequentist on 2026-10-13, `benchmarks/bench_frequentist_fastsae.R`;
-Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the
-`sae`/`emdi` rows come from an earlier run of the same design (simulated
-data, 5 covariates) on different random draws, the `tipsae` rows from an
-earlier run on the same data. See the [benchmark
+Times are medians of `bench::mark()`. The frequentist rows were measured
+on 2026-10-26 with fastsae 1.0.0, sae 1.3 and emdi 2.2.3 on the same
+simulated data sets (Apple M4, R version 4.6.1 (2026-06-24);
+`benchmarks/bench_frequentist.R`), each in its own R process; memory is
+the increase of the peak resident memory of that process during the
+fits, which includes memory allocated by compiled code (increases of a
+few tens of MB vary from run to run and should not be compared). ‘sae’
+has no analytical MSE for the spatio-temporal model, so that row
+compares point estimates; with its analytical MSE, fastsae took 39.3 s.
+The Bayesian `fastsae` rows were re-measured on 2026-10-14
+(`benchmarks/bench_bayes_fastsae.R`), the `tipsae` rows (4 chains of
+2,000 iterations) come from an earlier run on the same data. See the
+[benchmark
 article](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.html) for
 all sizes.
 

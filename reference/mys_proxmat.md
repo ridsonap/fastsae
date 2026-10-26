@@ -29,3 +29,16 @@ A square numeric matrix with 42 rows and 42 columns with values between
 
 Built from the `sim_area` centroids by `data-raw/mys_proxmat.R` in the
 package sources.
+
+## Examples
+
+``` r
+data(mys_proxmat)
+range(rowSums(mys_proxmat))
+#> [1] 1 1
+# neighbours per area (the graph used by the CAR models)
+table(rowSums(mys_proxmat > 0))
+#> 
+#>  4  5  6  7  8 
+#> 19 15  4  3  1 
+```

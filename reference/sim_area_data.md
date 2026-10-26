@@ -84,7 +84,8 @@ An object of class `c("fastsae_sim_data", "list")` containing:
 
   A data frame with columns: `domain`, `x1`, `x2`, `y_gaussian`,
   `vardir`, `y_poisson`, `exposure`, `y_binomial`, `trials`, `y_beta`,
-  `y_nbinomial`, `y_gamma`, `x_coord`, `y_coord`.
+  `y_nbinomial`, `y_gamma`, `truth_gaussian` (the true Gaussian area
+  mean \\x_d'\beta + u_d\\), `x_coord`, `y_coord`.
 
 - W:
 

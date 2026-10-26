@@ -111,8 +111,13 @@ the LM-error test.
     Applications*. Pion London.
 
 3.  Petrucci, A., & Salvati, N. (2006). Small area estimation for
-    spatial data in R. *Statistical Methods & Applications*, 14(3),
-    391-407.
+    spatial correlation in watershed erosion assessment. *Journal of
+    Agricultural, Biological, and Environmental Statistics*, 11(2),
+    169-182.
+
+4.  Pratesi, M., & Salvati, N. (2008). Small area estimation: the EBLUP
+    estimator based on spatially correlated random area effects.
+    *Statistical Methods & Applications*, 17(1), 113-141.
 
 ## Examples
 

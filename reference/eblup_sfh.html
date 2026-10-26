@@ -105,7 +105,8 @@
 
 
 <dt id="arg-vardir">vardir<a class="anchor" aria-label="anchor" href="#arg-vardir"></a></dt>
-<dd><p>vector or column names from data that contain variance sampling from the direct estimator for each area.</p></dd>
+<dd><p>sampling variances of the direct estimates: a numeric vector, the name of a
+column of <code>data</code> or a one-sided formula (e.g. <code>~vardir</code>).</p></dd>
 
 
 <dt id="arg-domain">domain<a class="anchor" aria-label="anchor" href="#arg-domain"></a></dt>
@@ -149,8 +150,7 @@ Values less than or equal to 0 use all available cores.</p></dd>
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>Integer seed for bootstrap resampling; <code>-1</code> (default) sets no seed. A fixed
-seed does not change the random number stream of the session.
-A value of -1 leaves the current R RNG state unchanged.</p></dd>
+seed does not change the random number stream of the session.</p></dd>
 
 
 <dt id="arg-maxiter">maxiter<a class="anchor" aria-label="anchor" href="#arg-maxiter"></a></dt>
@@ -201,20 +201,24 @@ p-values (<code>pvalue</code>) <br><code>random_effect_var</code> estimated rand
 estimates, for ML and REML fits alike), <code>AIC</code> and <code>BIC</code> computed from it, as
 <span class="pkg">sae</span> does and as in Marhuenda, Morales and Pardo (2014). The restricted (REML)
 likelihood is not reported: it depends on the covariates through X, so it cannot
-compare models with different covariates. <br><code>df_eblup</code> a data frame that contains the following columns: <br></p><ul><li><p><code>y</code> variable response <br></p></li>
+compare models with different covariates. <br><code>df_eblup</code> a data frame with one row per domain: <br></p><ul><li><p><code>domain</code> domain identifier <br></p></li>
+<li><p><code>y</code> direct estimate (<code>NA</code> for unsampled domains) <br></p></li>
 <li><p><code>eblup</code> estimated results for each area <br></p></li>
 <li><p><code>random_effect</code> random effect for each area <br></p></li>
-<li><p><code>vardir</code> variance sampling from the direct estimator for each area <br></p></li>
-<li><p><code>mse</code> Mean Square Error <br></p></li>
+<li><p><code>vardir</code> sampling variance of the direct estimate <br></p></li>
+<li><p><code>mse</code> Mean Square Error (the bootstrap MSE for <code>"pbmse"</code>/<code>"npbmse"</code>) <br></p></li>
 <li><p><code>rse</code> Relative Standard Error (%) <br></p></li>
 <li><p><code>mse_pb</code> or <code>mse_npb</code> Parametric / Non Parametric bootstrap MSE<br></p></li>
-<li><p><code>mse_pbbc</code> or <code>mse_npbbc</code> Bias Corrected Parametric / Non Parametric bootstrap MSE <br></p></li>
+<li><p><code>mse_pbbc</code> or <code>mse_npbbc</code> Bias Corrected Parametric / Non Parametric bootstrap MSE <br><code>convergence</code>, <code>n_iter</code> whether the fit converged, and its iterations, <br><code>model</code>, <code>method</code>, <code>mse_type</code>, <code>formula</code>, <code>call</code>, <code>data</code>,
+<code>W</code> the settings, the matched call, the data and the weight matrix used. <br></p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The model has a form that is response ~ auxiliary variables.
-where numeric type response variables can contain NA.
-When the response variable contains NA, that domain is treated as unsampled: it is
+    <p>The spatial Fay-Herriot model (Petrucci and Salvati, 2006; Pratesi and Salvati, 2008) is
+\(y = X\beta + u + e\) with a simultaneous autoregressive area effect
+\(u = \rho W u + \varepsilon\), \(\varepsilon \sim N(0, \sigma^2 I)\), and sampling errors
+\(e \sim N(0, \mathrm{diag}(\psi_d))\) with known \(\psi_d\) (<code>vardir</code>).
+When the response is <code>NA</code>, that domain is treated as unsampled: it is
 predicted with a full-spatial synthetic (kriging) estimator that borrows strength from
 sampled neighbors via <code>W</code>. The SAR process is defined on all domains of <code>W</code>, so the
 sampled domains have covariance \(\sigma^2 \Sigma[s,s]\) with
@@ -223,7 +227,7 @@ sampled domains have covariance \(\sigma^2 \Sigma[s,s]\) with
 estimates can then understate the error; the function says so with a message (see
 Li and Lahiri, 2010).</p>
 <p>Analytical MSE. Sampled domains: \(g_1 + g_2 + 2 g_3 - g_4\) (Singh et al., 2005;
-as <code><a href="https://rdrr.io/pkg/sae/man/mseSFH.html" class="external-link">sae::mseSFH</a></code>), minus \(b_{ML}'\nabla g_1\) for ML. Unsampled domains:
+as <code><a href="https://rdrr.io/pkg/sae/man/mseSFH.html" class="external-link">sae::mseSFH</a></code>; the bootstrap MSEs are those of Molina et al., 2009), minus \(b_{ML}'\nabla g_1\) for ML. Unsampled domains:
 \(g_1 + g_2 + g_3 - \frac{1}{2}\mathrm{tr}(I^{-1}\nabla^2 g_1)\) (minus
 \(b_{ML}'\nabla g_1\) for ML), with \(g_3\) from the exact derivative of the
 kriging predictor; for sampled domains this second-order form agrees, up to o(1/m), with
@@ -259,8 +263,24 @@ a dense <code>W</code> (e.g. inverse-distance weights) uses dense factorisations
 <ol><li><p>Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method for solving
 small area estimation problems. <em>Journal of Multivariate Analysis</em>, 101(4), 882-892.</p></li>
 <li><p>Marhuenda, Y., Morales, D., &amp; Pardo, M. C. (2014). Information criteria for Fay-Herriot model selection. <em>Computational Statistics &amp; Data Analysis</em>, 70, 268-280.</p></li>
+<li><p>Molina, I., Salvati, N., &amp; Pratesi, M. (2009). Bootstrap for estimating the MSE of the
+spatial EBLUP. <em>Computational Statistics</em>, 24(3), 441-458.</p></li>
+<li><p>Petrucci, A., &amp; Salvati, N. (2006). Small area estimation for spatial correlation in
+watershed erosion assessment. <em>Journal of Agricultural, Biological, and Environmental
+Statistics</em>, 11(2), 169-182.</p></li>
+<li><p>Pratesi, M., &amp; Salvati, N. (2008). Small area estimation: the EBLUP estimator based on
+spatially correlated random area effects. <em>Statistical Methods &amp; Applications</em>, 17(1),
+113-141.</p></li>
 <li><p>Rao, J. N., &amp; Molina, I. (2015). Small area estimation. John Wiley &amp; Sons.</p></li>
+<li><p>Singh, B. B., Shukla, G. K., &amp; Kundu, D. (2005). Spatio-temporal models in small area
+estimation. <em>Survey Methodology</em>, 31(2), 183-195.</p></li>
 </ol></div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="eblup_fh.html">eblup_fh</a></code>, <code><a href="eblup_stfh.html">eblup_stfh</a></code> for repeated surveys,
+<code><a href="spatial_test.html">spatial_test</a></code> to check whether a spatial model is needed,
+<code><a href="create_weights.html">create_weights</a></code> to build <code>W</code>.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

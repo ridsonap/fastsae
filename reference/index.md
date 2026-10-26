@@ -143,10 +143,10 @@ weight matrices
 Built-in empirical and synthetic survey datasets
 
 - [`mys`](https://ridsonap.is-a.dev/fastsae/reference/mys.md) : mys:
-  mean years of schooling people with disabilities.
+  mean years of schooling of people with disabilities
 - [`mys_panel`](https://ridsonap.is-a.dev/fastsae/reference/mys_panel.md)
-  : mys_panel: mean years of schooling people with disabilities 2016 -
-  2026.
+  : mys_panel: mean years of schooling of people with disabilities,
+  2016-2026
 - [`mys_proxmat`](https://ridsonap.is-a.dev/fastsae/reference/mys_proxmat.md)
   : Example proximity matrix
 - [`cornsoybean`](https://ridsonap.is-a.dev/fastsae/reference/cornsoybean.md)

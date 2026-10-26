@@ -48,3 +48,17 @@ Association\*, 83, 28–36.
 
 This dataset is included for demonstration purposes and is originally
 provided in the sae package.
+
+## Examples
+
+``` r
+data(cornsoybean)
+head(cornsoybean)
+#>   County CornHec SoyBeansHec CornPix SoyBeansPix
+#> 1      1  165.76        8.09     374          55
+#> 2      2   96.32      106.03     209         218
+#> 3      3   76.08      103.60     253         250
+#> 4      4  185.35        6.47     432          96
+#> 5      4  116.43       63.82     367         178
+#> 6      5  162.08       43.50     361         137
+```

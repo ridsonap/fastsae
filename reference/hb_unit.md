@@ -147,7 +147,8 @@ containing:
 
   - `sd`: Posterior standard deviation (standard error).
 
-  - `mse`: Posterior Mean Squared Error (\\\text{sd}^2\\).
+  - `mse`: Posterior variance (\\\text{sd}^2\\), named as in the EBLUP
+    results.
 
   - `rse`: Relative Standard Error (%).
 

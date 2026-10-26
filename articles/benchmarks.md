@@ -12,11 +12,12 @@ dense covariance matrices.
 (`RcppArmadillo`; sparse Cholesky factorisations for the SAR models) and
 the Bayesian models with INLA. At $`n = 1,000`$ domains:
 
-- **Fay-Herriot**: 1,263x faster than `sae` and 42,874x faster than
+- **Fay-Herriot**: 1,250x faster than `sae` and 21,071x faster than
   `emdi`.
-- **Spatial Fay-Herriot**: 67x faster than `sae` and 51x faster than
+- **Spatial Fay-Herriot**: 46x faster than `sae` and 49x faster than
   `emdi`.
-- **Spatio-Temporal Fay-Herriot** ($`T = 5`$): 24x faster than `sae`.
+- **Spatio-Temporal Fay-Herriot** ($`T = 5`$, point estimates): 29x
+  faster than `sae`.
 
 ------------------------------------------------------------------------
 
@@ -24,18 +25,22 @@ the Bayesian models with INLA. At $`n = 1,000`$ domains:
 
 | Model ($`n = 1,000`$ domains, 5 covariates) | `fastsae` | `sae` | `emdi` |
 |:---|:--:|:--:|:--:|
-| **Fay-Herriot** | **0.00119 s** (0.503 MB) | 1.50 s (72.0 MB; 1,263x slower) | 51.0 s (3.69 GB; 42,874x slower) |
-| **Spatial Fay-Herriot** | **1.00 s** (0.203 MB) | 67.2 s (1.88 GB; 67x slower) | 51.1 s (3.68 GB; 51x slower) |
-| **Spatio-Temporal FH ($`T = 5`$)** | **75.3 s** (3.29 MB) | 1790 s (31.7 GB; 24x slower) | \- |
+| **Fay-Herriot** | **0.000639 s** (1.91 MB) | 0.799 s (39.0 MB; 1,250x slower) | 13.5 s (222 MB; 21,071x slower) |
+| **Spatial Fay-Herriot** | **0.518 s** (78.7 MB) | 24.1 s (239 MB; 46x slower) | 25.2 s (310 MB; 49x slower) |
+| **Spatio-Temporal FH ($`T = 5`$), point estimates** | **39.8 s** (495 MB) | 1160 s (3.60 GB; 29x slower) | \- |
 
-Times are medians of `bench::mark()`; memory is the total memory
-allocated by R during one call (`bench::mark()$mem_alloc`), not the peak
-resident memory. The `fastsae` rows were re-measured with fastsae 1.0.0
-(frequentist on 2026-10-13, `benchmarks/bench_frequentist_fastsae.R`;
-Bayesian on 2026-10-14, `benchmarks/bench_bayes_fastsae.R`); the
-`sae`/`emdi` rows come from an earlier run of the same design (simulated
-data, 5 covariates) on different random draws, the `tipsae` rows from an
-earlier run on the same data.
+Times are medians of `bench::mark()`. The frequentist rows were measured
+on 2026-10-26 with fastsae 1.0.0, sae 1.3 and emdi 2.2.3 on the same
+simulated data sets (Apple M4, R version 4.6.1 (2026-06-24);
+`benchmarks/bench_frequentist.R`), each in its own R process; memory is
+the increase of the peak resident memory of that process during the
+fits, which includes memory allocated by compiled code (increases of a
+few tens of MB vary from run to run and should not be compared). ‘sae’
+has no analytical MSE for the spatio-temporal model, so that row
+compares point estimates; with its analytical MSE, fastsae took 39.3 s.
+The Bayesian `fastsae` rows were re-measured on 2026-10-14
+(`benchmarks/bench_bayes_fastsae.R`), the `tipsae` rows (4 chains of
+2,000 iterations) come from an earlier run on the same data.
 
 ------------------------------------------------------------------------
 
@@ -150,25 +155,30 @@ Execution time (median, seconds) — Standard Beta · log scale
 Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Standard
 Beta
 
-#### Inferential Equivalence & Validation Metrics ($`n = 1,000`$)
+#### Agreement with Stan MCMC (Beta model, $`n = 1,000`$)
 
-To establish that the substantial computational accelerations achieved
-by
+To check that the speed of
 [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
-preserve full inferential validity relative to Stan MCMC
-([`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)),
-summary concordance and error metrics were evaluated across
-$`n = 1,000`$ domains/units for Standard Beta, Spatial Beta (Besag
-ICAR), and Spatio-Temporal Beta models:
+does not come at the cost of its estimates, both packages were fitted
+with their defaults to the $`n = 1,000`$ data set of the Beta benchmark
+(independent area effects, sampling variances from the direct estimates;
+`benchmarks/bench_beta_concordance.R`). The two packages do not fit
+identical models (their priors differ, and fastsae fixes the precision
+at a first-stage estimate while tipsae makes it a function of the model
+mean), so the comparison is between what a user obtains from each
+package:
 
-| Dimension | Metric | Beta | Spatial Beta | Spatio-Temporal Beta | Statistical Implication |
-|:---|:---|:--:|:--:|:--:|:---|
-| **Point Estimates (EBP)** | **Pearson Correlation ($`r`$)** | **0.99934** | **0.99891** | **0.99614** | Near-perfect linear agreement between INLA and MCMC |
-|  | **Spearman Rank Correlation ($`\rho`$)** | **0.99921** | **0.99875** | **0.99517** | Consistent domain priority and rank ordering |
-|  | **Mean Absolute Error (MAE)** | **0.01969** | **0.01456** | **0.01200** | Average estimation discrepancy $`< 0.02`$ |
-|  | **Root Mean Squared Difference (RMSD)** | **0.02369** | **0.01713** | **0.01458** | Negligible $`L_2`$ deviation across domains |
-| **Uncertainty / MSE** | **MSE Pearson Correlation ($`r_{\text{MSE}}`$)** | **0.96315** | **0.89254** | **0.67957** | Preserved area-level precision ordering |
-|  | **Mean Absolute Difference (MSE)** | **0.00018** | **0.00012** | **0.00025** | Virtually identical error variances |
+| Metric | [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (INLA) | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan) |
+|:---|:--:|:--:|
+| RMSE against the true area means | 0.0678 | 0.0684 |
+| Coverage of the 95% intervals | 93.3% | 91.1% |
+| Mean width of the 95% intervals | 0.252 | 0.259 |
+| Time | 4.3 s | 184 s |
+
+The posterior means of the two packages differed by 0.0096 on average
+(absolute difference), and the posterior SDs of fastsae were 0.99 times
+those of tipsae in the median area (90% of the areas between 0.88 and
+1.17). The largest $`\hat{R}`$ of the tipsae fit was 1.008.
 
 ------------------------------------------------------------------------
 

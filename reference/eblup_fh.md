@@ -34,8 +34,10 @@ eblup_fh(
 
 - vardir:
 
-  vector or column names from data that contain variance sampling from
-  the direct estimator.
+  sampling variances of the direct estimates: a numeric vector, the name
+  of a column of `data`, a one-sided formula (e.g. `~vardir`) or a
+  [`gvf_smooth`](https://ridsonap.is-a.dev/fastsae/reference/gvf_smooth.md)
+  object, whose smoothed variances are then used.
 
 - domain:
 
@@ -123,20 +125,31 @@ estimates, for ML and REML fits alike), `AIC` and `BIC` computed from
 it, as sae does and as in Marhuenda, Morales and Pardo (2014). The
 restricted (REML) likelihood is not reported: it depends on the
 covariates through X, so it cannot compare models with different
-covariates., `df_eblup` a data frame that contains y, eblup,
-random_effect, vardir, mse, and rse.  
+covariates., `df_eblup` a data frame with one row per domain:  
 
-- `y` variable response  
+- `domain` domain identifier  
+
+- `y` direct estimate (`NA` for unsampled domains)  
 
 - `eblup` estimated results for each area  
 
 - `random_effect` random effect for each area  
 
-- `vardir` variance sampling from the direct estimator for each area  
+- `vardir` sampling variance of the direct estimate  
 
 - `mse` Mean Square Error  
 
 - `rse` Relative Standard Error (%)  
+
+- `eblup_log`, `mse_log` EBLUP and MSE on the log scale
+  (`transform = "log"`)  
+
+- `eblup_unbenchmarked` the estimate before ratio benchmarking
+  (`transform = "log"` with self-benchmarking)  
+  `convergence`, `n_iter` whether Fisher scoring converged, and its
+  iterations,  
+  `model`, `method`, `transform`, `mse_type`, `formula`, `call`, `data`
+  the settings, the matched call and the data used,  
   `self_benchmark` logical indicating whether self-benchmarking was
   active,  
   `benchmark_summary` summary table of benchmark calibration (if
@@ -144,9 +157,17 @@ random_effect, vardir, mse, and rse.
 
 ## Details
 
-The model has a form that is response ~ auxiliary variables. where
-numeric type response variables can contain NA. When the response
-variable contains NA it will be estimated with synthetic estimator.
+The Fay-Herriot model is \\y_d = x_d'\beta + u_d + e_d\\, with \\u_d
+\sim N(0, \sigma^2_u)\\ and sampling errors \\e_d \sim N(0, \psi_d)\\
+with known variances \\\psi_d\\ (`vardir`). The EBLUP is \\\hat\theta_d
+= \hat\gamma_d y_d + (1 - \hat\gamma_d) x_d'\hat\beta\\ with
+\\\hat\gamma_d = \hat\sigma^2_u / (\hat\sigma^2_u + \psi_d)\\. Domains
+whose response is `NA` are not sampled and get the synthetic estimate
+\\x_d'\hat\beta\\.
+
+The analytical MSE is \\g_1 + g_2 + 2 g_3\\ (Prasad and Rao, 1990, for
+REML as shown by Datta and Lahiri, 2000), minus the bias term of Datta
+and Lahiri (2000) for ML.
 
 The random effect variance is estimated by (RE)ML and truncated at 0, as
 in sae. An estimate of 0 makes every EBLUP the synthetic estimate, and
@@ -156,24 +177,43 @@ sampling variances (Li and Lahiri, 2010).
 
 ## References
 
-1.  Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method
+1.  Datta, G. S., and Lahiri, P. (2000). A unified measure of
+    uncertainty of estimated best linear unbiased predictors in small
+    area estimation problems. *Statistica Sinica*, 10(2), 613-627.
+
+2.  Fay, R. E., and Herriot, R. A. (1979). Estimates of income for small
+    places: an application of James-Stein procedures to census data.
+    *Journal of the American Statistical Association*, 74(366), 269-277.
+
+3.  Li, H., and Lahiri, P. (2010). An adjusted maximum likelihood method
     for solving small area estimation problems. *Journal of Multivariate
     Analysis*, 101(4), 882-892.
 
-2.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
+4.  Marhuenda, Y., Morales, D., & Pardo, M. C. (2014). Information
     criteria for Fay-Herriot model selection. *Computational Statistics
     & Data Analysis*, 70, 268-280.
 
-3.  Rao, J. N. K., & Molina, I. (2015). Small area estimation. John
+5.  Prasad, N. G. N., and Rao, J. N. K. (1990). The estimation of the
+    mean squared error of small-area estimators. *Journal of the
+    American Statistical Association*, 85(409), 163-171.
+
+6.  Rao, J. N. K., & Molina, I. (2015). Small area estimation. John
     Wiley & Sons.
 
-4.  Slud, E. V., & Maiti, T. (2006). Small-area estimation via
-    Fay-Herriot models with logit and log transformations.
-    *Communications in Statistics - Theory and Methods*, 35(10),
-    1957-1971.
+7.  Slud, E. V., & Maiti, T. (2006). Mean-squared error estimation in
+    transformed Fay-Herriot models. *Journal of the Royal Statistical
+    Society: Series B*, 68(2), 239-257.
 
-5.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
+8.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
     under a restriction. *Survey Methodology*, 34(1), 29-36.
+
+## See also
+
+[`eblup_sfh`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md)
+for spatially correlated area effects,
+[`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) for
+the hierarchical Bayes counterpart,
+[`benchmark_sae`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md).
 
 ## Examples
 
@@ -214,7 +254,7 @@ m1 <- eblup_fh(
 #> ... and 36 more rows.
 #> 
 
-# Log-Fay-Herriot with Slud-Maiti bias correction
+# Log-Fay-Herriot (conditional-mean back-transformation)
 m_log <- eblup_fh(
   y ~ x1 + x2 + x3,
   data = mys,
@@ -257,7 +297,8 @@ m_log <- eblup_fh(
 #> ... and 36 more rows.
 #> 
 
-# Self-benchmarking Fay-Herriot model
+# Self-benchmarking Fay-Herriot model (the sample sizes n of mys are used only for
+# illustration; benchmarking normally weights the areas by population shares)
 m1_bench <- eblup_fh(
   y ~ x1 + x2 + x3,
   data = mys,

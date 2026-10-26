@@ -1,13 +1,14 @@
 # Two-Fold Hierarchical Bayes for Sub-Area Level Small Area Estimation
 
-Estimates small area parameters under a two-fold sub-area level model
-(Torabi & Rao, 2014 Bayesian hierarchical framework) using Integrated
-Nested Laplace Approximations (INLA) or, with `engine = jax_engine()`,
-MCMC (NumPyro's No-U-Turn sampler on JAX). The model accounts for nested
-random effects at both the primary area level (\\v_i\\) and the nested
-sub-area level (\\u\_{ij}\\), supporting Gaussian, Binomial (logistic),
-and Poisson responses, with optional spatial correlation structures
-(BYM2, Besag) across areas and aggregate area-level estimation.
+Estimates small area parameters under the two-fold sub-area level model
+of Torabi and Rao (2014), formulated as a hierarchical Bayes model,
+using Integrated Nested Laplace Approximations (INLA) or, with
+`engine = jax_engine()`, MCMC (NumPyro's No-U-Turn sampler on JAX). The
+model accounts for nested random effects at both the primary area level
+(\\v_i\\) and the nested sub-area level (\\u\_{ij}\\), supporting
+Gaussian, Binomial (logistic), and Poisson responses, with optional
+spatial correlation structures (BYM2, Besag) across areas and aggregate
+area-level estimation.
 
 ## Usage
 
@@ -178,7 +179,8 @@ containing:
 
   - `sd`: Posterior standard deviation (standard error).
 
-  - `mse`: Posterior Mean Squared Error (\\\text{sd}^2\\).
+  - `mse`: Posterior variance (\\\text{sd}^2\\), named as in the EBLUP
+    results.
 
   - `rse`: Relative Standard Error (%).
 
@@ -200,7 +202,7 @@ containing:
 
   - `sd_area`: Posterior standard error of area estimate.
 
-  - `mse_area`: Posterior Mean Squared Error of area estimate.
+  - `mse_area`: Posterior variance of the area estimate.
 
   - `rse_area`: Relative Standard Error of area estimate (%).
 

@@ -549,36 +549,36 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
-<span><span class="co">#&gt; sigma2_u: 0.074071 </span></span>
+<span><span class="co">#&gt; sigma2_u: 0.074072 </span></span>
 <span><span class="co">#&gt; sigma2_t (temporal): 0.008529 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept) -2.2696e+00  1.5370e-02 -1.4766e+02  0.0000e+00 -2.2998e+00</span></span>
-<span><span class="co">#&gt; x            4.1691e-01  6.6161e-02  6.3015e+00  2.9475e-10  2.8685e-01</span></span>
+<span><span class="co">#&gt; x            4.1691e-01  6.6161e-02  6.3015e+00  2.9476e-10  2.8685e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)  -2.2395</span></span>
 <span><span class="co">#&gt; x             0.5465</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                  mean        sd 0.025quant 0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.25279  5.508665   7.224507  14.3383   28.60677</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   136.59632 57.257819  60.484921 125.0454  281.21286</span></span>
+<span><span class="co">#&gt;                                 mean        sd 0.025quant 0.5quant 0.975quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.2527  5.508661   7.224458  14.3382    28.6067</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   136.5939 57.256239  60.483820 125.0435   281.2059</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  12.67086</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   104.92242</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  12.67075</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   104.92129</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -971.94531 </span></span>
+<span><span class="co">#&gt;                                            -971.94523 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              60.69146 </span></span>
+<span><span class="co">#&gt;                                              60.69164 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -979.78126 </span></span>
+<span><span class="co">#&gt;                                            -979.78136 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              42.46186 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                             432.98608 </span></span>
+<span><span class="co">#&gt;                                             432.98607 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; HB Summary Statistics:</span></span>
 <span><span class="co">#&gt;        hb           linear_pred           sd                mse           </span></span>
@@ -603,20 +603,20 @@ and known sampling variances <code>vars</code>:</p>
 standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                domain time      y         hb          sd      rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102825 0.005596856 10.96815 0.04062430</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182496 0.006281351  7.67657 0.07003562</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310380 0.010890463 11.69712 0.07366717</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365560 0.006408107 10.06684 0.05185446</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937249 0.007927315 11.42717 0.05493782</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446582 0.014070622 14.89493 0.06968691</span></span>
+<span><span class="co">#&gt;                domain time      y         hb          sd       rse   ci_lower</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102821 0.005596853 10.968154 0.04062428</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182495 0.006281353  7.676574 0.07003561</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310382 0.010890474 11.697130 0.07366715</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365558 0.006408114 10.066853 0.05185444</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937248 0.007927324 11.427189 0.05493780</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446591 0.014070669 14.894971 0.06968690</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06256397</span></span>
+<span><span class="co">#&gt; 1 0.06256393</span></span>
 <span><span class="co">#&gt; 2 0.09467501</span></span>
-<span><span class="co">#&gt; 3 0.11635697</span></span>
-<span><span class="co">#&gt; 4 0.07700998</span></span>
-<span><span class="co">#&gt; 5 0.08602893</span></span>
-<span><span class="co">#&gt; 6 0.12479135</span></span></code></pre></div>
+<span><span class="co">#&gt; 3 0.11635700</span></span>
+<span><span class="co">#&gt; 4 0.07700999</span></span>
+<span><span class="co">#&gt; 5 0.08602894</span></span>
+<span><span class="co">#&gt; 6 0.12479150</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -727,38 +727,38 @@ and <strong>Spatial Beta (Besag ICAR)</strong> models:</p>
 (function() {
   const BETA_DATA = {
     STD: [
-    { Method: "fastsae", Median: 1.204, Mem: 2.080, IPS: 0.8278, n: 30 },
-    { Method: "tipsae", Median: 2.349, Mem: 500.0, IPS: 0.4156, n: 30 },
-    { Method: "fastsae", Median: 1.227, Mem: 2.619, IPS: 0.8150, n: 50 },
-    { Method: "tipsae", Median: 3.775, Mem: 861.4, IPS: 0.2615, n: 50 },
-    { Method: "fastsae", Median: 1.261, Mem: 3.844, IPS: 0.7904, n: 100 },
-    { Method: "tipsae", Median: 8.236, Mem: 1781, IPS: 0.1209, n: 100 },
-    { Method: "fastsae", Median: 1.319, Mem: 7.518, IPS: 0.7598, n: 250 },
-    { Method: "tipsae", Median: 26.28, Mem: 4545, IPS: 0.03800, n: 250 },
-    { Method: "fastsae", Median: 1.400, Mem: 13.66, IPS: 0.7055, n: 500 },
-    { Method: "tipsae", Median: 64.21, Mem: 9142, IPS: 0.01557, n: 500 },
-    { Method: "fastsae", Median: 1.606, Mem: 25.92, IPS: 0.6213, n: 1000 },
-    { Method: "tipsae", Median: 187.2, Mem: 18340, IPS: 0.005329, n: 1000 }
+    { Method: "fastsae", Median: 2.853, Mem: 49.18, IPS: 0.2862, n: 30 },
+    { Method: "tipsae", Median: 2.314, Mem: 499.9, IPS: 0.4122, n: 30 },
+    { Method: "fastsae", Median: 2.558, Mem: 5.298, IPS: 0.3902, n: 50 },
+    { Method: "tipsae", Median: 4.346, Mem: 861.4, IPS: 0.2291, n: 50 },
+    { Method: "fastsae", Median: 2.726, Mem: 7.665, IPS: 0.3554, n: 100 },
+    { Method: "tipsae", Median: 10.94, Mem: 1781, IPS: 0.09085, n: 100 },
+    { Method: "fastsae", Median: 3.265, Mem: 14.89, IPS: 0.2761, n: 250 },
+    { Method: "tipsae", Median: 33.58, Mem: 4539, IPS: 0.02782, n: 250 },
+    { Method: "fastsae", Median: 3.306, Mem: 26.93, IPS: 0.3022, n: 500 },
+    { Method: "tipsae", Median: 82.75, Mem: 9136, IPS: 0.01212, n: 500 },
+    { Method: "fastsae", Median: 3.729, Mem: 50.38, IPS: 0.2567, n: 1000 },
+    { Method: "tipsae", Median: 180.3, Mem: 18330, IPS: 0.005516, n: 1000 }
     ],
     SPATIAL: [
-    { Method: "fastsae", Median: 1.223, Mem: 2.408, IPS: 0.8056, n: 30 },
-    { Method: "tipsae", Median: 25.72, Mem: 642.8, IPS: 0.03885, n: 30 },
-    { Method: "fastsae", Median: 1.231, Mem: 3.349, IPS: 0.8021, n: 50 },
-    { Method: "tipsae", Median: 65.72, Mem: 1096, IPS: 0.01538, n: 50 },
-    { Method: "fastsae", Median: 1.245, Mem: 5.953, IPS: 0.8017, n: 100 },
-    { Method: "tipsae", Median: 100.0, Mem: 2246, IPS: 0.009969, n: 100 },
-    { Method: "fastsae", Median: 1.332, Mem: 17.50, IPS: 0.7361, n: 250 },
-    { Method: "tipsae", Median: 155.9, Mem: 5706, IPS: 0.006411, n: 250 },
-    { Method: "fastsae", Median: 1.460, Mem: 49.64, IPS: 0.6796, n: 500 },
-    { Method: "tipsae", Median: 248.8, Mem: 11470, IPS: 0.004011, n: 500 },
-    { Method: "fastsae", Median: 1.866, Mem: 161.1, IPS: 0.5463, n: 1000 },
-    { Method: "tipsae", Median: 404.3, Mem: 23040, IPS: 0.002471, n: 1000 }
+    { Method: "fastsae", Median: 2.658, Mem: 35.09, IPS: 0.3758, n: 30 },
+    { Method: "tipsae", Median: 48.71, Mem: 642.8, IPS: 0.02048, n: 30 },
+    { Method: "fastsae", Median: 2.511, Mem: 6.720, IPS: 0.4030, n: 50 },
+    { Method: "tipsae", Median: 55.15, Mem: 1096, IPS: 0.01811, n: 50 },
+    { Method: "fastsae", Median: 2.665, Mem: 11.60, IPS: 0.3685, n: 100 },
+    { Method: "tipsae", Median: 89.36, Mem: 2247, IPS: 0.01118, n: 100 },
+    { Method: "fastsae", Median: 2.754, Mem: 32.45, IPS: 0.2969, n: 250 },
+    { Method: "tipsae", Median: 144.5, Mem: 5701, IPS: 0.006920, n: 250 },
+    { Method: "fastsae", Median: 3.034, Mem: 88.19, IPS: 0.2746, n: 500 },
+    { Method: "tipsae", Median: 232.3, Mem: 11470, IPS: 0.004260, n: 500 },
+    { Method: "fastsae", Median: 4.280, Mem: 278.7, IPS: 0.2377, n: 1000 },
+    { Method: "tipsae", Median: 362.3, Mem: 23040, IPS: 0.002699, n: 1000 }
     ],
     ST: [
-    { Method: "fastsae", Median: 1.476, Mem: 10.85, IPS: 0.6763, n: 30 },
-    { Method: "tipsae", Median: 540.6, Mem: 2947, IPS: 0.001849, n: 30 },
-    { Method: "fastsae", Median: 1.714, Mem: 17.13, IPS: 0.5860, n: 50 },
-    { Method: "tipsae", Median: 908.2, Mem: 4880, IPS: 0.001079, n: 50 }
+    { Method: "fastsae", Median: 2.932, Mem: 52.41, IPS: 0.3400, n: 30 },
+    { Method: "tipsae", Median: 574.1, Mem: 2947, IPS: 0.001756, n: 30 },
+    { Method: "fastsae", Median: 3.798, Mem: 34.60, IPS: 0.2539, n: 50 },
+    { Method: "tipsae", Median: 716.0, Mem: 4858, IPS: 0.001367, n: 50 }
     ]
   };
 
@@ -971,93 +971,57 @@ and <strong>Spatial Beta (Besag ICAR)</strong> models:</p>
   }
 })();
 </script><div class="section level4">
-<h4 id="inferential-equivalence-validation-metrics-n-1000">Inferential Equivalence &amp; Validation Metrics
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#inferential-equivalence-validation-metrics-n-1000"></a>
+<h4 id="agreement-with-stan-mcmc-beta-model-n-1000">Agreement with Stan MCMC (Beta model,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>)<a class="anchor" aria-label="anchor" href="#agreement-with-stan-mcmc-beta-model-n-1000"></a>
 </h4>
-<p>To establish that the substantial computational accelerations
-achieved by <code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> preserve full inferential
-validity relative to Stan MCMC (<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code>), summary
-concordance and error metrics were evaluated across
+<p>To check that the speed of <code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> does not
+come at the cost of its estimates, both packages were fitted with their
+defaults to the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">n = 1,000</annotation></semantics></math>
-domains/units for Standard Beta, Spatial Beta (Besag ICAR), and
-Spatio-Temporal Beta models:</p>
+data set of the Beta benchmark (independent area effects, sampling
+variances from the direct estimates;
+<code>benchmarks/bench_beta_concordance.R</code>). The two packages do
+not fit identical models (their priors differ, and fastsae fixes the
+precision at a first-stage estimate while tipsae makes it a function of
+the model mean), so the comparison is between what a user obtains from
+each package:</p>
 <table class="table">
-<colgroup>
-<col width="14%">
-<col width="14%">
-<col width="18%">
-<col width="18%">
-<col width="18%">
-<col width="14%">
-</colgroup>
 <thead><tr class="header">
-<th align="left">Dimension</th>
 <th align="left">Metric</th>
-<th align="center">Beta</th>
-<th align="center">Spatial Beta</th>
-<th align="center">Spatio-Temporal Beta</th>
-<th align="left">Statistical Implication</th>
+<th align="center">
+<code><a href="../reference/hb_area.html">fastsae::hb_area</a></code> (INLA)</th>
+<th align="center">
+<code><a href="https://rdrr.io/pkg/tipsae/man/fit_sae.html" class="external-link">tipsae::fit_sae</a></code> (Stan)</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left"><strong>Point Estimates (EBP)</strong></td>
-<td align="left"><strong>Pearson Correlation
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>)</strong></td>
-<td align="center"><strong>0.99934</strong></td>
-<td align="center"><strong>0.99891</strong></td>
-<td align="center"><strong>0.99614</strong></td>
-<td align="left">Near-perfect linear agreement between INLA and
-MCMC</td>
+<td align="left">RMSE against the true area means</td>
+<td align="center">0.0678</td>
+<td align="center">0.0684</td>
 </tr>
 <tr class="even">
-<td align="left"></td>
-<td align="left"><strong>Spearman Rank Correlation
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>)</strong></td>
-<td align="center"><strong>0.99921</strong></td>
-<td align="center"><strong>0.99875</strong></td>
-<td align="center"><strong>0.99517</strong></td>
-<td align="left">Consistent domain priority and rank ordering</td>
+<td align="left">Coverage of the 95% intervals</td>
+<td align="center">93.3%</td>
+<td align="center">91.1%</td>
 </tr>
 <tr class="odd">
-<td align="left"></td>
-<td align="left"><strong>Mean Absolute Error (MAE)</strong></td>
-<td align="center"><strong>0.01969</strong></td>
-<td align="center"><strong>0.01456</strong></td>
-<td align="center"><strong>0.01200</strong></td>
-<td align="left">Average estimation discrepancy
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.02</mn></mrow><annotation encoding="application/x-tex">&lt; 0.02</annotation></semantics></math>
-</td>
+<td align="left">Mean width of the 95% intervals</td>
+<td align="center">0.252</td>
+<td align="center">0.259</td>
 </tr>
 <tr class="even">
-<td align="left"></td>
-<td align="left"><strong>Root Mean Squared Difference
-(RMSD)</strong></td>
-<td align="center"><strong>0.02369</strong></td>
-<td align="center"><strong>0.01713</strong></td>
-<td align="center"><strong>0.01458</strong></td>
-<td align="left">Negligible
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>L</mi><mn>2</mn></msub><annotation encoding="application/x-tex">L_2</annotation></semantics></math>
-deviation across domains</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Uncertainty / MSE</strong></td>
-<td align="left"><strong>MSE Pearson Correlation
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>r</mi><mtext mathvariant="normal">MSE</mtext></msub><annotation encoding="application/x-tex">r_{\text{MSE}}</annotation></semantics></math>)</strong></td>
-<td align="center"><strong>0.96315</strong></td>
-<td align="center"><strong>0.89254</strong></td>
-<td align="center"><strong>0.67957</strong></td>
-<td align="left">Preserved area-level precision ordering</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left"><strong>Mean Absolute Difference (MSE)</strong></td>
-<td align="center"><strong>0.00018</strong></td>
-<td align="center"><strong>0.00012</strong></td>
-<td align="center"><strong>0.00025</strong></td>
-<td align="left">Virtually identical error variances</td>
+<td align="left">Time</td>
+<td align="center">4.3 s</td>
+<td align="center">184 s</td>
 </tr>
 </tbody>
 </table>
+<p>The posterior means of the two packages differed by 0.0096 on average
+(absolute difference), and the posterior SDs of fastsae were 0.99 times
+those of tipsae in the median area (90% of the areas between 0.88 and
+1.17). The largest
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{R}</annotation></semantics></math>
+of the tipsae fit was 1.008.</p>
 <hr>
 </div>
 </div>
@@ -1096,8 +1060,8 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01</span></span>
-<span><span class="co">#&gt; x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2219e-14  2.8774e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0474e-19 -3.6547e-01</span></span>
+<span><span class="co">#&gt; x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0476e-19 -3.6547e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4149</span></span>
 <span><span class="co">#&gt; x1            0.4853</span></span>
@@ -1105,11 +1069,11 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                   mean        sd  0.025quant   0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 15.6289944 4.4994336 8.488605342 15.0603934</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.1595261 0.1562756 0.007219712  0.1055163</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 15.6289899 4.4994307 8.488612071 15.0603871</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.1595249 0.1562741 0.007219787  0.1055158</span></span>
 <span><span class="co">#&gt;                             0.975quant        mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 26.0450251 14.01277801</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.5934283  0.01699771</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 26.0450209 14.01276684</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.5934228  0.01699803</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
@@ -1117,7 +1081,7 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;                                                    pD </span></span>
 <span><span class="co">#&gt;                                              31.88700 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.67486 </span></span>
+<span><span class="co">#&gt;                                             309.67485 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              17.15907 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
@@ -1128,9 +1092,9 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;  Min.   :0.3061   Min.   :-1.1959   Min.   :0.02962   Min.   :0.0008776  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7648   1st Qu.:-0.2791   1st Qu.:0.05813   1st Qu.:0.0033800  </span></span>
 <span><span class="co">#&gt;  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690514  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690515  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  </span></span>
-<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76548   Max.   :0.5859664  </span></span>
+<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76548   Max.   :0.5859672  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.791  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.164  </span></span>
