@@ -86,7 +86,7 @@ An object of class \code{c("fastsae_hb_unit", "fastsae_hb", "fastsae")} containi
       \item \code{hb}: Estimated domain mean or proportion.
       \item \code{linear_pred}: Posterior mean of domain linear predictor.
       \item \code{sd}: Posterior standard deviation (standard error).
-      \item \code{mse}: Posterior Mean Squared Error (\eqn{\text{sd}^2}).
+      \item \code{mse}: Posterior variance (\eqn{\text{sd}^2}), named as in the EBLUP results.
       \item \code{rse}: Relative Standard Error (\%).
       \item \code{ci_lower}: 2.5\% quantile of posterior credible interval.
       \item \code{ci_upper}: 97.5\% quantile of posterior credible interval.

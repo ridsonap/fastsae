@@ -1,40 +1,67 @@
-#' @title mys: mean years of schooling people with disabilities.
-#' @description A synthetic dataset containing the mean years of schooling for people with disabilities across 42 regencies/municipalities.
+#' @title mys: mean years of schooling of people with disabilities
+#' @description A synthetic area-level dataset with direct estimates of the mean years of
+#'   schooling of people with disabilities in 42 regencies/municipalities, 10 of which are not
+#'   sampled (\code{y = NA}). Used in the examples of the area-level models; its spatial
+#'   weights are \code{\link{mys_proxmat}}.
 #' @format
-#' A data frame with 42 rows and 9 variables with 10 domains as non-sampled areas.
+#' A data frame (tibble) with 42 rows and 9 variables:
 #'
 #' \describe{
-#'   \item{area}{regency municipality identifier}
-#'   \item{y}{mean years of schooling people with disabilities (NA for unsampled areas)}
-#'   \item{vardir}{variance sampling from the direct estimator for each area}
-#'   \item{rse}{relative standard error (\%)}
-#'   \item{x1}{Number of Elementary Schools}
-#'   \item{x2}{Number of Junior High Schools}
-#'   \item{x3}{Number of Senior High Schools}
-#'   \item{n}{Number of eligible samples}
-#'   \item{weight}{Weight}
+#'   \item{area}{area (regency/municipality) identifier, 1 to 42.}
+#'   \item{y}{direct estimate of the mean years of schooling (\code{NA} for the 10 unsampled
+#'     areas).}
+#'   \item{vardir}{sampling variance of the direct estimate (0 for the unsampled areas, where
+#'     it is not used).}
+#'   \item{rse}{relative standard error of the direct estimate (\%),
+#'     \eqn{100\sqrt{vardir}/y} (0 for the unsampled areas).}
+#'   \item{x1}{number of elementary schools.}
+#'   \item{x2}{number of junior high schools.}
+#'   \item{x3}{number of senior high schools.}
+#'   \item{n}{number of people with disabilities in the Susenas sample of the area (eligible
+#'     sample size; synthetic, hence not an integer, and positive also for the unsampled
+#'     areas). \code{vardir} was not derived from it.}
+#'   \item{weight}{sample share of the area, \code{n / sum(n)}.}
 #' }
 #' @source Simulated based on empirical characteristics of the National Socio-Economic Survey (Susenas), BPS-Statistics Indonesia.
+#' @keywords datasets
+#' @examples
+#' data(mys)
+#' head(mys)
+#' # unsampled areas
+#' mys$area[is.na(mys$y)]
 "mys"
 
-#' @title mys_panel: mean years of schooling people with disabilities 2016 - 2026.
-#' @description A synthetic panel dataset containing the mean years of schooling for people with disabilities across 42 regencies/municipalities over 11 time periods (2016 - 2026).
+#' @title mys_panel: mean years of schooling of people with disabilities, 2016-2026
+#' @description A synthetic panel dataset with direct estimates of the mean years of schooling
+#'   of people with disabilities in the 42 areas of \code{\link{mys}} over 11 years
+#'   (2016-2026). Areas 21 and 25 are never sampled (\code{y = NA} in every year). The rows
+#'   are in time-major order (all areas of 2016, then 2017, ...); \code{\link{eblup_stfh}}
+#'   sorts them internally, but \code{sae::eblupSTFH()} needs domain-major order.
 #' @format
-#' A data frame with 462 rows and 10 variables.
+#' A data frame (tibble) with 462 rows and 10 variables:
 #'
 #' \describe{
-#'   \item{area}{regency municipality identifier}
-#'   \item{year}{year of observation (2016 to 2026)}
-#'   \item{y}{mean years of schooling people with disabilities (NA for unsampled areas)}
-#'   \item{vardir}{variance sampling from the direct estimator for each area}
-#'   \item{rse}{relative standard error (\%)}
-#'   \item{x1}{Number of Elementary Schools}
-#'   \item{x2}{Number of Junior High Schools}
-#'   \item{x3}{Number of Senior High Schools}
-#'   \item{n}{Number of eligible samples}
-#'   \item{weight}{Weight}
+#'   \item{area}{area identifier, 1 to 42.}
+#'   \item{year}{year of observation (2016 to 2026).}
+#'   \item{y}{direct estimate of the mean years of schooling (\code{NA} for areas 21 and 25).}
+#'   \item{vardir}{sampling variance of the direct estimate (\code{NA} where \code{y} is
+#'     \code{NA}).}
+#'   \item{rse}{relative standard error of the direct estimate (\%).}
+#'   \item{x1}{number of elementary schools.}
+#'   \item{x2}{number of junior high schools.}
+#'   \item{x3}{number of senior high schools.}
+#'   \item{n}{number of people with disabilities in the Susenas sample of the area in that
+#'     year (eligible sample size; synthetic, hence not an integer, and positive also for
+#'     areas 21 and 25). \code{vardir} was not derived from it.}
+#'   \item{weight}{sample share, \code{n / sum(n)} over all rows of the panel (the weights sum
+#'     to 1 over the panel, not within a year).}
 #' }
 #' @source Simulated panel data based on empirical characteristics of the National Socio-Economic Survey (Susenas), BPS-Statistics Indonesia.
+#' @keywords datasets
+#' @examples
+#' data(mys_panel)
+#' head(mys_panel)
+#' table(sampled = !is.na(mys_panel$y), mys_panel$year)[, 1:3]
 "mys_panel"
 
 #' @title Example proximity matrix
@@ -51,6 +78,12 @@
 #'   every row sums to 1.
 #' @source Built from the \code{sim_area} centroids by \code{data-raw/mys_proxmat.R} in the
 #'   package sources.
+#' @keywords datasets
+#' @examples
+#' data(mys_proxmat)
+#' range(rowSums(mys_proxmat))
+#' # neighbours per area (the graph used by the CAR models)
+#' table(rowSums(mys_proxmat > 0))
 "mys_proxmat"
 
 
@@ -82,6 +115,9 @@
 #'
 #'
 #' @keywords datasets
+#' @examples
+#' data(cornsoybean)
+#' head(cornsoybean)
 "cornsoybean"
 
 
@@ -90,7 +126,7 @@
 #' County means of number of pixels per segment of corn and soy beans,
 #' from satellite data, for 12 counties in Iowa. The dataset includes
 #' population size, sample size, and means of auxiliary variables used in
-#' the dataset \code{\link[sae]{cornsoybean}}.
+#' the dataset \code{\link{cornsoybean}}.
 #'
 #' This dataset is provided for demonstration purposes and is originally
 #' distributed with the \pkg{sae} package.
@@ -113,6 +149,9 @@
 #' *Journal of the American Statistical Association*, 83, 28–36.
 #'
 #' @keywords datasets
+#' @examples
+#' data(cornsoybeanmeans)
+#' head(cornsoybeanmeans)
 "cornsoybeanmeans"
 
 

@@ -20,33 +20,35 @@ knitr::opts_chunk$set(
 
 Small Area Estimation (SAE) encompasses statistical techniques designed to produce reliable estimates for sub-populations or geographical domains where sample sizes are too small for direct survey estimators to achieve acceptable precision.
 
-The **fastsae** package provides high-performance C++ implementations (via `Rcpp` and `RcppArmadillo`) for standard and advanced SAE models. It offers:
+The **fastsae** package fits frequentist EBLUP models in compiled C++ (via `Rcpp`, `RcppArmadillo` and `RcppEigen`) and hierarchical Bayes models with INLA. It offers:
 
-- **Ultra-fast computation**: Fisher-scoring and numerical solvers compiled in C++.
-- **Exact numerical equivalence**: Parameter estimates and variance components match gold-standard implementations in the `sae` package to machine precision.
+- **Fast computation**: Fisher scoring and the MSE computations in compiled C++, with sparse linear algebra for the spatial models.
+- **Agreement with `sae`**: where both packages use the same method, the estimates, variance components and analytical MSEs agree with `sae` to rounding error (shown below for the Fay-Herriot model). The documented exceptions concern the spatial model: a spatial correlation estimated on the boundary, and the MSE of ML fits (see `?eblup_sfh`).
 - **Modern S3 interface**: Seamless integration with standard R methods (`summary()`, `coef()`, `fitted()`, `residuals()`, `autoplot()`).
 
 ## The Fay-Herriot Model
 
-The area-level model introduced by Fay and Herriot (1979) links direct survey estimators $y_d$ with auxiliary variables $x_d$:
+The area-level model introduced by Fay and Herriot (1979) links the direct survey estimates $y_d$ of the area parameters $\theta_d$ with auxiliary variables $x_d$:
 
 $$y_d = x_d^\top \beta + u_d + e_d, \quad d = 1, \dots, D$$
 
 where:
 - $u_d \sim \text{i.i.d. } N(0, \sigma_u^2)$ represents domain-specific random effects.
-- $e_d \sim \text{ind. } N(0, D_d)$ represents sampling errors with known sampling variance $D_d$ (`vardir`).
+- $e_d \sim \text{ind. } N(0, \psi_d)$ represents sampling errors with known sampling variance $\psi_d$ (`vardir`).
 
 The Empirical Best Linear Unbiased Predictor (EBLUP) is a weighted combination of the direct estimator and the regression-synthetic estimator:
 
 $$\hat{\theta}_d = \gamma_d y_d + (1 - \gamma_d) x_d^\top \hat{\beta}$$
 
-where $\gamma_d = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + D_d}$ is the shrinkage factor ($0 \le \gamma_d \le 1$).
+where $\gamma_d = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + \psi_d}$ is the shrinkage factor ($0 \le \gamma_d \le 1$) and $\hat\beta$ is the generalized least squares estimator. Areas without a direct estimate ($y_d$ missing) get the synthetic estimate $x_d^\top \hat{\beta}$.
+
+The MSE of the EBLUP is estimated by the second-order approximation $g_{1d} + g_{2d} + 2 g_{3d}$ (Prasad and Rao, 1990; Datta and Lahiri, 2000), where $g_{1d} = \gamma_d \psi_d$ is the MSE with known parameters, $g_{2d}$ accounts for the estimation of $\beta$ and $g_{3d}$ for that of $\sigma_u^2$. For ML fits a bias term is subtracted. The relative standard error is $\mathrm{RSE}_d = 100 \sqrt{\mathrm{MSE}_d} / \hat{\theta}_d$.
 
 ## Step-by-Step Example
 
 ### 1. Load Package and Dataset
 
-We use the built-in `mys` dataset (mean years of schooling):
+We use the built-in `mys` dataset (mean years of schooling of people with disabilities in 42 areas, 10 of them not sampled):
 
 ```{r load}
 library(fastsae)
@@ -115,26 +117,30 @@ Inspect domain-level uncertainty with MSE plots:
 autoplot(fit_fh, type = "mse")
 ```
 
-## Exact Numerical Equivalence with `sae`
+## Agreement with `sae`
 
-`fastsae` produces results that are mathematically identical to `sae::eblupFH`:
+On the same data, `fastsae` reproduces `sae::mseFH()`, which returns the EBLUPs and their analytical MSE.
+
+`sae::mseFH()` needs complete data, so we compare the fits on the 32 sampled areas:
 
 ```{r equivalence, message=FALSE, warning=FALSE}
 if (requireNamespace("sae", quietly = TRUE)) {
-  mys_clean <- as.data.frame(na.omit(mys))
-  fit_fast <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_clean, print_result = FALSE)
-  fit_sae <- sae::eblupFH(y ~ x1 + x2 + x3, vardir = vardir, data = mys_clean)
+  mys_sampled <- as.data.frame(mys[!is.na(mys$y), ])
+  fit_fast <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_sampled,
+                       print_result = FALSE)
+  fit_sae <- sae::mseFH(y ~ x1 + x2 + x3, vardir = vardir, data = mys_sampled)
 
-  # Check EBLUP estimates
-  all.equal(fit_fast$df_eblup$eblup, as.vector(fit_sae$eblup))
-
-  # Check regression coefficients
-  all.equal(as.vector(coef(fit_fast)), as.vector(fit_sae$fit$estcoef$beta))
-
-  # Check random effect variance (sigma2_u)
-  all.equal(fit_fast$random_effect_var, fit_sae$fit$refvar)
+  # EBLUPs, coefficients, variance component and analytical MSE
+  print(c(
+    eblup = all.equal(fit_fast$df_eblup$eblup, as.vector(fit_sae$est$eblup)),
+    beta = all.equal(as.vector(coef(fit_fast)), as.vector(fit_sae$est$fit$estcoef$beta)),
+    sigma2_u = all.equal(fit_fast$random_effect_var, fit_sae$est$fit$refvar),
+    mse = all.equal(fit_fast$df_eblup$mse, as.vector(fit_sae$mse))
+  ))
 }
 ```
+
+Each comparison returns `TRUE`: the two packages agree to the tolerance of `all.equal()`.
 
 ## Next Steps
 
@@ -142,9 +148,13 @@ Explore advanced modeling capabilities in **fastsae**:
 - **Spatial & Spatio-Temporal Models (EBLUP)**: [spatial-temporal.html](spatial-temporal.html) (SAR and AR(1) dynamics).
 - **Bayesian Area-Level SAE with INLA (`hb_area`)**: [hb-area-inla.html](hb-area-inla.html) (Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma, Binomial, and spatio-temporal interactions).
 - **Model Diagnostics and Residual Analysis (`diagnose`)**: [model-diagnostics.html](model-diagnostics.html) (Calibration tests, RSE reduction, and Moran's I).
-- **Unit-Level Estimation**: [unit-level-bhf.html](unit-level-bhf.html) (Battese-Harter-Fuller model).
+- **Unit-Level Estimation**: [unit-level-bhf.html](unit-level-bhf.html) (Battese-Harter-Fuller model and its HB counterpart).
+- **Sub-Area Level Two-Fold Models**: [twofold-subarea.html](twofold-subarea.html) (`eblup_twofold()`, `hb_twofold()`).
+- **Default Priors of the HB Models**: [hb-priors.html](hb-priors.html).
 
 ## References
 
+- Datta, G. S., & Lahiri, P. (2000). A unified measure of uncertainty of estimated best linear unbiased predictors in small area estimation problems. *Statistica Sinica*, 10(2), 613–627.
 - Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. *Journal of the American Statistical Association*, 74(366), 269–277.
+- Prasad, N. G. N., & Rao, J. N. K. (1990). The estimation of the mean squared error of small-area estimators. *Journal of the American Statistical Association*, 85(409), 163–171.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.

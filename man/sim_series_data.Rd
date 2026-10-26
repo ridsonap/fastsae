@@ -84,7 +84,9 @@ An object of class \code{c("fastsae_sim_series", "list")} containing:
     \item{coords}{Centroid coordinates of the \eqn{D} domains.}
     \item{u_spatial}{True domain spatial random effect vector of length \eqn{D}.}
     \item{u_temporal}{True spatio-temporal random effect matrix of dimension \eqn{D \times T}.}
-    \item{parameters}{List of true simulation parameters (\code{rho_s}, \code{rho_t}, \code{sigma_s}, \code{sigma_t}, \code{beta}, \code{trend}).}
+    \item{parameters}{List of the simulation settings and true parameters (\code{D}, \code{T},
+      \code{rho_s}, \code{rho_t}, \code{sigma_s}, \code{sigma_t}, \code{beta}, \code{trend},
+      \code{trend_slope}, \code{sort_order}).}
   }
 }
 \description{

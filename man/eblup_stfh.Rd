@@ -118,8 +118,8 @@ is \code{mse_type = "bootstrap"} when \code{B} is given and \code{"analytical"}
 otherwise.}
 }
 \value{
-A list with the same structure as \code{seblup_area()}, with additional
-\code{estvarcomp} for spatio-temporal variance/autocorrelation components:
+A list with the same structure as the result of \code{\link{eblup_sfh}()}, with
+\code{estvarcomp} for the spatio-temporal variance and autocorrelation components:
 \describe{
 \item{\code{estcoef}}{data frame with \code{beta}, \code{std.error}, \code{tvalue},
 \code{pvalue}, as in \code{sae::eblupSTFH()}, plus \code{stderr_beta} and \code{zvalue}
@@ -229,4 +229,8 @@ Working Paper M05/11.
 Handling out-of-sample areas to estimate the unemployment rate at local labour market
 areas in Italy. International Statistical Review. \doi{10.1111/insr.12596}
 }
+}
+\seealso{
+\code{\link{eblup_sfh}}, \code{\link{hb_area}} (with \code{time}) for the
+hierarchical Bayes counterpart.
 }

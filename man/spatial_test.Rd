@@ -76,6 +76,11 @@ print(st)
 \enumerate{
   \item Anselin, L. (1988). \emph{Spatial Econometrics: Methods and Models}. Kluwer Academic Publishers.
   \item Cliff, A. D., & Ord, J. K. (1981). \emph{Spatial Processes: Models & Applications}. Pion London.
-  \item Petrucci, A., & Salvati, N. (2006). Small area estimation for spatial data in R. \emph{Statistical Methods & Applications}, 14(3), 391-407.
+  \item Petrucci, A., & Salvati, N. (2006). Small area estimation for spatial correlation in
+    watershed erosion assessment. \emph{Journal of Agricultural, Biological, and Environmental
+    Statistics}, 11(2), 169-182.
+  \item Pratesi, M., & Salvati, N. (2008). Small area estimation: the EBLUP estimator based on
+    spatially correlated random area effects. \emph{Statistical Methods & Applications}, 17(1),
+    113-141.
 }
 }

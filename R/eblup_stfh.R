@@ -88,8 +88,8 @@
 #'   grouping / stratum column in \code{data} (e.g. time period / year) for group-specific self-benchmarking.
 #' @param print_result print the estimated coefficients or not. Default \code{TRUE}.
 #'
-#' @returns A list with the same structure as \code{seblup_area()}, with additional
-#'   \code{estvarcomp} for spatio-temporal variance/autocorrelation components:
+#' @returns A list with the same structure as the result of \code{\link{eblup_sfh}()}, with
+#'   \code{estvarcomp} for the spatio-temporal variance and autocorrelation components:
 #'   \describe{
 #'     \item{\code{estcoef}}{data frame with \code{beta}, \code{std.error}, \code{tvalue},
 #'       \code{pvalue}, as in \code{sae::eblupSTFH()}, plus \code{stderr_beta} and \code{zvalue}
@@ -149,6 +149,8 @@
 #' The auxiliary variables must be known for every cell, since they enter the prediction.
 #' Self-benchmarking calibrates the weighted aggregate of the sampled cells of each group.
 #'
+#' @seealso \code{\link{eblup_sfh}}, \code{\link{hb_area}} (with \code{time}) for the
+#'   hierarchical Bayes counterpart.
 #' @export
 #' @examples
 #' library(fastsae)

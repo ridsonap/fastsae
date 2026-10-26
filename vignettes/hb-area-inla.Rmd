@@ -280,38 +280,38 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 (function() {
   const BETA_DATA = {
     STD: [
-    { Method: "fastsae", Median: 1.204, Mem: 2.080, IPS: 0.8278, n: 30 },
-    { Method: "tipsae", Median: 2.349, Mem: 500.0, IPS: 0.4156, n: 30 },
-    { Method: "fastsae", Median: 1.227, Mem: 2.619, IPS: 0.8150, n: 50 },
-    { Method: "tipsae", Median: 3.775, Mem: 861.4, IPS: 0.2615, n: 50 },
-    { Method: "fastsae", Median: 1.261, Mem: 3.844, IPS: 0.7904, n: 100 },
-    { Method: "tipsae", Median: 8.236, Mem: 1781, IPS: 0.1209, n: 100 },
-    { Method: "fastsae", Median: 1.319, Mem: 7.518, IPS: 0.7598, n: 250 },
-    { Method: "tipsae", Median: 26.28, Mem: 4545, IPS: 0.03800, n: 250 },
-    { Method: "fastsae", Median: 1.400, Mem: 13.66, IPS: 0.7055, n: 500 },
-    { Method: "tipsae", Median: 64.21, Mem: 9142, IPS: 0.01557, n: 500 },
-    { Method: "fastsae", Median: 1.606, Mem: 25.92, IPS: 0.6213, n: 1000 },
-    { Method: "tipsae", Median: 187.2, Mem: 18340, IPS: 0.005329, n: 1000 }
+    { Method: "fastsae", Median: 2.853, Mem: 49.18, IPS: 0.2862, n: 30 },
+    { Method: "tipsae", Median: 2.314, Mem: 499.9, IPS: 0.4122, n: 30 },
+    { Method: "fastsae", Median: 2.558, Mem: 5.298, IPS: 0.3902, n: 50 },
+    { Method: "tipsae", Median: 4.346, Mem: 861.4, IPS: 0.2291, n: 50 },
+    { Method: "fastsae", Median: 2.726, Mem: 7.665, IPS: 0.3554, n: 100 },
+    { Method: "tipsae", Median: 10.94, Mem: 1781, IPS: 0.09085, n: 100 },
+    { Method: "fastsae", Median: 3.265, Mem: 14.89, IPS: 0.2761, n: 250 },
+    { Method: "tipsae", Median: 33.58, Mem: 4539, IPS: 0.02782, n: 250 },
+    { Method: "fastsae", Median: 3.306, Mem: 26.93, IPS: 0.3022, n: 500 },
+    { Method: "tipsae", Median: 82.75, Mem: 9136, IPS: 0.01212, n: 500 },
+    { Method: "fastsae", Median: 3.729, Mem: 50.38, IPS: 0.2567, n: 1000 },
+    { Method: "tipsae", Median: 180.3, Mem: 18330, IPS: 0.005516, n: 1000 }
     ],
     SPATIAL: [
-    { Method: "fastsae", Median: 1.223, Mem: 2.408, IPS: 0.8056, n: 30 },
-    { Method: "tipsae", Median: 25.72, Mem: 642.8, IPS: 0.03885, n: 30 },
-    { Method: "fastsae", Median: 1.231, Mem: 3.349, IPS: 0.8021, n: 50 },
-    { Method: "tipsae", Median: 65.72, Mem: 1096, IPS: 0.01538, n: 50 },
-    { Method: "fastsae", Median: 1.245, Mem: 5.953, IPS: 0.8017, n: 100 },
-    { Method: "tipsae", Median: 100.0, Mem: 2246, IPS: 0.009969, n: 100 },
-    { Method: "fastsae", Median: 1.332, Mem: 17.50, IPS: 0.7361, n: 250 },
-    { Method: "tipsae", Median: 155.9, Mem: 5706, IPS: 0.006411, n: 250 },
-    { Method: "fastsae", Median: 1.460, Mem: 49.64, IPS: 0.6796, n: 500 },
-    { Method: "tipsae", Median: 248.8, Mem: 11470, IPS: 0.004011, n: 500 },
-    { Method: "fastsae", Median: 1.866, Mem: 161.1, IPS: 0.5463, n: 1000 },
-    { Method: "tipsae", Median: 404.3, Mem: 23040, IPS: 0.002471, n: 1000 }
+    { Method: "fastsae", Median: 2.658, Mem: 35.09, IPS: 0.3758, n: 30 },
+    { Method: "tipsae", Median: 48.71, Mem: 642.8, IPS: 0.02048, n: 30 },
+    { Method: "fastsae", Median: 2.511, Mem: 6.720, IPS: 0.4030, n: 50 },
+    { Method: "tipsae", Median: 55.15, Mem: 1096, IPS: 0.01811, n: 50 },
+    { Method: "fastsae", Median: 2.665, Mem: 11.60, IPS: 0.3685, n: 100 },
+    { Method: "tipsae", Median: 89.36, Mem: 2247, IPS: 0.01118, n: 100 },
+    { Method: "fastsae", Median: 2.754, Mem: 32.45, IPS: 0.2969, n: 250 },
+    { Method: "tipsae", Median: 144.5, Mem: 5701, IPS: 0.006920, n: 250 },
+    { Method: "fastsae", Median: 3.034, Mem: 88.19, IPS: 0.2746, n: 500 },
+    { Method: "tipsae", Median: 232.3, Mem: 11470, IPS: 0.004260, n: 500 },
+    { Method: "fastsae", Median: 4.280, Mem: 278.7, IPS: 0.2377, n: 1000 },
+    { Method: "tipsae", Median: 362.3, Mem: 23040, IPS: 0.002699, n: 1000 }
     ],
     ST: [
-    { Method: "fastsae", Median: 1.476, Mem: 10.85, IPS: 0.6763, n: 30 },
-    { Method: "tipsae", Median: 540.6, Mem: 2947, IPS: 0.001849, n: 30 },
-    { Method: "fastsae", Median: 1.714, Mem: 17.13, IPS: 0.5860, n: 50 },
-    { Method: "tipsae", Median: 908.2, Mem: 4880, IPS: 0.001079, n: 50 }
+    { Method: "fastsae", Median: 2.932, Mem: 52.41, IPS: 0.3400, n: 30 },
+    { Method: "tipsae", Median: 574.1, Mem: 2947, IPS: 0.001756, n: 30 },
+    { Method: "fastsae", Median: 3.798, Mem: 34.60, IPS: 0.2539, n: 50 },
+    { Method: "tipsae", Median: 716.0, Mem: 4858, IPS: 0.001367, n: 50 }
     ]
   };
 
@@ -526,18 +526,18 @@ Use the interactive controls below to compare runtime, memory footprint, and spe
 </script>
 ```
 
-#### Inferential Equivalence & Validation Metrics ($n = 1,000$)
+#### Agreement with Stan MCMC (Beta model, $n = 1,000$)
 
-To establish that the substantial computational accelerations achieved by `fastsae::hb_area` preserve full inferential validity relative to Stan MCMC (`tipsae::fit_sae`), summary concordance and error metrics were evaluated across $n = 1,000$ domains/units for Standard Beta, Spatial Beta (Besag ICAR), and Spatio-Temporal Beta models:
+To check that the speed of `fastsae::hb_area` does not come at the cost of its estimates, both packages were fitted with their defaults to the $n = 1,000$ data set of the Beta benchmark (independent area effects, sampling variances from the direct estimates; `benchmarks/bench_beta_concordance.R`). The two packages do not fit identical models (their priors differ, and fastsae fixes the precision at a first-stage estimate while tipsae makes it a function of the model mean), so the comparison is between what a user obtains from each package:
 
-| Dimension | Metric | Beta | Spatial Beta | Spatio-Temporal Beta | Statistical Implication |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **Point Estimates (EBP)** | **Pearson Correlation ($r$)** | **0.99934** | **0.99891** | **0.99614** | Near-perfect linear agreement between INLA and MCMC |
-| | **Spearman Rank Correlation ($\rho$)** | **0.99921** | **0.99875** | **0.99517** | Consistent domain priority and rank ordering |
-| | **Mean Absolute Error (MAE)** | **0.01969** | **0.01456** | **0.01200** | Average estimation discrepancy $< 0.02$ |
-| | **Root Mean Squared Difference (RMSD)** | **0.02369** | **0.01713** | **0.01458** | Negligible $L_2$ deviation across domains |
-| **Uncertainty / MSE** | **MSE Pearson Correlation ($r_{\text{MSE}}$)** | **0.96315** | **0.89254** | **0.67957** | Preserved area-level precision ordering |
-| | **Mean Absolute Difference (MSE)** | **0.00018** | **0.00012** | **0.00025** | Virtually identical error variances |
+| Metric | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) |
+| :--- | :---: | :---: |
+| RMSE against the true area means | 0.0678 | 0.0684 |
+| Coverage of the 95% intervals | 93.3% | 91.1% |
+| Mean width of the 95% intervals | 0.252 | 0.259 |
+| Time | 4.3 s | 184 s |
+
+The posterior means of the two packages differed by 0.0096 on average (absolute difference), and the posterior SDs of fastsae were 0.99 times those of tipsae in the median area (90% of the areas between 0.88 and 1.17). The largest $\hat{R}$ of the tipsae fit was 1.008.
 
 ------------------------------------------------------------------------
 

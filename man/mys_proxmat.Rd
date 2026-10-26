@@ -26,4 +26,10 @@ A 42 by 42 row-standardized spatial weight matrix for the 42 areas in \code{mys}
   Until fastsae 1.0.0 it was a dense distance-decay matrix that linked every pair of areas,
   which a CAR model reads as a complete graph.
 }
+\examples{
+data(mys_proxmat)
+range(rowSums(mys_proxmat))
+# neighbours per area (the graph used by the CAR models)
+table(rowSums(mys_proxmat > 0))
+}
 \keyword{datasets}

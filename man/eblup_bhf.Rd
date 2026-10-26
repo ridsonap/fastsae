@@ -21,11 +21,14 @@ eblup_bhf(
 )
 }
 \arguments{
-\item{formula}{An object of class `formula` describing the model.}
+\item{formula}{An object of class \code{formula} describing the model.}
 
-\item{unit_data}{A `data.frame` containing the unit-level survey data.}
+\item{unit_data}{A \code{data.frame} containing the unit-level survey data.}
 
-\item{Xpop}{A `data.frame` containing auxiliary variables and domain info.}
+\item{Xpop}{A \code{data.frame} with one row per domain: the domain identifier
+(\code{domain_var}), the population size (\code{popsize_var}) and the population means of the
+covariates, in columns named as the covariates in \code{formula}. Domains in \code{Xpop} without
+sampled units are predicted synthetically.}
 
 \item{domain_var}{A character string giving the column name for domain identifier.}
 
@@ -33,7 +36,9 @@ eblup_bhf(
 
 \item{method}{Fitting method: "REML" (default) or "ML".}
 
-\item{popnmean_xpop}{Population mean of auxiliary variables per domain.}
+\item{popnmean_xpop}{Optional matrix or data frame of the population means of the
+covariates (one row per domain, in the order of \code{Xpop}, columns as in the design matrix,
+with or without the intercept); if \code{NULL}, they are taken from \code{Xpop}.}
 
 \item{B}{Number of bootstrap replicates for MSE (if mse_type = "bootstrap").}
 
@@ -54,16 +59,20 @@ does not change the random number stream of the session.}
 \code{"none"}.}
 }
 \value{
-List containing EBLUP estimates, fit, and optionally MSE. The
-  \code{fit} element holds the variance components, \code{beta}, the
-  predicted random effects and the unit-level conditional residuals.
-  \code{goodness} is a named vector: \code{loglikelihood} (the full Gaussian
-  log-likelihood of the sampled units at the estimates, for ML and REML fits alike, as in
-  \code{\link{eblup_fh}()}), and \code{AIC} and \code{BIC} computed from it with
-  \eqn{p + 2} parameters and the number of sampled units.
+An object of class \code{c("fastsae", "fastsae_unit")}, a list with
+\code{df_eblup} (one row per domain: \code{domain}, \code{eblup}, \code{samp_size},
+\code{mse}, \code{rse}), \code{estcoef} (coefficients, standard errors, z-statistics and
+p-values), \code{random_effect_var}, \code{fit} (the fitting method, the variance
+components \code{random_effect_var} and \code{sigma2_e}, \code{beta}, the predicted random
+effects and the unit-level conditional residuals), \code{convergence}, \code{mse_type},
+\code{formula}, \code{model}, \code{data} and \code{call}.
+\code{goodness} is a named vector: \code{loglikelihood} (the full Gaussian
+log-likelihood of the sampled units at the estimates, for ML and REML fits alike, as in
+\code{\link{eblup_fh}()}), and \code{AIC} and \code{BIC} computed from it with
+\eqn{p + 2} parameters and the number of sampled units.
 }
 \description{
-This function estimates small area means or totals using the unit-level model
+This function estimates small area means using the unit-level model
 proposed by Battese, Harter, and Fuller (1988), which combines survey data
 (sample units) and auxiliary population information.
 }
@@ -103,5 +112,12 @@ res <- eblup_bhf(
 \references{
 Battese, G. E., Harter, R. M., and Fuller, W. A. (1988). An error-components
 model for prediction of county crop areas using survey and satellite data.
-*Journal of the American Statistical Association*, 83(401), 28-36.
+\emph{Journal of the American Statistical Association}, 83(401), 28-36.
+
+Gonzalez-Manteiga, W., Lombardia, M. J., Molina, I., Morales, D., and Santamaria, L.
+(2008). Bootstrap mean squared error of a small-area EBLUP. \emph{Journal of Statistical
+Computation and Simulation}, 78(5), 443-462.
+}
+\seealso{
+\code{\link{hb_unit}} for the hierarchical Bayes counterpart.
 }
