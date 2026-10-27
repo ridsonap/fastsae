@@ -227,12 +227,11 @@ Explore detailed guides, worked examples, and performance analyses:
 - Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation
   with spatio-temporal Fay-Herriot models. *Computational Statistics &
   Data Analysis*, 58, 308–325.
-- Pratesi, M., & Salvati, N. (2008). Small area estimation for spatially
-  correlated data: A Fay-Herriot with the spatial linear spline model.
-  *Journal of Applied Statistics*, 35(7), 781–794.
+- Pratesi, M., & Salvati, N. (2008). Small area estimation: The EBLUP
+  estimator based on spatially correlated random area effects.
+  *Statistical Methods & Applications*, 17(1), 113–141.
 - Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a
-  semi-parametric mixed model. *Journal of Multivariate Analysis*, 124,
-  226–236.
+  sub-area level model. *Journal of Multivariate Analysis*, 127, 36–55.
 - Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian
   inference for latent Gaussian models using integrated nested Laplace
   approximations (with discussion). *Journal of the Royal Statistical

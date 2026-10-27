@@ -1,0 +1,252 @@
+# Finite Population Simulation: Validating fastsae against Ground Truth
+
+*Terjemahan dari [versi bahasa
+Inggris](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.md).
+Penjelasan istilah ada di [Daftar
+Istilah](https://ridsonap.is-a.dev/fastsae/articles/id/glosarium.md).*
+
+## Pendahuluan: Mengapa Finite Population Simulation?
+
+Dalam Small Area Estimation (SAE), studi simulasi menjadi tolok ukur
+utama untuk memvalidasi model statistik sebelum dipakai pada statistik
+resmi (seperti pemetaan kemiskinan atau indikator kesehatan regional).
+Ada dua paradigma mendasar:
+
+1.  **Model-Based Simulation**: Data dibangkitkan langsung dari
+    distribusi parametrik yang diasumsikan model (mis. membangkitkan
+    $`y_d \sim \text{Beta}(\dots)`$). Walaupun berguna untuk
+    memverifikasi kebenaran algoritma dan pemulihan parameter, simulasi
+    ini mengevaluasi model di bawah asumsi idealnya sendiri.
+2.  **Design-Based Simulation pada Finite Population (*Gold
+    Standard*)**: Dibangkitkan finite population yang realistis berisi
+    individu atau rumah tangga diskret ($`N = 33{,}511`$ pada $`D = 60`$
+    domain). Nilai sebenarnya pada tingkat area $`P_d`$ dihitung
+    langsung dengan mengenumerasi semua unit di setiap domain:
+    ``` math
+    P_d = \frac{1}{N_d} \sum_{i=1}^{N_d} y_{di} \quad (\text{Ground Truth Nonparametrik yang Eksak})
+    ```
+    Sampel survei berukuran kecil ($`n_d \ll N_d`$, mis.
+    $`n_d = 20 - 55`$) ditarik berulang kali. Direct estimator dan
+    design-based sampling variance dihitung dari sampel survei, lalu
+    dimasukkan ke model small area.
+
+Simulasi design-based ini menguji secara ketat apakah:
+
+- Model Beta kontinu tingkat area (`hb_area` dan `tipsae`) tetap robust
+  ketika data dasarnya berupa hasil biner individu yang diskret
+  ($`y_{di} \in \{0, 1\}`$).
+- Design-based sampling variance $`\widehat{\text{Var}}(\hat{p}_d)`$
+  dengan finite population correction ditangani secara akurat oleh
+  linking model.
+- Credible interval model tetap mendekati coverage nominal 95% pada
+  pengambilan sampel survei yang berulang.
+
+------------------------------------------------------------------------
+
+## Arsitektur Simulasi
+
+Arsitektur simulasi meniru survei rumah tangga nasional (seperti Susenas
+atau EU-SILC):
+
+    +-------------------------------------------------------------------------------+
+    | 1. SYNTHETIC FINITE POPULATION (N = 33,511 units, D = 60 domains)            |
+    |    - Unit covariates: x_1di ~ N(1.6, 0.6^2), x_2di ~ Unif(0, 2.2)            |
+    |    - Spatial dependency: Besag ICAR random effects (W adjacency matrix)       |
+    |    - Unit outcome: y_di ~ Bernoulli(pi_di) in {0, 1}                          |
+    |    - Exact Ground Truth: P_d = sum(y_di) / N_d (Mean P_d = 27.4%)            |
+    +-------------------------------------------------------------------------------+
+                                          |
+                                          v
+    +-------------------------------------------------------------------------------+
+    | 2. SURVEY SAMPLING (R = 100 Monte Carlo Replications)                         |
+    |    - SRS without replacement per domain (n_d in [22, 55], mean n_d = 40)      |
+    |    - Sampling fraction f_d = n_d / N_d ~ 7.1%                                 |
+    |    - Direct Estimator: p_hat_d = mean(y_sample_d)                             |
+    |    - Design Sampling Variance: V_hat_d = (1 - f_d) * p(1 - p) / (n_d - 1)     |
+    +-------------------------------------------------------------------------------+
+                                          |
+                       +------------------+------------------+
+                       |                                     |
+                       v                                     v
+    +------------------------------------+ +------------------------------------+
+    | 3. fastsae::hb_area()             | | 4. tipsae::fit_sae()               |
+    |    - Bayesian INLA (Full Laplace)  | |    - Hamiltonian Monte Carlo (Stan)|
+    |    - Family: "beta"                | |    - Likelihood: "beta"            |
+    |    - Spatial: "besag"              | |    - Spatial error: TRUE           |
+    |    - Strategy: "laplace"           | |    - Execution: ~12-40 sec / fit   |
+    |    - Default priors (hb-priors)    | |                                    |
+    |    - Execution: ~6-9 sec / fit     | |                                    |
+    +------------------------------------+ +------------------------------------+
+                       |                                     |
+                       +------------------+------------------+
+                                          |
+                                          v
+    +-------------------------------------------------------------------------------+
+    | 5. EMPIRICAL EVALUATION AGAINST FIXED GROUND TRUTH P_d                        |
+    |    - Empirical RMSE, Empirical RRMSE (%), and Empirical Relative Bias (%)     |
+    |    - 95% Credible Interval Coverage Rate across 100 replications              |
+    |    - Efficiency Gain vs Direct Estimator (MSE Ratio)                          |
+    +-------------------------------------------------------------------------------+
+
+------------------------------------------------------------------------
+
+## Formulasi Matematis Properti Empiris
+
+Pada $`R = 100`$ replikasi sampel survei yang saling bebas, properti
+empiris untuk setiap domain $`d = 1, \dots, D`$ didefinisikan sebagai:
+
+1.  **Mean dan Bias Empiris**:
+    ``` math
+    \overline{\hat{\theta}}_d = \frac{1}{R}\sum_{r=1}^R \hat{\theta}_d^{(r)}, \quad \text{Bias}_d = \overline{\hat{\theta}}_d - P_d, \quad \text{RB}_d = \frac{\text{Bias}_d}{P_d} \times 100\%
+    ```
+
+2.  **Root Mean Squared Error (RMSE) Empiris**:
+    ``` math
+    \text{RMSE}_d = \sqrt{\frac{1}{R}\sum_{r=1}^R \left(\hat{\theta}_d^{(r)} - P_d\right)^2}, \quad \text{RRMSE}_d = \frac{\text{RMSE}_d}{P_d} \times 100\%
+    ```
+
+3.  **Coverage Rate (CR) Credible Interval 95% Empiris**:
+    ``` math
+    \text{CR}_d = \frac{1}{R}\sum_{r=1}^R \mathbb{I}\left(P_d \in \left[\text{CI}_{\text{lower}, d}^{(r)}, \text{CI}_{\text{upper}, d}^{(r)}\right]\right) \times 100\%
+    ```
+
+4.  **Efficiency Gain Empiris terhadap Direct Estimator**:
+    ``` math
+    \text{Eff}_d = \frac{\text{MSE}_d(\text{Direct})}{\text{MSE}_d(\text{Model})}
+    ```
+
+------------------------------------------------------------------------
+
+## Hasil Benchmark Empiris ($`R = 100`$ Replikasi, $`D = 60`$)
+
+Tabel di bawah merangkum metrik empiris rata-rata makro pada seluruh 60
+domain dari simulasi Monte Carlo penuh $`R = 100`$, yang mengevaluasi
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+dengan engine dan prior bawaannya
+([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md);
+lihat
+[`vignette("hb-priors")`](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md))
+dan [`tipsae::fit_sae()`](https://rdrr.io/pkg/tipsae/man/fit_sae.html)
+dengan `type_disp = "var"` (satu chain, 600 iterasi). Runtime dihitung
+per fit, dengan lima replikasi berjalan paralel.
+
+*(Sel yang disorot hijau menandakan kinerja yang lebih unggul untuk
+setiap kriteria evaluasi).*
+
+| Estimator / Model | RMSE Empiris | RRMSE Empiris (%) | MARB Empiris (%) | RB Empiris (%) | Coverage CrI 95% Empiris | Lebar Rata-rata CrI | Efficiency Gain (vs Direct) | Runtime (s/fit) |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| **Direct Estimator (Sample $`\hat{p}_d`$)** | 0.0681 | 26.27% | 20.71% | +2.27% | — | — | 1.000x | — |
+| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.04913 | 19.31% | 16.09% | +2.36% | 92.13% | 0.1855 | 1.783x | 6.18 s |
+| **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.04911 | 19.16% | 15.89% | +1.06% | 93.18% | 0.1979 | 1.806x | 11.65 s |
+
+### Temuan Empiris Utama:
+
+1.  **Penurunan Varians dan Error yang Substansial**: Baik `fastsae`
+    maupun `tipsae` menurunkan RMSE empiris dari **0.0681** menjadi
+    **0.0491**, efficiency gain empiris sekitar **1.8x** relatif
+    terhadap estimasi langsung survei. Kedua fit Bayesian praktis sama
+    akuratnya.
+2.  **Kuantifikasi Ketidakpastian**: `fastsae` menghasilkan credible
+    interval yang sedikit lebih sempit ($`0.186`$ vs $`0.198`$) dengan
+    coverage 92.1%, dibandingkan 93.2% untuk `tipsae`; keduanya sedikit
+    di bawah nominal 95%.
+3.  **Skalabilitas Komputasi**:
+    [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+    selesai dalam sekitar separuh waktu eksekusi Stan MCMC di sini;
+    model Beta dengan `vardir` diestimasi dua kali (lihat
+    [`?hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)).
+
+Eksekusi awal simulasi ini memakai prior PC dengan `param = c(1, 0.05)`
+pada SD area dan presisi likelihood Beta pada direct estimate;
+intervalnya meliput 88.3% proporsi sebenarnya (RMSE 0.0485, lebar
+rata-rata 0.172). Default saat ini memperlebar interval dan membuat
+coverage mendekati `tipsae`.
+
+------------------------------------------------------------------------
+
+## Benchmark Skala Nasional ($`D = 500`$ Domain, $`N \approx 250{,}000`$ Individu, $`R = 25`$)
+
+Untuk mengevaluasi skalabilitas pada tingkat nasional (setara dengan
+rincian $`\approx 514`$ kabupaten/kota di Indonesia atau ratusan county
+di negara lain), dibangkitkan populasi sintetik nasional
+$`N = 250{,}824`$ individu pada grid spasial $`20 \times 25`$ dengan
+$`D = 500`$ domain yang saling berbatasan. Sampel survei sebesar
+$`n_d \in [20, 50]`$ per domain ($`n \approx 17{,}500`$ unit survei)
+ditarik pada $`R = 25`$ replikasi Monte Carlo.
+
+*(Sel yang disorot hijau menandakan kinerja yang lebih unggul).*
+
+| Estimator / Model | RMSE Empiris | RRMSE Empiris (%) | MARB Empiris (%) | RB Empiris (%) | Coverage CrI 95% (%) | Lebar Rata-rata CrI | Efficiency Gain (vs Direct) | Runtime (s/fit) |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| **Direct Estimator (Sample $`\hat{p}_d`$)** | 0.0719 | 27.14% | 21.75% | +2.96% | — | — | 1.000x | — |
+| **[`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (Spatial Besag)** | 0.0489 | 18.85% | 15.82% | +2.81% | 93.38% | 0.1935 | 1.991x | 8.53 s |
+| **[`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Spatial Besag)** | 0.0487 | 18.68% | 15.66% | +2.00% | 93.69% | 0.2017 | 2.014x | 40.00 s |
+
+### Poin Utama Skalabilitas Nasional:
+
+- **Speedup 4.7x**: `fastsae` mengestimasi model spasial penuh 500
+  domain dalam **$`8.5`$ detik**, dibandingkan **$`40.0`$ detik** untuk
+  Stan MCMC (satu chain, 500 iterasi).
+- **Akurasi setara**: RMSE empiris kedua fit Bayesian praktis sama
+  ($`0.0489`$ vs $`0.0487`$, dibandingkan $`0.0719`$ untuk direct
+  estimator).
+- **Coverage**: 93.4% untuk `fastsae` dan 93.7% untuk `tipsae`, dengan
+  interval `fastsae` yang sedikit lebih sempit ($`0.194`$ vs $`0.202`$).
+  Eksekusi awal dengan prior PC dan presisi pada direct estimate meliput
+  89.0%.
+
+------------------------------------------------------------------------
+
+## Visualisasi
+
+### 1. RMSE Empiris per Domain
+
+Pada seluruh 60 area kecil, baik `fastsae` maupun `tipsae` secara
+konsisten menurunkan varians estimasi hingga separuhnya dibandingkan
+direct estimate survei:
+
+``` r
+
+# Code to replicate domain-wise RMSE visualization
+ggplot(df_rmse, aes(x = DomainIdx, y = RMSE, color = Method)) +
+  geom_line() + geom_point() +
+  labs(title = "Domain-Specific Empirical RMSE (R = 100 Replications)",
+       x = "Domain Index", y = "Empirical RMSE vs True P_d")
+```
+
+### 2. Coverage Credible Interval 95% Empiris
+
+Coverage empiris tiap domain tersebar di sekitar garis putus-putus acuan
+nominal 95%, rata-rata 92.1% untuk `fastsae` dan 93.2% untuk `tipsae`.
+
+------------------------------------------------------------------------
+
+## Cara Mereplikasi
+
+Skrip benchmark finite population lengkap tersedia di repositori paket:
+
+``` bash
+# Run 100 Monte Carlo replications across 5 CPU cores
+Rscript benchmarks/sim_mc_finite_population.R --R=100 --cores=5
+```
+
+------------------------------------------------------------------------
+
+## Daftar Pustaka
+
+- **Janicki, R.** (2020). Properties of the beta regression model for
+  small area estimation of proportions and application to estimation of
+  poverty rates. *Communications in Statistics - Theory and Methods*,
+  49(9), 2264–2284.
+- **De Nicolò, S., & Gardini, A.** (2024). The R Package tipsae: Tools
+  for Mapping Proportions and Indicators on the Unit Interval. *Journal
+  of Statistical Software*, 108(1), 1–36.
+- **Rao, J. N. K., & Molina, I.** (2015). *Small Area Estimation* (2nd
+  ed.). John Wiley & Sons.
+- **Tzavidis, N., et al.** (2018). From start to finish: a framework for
+  the production of small area official statistics. *Journal of the
+  Royal Statistical Society: Series A*, 181(4), 927–979.
+- **Rue, H., Martino, S., & Chopin, N.** (2009). Approximate Bayesian
+  inference for latent Gaussian models by using integrated nested
+  Laplace approximations. *Journal of the Royal Statistical Society:
+  Series B*, 71(2), 319–392.

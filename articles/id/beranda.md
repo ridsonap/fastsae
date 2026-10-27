@@ -1,0 +1,263 @@
+# fastsae: Small Area Estimation Frequentist dan Bayesian Berkinerja Tinggi di R
+
+[![CRAN
+status](https://www.r-pkg.org/badges/version/fastsae)](https://CRAN.R-project.org/package=fastsae)
+[![R-CMD-check](https://github.com/ridsonap/fastsae/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ridsonap/fastsae/actions/workflows/R-CMD-check.yaml)
+[![License:
+GPL-3](https://img.shields.io/badge/License-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+*Dokumentasi ini adalah terjemahan dari [versi bahasa
+Inggris](https://ridsonap.is-a.dev/fastsae/articles/index.md).
+Penjelasan istilah dapat dilihat di [Daftar
+Istilah](https://ridsonap.is-a.dev/fastsae/articles/id/glosarium.md).
+Jika ada perbedaan, versi bahasa Inggris yang menjadi acuan.*
+
+**fastsae** mengimplementasikan model-model small area estimation (SAE)
+yang banyak dipakai untuk data survei. Estimasi frequentist dijalankan
+dalam **C++** (`RcppArmadillo`) yang dikompilasi dan memakai **OpenMP**
+untuk pemrosesan multi-thread, sedangkan estimasi Bayesian memakai
+**INLA** (*Integrated Nested Laplace Approximations*). Pada ratusan
+hingga ribuan domain, paket ini jauh lebih cepat daripada implementasi R
+yang sudah ada (lihat [Kinerja Sekilas](#kinerja-sekilas); pada beberapa
+puluh domain, `sae` kurang lebih sama cepatnya), dengan hasil numerik
+yang sesuai dengan paket rujukan seperti `sae`.
+
+------------------------------------------------------------------------
+
+## Mengapa fastsae?
+
+- ⚡ **Kecepatan**: pada 1.000 domain, model Fisher scoring dalam C++
+  dengan MSE analitik berjalan 29 hingga 1.250 kali lebih cepat daripada
+  `sae` (model spatio-temporal: 40 detik dibandingkan 19 menit). Pada
+  beberapa puluh domain, selisihnya hanya sepersekian detik.
+- 🎯 **Kesesuaian numerik**: pada data yang sama, koefisien, variance
+  component, EBLUP, dan MSE analitik sesuai dengan `sae` (Molina &
+  Marhuenda) hingga sekitar $`10^{-14}`$. Pengecualian yang
+  terdokumentasi adalah spatial correlation yang berada di batas ruang
+  parameter dan MSE ML pada model spatial.
+- 🔀 **Frequentist dan Bayesian dalam satu paket**: model EBLUP dalam
+  C++ dan model Bayes hierarkis melalui INLA.
+- 🧵 **Bootstrap paralel**: estimasi MSE dengan bootstrap parametrik dan
+  nonparametrik yang memakai banyak inti prosesor (OpenMP).
+- 🗺️ **Unsampled area**: domain tanpa pengamatan (`y = NA`) diprediksi
+  secara otomatis.
+- 💾 **Hemat memori**: menghindari alokasi $`O(m^2)`$ / $`O(m^3)`$ yang
+  tidak perlu.
+- 📊 **Antarmuka R yang baku**: metode S3 (`summary`, `coef`, `fitted`,
+  `residuals`) dan
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  yang siap untuk publikasi.
+
+------------------------------------------------------------------------
+
+## Mengenal INLA: Inferensi Bayesian yang Cepat tanpa MCMC
+
+**INLA** (*Integrated Nested Laplace Approximations*; Rue dkk., 2009)
+adalah alternatif deterministik terhadap *Markov Chain Monte Carlo*
+(MCMC) untuk inferensi Bayesian pada model Gaussian laten. Alih-alih
+membangkitkan ribuan sampel, INLA:
+
+- **Mengaproksimasi** distribusi marginal posterior secara analitik
+  dengan Laplace approximation
+- **Mengintegralkan** pengamatan non-Gaussian secara analitik
+- **Menghasilkan** keluaran dalam hitungan detik, bukan jam
+
+`fastsae` memakai INLA melalui paket R
+[`INLA`](https://www.r-inla-download.org) untuk mengestimasi model small
+area hierarchical Bayes dengan:
+
+- **6 keluarga likelihood**: Gaussian, Beta, Binomial, Poisson, Binomial
+  Negatif, Gamma
+- **Spatial random effect**: Besag ICAR, BYM, BYM2, Leroux, SAR, spatial
+  lag
+- **Temporal random effect**: RW1, RW2, AR(1)
+- **Spatio-temporal interaction**: struktur separable dan non-separable
+
+**Dibandingkan dengan MCMC**: tidak ada chain yang harus dijalankan dan
+dipantau, hasilnya deterministik, dan estimasi selesai dalam hitungan
+detik. INLA adalah aproksimasi: pengaturan bawaan fastsae dipilih dengan
+membandingkannya terhadap posterior eksak dan eksekusi Stan yang
+panjang, dan `engine = jax_engine()` mengestimasi model yang sama dengan
+MCMC bila diperlukan verifikasi.
+
+------------------------------------------------------------------------
+
+## Two-Fold Subarea Models: Struktur Hierarkis Bersarang
+
+Model two-fold subarea (Torabi & Rao, 2014) memperluas model Fay-Herriot
+baku ke data hierarkis, yaitu **subarea yang bersarang dalam area**:
+
+``` math
+y_{ij} = x_{ij}^\top \beta + v_i + u_{ij} + e_{ij}
+```
+
+dengan:
+
+- $`v_i \sim N(0, \sigma_v^2)`$: **area-level random effect**
+- $`u_{ij} \sim N(0, \sigma_u^2)`$: **subarea-level random effect**
+- $`e_{ij} \sim N(0, D_{ij})`$: sampling error dengan varians yang
+  diketahui
+
+**Implementasi yang tersedia:**
+
+- [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md):
+  EBLUP frequentist melalui REML Fisher scoring (C++)
+- [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md):
+  hierarchical Bayes model melalui INLA dengan dukungan spatial
+
+------------------------------------------------------------------------
+
+## Perbandingan dengan Paket Lain
+
+| Fitur | `fastsae` | `sae` (Molina & Rao) | `emdi` (Kreutzmann dkk.) |
+|:---|:--:|:--:|:--:|
+| **Komputasi inti** | **C++ (RcppArmadillo)** | R murni | R / lme4 / nlme |
+| **Multi-thread** | **OpenMP bawaan** (`n_threads`) | Single-thread | `foreach`/`parallel` (opsional) |
+| **Kesesuaian dengan `sae` pada data yang sama** | **Sekitar $`10^{-14}`$** | Acuan | Sekitar $`10^{-6}`$ (toleransi konvergensi) |
+| **Dukungan unsampled area** | **Otomatis (sintetik; kriging untuk model spatial)** | Perlu subsetting manual | Sintetik (domain di luar sampel) |
+| **MSE bootstrap** | **C++ paralel (OpenMP)** | R | R |
+| **Dukungan metode S3** | `print`, `summary`, `coef`, `fitted`, `residuals`, `autoplot` | Daftar (*list*) khusus | S3 baku |
+
+------------------------------------------------------------------------
+
+## Model yang Didukung
+
+### Model Frequentist (EBLUP, C++)
+
+| Model | Fungsi | Struktur random effect | Estimasi MSE |
+|:---|:---|:---|:---|
+| **Fay-Herriot** (area-level) | [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md) | Independent area effects | Analitik (Prasad-Rao) |
+| **Spatial Fay-Herriot** | [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md) | SAR(1) spatial autocorrelation | Analitik, bootstrap |
+| **Spatio-Temporal Fay-Herriot** | [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md) | SAR(1) + AR(1) temporal | Analitik, bootstrap |
+| **Battese-Harter-Fuller** (unit-level) | [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md) | Random intercept bersarang dalam domain | Bootstrap |
+| **Two-Fold Subarea** | [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md) | Efek area + subarea bersarang | Analitik, bootstrap |
+
+### Model Bayesian (INLA)
+
+| Model | Fungsi | Distribusi | Spatial/Temporal |
+|:---|:---|:---|:---|
+| **Area-level HB** | [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Dukungan penuh |
+| **Unit-level HB** | [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
+| **Two-Fold HB** | [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
+
+Model Bayesian diestimasi dengan `engine = inla_engine()` (bawaan).
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
+dan
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
+juga dapat diestimasi dengan MCMC di Python (JAX/NumPyro) melalui
+`engine = jax_engine()`.
+
+------------------------------------------------------------------------
+
+## Kinerja Sekilas
+
+#### 1. EBLUP frequentist dengan analytical MSE (waktu dan memori puncak)
+
+| Model ($`n = 1.000`$ domain, 5 covariate) | `fastsae` | `sae` | `emdi` |
+|:---|:--:|:--:|:--:|
+| **Fay-Herriot** | **0,000639 s** (1,91 MB) | 0,799 s (39,0 MB; 1.250x lebih lambat) | 13,5 s (222 MB; 21.071x lebih lambat) |
+| **Spatial Fay-Herriot** | **0,518 s** (78,7 MB) | 24,1 s (239 MB; 46x lebih lambat) | 25,2 s (310 MB; 49x lebih lambat) |
+| **Spatio-Temporal FH ($`T = 5`$), point estimate** | **39,8 s** (495 MB) | 1160 s (3,60 GB; 29x lebih lambat) | \- |
+
+#### 2. Model Beta Bayesian: INLA vs Stan MCMC ($`n`$ terbesar yang diuji)
+
+| Model | $`n`$ | [`fastsae::hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) (INLA) | [`tipsae::fit_sae`](https://rdrr.io/pkg/tipsae/man/fit_sae.html) (Stan) | Rasio waktu |
+|:---|:--:|:--:|:--:|:--:|
+| **Beta** | 1.000 | **3,73 s** | 180 s | 48x |
+| **Spatial Beta (Besag ICAR)** | 1.000 | **4,28 s** | 362 s | 85x |
+| **Spatio-Temporal Beta (Besag + RW1, $`T = 5`$)** | 50 | **3,80 s** | 716 s | 189x |
+
+Waktu adalah median dari `bench::mark()`. Baris frequentist diukur pada
+26-10-2026 dengan fastsae 1.0.0, sae 1.3, dan emdi 2.2.3 pada data
+simulasi yang sama (Apple M4, R versi 4.6.1 (2026-06-24);
+`benchmarks/bench_frequentist.R`), masing-masing dalam proses R
+tersendiri. Memori adalah kenaikan memori residen puncak proses tersebut
+selama estimasi, termasuk memori yang dialokasikan oleh kode
+terkompilasi (kenaikan beberapa puluh MB bervariasi antarpenjalanan dan
+tidak boleh dibandingkan). ‘sae’ tidak memiliki analytical MSE untuk
+model spatio-temporal, sehingga baris itu membandingkan point estimate;
+dengan analytical MSE-nya, fastsae membutuhkan 39,3 s. Baris `fastsae`
+Bayesian diukur ulang pada 14-10-2026
+(`benchmarks/bench_bayes_fastsae.R`), sedangkan baris `tipsae` (4 chain,
+masing-masing 2.000 iterasi) berasal dari penjalanan sebelumnya pada
+data yang sama. Lihat [artikel
+benchmark](https://ridsonap.is-a.dev/fastsae/articles/id/benchmarks.html)
+untuk semua ukuran.
+
+------------------------------------------------------------------------
+
+## Instalasi
+
+``` r
+
+# Instal dari CRAN (setelah terbit)
+install.packages("fastsae")
+
+# Atau instal versi pengembangan dari GitHub
+# install.packages("remotes")
+remotes::install_github("ridsonap/fastsae")
+```
+
+------------------------------------------------------------------------
+
+## Dokumentasi dan Panduan Pengguna
+
+Pelajari panduan terperinci, contoh kerja, dan analisis kinerja:
+
+- [**Memulai dengan
+  fastsae**](https://ridsonap.is-a.dev/fastsae/articles/id/getting-started.md):
+  panduan langkah demi langkah untuk mengestimasi model, diagnostik, dan
+  mengekstrak hasil dengan metode S3.
+- [**Spatial and Spatio-Temporal Models
+  (EBLUP)**](https://ridsonap.is-a.dev/fastsae/articles/id/spatial-temporal.md):
+  bekerja dengan spatial weights matrix, spatial kriging, dan panel
+  spatio-temporal.
+- [**Area-Level Bayesian Models
+  (INLA)**](https://ridsonap.is-a.dev/fastsae/articles/id/hb-area-inla.md):
+  SAE hierarchical Bayes dengan INLA untuk 6 distribusi dan efek
+  spatio-temporal.
+- [**Diagnostik dan Kalibrasi
+  Model**](https://ridsonap.is-a.dev/fastsae/articles/id/model-diagnostics.md):
+  diagnostik dan benchmarking ke target agregat.
+- [**Unit-Level Estimation
+  (BHF)**](https://ridsonap.is-a.dev/fastsae/articles/id/unit-level-bhf.md):
+  mengestimasi model Battese-Harter-Fuller dengan data survei individu.
+- [**Benchmark
+  Kinerja**](https://ridsonap.is-a.dev/fastsae/articles/id/benchmarks.md):
+  grafik interaktif dan perbandingan percepatan pada berbagai ukuran
+  sampel.
+- [**Referensi
+  Fungsi**](https://ridsonap.is-a.dev/fastsae/articles/reference/index.md):
+  referensi API yang lengkap beserta dokumentasi parameter (dalam bahasa
+  Inggris).
+- [**Daftar
+  Istilah**](https://ridsonap.is-a.dev/fastsae/articles/id/glosarium.md):
+  penjelasan singkat istilah teknis yang dipertahankan dalam bahasa
+  Inggris.
+
+------------------------------------------------------------------------
+
+## Daftar Pustaka
+
+- Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small
+  places: An application of James-Stein procedures to Census data.
+  *Journal of the American Statistical Association*, 74(366), 269–277.
+- Battese, G. E., Harter, R. M., & Fuller, W. A. (1988). An
+  error-components model for prediction of county crop areas using
+  survey and satellite data. *Journal of the American Statistical
+  Association*, 83(401), 28–36.
+- Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation
+  with spatio-temporal Fay-Herriot models. *Computational Statistics &
+  Data Analysis*, 58, 308–325.
+- Pratesi, M., & Salvati, N. (2008). Small area estimation: The EBLUP
+  estimator based on spatially correlated random area effects.
+  *Statistical Methods & Applications*, 17(1), 113–141.
+- Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a
+  sub-area level model. *Journal of Multivariate Analysis*, 127, 36–55.
+- Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian
+  inference for latent Gaussian models using integrated nested Laplace
+  approximations (with discussion). *Journal of the Royal Statistical
+  Society: Series B*, 71(2), 319–392.
+- Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
+  John Wiley & Sons.

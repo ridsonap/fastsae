@@ -29,7 +29,10 @@
   // Initialize language state before render to prevent FOUC
   (function() {
     var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    // Indonesian articles (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -65,6 +68,8 @@
     <li><a class="dropdown-item" href="articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="articles/finite-population-validation.html">Finite Population Validation</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/id/glosarium.html">Daftar Istilah (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
@@ -447,8 +452,8 @@
 <li>Fay, R. E., &amp; Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. <em>Journal of the American Statistical Association</em>, 74(366), 269–277.</li>
 <li>Battese, G. E., Harter, R. M., &amp; Fuller, W. A. (1988). An error-components model for prediction of county crop areas using survey and satellite data. <em>Journal of the American Statistical Association</em>, 83(401), 28–36.</li>
 <li>Marhuenda, Y., Molina, I., &amp; Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models. <em>Computational Statistics &amp; Data Analysis</em>, 58, 308–325.</li>
-<li>Pratesi, M., &amp; Salvati, N. (2008). Small area estimation for spatially correlated data: A Fay-Herriot with the spatial linear spline model. <em>Journal of Applied Statistics</em>, 35(7), 781–794.</li>
-<li>Torabi, M., &amp; Rao, J. N. K. (2014). On small area estimation under a semi-parametric mixed model. <em>Journal of Multivariate Analysis</em>, 124, 226–236.</li>
+<li>Pratesi, M., &amp; Salvati, N. (2008). Small area estimation: The EBLUP estimator based on spatially correlated random area effects. <em>Statistical Methods &amp; Applications</em>, 17(1), 113–141.</li>
+<li>Torabi, M., &amp; Rao, J. N. K. (2014). On small area estimation under a sub-area level model. <em>Journal of Multivariate Analysis</em>, 127, 36–55.</li>
 <li>Rue, H., Martino, S., &amp; Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian models using integrated nested Laplace approximations (with discussion). <em>Journal of the Royal Statistical Society: Series B</em>, 71(2), 319–392.</li>
 <li>Rao, J. N. K., &amp; Molina, I. (2015). <em>Small Area Estimation</em> (2nd ed.). John Wiley &amp; Sons.</li>
 </ul>

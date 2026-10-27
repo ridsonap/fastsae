@@ -8,7 +8,10 @@
   // Initialize language state before render to prevent FOUC
   (function() {
     var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    // Indonesian articles (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -40,6 +43,8 @@
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Daftar Istilah (Bahasa Indonesia)</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
@@ -67,16 +72,12 @@
     </div>
 
     <div class="section ">
-      <h3>All vignettes</h3>
+      <h3>English</h3>
       <div class="section-desc"></div>
 
-      <dl><dt><a href="benchmarks.html">Performance &amp; Scalability Benchmarks</a></dt>
+      <dl><dt><a href="getting-started.html">Getting Started with fastsae</a></dt>
         <dd>
-        </dd><dt><a href="finite-population-validation.html">Finite Population Simulation: Validating fastsae against Ground Truth</a></dt>
-        <dd>
-        </dd><dt><a href="getting-started.html">Getting Started with fastsae</a></dt>
-        <dd>
-        </dd><dt><a href="hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae</a></dt>
+        </dd><dt><a href="spatial-temporal.html">Spatial and Spatio-Temporal Models</a></dt>
         <dd>
         </dd><dt><a href="hb-area-inla.html">Bayesian Area-Level Small Area Estimation with INLA</a></dt>
         <dd>
@@ -84,14 +85,48 @@
         <dd>
         </dd><dt><a href="model-diagnostics.html">Model Diagnostics and Residual Analysis</a></dt>
         <dd>
-        </dd><dt><a href="spatial-temporal.html">Spatial and Spatio-Temporal Models</a></dt>
+        </dd><dt><a href="unit-level-bhf.html">Unit-Level Estimation with Battese-Harter-Fuller</a></dt>
         <dd>
         </dd><dt><a href="twofold-subarea.html">Sub-Area Level Estimation with Two-Fold Models</a></dt>
         <dd>
-        </dd><dt><a href="unit-level-bhf.html">Unit-Level Estimation with Battese-Harter-Fuller</a></dt>
+        </dd><dt><a href="benchmarks.html">Performance &amp; Scalability Benchmarks</a></dt>
+        <dd>
+        </dd><dt><a href="hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae</a></dt>
+        <dd>
+        </dd><dt><a href="finite-population-validation.html">Finite Population Simulation: Validating fastsae against Ground Truth</a></dt>
         <dd>
       </dd></dl></div>
-  </main></div>
+    <div class="section ">
+      <h3>Bahasa Indonesia</h3>
+      <div class="section-desc"><p>Terjemahan dokumentasi (istilah teknis dipertahankan dalam bahasa Inggris)</p></div>
+
+      <dl><dt><a href="id/beranda.html">fastsae: Small Area Estimation Frequentist dan Bayesian Berkinerja Tinggi di R</a></dt>
+        <dd>
+        </dd><dt><a href="id/glosarium.html">Daftar Istilah</a></dt>
+        <dd>
+        </dd><dt><a href="id/getting-started.html">Memulai dengan fastsae</a></dt>
+        <dd>
+        </dd><dt><a href="id/spatial-temporal.html">Spatial and Spatio-Temporal Models</a></dt>
+        <dd>
+        </dd><dt><a href="id/hb-area-inla.html">Bayesian Area-Level Small Area Estimation with INLA</a></dt>
+        <dd>
+        </dd><dt><a href="id/hb-priors.html">Default Priors of the Hierarchical Bayes Models</a></dt>
+        <dd>
+        </dd><dt><a href="id/model-diagnostics.html">Diagnostik Model dan Analisis Residual</a></dt>
+        <dd>
+        </dd><dt><a href="id/unit-level-bhf.html">Unit-Level Estimation with Battese-Harter-Fuller</a></dt>
+        <dd>
+        </dd><dt><a href="id/twofold-subarea.html">Sub-Area Level Estimation with Two-Fold Models</a></dt>
+        <dd>
+        </dd><dt><a href="id/benchmarks.html">Performance &amp; Scalability Benchmarks</a></dt>
+        <dd>
+        </dd><dt><a href="id/hb-area-engines.html">Engine hb_area(): INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae</a></dt>
+        <dd>
+        </dd><dt><a href="id/finite-population-validation.html">Finite Population Simulation: Validating fastsae against Ground Truth</a></dt>
+        <dd>
+      </dd></dl></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
