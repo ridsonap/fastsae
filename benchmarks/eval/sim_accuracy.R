@@ -144,9 +144,40 @@ if ("--collect" %in% args) {
       }
     }
     scen_list <- if (model == "sfh") sfh_scen else beta_scen
+    fits <- do.call(rbind, rows)
+    areas <- do.call(rbind, areas)
+    if (model == "beta") {
+      # tipsae standardises the covariates (X[, i] <- scale(X[, i]) in tipsae:::create_data),
+      # so its coefficients are put back on the scale of the data
+      for (scen in unique(fits$scenario)) {
+        des <- beta_design(scenario(model, scen), 1000 + scen_index(model, scen))
+        m <- c(mean(des$x1), mean(des$x2)); s <- c(stats::sd(des$x1), stats::sd(des$x2))
+        i <- fits$scenario == scen & fits$method == "tipsae" & !fits$failed
+        b1 <- fits$beta1[i] / s[1]; b2 <- fits$beta2[i] / s[2]
+        fits$beta0[i] <- fits$beta0[i] - b1 * m[1] - b2 * m[2]
+        fits$beta1[i] <- b1; fits$beta2[i] <- b2
+      }
+    }
+    # Area-level results are too large to keep (about 1.4 million rows for SFH), so they are
+    # summarised here, on the replicates where every method gave a fit ("common"), so that
+    # the methods are compared on the same data sets:
+    #   reps   per replicate: mean error, mean squared error, coverage and width over the areas
+    #          (independent across replicates, so their MCSE is sd / sqrt(R))
+    #   area   per area: bias, RMSE and coverage over the replicates
+    ok <- stats::aggregate(!failed ~ scenario + rep, fits, all)
+    ok <- ok[ok[[3]], c("scenario", "rep")]
+    areas <- merge(areas, ok)
+    areas$err <- areas$est - areas$truth
+    areas$cover <- areas$truth >= areas$lower & areas$truth <= areas$upper
+    areas$width <- areas$upper - areas$lower
+    reps <- stats::aggregate(cbind(bias = err, mse = err^2, cover, width) ~ scenario + method + rep, areas, mean)
+    area_sum <- stats::aggregate(cbind(bias = err, mse = err^2, cover, width, truth) ~ scenario + method + area, areas, mean)
+    area_sum$rmse <- sqrt(area_sum$mse)
     out <- list(
-      fits = do.call(rbind, rows),
-      areas = do.call(rbind, areas),
+      fits = fits,
+      reps = reps,
+      area = area_sum,
+      common_reps = stats::aggregate(rep ~ scenario, ok, length),
       scenarios = lapply(stats::setNames(names(scen_list), names(scen_list)), function(n) scenario(model, n)),
       truth_par = if (model == "sfh") c(beta0 = 1, beta1 = 0.8, beta2 = -0.5) else c(beta0 = -1, beta1 = 0.5, beta2 = -0.4),
       meta = list(

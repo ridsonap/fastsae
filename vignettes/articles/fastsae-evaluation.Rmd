@@ -1,0 +1,614 @@
+---
+title: "Is fastsae Better? Accuracy, Speed and Memory against sae, emdi and tipsae"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.width = 8, fig.height = 4.6, dpi = 110
+)
+library(ggplot2)
+
+ext_dir <- Filter(dir.exists, c(
+  file.path("..", "..", "inst", "extdata"),
+  file.path("inst", "extdata")
+))[1]
+rd <- function(f) {
+  p <- file.path(ext_dir, f)
+  if (length(p) == 1 && file.exists(p)) readRDS(p) else NULL
+}
+sfh <- rd("eval_sfh_accuracy.rds")
+bta <- rd("eval_beta_accuracy.rds")
+res <- rd("eval_resources.rds")
+have <- !is.null(sfh) && !is.null(bta) && !is.null(res)
+knitr::opts_chunk$set(eval = have)
+
+method_labels <- c(
+  fastsae = "fastsae::eblup_sfh", sae = "sae::mseSFH", emdi = "emdi::fh",
+  inla = "fastsae, INLA", jax = "fastsae, NumPyro (CPU)", metal = "fastsae, NumPyro (Apple GPU)",
+  tipsae = "tipsae (Stan)"
+)
+method_colours <- c(
+  fastsae = "#1D6A5C", sae = "#C0392B", emdi = "#7B5EA7",
+  inla = "#1D6A5C", jax = "#E69F00", metal = "#7B5EA7", tipsae = "#C0392B"
+)
+sfh_scen_labels <- c(
+  base = "Base (grid, D = 100, rho = 0.5)", rho_low = "rho = 0.2", rho_high = "rho = 0.8",
+  rho_edge = "rho = 0.95", psi_low = "psi / sigma2 = 0.5", psi_high = "psi / sigma2 = 2",
+  D50 = "D = 50", D500 = "D = 500", mys = "Real map (mys_proxmat, D = 42)"
+)
+beta_scen_labels <- c(
+  base = "Base (grid, D = 50)", spat_low = "sigma_s = 0.2", spat_high = "sigma_s = 1",
+  kappa_low = "kappa = 10", kappa_high = "kappa = 100", voronoi = "Irregular map (D = 50)"
+)
+f2 <- function(x, d = 3) formatC(x, format = "f", digits = d)
+pct <- function(x, d = 1) paste0(formatC(100 * x, format = "f", digits = d), "%")
+fmt_s <- function(x) ifelse(is.na(x), "-", ifelse(x < 10, sprintf("%.2f s", x), sprintf("%s s", format(round(x), big.mark = ","))))
+fmt_mb <- function(x) ifelse(is.na(x), "-", ifelse(x >= 1024, sprintf("%.2f GB", x / 1024), sprintf("%.0f MB", x)))
+# mean and Monte Carlo standard error over independent replicates
+mc <- function(x) c(mean = mean(x), mcse = stats::sd(x) / sqrt(length(x)))
+```
+
+```{r missing, eval = !have, results = "asis"}
+cat("> The result files (`inst/extdata/eval_*.rds`) are not available, so this article shows no results.",
+    "Run `sh benchmarks/eval/run_overnight.sh` from the package root to create them.\n")
+```
+
+This article asks whether **fastsae** is better than the packages it is usually compared with, for
+two models and in three respects: accuracy of the estimates, speed and memory. The answer is
+given separately for each respect. Where fastsae is not better, the article says so.
+
+- **A. Spatial Fay-Herriot model (SAR random effects, frequentist).** `fastsae::eblup_sfh()`
+  against `sae::mseSFH()` (Molina and Marhuenda, 2015) and `emdi::fh(correlation = "spatial")`
+  (Kreutzmann et al., 2019).
+- **B. Spatial Beta model (Bayesian).** `fastsae::hb_area(family = "beta")` with INLA
+  (`inla_engine()`, an approximation; Rue et al., 2009) and with MCMC in NumPyro
+  (`jax_engine()`), against `tipsae::fit_sae()` (MCMC in Stan; De Nicolò and Gardini, 2024).
+
+## Summary
+
+```{r summary-numbers}
+# SFH
+sfh_fail <- aggregate(failed ~ method, sfh$fits, sum)
+sfh_n <- aggregate(failed ~ method, sfh$fits, length)
+sfh_reps <- sfh$reps
+sfh_wide <- reshape(aggregate(mse ~ scenario + method, sfh_reps, mean), idvar = "scenario",
+                    timevar = "method", direction = "wide")
+sfh_max_rmse_diff <- max(abs(sqrt(sfh_wide$mse.fastsae) - sqrt(sfh_wide$mse.sae)),
+                         abs(sqrt(sfh_wide$mse.fastsae) - sqrt(sfh_wide$mse.emdi)))
+rc <- res$cells
+t_of <- function(model, method, D, col = "time_warm") {
+  v <- rc[rc$model == model & rc$method == method & rc$D == D, col]
+  if (length(v)) v[1] else NA_real_
+}
+m_of <- function(model, method, D) t_of(model, method, D, "peak_increase_mb")
+sfh_Dmax <- max(rc$D[rc$model == "sfh"])
+beta_Dmax <- max(rc$D[rc$model == "beta"])
+beta_Dmin <- min(rc$D[rc$model == "beta"])
+# Beta
+br <- bta$reps
+beta_acc <- aggregate(cbind(mse, cover) ~ scenario + method, br, mean)
+beta_acc$rmse <- sqrt(beta_acc$mse)
+```
+
+| Respect | Spatial Fay-Herriot | Spatial Beta |
+|:--|:--|:--|
+| **Accuracy** | **The same.** The three packages fit the same model by the same REML criterion and give the same estimates, except in a few data sets near the boundary of $\rho$; on the data sets where all fitted, their RMSEs differ by at most `r sprintf("%.0e", sfh_max_rmse_diff)`. fastsae fitted every data set (`r sfh_fail$failed[sfh_fail$method == "fastsae"]` failures out of `r sfh_n$failed[sfh_n$method == "fastsae"]`); `sae` and `emdi` stopped with an error `r sfh_fail$failed[sfh_fail$method == "sae"]` and `r sfh_fail$failed[sfh_fail$method == "emdi"]` times. | **About the same, not uniformly better.** INLA and NumPyro agree closely; tipsae is as accurate in most scenarios, less accurate with a strong spatial effect (where its chains often did not converge) and slightly more accurate with a low Beta precision. All three under-cover in the hardest scenarios. |
+| **Speed** | **Faster.** At $D = `r format(sfh_Dmax, big.mark = ",")`$: `r fmt_s(t_of("sfh", "fastsae", sfh_Dmax))` against `r fmt_s(t_of("sfh", "sae", sfh_Dmax))` (`sae`) and `r fmt_s(t_of("sfh", "emdi", sfh_Dmax))` (`emdi`). | **INLA is much faster** (`r fmt_s(t_of("beta", "inla", beta_Dmax))` at $D = `r format(beta_Dmax, big.mark = ",")`$ against `r fmt_s(t_of("beta", "tipsae", beta_Dmax))` for tipsae). NumPyro on the CPU is 2 to 5 times faster than tipsae per fit, and up to 3 times per effective draw. NumPyro on the Apple GPU was the slowest at every size measured. |
+| **Memory** | **Lower or about the same, by a much smaller margin than the time.** At $D = `r format(sfh_Dmax, big.mark = ",")`$: `r fmt_mb(m_of("sfh", "fastsae", sfh_Dmax))` against `r fmt_mb(m_of("sfh", "sae", sfh_Dmax))` and `r fmt_mb(m_of("sfh", "emdi", sfh_Dmax))`. | **Mixed.** At $D = `r beta_Dmin`$ tipsae used the least memory (`r fmt_mb(m_of("beta", "tipsae", beta_Dmin))`, INLA `r fmt_mb(m_of("beta", "inla", beta_Dmin))`); at $D = `r format(beta_Dmax, big.mark = ",")`$ INLA used the least (`r fmt_mb(m_of("beta", "inla", beta_Dmax))` against `r fmt_mb(m_of("beta", "tipsae", beta_Dmax))`). NumPyro needs 700-900 MB at every size, mostly for Python and JAX. |
+
+All results come from one machine (`r res$meta$cpu`, `r res$meta$cores` cores,
+`r round(res$meta$ram_gb)` GB RAM, no NVIDIA GPU); see [Machine and versions](#machine-and-versions).
+
+---
+
+## Design of the study
+
+The study follows the ADEMP structure of Morris, White and Crowther (2019): aims,
+data-generating mechanisms, estimands, methods and performance measures.
+
+**Aims.** To compare, on data with known truth, the accuracy of the area estimates and of the
+model parameters, and to measure the time and memory of one fit.
+
+### Data-generating mechanisms
+
+Both studies are model-based: the covariates and the sampling variances are fixed within a
+scenario, and the random effects and the sampling errors are drawn anew in each replicate.
+Each scenario changes one factor of a base scenario. The parameter values were chosen for this
+study; the model forms follow the literature cited.
+
+**A. Spatial Fay-Herriot** (SAR random effects; Petrucci and Salvati, 2006; Pratesi and
+Salvati, 2008):
+
+$$y_d = x_d^\top\beta + u_d + e_d,\quad u = (I - \rho W)^{-1}\varepsilon,\quad
+\varepsilon \sim N(0, \sigma^2 I),\quad e_d \sim N(0, \psi_d),$$
+
+with $\beta = (1, 0.8, -0.5)$, $x_{1d} \sim N(0, 1)$, $x_{2d} \sim U(0, 1)$, $\sigma^2 = 1$,
+$\psi_d = r\,\sigma^2 u_d$, $u_d \sim U(0.5, 1.5)$, and $W$ the row-standardised queen
+contiguity matrix of a regular grid, or of the 42 districts of the `mys_proxmat` data. Base
+scenario: $D = 100$, $\rho = 0.5$, $r = 1$. Others: $\rho \in \{0.2, 0.8, 0.95\}$,
+$r \in \{0.5, 2\}$, $D \in \{50, 500\}$ and the real map. **`r sfh$meta$R_reps` replicates**
+per scenario.
+
+**B. Spatial Beta** (Beta regression for proportions, Ferrari and Cribari-Neto, 2004; Beta
+area-level model, Janicki, 2020; random effect of Besag, York and Mollié, 1991, scaled as in
+Riebler et al., 2016):
+
+$$y_d \sim \mathrm{Beta}\big(\mu_d\kappa_d,\,(1 - \mu_d)\kappa_d\big),\quad
+\mathrm{logit}(\mu_d) = x_d^\top\beta + v_d + s_d,\quad v_d \sim N(0, \sigma_v^2),\quad
+s = \sigma_s\,\tilde s,$$
+
+where $\tilde s$ is an intrinsic CAR (ICAR) field on the queen adjacency graph, scaled to a
+geometric mean marginal variance of 1. $\beta = (-1, 0.5, -0.4)$, $x_{1d} \sim N(0, 1)$,
+$x_{2d} \sim U(-1, 1)$, $\sigma_v = 0.2$, $\kappa_d = \kappa\,e^{a_d}$ with $a_d \sim U(-0.5, 0.5)$.
+The sampling variance is estimated from the direct estimate, $\hat V_d = y_d(1 - y_d)/(\kappa_d + 1)$,
+as a survey would. Base scenario: a $5 \times 10$ grid ($D = 50$), $\sigma_s = 0.5$,
+$\kappa = 25$. Others: $\sigma_s \in \{0.2, 1\}$, $\kappa \in \{10, 100\}$ and an irregular map
+(Voronoi tessellation of 50 random points). The real map of `mys_proxmat` is not used here:
+tipsae needs polygons, and `mys_proxmat` is only a matrix. **`r bta$meta$R_reps` replicates** per
+scenario.
+
+**Why $D = 50$ and 100 replicates for the Beta model.** The MCMC fits take about a minute each
+(tipsae) under parallel load, so a larger $D$ or more replicates would not fit in one overnight
+run; the speed and memory measurements go up to $D = `r format(beta_Dmax, big.mark = ",")`$.
+With 100 replicates of 50 areas, the Monte Carlo standard error (MCSE) of a coverage rate is
+shown next to every estimate.
+
+### Estimands and methods
+
+The estimands are the area quantities ($\theta_d = x_d^\top\beta + u_d$ for the SFH model,
+$\mu_d$ for the Beta model) and the model parameters.
+
+**Spatial Fay-Herriot.** All three packages use REML and the analytical MSE of
+Prasad-Rao type. In a pilot on one data set, the three gave the same coefficients, variance,
+$\rho$, EBLUPs and MSEs up to about $10^{-15}$. The documented differences of fastsae (an
+estimate $|\hat\rho| \ge 0.999$ is treated as fixed in the MSE; see `?eblup_sfh` and `NEWS.md`)
+apply only on the boundary. The 95% intervals are $\hat\theta_d \pm 1.96\sqrt{\mathrm{mse}_d}$.
+
+**Spatial Beta.** tipsae's `spatial_error = TRUE` adds an unstructured and a scaled ICAR effect
+(read from its Stan code: `reffs = v + s` with `s = sigma_s * s_raw / scales_ICAR`). The same
+structure in fastsae is `spatial = "bym"` (iid + scaled Besag), which is used here, with the
+defaults of each package otherwise. The differences that remain cannot be removed through the
+user interfaces:
+
+| | fastsae (INLA and NumPyro) | tipsae |
+|:--|:--|:--|
+| Inference | INLA: Laplace approximation. NumPyro: NUTS, 2 chains of 1,000 draws after 500 warm-up | NUTS in Stan, 4 chains of 1,000 draws after 1,000 warm-up |
+| SD of the area effects | half-normal(1) on each SD | half-normal(2.5) on each SD |
+| Coefficients | $N(0, 1000)$, intercept flat (INLA) or nearly flat (NumPyro) | $N(0, 2.5^2)$ on standardised covariates (tipsae scales them; its coefficients are converted back for this article) |
+| Beta precision | fixed per area at $\hat\mu_d(1 - \hat\mu_d)/\hat V_d - 1$, with $\hat\mu_d$ from a first fit (the model is fitted twice) | inside the model: $\phi_d = (\mu_d(1 - \mu_d) - \hat V_d)/\hat V_d$ |
+
+So the comparison is between what a user gets from each package with its defaults, not between
+two approximations of one posterior.
+
+### Performance measures
+
+- Per replicate, averaged over the areas: bias, mean squared error, coverage of the 95%
+  intervals and their width. The tables report the mean over replicates, with its MCSE
+  (standard deviation over replicates divided by $\sqrt{R}$), and RMSE as the square root of the
+  mean squared error.
+- Per area, over replicates: the relative RMSE $\mathrm{RMSE}_d / \bar\theta_d$ (Beta model only,
+  where the truth is positive).
+- Model parameters: estimates against the true values; for the SFH model, the share of estimates
+  of $\rho$ on the boundary.
+- MCMC: the largest R-hat and the smallest effective sample size over the reported parameters,
+  and divergent transitions (Vehtari et al., 2021). A fit with R-hat > 1.05, an ESS below 100 per
+  chain, or a divergence is counted as not converged; **it is kept in all accuracy measures**.
+- Failed fits are counted. Accuracy is compared on the replicates where every method returned a
+  fit, so that all methods see the same data sets.
+- Time and memory are measured separately, one fit per R process on an idle machine (see
+  [Speed](#speed) and [Memory](#memory)).
+
+---
+
+## A. Spatial Fay-Herriot
+
+### Accuracy of the area estimates
+
+```{r sfh-accuracy}
+a_ <- sfh_reps[sfh_reps$method == "fastsae", ]; b_ <- sfh_reps[sfh_reps$method == "sae", ]
+a_ <- a_[order(a_$scenario, a_$rep), ]; b_ <- b_[order(b_$scenario, b_$rep), ]
+fit_f <- sfh$fits[sfh$fits$method == "fastsae", ]; fit_s <- sfh$fits[sfh$fits$method == "sae", ]
+k_ <- a_[abs(a_$cover - b_$cover) > 1e-12, c("scenario", "rep")]
+k_ <- merge(merge(k_, fit_f[, c("scenario", "rep", "rho")]),
+            setNames(fit_s[, c("scenario", "rep", "rho")], c("scenario", "rep", "rho_sae")))
+n_common <- nrow(a_)
+n_cov_diff <- nrow(k_)
+n_cov_same <- sum(abs(k_$rho - k_$rho_sae) < 1e-6)
+fl_ <- merge(sfh$fits[sfh$fits$method == "sae" & sfh$fits$failed, c("scenario", "rep")],
+             fit_f[, c("scenario", "rep", "rho", "sigma2")])
+tab <- do.call(rbind, lapply(names(sfh_scen_labels), function(s) {
+  r <- sfh_reps[sfh_reps$scenario == s, ]
+  row <- function(m) {
+    x <- r[r$method == m, ]
+    c(rmse = sqrt(mean(x$mse)), rmse_se = stats::sd(x$mse) / sqrt(nrow(x)) / (2 * sqrt(mean(x$mse))),
+      cover = mean(x$cover), cover_se = stats::sd(x$cover) / sqrt(nrow(x)), width = mean(x$width))
+  }
+  f <- row("fastsae"); a <- row("sae"); e <- row("emdi")
+  fl <- sfh$fits[sfh$fits$scenario == s, ]
+  data.frame(
+    Scenario = sfh_scen_labels[[s]],
+    `Replicates (common)` = nrow(r[r$method == "fastsae", ]),
+    `RMSE (MCSE)` = sprintf("%s (%s)", f2(f[["rmse"]]), f2(f[["rmse_se"]])),
+    `Coverage (MCSE)` = sprintf("%s (%s)", pct(f[["cover"]]), pct(f[["cover_se"]])),
+    `Width` = f2(f[["width"]]),
+    `Max. RMSE diff. sae / emdi` = sprintf("%.1e / %.1e", abs(f[["rmse"]] - a[["rmse"]]), abs(f[["rmse"]] - e[["rmse"]])),
+    `Coverage sae / emdi` = sprintf("%s / %s", pct(a[["cover"]]), pct(e[["cover"]])),
+    `Failed fits fastsae / sae / emdi` = sprintf("%d / %d / %d", sum(fl$failed[fl$method == "fastsae"]),
+                                                  sum(fl$failed[fl$method == "sae"]), sum(fl$failed[fl$method == "emdi"])),
+    check.names = FALSE
+  )
+}))
+knitr::kable(tab, row.names = FALSE, align = "lrrrrrrr")
+```
+
+The RMSE, coverage and width are those of fastsae; the other two columns show how far `sae` and
+`emdi` are from them on the same data sets. Every package keeps close to the nominal 95% in every
+scenario, and the estimates are the same in all but a few data sets:
+
+- Away from the boundary of $\rho$, the EBLUPs and MSEs of fastsae and `sae` differed by at most
+  about $2 \times 10^{-4}$, the size of the convergence tolerance of the two algorithms.
+- In `r n_cov_diff` of the `r n_common` common data sets, the coverage differed. In
+  `r n_cov_same` of them both packages gave the same estimate $\hat\rho = -1$; fastsae then treats
+  $\rho$ as fixed in the MSE (a documented difference, see `?eblup_sfh`), which gives narrower
+  intervals. In the other `r n_cov_diff - n_cov_same`, the two packages ended at different
+  estimates of $\rho$ (for example $-1$ in `sae` and $0.999$ in fastsae): the restricted likelihood
+  has more than one local maximum near the boundary, and fastsae maximises it under the
+  constraints $\sigma^2 \ge 0$, $|\rho| \le 0.999$. Which of the two maxima is higher was not
+  checked.
+
+**Failed fits.**
+
+```{r sfh-errors}
+fe <- sfh$fits[sfh$fits$failed, ]
+fe$Error <- ifelse(grepl("comparison \\(>=\\)", fe$error), "diff >= PRECISION: comparison is possible only for atomic and list types",
+             ifelse(grepl("singular", fe$error), "singular system (solve() or LAPACK dgesv)", fe$error))
+knitr::kable(as.data.frame.matrix(table(fe$Error, factor(fe$method, levels = c("fastsae", "sae", "emdi")))),
+             align = "rrr")
+```
+
+Most failures came from solving a singular system. The others are an error in the convergence
+check of the Fisher-scoring loop of `sae::eblupSFH()` (`diff >= PRECISION`), raised by `sae`
+itself, not by the code of this study. The failures are concentrated in the scenarios that push $\hat\rho$ or $\hat\sigma^2$ towards a boundary:
+large sampling variances, a strong correlation, few areas, and the real map. fastsae maximises the restricted likelihood
+under the constraints $\sigma^2 \ge 0$, $|\rho| \le 0.999$ and returned an estimate every time.
+
+### Model parameters
+
+```{r sfh-params}
+f <- sfh$fits[!sfh$fits$failed, ]
+f$rho_true <- vapply(f$scenario, function(s) sfh$scenarios[[s]]$rho, 0)
+pt <- do.call(rbind, lapply(names(sfh_scen_labels), function(s) {
+  do.call(rbind, lapply(c("fastsae", "sae"), function(m) {
+    x <- f[f$scenario == s & f$method == m, ]
+    data.frame(
+      Scenario = sfh_scen_labels[[s]], Package = m,
+      `True rho` = f2(x$rho_true[1], 2),
+      `Mean rho-hat (MCSE)` = sprintf("%s (%s)", f2(mean(x$rho)), f2(stats::sd(x$rho) / sqrt(nrow(x)))),
+      `Mean sigma2-hat (true 1)` = f2(mean(x$sigma2)),
+      `rho-hat on boundary` = pct(mean(abs(x$rho) >= 0.999)),
+      `Mean beta1-hat (true 0.8)` = f2(mean(x$beta1)),
+      check.names = FALSE
+    )
+  }))
+}))
+knitr::kable(pt, row.names = FALSE, align = "llrrrrr")
+```
+
+`emdi` gave the same parameters as `sae` and is left out of the table. REML underestimates
+$\rho$, most strongly with few areas or large sampling variances, and the bias shrinks as $D$
+grows: this is a property of the estimator, shared by all three packages, not of an
+implementation. The averages of `sae` leave out its failed fits. In the `r nrow(fl_)` data sets
+where `sae` failed, fastsae's $\hat\rho$ was on the boundary in `r sum(abs(fl_$rho) >= 0.999)`,
+and $\hat\sigma^2$ was often small (median `r f2(stats::median(fl_$sigma2), 2)` against a true 1).
+
+---
+
+## B. Spatial Beta
+
+### Accuracy of the area estimates
+
+```{r beta-accuracy}
+tab <- do.call(rbind, lapply(names(beta_scen_labels), function(s) {
+  do.call(rbind, lapply(c("inla", "jax", "tipsae"), function(m) {
+    x <- br[br$scenario == s & br$method == m, ]
+    a <- bta$area[bta$area$scenario == s & bta$area$method == m, ]
+    rm <- sqrt(mean(x$mse))
+    data.frame(
+      Scenario = beta_scen_labels[[s]], Method = method_labels[[m]],
+      `RMSE (MCSE)` = sprintf("%s (%s)", f2(rm, 4), f2(stats::sd(x$mse) / sqrt(nrow(x)) / (2 * rm), 4)),
+      `Mean relative RMSE` = pct(mean(a$rmse / a$truth)),
+      `Mean abs. bias` = f2(mean(abs(a$bias)), 4),
+      `Coverage (MCSE)` = sprintf("%s (%s)", pct(mean(x$cover)), pct(stats::sd(x$cover) / sqrt(nrow(x)))),
+      `Width` = f2(mean(x$width)),
+      check.names = FALSE
+    )
+  }))
+}))
+knitr::kable(tab, row.names = FALSE, align = "llrrrrr")
+```
+
+```{r beta-coverage, fig.height = 4.2}
+cv <- aggregate(cover ~ scenario + method, br, function(v) c(m = mean(v), se = stats::sd(v) / sqrt(length(v))))
+cv <- data.frame(scenario = cv$scenario, method = cv$method, m = cv$cover[, "m"], se = cv$cover[, "se"])
+cv$scenario_f <- factor(beta_scen_labels[cv$scenario], levels = rev(beta_scen_labels))
+cv$method_f <- factor(method_labels[cv$method], levels = method_labels[c("inla", "jax", "tipsae")])
+ggplot(cv, aes(m, scenario_f, colour = method_f)) +
+  geom_vline(xintercept = 0.95, linetype = "dashed", colour = "grey50") +
+  geom_pointrange(aes(xmin = m - 1.96 * se, xmax = m + 1.96 * se), position = position_dodge(width = 0.5)) +
+  scale_colour_manual(values = setNames(method_colours[c("inla", "jax", "tipsae")], method_labels[c("inla", "jax", "tipsae")])) +
+  scale_x_continuous(labels = function(x) paste0(100 * x, "%")) +
+  labs(x = "Coverage of the 95% intervals (with 95% Monte Carlo interval)", y = NULL, colour = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+```
+
+- **INLA and NumPyro** give nearly the same accuracy in every scenario: the approximation of INLA
+  costs nothing measurable here.
+- **tipsae** is as accurate as fastsae in most scenarios. With a strong spatial effect
+  ($\sigma_s = 1$) its RMSE is clearly larger; this is also the scenario where its chains most
+  often did not converge (next section). With a low Beta precision ($\kappa = 10$) its RMSE is
+  slightly smaller than that of fastsae, possibly because it models the precision inside the model
+  instead of fixing it from a first fit; this study cannot separate that from the prior.
+- tipsae's intervals covered the truth less often than those of fastsae with INLA in every
+  scenario, by 0.1 to 1.7 percentage points (the Monte Carlo intervals overlap in some).
+- tipsae has the largest mean absolute bias of the area estimates in every scenario, although
+  the bias is small next to the RMSE for all methods.
+- **All methods under-cover** when the precision is low or the spatial effect strong, by a
+  similar amount: with $D = 50$, the hyperparameters are poorly determined by the data.
+
+### Model parameters
+
+```{r beta-params}
+f <- bta$fits[!bta$fits$failed, ]
+pt <- do.call(rbind, lapply(names(beta_scen_labels), function(s) {
+  sc <- bta$scenarios[[s]]
+  do.call(rbind, lapply(c("inla", "jax", "tipsae"), function(m) {
+    x <- f[f$scenario == s & f$method == m, ]
+    data.frame(
+      Scenario = beta_scen_labels[[s]], Method = method_labels[[m]],
+      `beta1 (0.5)` = f2(stats::median(x$beta1)), `beta2 (-0.4)` = f2(stats::median(x$beta2)),
+      `sigma_v (true)` = sprintf("%s (%s)", f2(stats::median(x$sigma_v)), sc$sigma_v),
+      `sigma_s (true)` = sprintf("%s (%s)", f2(stats::median(x$sigma_s)), sc$sigma_s),
+      check.names = FALSE
+    )
+  }))
+}))
+knitr::kable(pt, row.names = FALSE, align = "llrrrr")
+```
+
+Medians over the replicates of the posterior medians. The three methods recover the coefficients
+equally well. The unstructured SD $\sigma_v$ is overestimated by all three, more when the precision
+is low: with 50 areas, it is hard to tell from the spatial effect and from the sampling noise, and
+its posterior is pulled towards the prior.
+
+### Convergence of the MCMC fits
+
+```{r beta-convergence}
+g <- f[f$method != "inla", ]
+g$chains <- ifelse(g$method == "jax", 2, 4)
+cvg <- do.call(rbind, lapply(names(beta_scen_labels), function(s) {
+  do.call(rbind, lapply(c("jax", "tipsae"), function(m) {
+    x <- g[g$scenario == s & g$method == m, ]
+    bad <- x$rhat_max > 1.05 | x$ess_min < 100 * x$chains | x$divergences > 0
+    data.frame(
+      Scenario = beta_scen_labels[[s]], Method = method_labels[[m]], Fits = nrow(x),
+      `R-hat > 1.05` = sum(x$rhat_max > 1.05),
+      `ESS < 100 per chain` = sum(x$ess_min < 100 * x$chains),
+      `Any divergence` = sum(x$divergences > 0),
+      `Not converged (any)` = sum(bad),
+      `Median smallest ESS` = round(stats::median(x$ess_min)),
+      check.names = FALSE
+    )
+  }))
+}))
+knitr::kable(cvg, row.names = FALSE, align = "llrrrrrr")
+```
+
+With their default settings, **neither MCMC method converged reliably** by these criteria: in every
+scenario between a quarter and nearly all of the fits had a too small ESS for some parameter, both had divergent transitions in many fits (NumPyro most often with $\kappa = 100$ and
+$\sigma_s = 1$, tipsae with $\kappa = 10$ and $\sigma_s = 1$), and tipsae had an R-hat above
+1.05 in a third of the fits with a strong spatial effect. NumPyro's default of 2 chains of 1,000
+draws gives fewer draws than tipsae's 4 chains of 1,000, so its ESS is lower for that reason
+alone.
+The defaults of both are meant for a first look; for reported results, longer chains (for
+NumPyro, `jax_engine(warmup = , samples = )`) and a check of the diagnostics are needed. INLA has
+no such diagnostics; its accuracy above is the check.
+
+The two smallest ESS values are not computed in the same way: for NumPyro it is the smallest
+rank-normalised bulk or tail ESS over the hyperparameters, coefficients and area means (as
+reported by fastsae); for tipsae it is the smallest `n_eff` of `rstan` over all parameters of the
+Stan summary. They are comparable in size, not exactly.
+
+---
+
+## Speed
+
+Each cell below is one R process that fits the same data set several times (two for the slowest
+cells, three otherwise); the first fit includes start-up costs (compilation of the JAX model,
+the first call of Stan), and the table shows the median of the later ones. The processes ran one
+after another on an otherwise idle machine. The SFH data are the base scenario on a grid of $D$
+cells; the Beta data are the base scenario of the accuracy study.
+
+```{r speed-table}
+sp <- rc[rc$method != "baseline", ]
+mk <- function(model, methods) {
+  x <- sp[sp$model == model & sp$method %in% methods, ]
+  w <- reshape(x[, c("method", "D", "time_warm")], idvar = "D", timevar = "method", direction = "wide")
+  w <- w[order(w$D), ]
+  out <- data.frame(D = format(w$D, big.mark = ","))
+  for (m in methods) out[[method_labels[[m]]]] <- fmt_s(w[[paste0("time_warm.", m)]])
+  out
+}
+knitr::kable(mk("sfh", c("fastsae", "sae", "emdi")), row.names = FALSE, align = "rrrr",
+             caption = "Spatial Fay-Herriot: REML fit and analytical MSE (warm time)")
+knitr::kable(mk("beta", c("inla", "jax", "metal", "tipsae")), row.names = FALSE, align = "rrrrr",
+             caption = "Spatial Beta (warm time)")
+```
+
+```{r speed-plot, fig.width = 4.6, fig.height = 4.2, fig.show = "hold", out.width = "49%"}
+speed_plot <- function(model, methods, title) {
+  x <- sp[sp$model == model & sp$method %in% methods, ]
+  x$method_f <- factor(method_labels[x$method], levels = method_labels[methods])
+  ggplot(x, aes(D, time_warm, colour = method_f)) +
+    geom_line() + geom_point() +
+    scale_x_log10() + scale_y_log10() +
+    scale_colour_manual(values = setNames(method_colours[methods], method_labels[methods])) +
+    labs(title = title, x = "Number of areas D (log scale)", y = "Seconds per fit (log scale)", colour = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(legend.position = "bottom") +
+    guides(colour = guide_legend(nrow = 2))
+}
+speed_plot("sfh", c("fastsae", "sae", "emdi"), "A. Spatial Fay-Herriot")
+speed_plot("beta", c("inla", "jax", "metal", "tipsae"), "B. Spatial Beta")
+```
+
+For the MCMC methods, the time per fit depends on the number of draws, so the time per effective
+draw (warm time divided by the smallest ESS of that fit) is the fairer comparison:
+
+```{r time-per-ess}
+x <- sp[sp$model == "beta" & sp$method %in% c("jax", "metal", "tipsae"), ]
+w <- reshape(transform(x, tpe = time_warm / ess_min)[, c("method", "D", "tpe")], idvar = "D",
+             timevar = "method", direction = "wide")
+w <- w[order(w$D), ]
+knitr::kable(data.frame(
+  D = format(w$D, big.mark = ","),
+  `NumPyro (CPU)` = sprintf("%.3f s", w$tpe.jax),
+  `NumPyro (Apple GPU)` = sprintf("%.3f s", w$tpe.metal),
+  tipsae = sprintf("%.3f s", w$tpe.tipsae),
+  check.names = FALSE
+), row.names = FALSE, align = "rrrr")
+```
+
+- **Spatial Fay-Herriot:** fastsae is faster at every size, and the gap grows with $D$ (sparse
+  Cholesky factorisations instead of dense $D \times D$ inverses). With a few dozen areas all
+  three take a fraction of a second, and the difference does not matter in practice.
+- **Spatial Beta:** INLA takes a few seconds up to $D = `r format(beta_Dmax, big.mark = ",")`$.
+  NumPyro on the CPU is faster than tipsae per fit, and per effective draw at all sizes but
+  $D = 500$, where the two were about equal. On this machine the
+  Apple GPU (Metal) was slower than the CPU at every size measured. No NVIDIA GPU was available,
+  so CUDA was not measured.
+- At $D \ge 500$, the smallest ESS of both MCMC methods with default settings was only a few
+  dozen, so their per-fit times understate the time needed for a reliable fit.
+
+## Memory
+
+The memory of a fit is the peak resident set size (RSS) of the R process **and all its child
+processes** (INLA runs as a separate program), sampled every 0.1 s, minus the peak of a process
+that loads the same packages and data without fitting. `bench::mark()`'s `mem_alloc` is not used:
+it counts only memory allocated by R, so it misses INLA, Stan and JAX.
+
+```{r memory-table}
+mm <- function(model, methods) {
+  x <- sp[sp$model == model & sp$method %in% methods, ]
+  w <- reshape(x[, c("method", "D", "peak_increase_mb")], idvar = "D", timevar = "method", direction = "wide")
+  w <- w[order(w$D), ]
+  out <- data.frame(D = format(w$D, big.mark = ","))
+  for (m in methods) out[[method_labels[[m]]]] <- fmt_mb(w[[paste0("peak_increase_mb.", m)]])
+  out
+}
+knitr::kable(mm("sfh", c("fastsae", "sae", "emdi")), row.names = FALSE, align = "rrrr",
+             caption = "Spatial Fay-Herriot: increase of the peak memory")
+knitr::kable(mm("beta", c("inla", "jax", "metal", "tipsae")), row.names = FALSE, align = "rrrrr",
+             caption = "Spatial Beta: increase of the peak memory")
+```
+
+- **Spatial Fay-Herriot:** fastsae needs less memory than `sae` and `emdi` at $D = 500$ and
+  1,000; at $D = 100$ the differences are within run-to-run noise, and at the largest $D$ its
+  margin over `emdi` is small.
+- **Spatial Beta:** no method is best at every size. INLA's memory grows slowly with $D$;
+  tipsae needs little memory for small $D$ and the most at $D = `r format(beta_Dmax, big.mark = ",")`$;
+  NumPyro's 700-900 MB are mostly the Python interpreter and JAX, which is counted here because a
+  user pays for it too.
+
+**Limits of the method.** Peaks shorter than the 0.1 s sampling interval can be missed.
+Differences of a few tens of MB vary from run to run. On Apple silicon the GPU uses the same
+(unified) memory, which RSS does not fully show, so the Metal figures are lower bounds.
+
+---
+
+## Conclusions
+
+- **Spatial Fay-Herriot.** fastsae is not more accurate than `sae` or `emdi`: it fits the same
+  estimator and gives the same numbers. It is **faster** (12 to 35 times here for
+  $D \ge 500$), uses **less or about the same memory**, and returned a fit for every data set,
+  where `sae` and `emdi` stopped with an error in about 1% of all data sets (up to 4% in the
+  hardest scenario). In a few data sets near the boundary of $\rho$ its estimate or its MSE
+  differs from that of `sae`, as documented.
+- **Spatial Beta.** fastsae with INLA is **about as accurate** as tipsae, better with a strong
+  spatial effect and slightly worse with a low Beta precision, and **25 to 75 times faster** here
+  ($D = 50$ to 1,000). Its memory is not lower than tipsae's for small $D$. The MCMC engine of fastsae gives
+  the same estimates as INLA and is faster than tipsae, but with default settings neither MCMC
+  method converged reliably.
+- Every conclusion holds for these scenarios, these defaults and this machine. The accuracy study
+  uses $D \le 500$ (SFH) and $D = 50$ (Beta), and the parameter values were chosen for this study.
+
+## Reproduce
+
+From the package root, after `R CMD INSTALL . --preclean` (the scripts use the installed fastsae):
+
+```sh
+sh benchmarks/eval/run_overnight.sh          # accuracy (6 parallel processes), then speed and memory
+WORKERS=4 sh benchmarks/eval/run_overnight.sh 00:00   # same, starting at midnight
+```
+
+The scripts are in [`benchmarks/eval/`](https://github.com/ridsonap/fastsae/tree/main/benchmarks/eval):
+`eval_common.R` (scenarios, data and fits), `sim_accuracy.R` (one task per scenario, method and block
+of replicates, resumable) and `bench_resources.R` (one process per cell). The run behind this page
+took about 2.7 hours for the accuracy study and 1.7 hours for speed and memory. Seeds are fixed: the
+design of scenario $k$ uses seed $1000 + k$, replicate $r$ seed $10^5 k + r$.
+
+## Machine and versions
+
+```{r meta}
+m <- res$meta
+knitr::kable(data.frame(
+  Item = c("Date", "Machine", "RAM", "OS", "R", "Packages", "Python", "Threads", "Settings"),
+  Value = c(
+    format(m$date), sprintf("%s, %d cores", m$cpu, m$cores), sprintf("%.0f GB", m$ram_gb), m$os, m$r,
+    paste(names(m$versions), m$versions, collapse = ", "),
+    paste(names(m$python), m$python, collapse = ", "),
+    sprintf("OMP_NUM_THREADS %s; INLA single-threaded (hb_area); tipsae chains one after another; NumPyro chains on the CPU", m$omp_threads),
+    paste(m$settings, collapse = "; ")
+  )
+), row.names = FALSE, align = "ll")
+```
+
+## References
+
+- Besag, J., York, J. and Mollié, A. (1991). Bayesian image restoration, with two applications in
+  spatial statistics. *Annals of the Institute of Statistical Mathematics*, 43, 1–20.
+  [doi:10.1007/BF00116466](https://doi.org/10.1007/BF00116466)
+- De Nicolò, S. and Gardini, A. (2024). The R package tipsae: Tools for mapping proportions and
+  indicators on the unit interval. *Journal of Statistical Software*, 108, 1–36.
+  [doi:10.18637/jss.v108.i01](https://doi.org/10.18637/jss.v108.i01)
+- Ferrari, S. L. P. and Cribari-Neto, F. (2004). Beta regression for modelling rates and
+  proportions. *Journal of Applied Statistics*, 31, 799–815.
+  [doi:10.1080/0266476042000214501](https://doi.org/10.1080/0266476042000214501)
+- Janicki, R. (2020). Properties of the beta regression model for small area estimation of
+  proportions and application to estimation of poverty rates. *Communications in Statistics –
+  Theory and Methods*, 49, 2264–2284.
+  [doi:10.1080/03610926.2019.1570266](https://doi.org/10.1080/03610926.2019.1570266)
+- Kreutzmann, A.-K., Pannier, S., Rojas-Perilla, N., Schmid, T., Templ, M. and Tzavidis, N. (2019).
+  The R package emdi for estimating and mapping regionally disaggregated indicators. *Journal of
+  Statistical Software*, 91, 1–33. [doi:10.18637/jss.v091.i07](https://doi.org/10.18637/jss.v091.i07)
+- Molina, I. and Marhuenda, Y. (2015). sae: An R package for small area estimation. *The R
+  Journal*, 7, 81–98. [doi:10.32614/RJ-2015-007](https://doi.org/10.32614/RJ-2015-007)
+- Morris, T. P., White, I. R. and Crowther, M. J. (2019). Using simulation studies to evaluate
+  statistical methods. *Statistics in Medicine*, 38, 2074–2102.
+  [doi:10.1002/sim.8086](https://doi.org/10.1002/sim.8086)
+- Petrucci, A. and Salvati, N. (2006). Small area estimation for spatial correlation in watershed
+  erosion assessment. *Journal of Agricultural, Biological, and Environmental Statistics*, 11,
+  169–182. [doi:10.1198/108571106X110531](https://doi.org/10.1198/108571106X110531)
+- Pratesi, M. and Salvati, N. (2008). Small area estimation: the EBLUP estimator based on spatially
+  correlated random area effects. *Statistical Methods and Applications*, 17, 113–141.
+  [doi:10.1007/s10260-007-0061-9](https://doi.org/10.1007/s10260-007-0061-9)
+- Riebler, A., Sørbye, S. H., Simpson, D. and Rue, H. (2016). An intuitive Bayesian spatial model
+  for disease mapping that accounts for scaling. *Statistical Methods in Medical Research*, 25,
+  1145–1165. [doi:10.1177/0962280216660421](https://doi.org/10.1177/0962280216660421)
+- Rue, H., Martino, S. and Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
+  models by using integrated nested Laplace approximations. *Journal of the Royal Statistical
+  Society Series B*, 71, 319–392. [doi:10.1111/j.1467-9868.2008.00700.x](https://doi.org/10.1111/j.1467-9868.2008.00700.x)
+- Vehtari, A., Gelman, A., Simpson, D., Carpenter, B. and Bürkner, P.-C. (2021). Rank-normalization,
+  folding, and localization: An improved $\widehat{R}$ for assessing convergence of MCMC (with
+  discussion). *Bayesian Analysis*, 16, 667–718. [doi:10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
