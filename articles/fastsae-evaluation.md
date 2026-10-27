@@ -153,6 +153,60 @@ defaults, not between two approximations of one posterior.
 - Time and memory are measured separately, one fit per R process on an
   idle machine (see [Speed](#speed) and [Memory](#memory)).
 
+### Simulation procedure
+
+For each scenario $`k`$:
+
+1.  **Fix the design** (seed $`1000 + k`$): the map and its adjacency
+    matrix, the covariates $`x_{1d}, x_{2d}`$, and the sampling
+    variances $`\psi_d`$ (SFH) or the Beta precisions $`\kappa_d`$.
+    These stay the same in all replicates of the scenario.
+2.  **For each replicate** $`r = 1, \dots, R`$ (seed $`10^5 k + r`$):
+    1.  Draw the random effects ($`u`$ for the SFH model; $`v`$ and
+        $`s`$ for the Beta model) and compute the true area quantities
+        $`\theta_{dr}`$ ($`x_d^\top\beta + u_d`$, or $`\mu_d`$).
+    2.  Draw the direct estimates: $`y_d = \theta_{dr} + e_d`$ with
+        $`e_d \sim N(0, \psi_d)`$, or
+        $`y_d \sim \mathrm{Beta}(\mu_d\kappa_d, (1 - \mu_d)\kappa_d)`$
+        with the sampling variance
+        $`\hat V_d = y_d(1 - y_d)/(\kappa_d + 1)`$ computed from
+        $`y_d`$.
+    3.  Fit every method to this same data set. The SFH packages get the
+        row-standardised $`W`$; for the Beta model fastsae gets the
+        binary adjacency matrix and tipsae the polygons of the same map.
+        The MCMC methods use seed $`r`$.
+    4.  Keep, per area, the estimate $`\hat\theta_{dr}`$ and its 95%
+        interval, and, per fit, the model parameters, the convergence
+        diagnostics, the warnings and the time. A fit that stops with an
+        error is kept as a failure with its error message.
+3.  **Summarise** on the replicates where every method returned a fit:
+    $`\mathrm{Bias}_d = R^{-1}\sum_r(\hat\theta_{dr} - \theta_{dr})`$,
+    $`\mathrm{RMSE}_d = \{R^{-1}\sum_r(\hat\theta_{dr} - \theta_{dr})^2\}^{1/2}`$,
+    and the share of replicates whose interval contains $`\theta_{dr}`$,
+    plus the per-replicate averages over the areas described above.
+
+**Intervals.** For the SFH model,
+$`\hat\theta_d \pm 1.96\sqrt{\mathrm{mse}_d}`$ with the analytical MSE
+of each package. For the Beta model, the equal-tailed 95% posterior
+interval of $`\mu_d`$ (the 2.5% and 97.5% posterior quantiles): from
+INLA’s posterior marginals, from the NumPyro draws, and from the Stan
+summary of tipsae.
+
+**What varies between replicates.** The true values change from one
+replicate to the next, since the random effects are redrawn: bias, RMSE
+and coverage are averages over realisations of the model, for a fixed
+design. This is a model-based simulation; the [finite population
+article](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.md)
+shows a design-based one, in which a fixed population is sampled
+repeatedly.
+
+**How it was run.** The replicates were split into tasks of one
+scenario, one method and a block of 100 (SFH) or 25 (Beta) replicates,
+and six tasks ran at a time. Every replicate was saved to its own file,
+so an interrupted run resumes where it stopped. The times recorded in
+this stage were measured under that parallel load and are not used in
+[Speed](#speed).
+
 ------------------------------------------------------------------------
 
 ## A. Spatial Fay-Herriot
