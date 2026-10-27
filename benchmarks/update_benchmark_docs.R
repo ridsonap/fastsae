@@ -7,9 +7,6 @@
 #   - vignettes/hb-area-inla.Rmd: the BETA_DATA array of its scalability chart
 #   - README.Rmd and pkgdown/index.md (the site home page): the tables between
 #     <!-- BENCH-README:START/END -->
-#   - their Indonesian translations in vignettes/articles/id/ (benchmarks.Rmd,
-#     hb-area-inla.Rmd, beranda.Rmd), with the same markers and the numbers in
-#     Indonesian format (decimal comma, thousands point)
 # (inst/extdata is excluded from the package build, so the vignette cannot read
 # the files itself.) Run from the package root after updating the .rds files:
 #   Rscript benchmarks/update_benchmark_docs.R
@@ -156,91 +153,5 @@ writeLines(rme, "README.Rmd")
 home <- readLines("pkgdown/index.md")
 home <- replace_block(home, "<!-- BENCH-README:START -->", "<!-- BENCH-README:END -->", readme_block)
 writeLines(home, "pkgdown/index.md")
-# ---- Indonesian translations (vignettes/articles/id/) ---------------------------
-# 1,250 / 0.5 -> 1.250 / 0,5: swap the separators inside numbers only, not in the labels
-id_num <- function(x) {
-  m <- gregexpr("[0-9]+([,.][0-9]+)*", x)
-  regmatches(x, m) <- lapply(regmatches(x, m), function(t) chartr(",.", ".,", t))
-  x
-}
-id_date <- function(d) format(as.Date(d), "%d-%m-%Y")
-id_s <- function(x) id_num(fmt_s(x))
-id_rows <- function(rows) {
-  rows <- gsub("; ([0-9,]+x) slower", "; \\1 lebih lambat", rows)
-  rows <- gsub("point estimates", "point estimate", rows)
-  id_num(rows)
-}
-freq_table_id <- c(
-  "| Model ($n = 1.000$ domain, 5 covariate) | `fastsae` | `sae` | `emdi` |",
-  "|:---|:--:|:--:|:--:|",
-  id_rows(freq_rows)
-)
-beta_table_id <- c(
-  "| Model | $n$ | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) | Rasio waktu |",
-  "|:---|:--:|:--:|:--:|:--:|",
-  id_num(beta_rows)
-)
-mem_note_id <- paste0(
-  "Waktu adalah median dari `bench::mark()`. Baris frequentist diukur pada ", id_date(fmeta$date),
-  " dengan fastsae ", fmeta$versions[["fastsae"]], ", sae ", fmeta$versions[["sae"]], ", dan emdi ",
-  fmeta$versions[["emdi"]], " pada data simulasi yang sama (", fmeta$cpu, ", ", sub("^R version", "R versi", fmeta$r),
-  "; `benchmarks/bench_frequentist.R`), masing-masing dalam proses R tersendiri. Memori adalah kenaikan ",
-  "memori residen puncak proses tersebut selama estimasi, termasuk memori yang dialokasikan oleh kode ",
-  "terkompilasi (kenaikan beberapa puluh MB bervariasi antarpenjalanan dan tidak boleh dibandingkan). ",
-  "'sae' tidak memiliki analytical MSE untuk model spatio-temporal, sehingga baris itu membandingkan ",
-  "point estimate; dengan analytical MSE-nya, fastsae membutuhkan ", id_s(med(freq$STFH, "fastsae_mse", N)), "."
-)
-freq_note_id <- paste0(
-  "Baris `fastsae` Bayesian diukur ulang pada ", id_date(date_bayes), " (`benchmarks/bench_bayes_fastsae.R`), ",
-  "sedangkan baris `tipsae` (4 chain, masing-masing 2.000 iterasi) berasal dari penjalanan sebelumnya pada data yang sama."
-)
-fx <- function(a, m) id_num(fmt_x(f1000(a, m)))
-
-# benchmarks article
-vig_id <- readLines("vignettes/articles/id/benchmarks.Rmd")
-vig_id <- replace_block(vig_id, "const RAW_DATA = \\[", "^  \\];", raw)
-vig_id <- replace_block(vig_id, "const BETA_DATA = \\{", "^  \\};", bd)
-summary_block_id <- c(
-  "**fastsae** mengestimasi model frequentist dalam C++ terkompilasi (`RcppArmadillo`; faktorisasi",
-  "Cholesky sparse untuk model SAR) dan model Bayesian dengan INLA. Pada $n = 1.000$ domain:",
-  "",
-  sprintf("- **Fay-Herriot**: %s lebih cepat daripada `sae` dan %s lebih cepat daripada `emdi`.", fx("FH", "sae"), fx("FH", "emdi")),
-  sprintf("- **Spatial Fay-Herriot**: %s lebih cepat daripada `sae` dan %s lebih cepat daripada `emdi`.", fx("SFH", "sae"), fx("SFH", "emdi")),
-  sprintf("- **Spatio-Temporal Fay-Herriot** ($T = 5$, point estimate): %s lebih cepat daripada `sae`.", fx("STFH", "sae")),
-  "",
-  "---",
-  "",
-  "## Tabel Hasil Benchmark",
-  "",
-  freq_table_id,
-  "",
-  paste(mem_note_id, freq_note_id),
-  ""
-)
-vig_id <- replace_block(vig_id, "<!-- BENCH-SUMMARY:START -->", "<!-- BENCH-SUMMARY:END -->", summary_block_id)
-writeLines(vig_id, "vignettes/articles/id/benchmarks.Rmd")
-
-# hb-area-inla article
-hb_id <- readLines("vignettes/articles/id/hb-area-inla.Rmd")
-hb_id <- replace_block(hb_id, "const BETA_DATA = \\{", "^  \\};", bd)
-writeLines(hb_id, "vignettes/articles/id/hb-area-inla.Rmd")
-
-# home page (beranda)
-readme_block_id <- c(
-  "#### 1. EBLUP frequentist dengan analytical MSE (waktu dan memori puncak)",
-  "",
-  freq_table_id,
-  "",
-  "#### 2. Model Beta Bayesian: INLA vs Stan MCMC ($n$ terbesar yang diuji)",
-  "",
-  beta_table_id,
-  "",
-  paste(mem_note_id, freq_note_id, "Lihat [artikel benchmark](https://ridsonap.is-a.dev/fastsae/articles/id/benchmarks.html) untuk semua ukuran."),
-  ""
-)
-beranda <- readLines("vignettes/articles/id/beranda.Rmd")
-beranda <- replace_block(beranda, "<!-- BENCH-README:START -->", "<!-- BENCH-README:END -->", readme_block_id)
-writeLines(beranda, "vignettes/articles/id/beranda.Rmd")
-
-cat("Updated vignettes/benchmarks.Rmd, vignettes/hb-area-inla.Rmd, README.Rmd, pkgdown/index.md",
-    "and the Indonesian copies in vignettes/articles/id/ (run devtools::build_readme() next)\n")
+cat("Updated vignettes/benchmarks.Rmd, vignettes/hb-area-inla.Rmd, README.Rmd and pkgdown/index.md",
+    "(run devtools::build_readme() next)\n")
