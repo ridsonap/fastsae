@@ -50,3 +50,6 @@ benchmarks/validation/out/
 benchmarks/validation/area
 benchmarks/validation/st_interaction
 rjournal/fastsae_files/
+
+# evaluation study: per-replicate results and logs (benchmarks/eval/)
+benchmarks/output/eval/
