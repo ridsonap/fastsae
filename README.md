@@ -253,6 +253,8 @@ examples:
 
 - [Getting Started with
   fastsae](https://ridsonap.is-a.dev/fastsae/articles/getting-started.html)
+- [An Optimal SAE
+  Workflow](https://ridsonap.is-a.dev/fastsae/articles/optimal-workflow.html)
 - [Spatial & Spatio-Temporal Models
   (EBLUP)](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.html)
 - [Bayesian Area-Level Models

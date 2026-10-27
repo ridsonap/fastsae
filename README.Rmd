@@ -156,6 +156,7 @@ Explore comprehensive guides, mathematical formulations, and worked examples:
 👉 [**https://ridsonap.is-a.dev/fastsae/**](https://ridsonap.is-a.dev/fastsae/)
 
 - [Getting Started with fastsae](https://ridsonap.is-a.dev/fastsae/articles/getting-started.html)
+- [An Optimal SAE Workflow](https://ridsonap.is-a.dev/fastsae/articles/optimal-workflow.html)
 - [Spatial & Spatio-Temporal Models (EBLUP)](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.html)
 - [Bayesian Area-Level Models (INLA)](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.html)
 - [Default Priors of the HB Models](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.html)
