@@ -1,0 +1,580 @@
+---
+title: "Bayesian Area-Level Small Area Estimation with INLA"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bayesian Area-Level Small Area Estimation with INLA}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  # INLA is not on CRAN: the code is shown but not run without it
+  eval = requireNamespace("INLA", quietly = TRUE)
+)
+```
+
+*Terjemahan dari [versi bahasa Inggris](../hb-area-inla.html). Penjelasan istilah ada di [Daftar Istilah](glosarium.html).*
+
+## Pendahuluan
+
+Model Small Area Estimation (SAE) klasik, seperti model Fay-Herriot (1979), secara tradisional mengasumsikan distribusi Gaussian untuk direct estimator survei dengan varians sampling error yang diketahui. Namun, statistik resmi di dunia nyata sering berhadapan dengan indikator non-Gaussian:
+
+- **Angka kemiskinan, tingkat pengangguran, dan rasio prevalensi**: terbatas ketat pada interval terbuka $(0, 1)$.
+- **Jumlah kasus penyakit, kejadian kriminal, dan peristiwa langka**: data cacah diskret yang mengalami overdispersi Poisson atau Negative Binomial dengan eksposur populasi.
+- **Agregat survei biner**: proporsi yang berasal dari ukuran sampel kecil (percobaan Binomial).
+- **Pengeluaran ekonomi yang menceng**: hasil kontinu yang positif ketat (Gamma).
+
+Selain itu, bila data dikumpulkan di berbagai area geografis dan diulang dari waktu ke waktu (survei panel/longitudinal), hasilnya menunjukkan ketergantungan spasial sekaligus autokorelasi temporal.
+
+Paket **fastsae** menghadirkan `hb_area()`, kerangka hierarchical Bayesian terpadu yang ditenagai oleh **Integrated Nested Laplace Approximations (INLA)**. Metode ini memberi aproksimasi deterministik yang cepat untuk marginal posterior, tanpa chain, warm-up, dan tuning seperti pada Markov chain Monte Carlo (MCMC); dibandingkan dengan eksekusi Stan yang panjang dengan model dan prior yang sama, posterior mean dan SD-nya sangat sesuai (lihat bagian Engines pada `?hb_area`).
+
+---
+
+## Family Distribusi yang Didukung
+
+`hb_area()` mendukung 6 distribusi probabilitas untuk respons langsung:
+
+| Family | Kasus Penggunaan SAE Tipikal | Input Sampling yang Diperlukan | Parameter Skala Model |
+| :--- | :--- | :--- | :--- |
+| **`"gaussian"`** | Indikator kontinu (mis. rata-rata pendapatan, rata-rata lama sekolah) | `vardir` (sampling variance $D_d$) | Kebalikan sampling variance $\text{scale} = 1/D_d$ |
+| **`"beta"`** | Rate dan proporsi yang ketat di $(0, 1)$ | `vardir` atau `trials` | Presisi $\phi_d = \hat\mu_d(1 - \hat\mu_d)/V_d - 1$ dari fit pertama (Janicki, 2020), atau $n_d - 1$ dari `trials` |
+| **`"poisson"`** | Data cacah dan rate peristiwa langka | `exposure` (expected count / offset populasi) | Offset log-link $\log(E_d)$ |
+| **`"nbinomial"`** | Data cacah overdispersed dan peristiwa berkelompok | `exposure`; `vardir` opsional | Offset log-link; size $\hat\mu_d^2/(V_d - \hat\mu_d)$ dari fit pertama bila `vardir` diberikan |
+| **`"binomial"`** | Proporsi biner teragregasi | `trials` (ukuran sampel domain $n_d$) | Jumlah trial per domain |
+| **`"gamma"`** | Indikator positif menceng ke kanan (mis. pengeluaran) | `vardir` | Presisi (shape) $y_d^2/V_d$ |
+
+---
+
+## Formulasi Matematis
+
+Model hierarchical Bayesian yang mendasari `hb_area()` memperluas kerangka Fay-Herriot
+klasik untuk menangani respons non-Gaussian dan random effect terstruktur. Model ini terdiri
+dari tiga level:
+
+### Level 1: Sampling Model (Likelihood)
+
+Untuk domain $d$ dengan direct estimator $y_d$ dan sampling variance $D_d$ yang diketahui:
+
+$$\pi(y_d \mid \eta_d) = \text{ExpFamily}(y_d \mid \eta_d, D_d)$$
+
+Fungsi link menghubungkan linear predictor $\eta_d$ dengan rata-rata
+$\mu_d = E(y_d)$:
+
+| Family | Fungsi Link | Linear Predictor |
+|:---|:---|:---|
+| Gaussian | Identitas: $\eta_d = \mu_d$ | $\eta_d = x_d^\top \beta + u_d$ |
+| Beta | Logit: $\eta_d = \log(\mu_d / (1-\mu_d))$ | $\eta_d = x_d^\top \beta + u_d$ |
+| Poisson | Log: $\eta_d = \log(\mu_d)$ | $\eta_d = x_d^\top \beta + u_d + \log(E_d)$ |
+| Binomial | Logit: $\eta_d = \log(\mu_d / (1-\mu_d))$ | $\eta_d = x_d^\top \beta + u_d$ |
+| Negative Binomial | Log: $\eta_d = \log(\mu_d)$ | $\eta_d = x_d^\top \beta + u_d + \log(E_d)$ |
+| Gamma | Log: $\eta_d = \log(\mu_d)$ | $\eta_d = x_d^\top \beta + u_d$ |
+
+### Level 2: Prior untuk Fixed Effect
+
+$$\beta_0 \propto 1, \qquad \beta_j \sim N(0, 1000), \quad j = 1, \ldots, p$$
+
+Intercept memakai prior flat INLA dan koefisien lainnya memakai prior normal dengan
+varians 1000, yang hampir flat pada skala kebanyakan covariate.
+
+### Level 3: Prior untuk Random Effect
+
+$$u \mid \sigma_u \sim N(0, \sigma_u^2 R^{-}), \qquad \sigma_u \sim \text{half-normal}(s)$$
+
+Random effect $u = (u_1, \ldots, u_m)^\top$ mengikuti Gaussian Markov random field berrata-rata
+nol yang matriks strukturnya $R$ mengodekan ketergantungan spasial atau temporal yang dipilih
+($R = I$ untuk efek iid; Besag, BYM2, RW1, dan seterusnya untuk selainnya). Skala prior
+half-normal pada standar deviasinya adalah $s = \mathrm{sd}(y)$, yaitu standar deviasi direct
+estimate, untuk model Gaussian, dan $s = 1$ pada skala logit atau log untuk family lainnya.
+Hyperparameter lainnya (parameter mixing BYM2, autokorelasi, parameter dispersi) beserta
+alasan pemilihan default ini tercantum di `vignette("hb-priors")`; `inla_engine()` dapat
+menggantikan salah satunya.
+
+### Aproksimasi INLA
+
+Alih-alih sampling MCMC, INLA mengaproksimasi marginal posterior hyperparameter $\theta$
+dan latent field $x = (\beta, u)$ (Rue dkk., 2009):
+
+$$\tilde{\pi}(\theta \mid y) \propto \left. \frac{\pi(x, \theta, y)}{\tilde{\pi}_G(x \mid \theta, y)} \right|_{x = x^*(\theta)}$$
+
+dengan $\tilde{\pi}_G$ adalah aproksimasi Gaussian dari full conditional $x$ dan
+$x^*(\theta)$ adalah modusnya, serta
+
+$$\tilde{\pi}(x_d \mid y) = \sum_k \tilde{\pi}(x_d \mid \theta_k, y) \, \tilde{\pi}(\theta_k \mid y) \, \Delta_k$$
+
+dengan integral dievaluasi memakai **Laplace approximation** dan **integrasi numerik**. Tiga
+strategi komputasi tersedia melalui `hb_area(..., engine = inla_engine(strategy = ...))`, yang
+juga menerima prior dan argumen `INLA::inla()` lainnya:
+
+- **`strategy = "gaussian"`**: Tercepat, terbaik untuk masalah yang berperilaku baik
+- **`strategy = "laplace"`**: Default, keseimbangan akurasi/kecepatan yang baik
+- **`strategy = "simplified.laplace"`**: Laplace yang sedikit lebih cepat, baik untuk model besar
+
+Model yang sama dapat diestimasi dengan MCMC di CPU atau GPU melalui `engine = jax_engine()`
+(NumPyro NUTS di atas JAX; lihat `?jax_engine`). Hasil MCMC baru dapat dipakai bila chain-nya
+telah konvergen. Fungsi melaporkan rank-normalized R-hat dan effective sample size (ESS) untuk
+setiap parameter (Vehtari dkk., 2021) dan memberi peringatan bila R-hat paling sedikit 1.05,
+ESS di bawah 100 per chain, atau terdapat divergent transition; plot trace dan rank
+menunjukkan parameter mana yang bermasalah:
+
+```{r jax_convergence, eval = FALSE}
+fit_jax <- hb_area(y ~ x1 + x2 + x3,
+  data = mys, vardir = "vardir",
+  engine = jax_engine(chains = 4, samples = 1000)
+)
+fit_jax$rhat_max # below 1.01 is recommended
+fit_jax$ess_min # above 100 per chain
+head(fit_jax$mcmc_diagnostics) # R-hat and ESS of each parameter
+autoplot(fit_jax, type = "rank") # chains near the dashed line: mixed
+autoplot(fit_jax, type = "trace", pars = c("sigma2_u", "hb[5]"))
+```
+
+---
+
+## Struktur Spatial dan Spatio-Temporal
+
+### Prior Spatial
+
+1. **BYM2 (`spatial = "bym2"`)**: Model Besag-York-Mollié yang di-scale (Riebler dkk., 2016) menguraikan random effect area menjadi komponen terstruktur spasial dan komponen IID tak terstruktur:
+   $$u_d = \frac{1}{\sqrt{\tau_u}} \left( \sqrt{1 - \phi} \, v_d + \sqrt{\phi} \, u^*_d \right)$$
+   dengan $\phi \in [0, 1]$ mengukur proporsi varians yang dijelaskan oleh struktur spasial dan memiliki penalised complexity (PC) prior $P(\phi < 0.5) = 0.5$ (Simpson dkk., 2017).
+2. **Besag ICAR (`spatial = "besag"`)**: Model spasial Intrinsic Conditional Autoregressive.
+3. **Efek area SAR (`spatial = "sar"`)**: $u = (I - \rho W)^{-1}\varepsilon$, random effect dari model Spatial Fay-Herriot pada `eblup_sfh()`.
+4. **Spatial Lag Model (`spatial = "slm"`)**: $\eta = (I - \rho W)^{-1}(X\beta + \varepsilon)$; covariate ikut difilter, sehingga ini bukan model `eblup_sfh()`.
+
+### Model Temporal
+
+Bila data diamati secara longitudinal pada $T \ge 2$ periode waktu, tentukan `time`:
+- **`temporal = "rw1"`**: Random Walk orde pertama ($\Delta t_\tau \sim N(0, \sigma_t^2)$).
+- **`temporal = "rw2"`**: Random Walk orde kedua untuk tren temporal nonlinear yang mulus.
+- **`temporal = "ar1"`**: Proses autoregresif orde pertama dengan autokorelasi $|\rho_t| < 1$.
+- **`temporal = "iid"`**: Random effect waktu yang tak terstruktur.
+
+### Struktur Interaksi Ruang-Waktu (`st_interaction`)
+
+- **`"none"` (Aditif)**: Efek utama spasial dan tren temporal yang terpisah:
+  $$\eta_{dt} = x_{dt}^\top \beta + s_d + \gamma_t$$
+- **`"domain-specific"`** (sesuai `tipsae`): random walk / proses AR(1) spesifik domain dengan presisi bersama:
+  $$\eta_{dt} = x_{dt}^\top \beta + s_d + t_{d, t}, \quad t_{d, \cdot} \sim \text{RW1}(\sigma_t^2)$$
+- **`"separable"`** (sesuai `eblup_stfh` klasik): spatial random field yang berevolusi dinamis sepanjang waktu dengan korelasi temporal AR(1).
+- **`"type1"` sampai `"type4"`**: interaksi Knorr-Held (2000) $\delta_{dt}$ yang ditambahkan ke efek utama, $\eta_{dt} = x_{dt}^\top \beta + s_d + \gamma_t + \delta_{dt}$:
+  - `"type1"`: $\delta_{dt}$ saling bebas (ruang tak terstruktur $\times$ waktu tak terstruktur);
+  - `"type2"`: proses `temporal` yang saling bebas untuk setiap domain (ruang tak terstruktur $\times$ waktu terstruktur);
+  - `"type3"`: field ICAR yang saling bebas untuk setiap periode (ruang terstruktur $\times$ waktu tak terstruktur);
+  - `"type4"`: field ICAR yang berevolusi mengikuti struktur `temporal` (ruang terstruktur $\times$ waktu terstruktur).
+
+  `"type3"` dan `"type4"` memerlukan efek `spatial` terstruktur (`"bym2"`, `"bym"`, `"besag"`, atau `"leroux"`).
+
+---
+
+## Studi Kasus: SAE Beta Spatio-Temporal pada Kemiskinan Emilia-Romagna
+
+Kita mendemonstrasikan `hb_area()` dengan data kemiskinan Italia `emilia` dari paket `tipsae` (38 distrik kesehatan di Emilia-Romagna selama 5 tahun, $N = 190$). Tujuannya mengestimasi Head Count Ratio (`hcr`), yaitu proporsi rumah tangga di bawah garis kemiskinan.
+
+### 1. Memuat Data dan Menyusun Matriks Adjacency Spasial
+
+```{r emilia_setup, message = FALSE, warning = FALSE}
+library(fastsae)
+library(tipsae)
+library(spdep)
+
+data("emilia")
+data("emilia_shp")
+
+# Construct binary spatial adjacency matrix W from district polygons
+nb <- poly2nb(emilia_shp)
+W <- nb2mat(nb, style = "B", zero.policy = TRUE)
+rownames(W) <- colnames(W) <- as.character(emilia_shp$NAME_DISTRICT)
+
+head(emilia[, c("id", "year", "hcr", "vars", "x")])
+```
+
+### 2. Mengestimasi Model Beta Spatio-Temporal
+
+Kita memodelkan proporsi kemiskinan dengan likelihood Beta, random effect spasial Besag ICAR, dinamika temporal RW(1) spesifik domain, dan sampling variance `vars` yang diketahui:
+
+```{r fit_beta_st, message = FALSE, warning = FALSE}
+fit_beta_st <- hb_area(
+  formula = hcr ~ x,
+  data = emilia,
+  domain = "id",
+  time = "year",
+  vardir = "vars",
+  family = "beta",
+  spatial = "besag",
+  temporal = "rw1",
+  st_interaction = "domain-specific",
+  W = W,
+  print_result = FALSE
+)
+
+summary(fit_beta_st)
+```
+
+### 3. Memeriksa Prediksi Posterior dan Ketidakpastiannya
+
+Objek keluaran memuat prediksi lengkap per domain-periode, standard error posterior, dan credible interval 95%:
+
+```{r inspect_predictions}
+head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
+```
+
+---
+
+## Perbandingan dan Validasi terhadap `tipsae` (Stan MCMC)
+
+Pada `tipsae::fit_sae(..., spatial_error = TRUE, temporal_error = TRUE)`, model diestimasi dengan Hamiltonian Monte Carlo (HMC) di Stan. `fastsae::hb_area()` mengestimasi model berstruktur sama dengan INLA; prior kedua paket berbeda.
+
+| Karakteristik | `tipsae::fit_sae` (Stan MCMC) | `fastsae::hb_area` (INLA) |
+| :--- | :--- | :--- |
+| **Model** | Beta, Besag ICAR + RW(1) spesifik domain | `spatial = "besag"`, `temporal = "rw1"`, `st_interaction = "domain-specific"` |
+| **Estimasi** | MCMC (NUTS) | Integrated nested Laplace approximation (mode `"compact"` bawaan INLA untuk Beta) |
+| **Waktu eksekusi** | 22 menit (4 chain x 10.000 iterasi, $\hat R$ terbesar 1.007); 4 chain x 2.000 iterasi (120 s) belum konvergen | 1.1 s |
+| **Posterior mean vs `tipsae` yang konvergen** | Acuan | $r = 0.999$, selisih absolut rata-rata 0.0017 |
+
+Diukur pada 16-10-2026 (acuan `tipsae` diestimasi ulang pada 17-10-2026) pada satu mesin (Apple silicon); waktu bergantung pada perangkat keras. Akurasi `hb_area()` juga diperiksa terhadap Stan dengan model dan prior yang identik; lihat bagian Engines pada `?hb_area`.
+
+### Penjelajah Skalabilitas Interaktif ($n = 30$ sampai $n = 1.000$)
+
+Gunakan kontrol interaktif di bawah untuk membandingkan runtime, penggunaan memori, dan faktor speedup antara `fastsae::hb_area` dan `tipsae::fit_sae` pada model **Standard Beta**, **Spatial Beta (Besag ICAR)**, dan **Spatio-Temporal Beta**:
+
+```{=html}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div class="my-4 p-3 border rounded bg-light">
+  <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="btn-group" role="group" aria-label="Beta Model selection">
+      <button type="button" class="btn btn-sm btn-primary active" id="btn-beta-algo-std" onclick="setBetaAlgo('STD')">Standard Beta</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-beta-algo-spatial" onclick="setBetaAlgo('SPATIAL')">Spatial Beta (ICAR)</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-beta-algo-st" onclick="setBetaAlgo('ST')">Spatio-Temporal Beta</button>
+    </div>
+    <div class="btn-group" role="group" aria-label="Metric selection">
+      <button type="button" class="btn btn-sm btn-success active" id="btn-beta-metric-time" onclick="setBetaMetric('time')">Execution Time</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-mem" onclick="setBetaMetric('mem')">Memory Allocated</button>
+      <button type="button" class="btn btn-sm btn-outline-success" id="btn-beta-metric-ips" onclick="setBetaMetric('ips')">Throughput (iter/s)</button>
+    </div>
+  </div>
+
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-bold" id="beta-main-chart-title">
+      Execution time (median, seconds) — Standard Beta · log scale
+    </div>
+    <div class="card-body" style="position: relative; height: 350px;">
+      <canvas id="beta-benchmark-main-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold" id="beta-speedup-chart-title">
+      Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — Standard Beta
+    </div>
+    <div class="card-body" style="position: relative; height: 280px;">
+      <canvas id="beta-benchmark-speedup-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const BETA_DATA = {
+    STD: [
+    { Method: "fastsae", Median: 2.853, Mem: 49.18, IPS: 0.2862, n: 30 },
+    { Method: "tipsae", Median: 2.314, Mem: 499.9, IPS: 0.4122, n: 30 },
+    { Method: "fastsae", Median: 2.558, Mem: 5.298, IPS: 0.3902, n: 50 },
+    { Method: "tipsae", Median: 4.346, Mem: 861.4, IPS: 0.2291, n: 50 },
+    { Method: "fastsae", Median: 2.726, Mem: 7.665, IPS: 0.3554, n: 100 },
+    { Method: "tipsae", Median: 10.94, Mem: 1781, IPS: 0.09085, n: 100 },
+    { Method: "fastsae", Median: 3.265, Mem: 14.89, IPS: 0.2761, n: 250 },
+    { Method: "tipsae", Median: 33.58, Mem: 4539, IPS: 0.02782, n: 250 },
+    { Method: "fastsae", Median: 3.306, Mem: 26.93, IPS: 0.3022, n: 500 },
+    { Method: "tipsae", Median: 82.75, Mem: 9136, IPS: 0.01212, n: 500 },
+    { Method: "fastsae", Median: 3.729, Mem: 50.38, IPS: 0.2567, n: 1000 },
+    { Method: "tipsae", Median: 180.3, Mem: 18330, IPS: 0.005516, n: 1000 }
+    ],
+    SPATIAL: [
+    { Method: "fastsae", Median: 2.658, Mem: 35.09, IPS: 0.3758, n: 30 },
+    { Method: "tipsae", Median: 48.71, Mem: 642.8, IPS: 0.02048, n: 30 },
+    { Method: "fastsae", Median: 2.511, Mem: 6.720, IPS: 0.4030, n: 50 },
+    { Method: "tipsae", Median: 55.15, Mem: 1096, IPS: 0.01811, n: 50 },
+    { Method: "fastsae", Median: 2.665, Mem: 11.60, IPS: 0.3685, n: 100 },
+    { Method: "tipsae", Median: 89.36, Mem: 2247, IPS: 0.01118, n: 100 },
+    { Method: "fastsae", Median: 2.754, Mem: 32.45, IPS: 0.2969, n: 250 },
+    { Method: "tipsae", Median: 144.5, Mem: 5701, IPS: 0.006920, n: 250 },
+    { Method: "fastsae", Median: 3.034, Mem: 88.19, IPS: 0.2746, n: 500 },
+    { Method: "tipsae", Median: 232.3, Mem: 11470, IPS: 0.004260, n: 500 },
+    { Method: "fastsae", Median: 4.280, Mem: 278.7, IPS: 0.2377, n: 1000 },
+    { Method: "tipsae", Median: 362.3, Mem: 23040, IPS: 0.002699, n: 1000 }
+    ],
+    ST: [
+    { Method: "fastsae", Median: 2.932, Mem: 52.41, IPS: 0.3400, n: 30 },
+    { Method: "tipsae", Median: 574.1, Mem: 2947, IPS: 0.001756, n: 30 },
+    { Method: "fastsae", Median: 3.798, Mem: 34.60, IPS: 0.2539, n: 50 },
+    { Method: "tipsae", Median: 716.0, Mem: 4858, IPS: 0.001367, n: 50 }
+    ]
+  };
+
+  const BETA_N_LIST = [30, 50, 100, 250, 500, 1000];
+  let curBetaAlgo = "STD";
+  let curBetaMetric = "time";
+  let chartBetaMain, chartBetaSpeedup;
+
+  function fmtBetaVal(v, m) {
+    if (v === null || v === undefined) return "N/A";
+    if (m === "time") {
+      if (v < 1) return (v * 1000).toFixed(1) + " ms";
+      return v.toFixed(2) + " s";
+    }
+    if (m === "mem") {
+      if (v >= 1000) return (v / 1024).toFixed(2) + " GB (" + v.toFixed(0) + " MB)";
+      return v.toFixed(1) + " MB";
+    }
+    if (m === "ips") return v.toFixed(3) + " it/s";
+    return v;
+  }
+
+  function getBetaMetricTitle(m) {
+    if (m === "time") return "Execution time (median, seconds)";
+    if (m === "mem") return "Memory usage (MB)";
+    if (m === "ips") return "Throughput (iterations per second)";
+    return m;
+  }
+
+  window.setBetaAlgo = function(algo) {
+    curBetaAlgo = algo;
+    ["std", "spatial", "st"].forEach(id => {
+      const btn = document.getElementById("btn-beta-algo-" + id);
+      if (btn) {
+        const isActive = (id === "std" && algo === "STD") ||
+                         (id === "spatial" && algo === "SPATIAL") ||
+                         (id === "st" && algo === "ST");
+        btn.classList.toggle("btn-primary", isActive);
+        btn.classList.toggle("btn-outline-primary", !isActive);
+        btn.classList.toggle("active", isActive);
+      }
+    });
+    updateBetaCharts();
+  };
+
+  window.setBetaMetric = function(m) {
+    curBetaMetric = m;
+    ["time", "mem", "ips"].forEach(id => {
+      const btn = document.getElementById("btn-beta-metric-" + id);
+      if (btn) {
+        btn.classList.toggle("btn-success", id === m);
+        btn.classList.toggle("btn-outline-success", id !== m);
+        btn.classList.toggle("active", id === m);
+      }
+    });
+    updateBetaCharts();
+  };
+
+  function updateBetaCharts() {
+    if (!chartBetaMain || !chartBetaSpeedup) return;
+    const rawData = BETA_DATA[curBetaAlgo];
+    const key = curBetaMetric === "time" ? "Median" : curBetaMetric === "mem" ? "Mem" : "IPS";
+    const algoLabel = curBetaAlgo === "STD" ? "Standard Beta" :
+                      curBetaAlgo === "SPATIAL" ? "Spatial Beta (ICAR)" :
+                      "Spatio-Temporal Beta (Besag + RW1)";
+
+    const activeNList = curBetaAlgo === "ST" ? [...new Set(rawData.map(x => x.n))].sort((a, b) => a - b) : BETA_N_LIST;
+
+    const fastsaeData = activeNList.map(n => {
+      const r = rawData.find(x => x.n === n && x.Method === "fastsae");
+      return r ? r[key] : null;
+    });
+    const tipsaeData = activeNList.map(n => {
+      const r = rawData.find(x => x.n === n && x.Method === "tipsae");
+      return r ? r[key] : null;
+    });
+
+    const speedupData = activeNList.map(n => {
+      const f = rawData.find(x => x.n === n && x.Method === "fastsae");
+      const t = rawData.find(x => x.n === n && x.Method === "tipsae");
+      return f && t ? (t.Median / f.Median) : null;
+    });
+
+    const memReductionData = activeNList.map(n => {
+      const f = rawData.find(x => x.n === n && x.Method === "fastsae");
+      const t = rawData.find(x => x.n === n && x.Method === "tipsae");
+      return f && t ? (t.Mem / f.Mem) : null;
+    });
+
+    const titleElem = document.getElementById("beta-main-chart-title");
+    if (titleElem) {
+      titleElem.textContent = getBetaMetricTitle(curBetaMetric) + " — " + algoLabel + " · log scale";
+    }
+    const speedupTitleElem = document.getElementById("beta-speedup-chart-title");
+    if (speedupTitleElem) {
+      speedupTitleElem.textContent = "Speedup Factor & Efficiency Multiplier (fastsae vs tipsae) — " + algoLabel;
+    }
+
+    chartBetaMain.data.labels = activeNList.map(String);
+    chartBetaMain.data.datasets[0].data = fastsaeData;
+    chartBetaMain.data.datasets[1].data = tipsaeData;
+    chartBetaMain.options.scales.y.title.text = getBetaMetricTitle(curBetaMetric);
+    chartBetaMain.update();
+
+    chartBetaSpeedup.data.labels = activeNList.map(String);
+    chartBetaSpeedup.data.datasets[0].data = speedupData;
+    chartBetaSpeedup.data.datasets[1].data = memReductionData;
+    chartBetaSpeedup.update();
+  }
+
+  function initBetaCharts() {
+    const ctx1 = document.getElementById("beta-benchmark-main-chart");
+    const ctx2 = document.getElementById("beta-benchmark-speedup-chart");
+    if (!ctx1 || !ctx2) return;
+    if (typeof Chart === "undefined") {
+      setTimeout(initBetaCharts, 200);
+      return;
+    }
+
+    chartBetaMain = new Chart(ctx1.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: BETA_N_LIST.map(String),
+        datasets: [
+          {
+            label: "fastsae (INLA)",
+            data: [],
+            borderColor: "#1D6A5C",
+            backgroundColor: "rgba(29, 106, 92, 0.15)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          },
+          {
+            label: "tipsae (Stan MCMC)",
+            data: [],
+            borderColor: "#D95F02",
+            backgroundColor: "rgba(217, 95, 2, 0.15)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: { type: "logarithmic", title: { display: true, text: "" } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + fmtBetaVal(ctx.raw, curBetaMetric)
+            }
+          }
+        }
+      }
+    });
+
+    chartBetaSpeedup = new Chart(ctx2.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: BETA_N_LIST.map(String),
+        datasets: [
+          {
+            label: "Speedup Factor (x faster)",
+            data: [],
+            backgroundColor: "#1D6A5C",
+            borderRadius: 4
+          },
+          {
+            label: "Memory Reduction (x less RAM)",
+            data: [],
+            backgroundColor: "#2B83BA",
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Number of Domains (n)" } },
+          y: {
+            type: "logarithmic",
+            title: { display: true, text: "Efficiency Multiplier (x advantage, log scale)" }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ": " + (ctx.raw ? ctx.raw.toFixed(1) + "x" : "N/A")
+            }
+          }
+        }
+      }
+    });
+
+    updateBetaCharts();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initBetaCharts);
+  } else {
+    initBetaCharts();
+  }
+})();
+</script>
+```
+
+#### Kesesuaian dengan Stan MCMC (model Beta, $n = 1.000$)
+
+Untuk memastikan kecepatan `fastsae::hb_area` tidak mengorbankan kualitas estimasinya, kedua paket diestimasi dengan default masing-masing pada data $n = 1.000$ dari benchmark Beta (efek area independen, sampling variance dari direct estimate; `benchmarks/bench_beta_concordance.R`). Kedua paket tidak mengestimasi model yang identik (prior-nya berbeda, dan fastsae menetapkan presisi pada estimasi tahap pertama sedangkan tipsae menjadikannya fungsi dari rata-rata model), sehingga perbandingan ini adalah antara apa yang diperoleh pengguna dari masing-masing paket:
+
+| Metrik | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) |
+| :--- | :---: | :---: |
+| RMSE terhadap rata-rata area sebenarnya | 0.0678 | 0.0684 |
+| Coverage interval 95% | 93.3% | 91.1% |
+| Lebar rata-rata interval 95% | 0.252 | 0.259 |
+| Waktu | 4.3 s | 184 s |
+
+Posterior mean kedua paket berbeda 0.0096 secara rata-rata (selisih absolut), dan posterior SD fastsae adalah 0.99 kali SD tipsae pada area median (90% area antara 0.88 dan 1.17). $\hat{R}$ terbesar pada fit tipsae adalah 1.008.
+
+------------------------------------------------------------------------
+
+## Data Cacah Cross-Sectional: Poisson dan Negative Binomial
+
+Untuk data cacah seperti kejadian penyakit atau peristiwa kriminal, `hb_area()` mendukung distribusi Poisson dan Negative Binomial dengan offset populasi:
+
+```{r count_example, message = FALSE, warning = FALSE}
+# Simulate 42-domain count data with known spatial structure
+data("sim_area", package = "fastsae")
+
+# The BYM2 model uses a neighbourhood graph: the 4 nearest centroids of each domain
+W_knn <- create_weights(cbind(sim_area$x_coord, sim_area$y_coord), method = "knn", k = 4)
+
+# Fit Poisson Spatial Model with population exposure offset
+fit_pois <- hb_area(
+  formula = y_poisson ~ x1 + x2,
+  data = sim_area,
+  exposure = "exposure",
+  family = "poisson",
+  spatial = "bym2",
+  W = W_knn,
+  print_result = FALSE
+)
+
+summary(fit_pois)
+```
+
+---
+
+## Daftar Pustaka
+
+- De Nicolò, S., & Gardini, A. (2024). The R package tipsae: Tools for mapping proportions and indicators on the unit interval. *Journal of Statistical Software*, 108(1), 1–36.
+- Janicki, R. (2020). Properties of the beta regression model for small area estimation of proportions and application to estimation of poverty rates. *Communications in Statistics - Theory and Methods*, 49(9), 2264–2284.
+- Knorr-Held, L. (2000). Bayesian modelling of inhomogeneous spatial and temporal variation in rates. *Statistics in Medicine*, 19(17-18), 2555–2567.
+- Riebler, A., Sørbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive Bayesian spatial model for disease mapping that accounts for scaling. *Statistical Methods in Medical Research*, 25(4), 1145–1165.
+- Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian models by using integrated nested Laplace approximations. *Journal of the Royal Statistical Society: Series B*, 71(2), 319–392.
+- Simpson, D., Rue, H., Riebler, A., Martins, T. G., & Sørbye, S. H. (2017). Penalising model component complexity: A principled, practical approach to constructing priors. *Statistical Science*, 32(1), 1–28.
+- Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C. (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing convergence of MCMC. *Bayesian Analysis*, 16(2), 667–718.

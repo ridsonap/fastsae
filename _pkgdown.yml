@@ -22,9 +22,41 @@ template:
         // Initialize language state before render to prevent FOUC
         (function() {
           var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+          // Indonesian articles (articles/id/) are always shown in ID mode
+          if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
           document.documentElement.setAttribute('data-lang', savedLang);
+          document.documentElement.setAttribute('lang', savedLang);
         })();
       </script>
+
+articles:
+  - title: "English"
+    contents:
+      - "`getting-started`"
+      - "`spatial-temporal`"
+      - "`hb-area-inla`"
+      - "`hb-priors`"
+      - "`model-diagnostics`"
+      - "`unit-level-bhf`"
+      - "`twofold-subarea`"
+      - "`benchmarks`"
+      - "`articles/hb-area-engines`"
+      - "`finite-population-validation`"
+  - title: "Bahasa Indonesia"
+    desc: "Terjemahan dokumentasi (istilah teknis dipertahankan dalam bahasa Inggris)"
+    contents:
+      - "`articles/id/beranda`"
+      - "`articles/id/glosarium`"
+      - "`articles/id/getting-started`"
+      - "`articles/id/spatial-temporal`"
+      - "`articles/id/hb-area-inla`"
+      - "`articles/id/hb-priors`"
+      - "`articles/id/model-diagnostics`"
+      - "`articles/id/unit-level-bhf`"
+      - "`articles/id/twofold-subarea`"
+      - "`articles/id/benchmarks`"
+      - "`articles/id/hb-area-engines`"
+      - "`articles/id/finite-population-validation`"
 
 navbar:
   structure:
@@ -58,6 +90,9 @@ navbar:
           href: articles/hb-area-engines.html
         - text: "Finite Population Validation"
           href: articles/finite-population-validation.html
+        - text: "--------------------"
+        - text: "Daftar Istilah (Bahasa Indonesia)"
+          href: articles/id/glosarium.html
     benchmarks:
       text: Benchmarks
       menu:
