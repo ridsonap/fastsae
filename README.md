@@ -251,6 +251,9 @@ examples:
 👉
 [**https://ridsonap.is-a.dev/fastsae/**](https://ridsonap.is-a.dev/fastsae/)
 
+🇮🇩 Dokumentasi dalam Bahasa Indonesia (Indonesian translation):
+[**Beranda**](https://ridsonap.is-a.dev/fastsae/articles/id/beranda.html)
+
 - [Getting Started with
   fastsae](https://ridsonap.is-a.dev/fastsae/articles/getting-started.html)
 - [Spatial & Spatio-Temporal Models
