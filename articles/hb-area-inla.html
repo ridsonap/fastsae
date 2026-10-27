@@ -26,10 +26,7 @@
   // Initialize language state before render to prevent FOUC
   (function() {
     var savedLang = localStorage.getItem('fastsae_lang') || 'en';
-    // Indonesian articles (articles/id/) are always shown in ID mode
-    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
-    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -55,6 +52,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
+    <li><a class="dropdown-item" href="../articles/optimal-workflow.html">An Optimal SAE Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-priors.html">Default Priors of the HB Models</a></li>
@@ -65,8 +63,6 @@
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Daftar Istilah (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -555,7 +551,7 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
 <span><span class="co">#&gt; sigma2_u: 0.074071 </span></span>
-<span><span class="co">#&gt; sigma2_t (temporal): 0.008528 </span></span>
+<span><span class="co">#&gt; sigma2_t (temporal): 0.008529 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
@@ -567,23 +563,23 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
 <span><span class="co">#&gt;                                  mean        sd 0.025quant  0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.25273  5.508555   7.224575  14.33827   28.60642</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   136.59788 57.259330  60.485445 125.04641  281.21892</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.25275  5.508604   7.224552  14.33828   28.60658</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   136.59555 57.256979  60.484926 125.04489  281.20973</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  12.67087</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   104.92258</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  12.67086</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   104.92228</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -971.94541 </span></span>
+<span><span class="co">#&gt;                                            -971.94528 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              60.69144 </span></span>
+<span><span class="co">#&gt;                                              60.69151 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -979.78134 </span></span>
+<span><span class="co">#&gt;                                            -979.78127 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              42.46186 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                             432.98609 </span></span>
+<span><span class="co">#&gt;                                             432.98607 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; HB Summary Statistics:</span></span>
 <span><span class="co">#&gt;        hb           linear_pred           sd                mse           </span></span>
@@ -608,20 +604,20 @@ and known sampling variances <code>vars</code>:</p>
 standard errors, and 95% Credible Intervals:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                domain time      y         hb          sd      rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102817 0.005596838 10.96813 0.04062425</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182496 0.006281326  7.67654 0.07003566</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310372 0.010890495 11.69716 0.07366705</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365558 0.006408102 10.06683 0.05185445</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937248 0.007927319 11.42718 0.05493780</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446602 0.014070598 14.89488 0.06968714</span></span>
+<span><span class="co">#&gt;                domain time      y         hb          sd       rse   ci_lower</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102824 0.005596855 10.968151 0.04062429</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182496 0.006281351  7.676571 0.07003562</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310380 0.010890466 11.697123 0.07366716</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365559 0.006408109 10.066843 0.05185445</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937249 0.007927317 11.427176 0.05493782</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446584 0.014070634 14.894945 0.06968690</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06256384</span></span>
-<span><span class="co">#&gt; 2 0.09467495</span></span>
+<span><span class="co">#&gt; 1 0.06256395</span></span>
+<span><span class="co">#&gt; 2 0.09467501</span></span>
 <span><span class="co">#&gt; 3 0.11635698</span></span>
-<span><span class="co">#&gt; 4 0.07700995</span></span>
-<span><span class="co">#&gt; 5 0.08602892</span></span>
-<span><span class="co">#&gt; 6 0.12479150</span></span></code></pre></div>
+<span><span class="co">#&gt; 4 0.07700998</span></span>
+<span><span class="co">#&gt; 5 0.08602893</span></span>
+<span><span class="co">#&gt; 6 0.12479138</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -1066,19 +1062,19 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01</span></span>
 <span><span class="co">#&gt; x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0480e-19 -3.6547e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0478e-19 -3.6547e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4149</span></span>
 <span><span class="co">#&gt; x1            0.4853</span></span>
 <span><span class="co">#&gt; x2           -0.2327</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                   mean        sd  0.025quant   0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 15.6289912 4.4994249 8.488632389 15.0603861</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.1595237 0.1562701 0.007220568  0.1055169</span></span>
+<span><span class="co">#&gt;                                   mean       sd  0.025quant   0.5quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 15.6290029 4.499443 8.488617533 15.0603950</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.1595268 0.156279 0.007219117  0.1055149</span></span>
 <span><span class="co">#&gt;                             0.975quant        mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 26.0450192 14.01275872</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.5934097  0.01700075</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 26.0450727 14.01276337</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.5934398  0.01699567</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
@@ -1086,7 +1082,7 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;                                                    pD </span></span>
 <span><span class="co">#&gt;                                              31.88700 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.67484 </span></span>
+<span><span class="co">#&gt;                                             309.67485 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              17.15907 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
@@ -1097,9 +1093,9 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;  Min.   :0.3061   Min.   :-1.1959   Min.   :0.02962   Min.   :0.0008776  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7648   1st Qu.:-0.2791   1st Qu.:0.05813   1st Qu.:0.0033800  </span></span>
 <span><span class="co">#&gt;  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690516  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690515  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  </span></span>
-<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859680  </span></span>
+<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859673  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.791  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.164  </span></span>

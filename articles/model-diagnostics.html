@@ -26,10 +26,7 @@
   // Initialize language state before render to prevent FOUC
   (function() {
     var savedLang = localStorage.getItem('fastsae_lang') || 'en';
-    // Indonesian articles (articles/id/) are always shown in ID mode
-    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
-    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -55,6 +52,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
+    <li><a class="dropdown-item" href="../articles/optimal-workflow.html">An Optimal SAE Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-priors.html">Default Priors of the HB Models</a></li>
@@ -65,8 +63,6 @@
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Daftar Istilah (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -386,14 +382,14 @@ Bayesian models fitted with <code><a href="../reference/hb_area.html">hb_area()<
 <span><span class="co">#&gt; [1] 17.64954</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $mean_sae_rse</span></span>
-<span><span class="co">#&gt; [1] 70.4931</span></span>
+<span><span class="co">#&gt; [1] 70.50115</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $median_sae_rse</span></span>
-<span><span class="co">#&gt; [1] 19.57026</span></span>
+<span><span class="co">#&gt; [1] 19.57358</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $eff_ratio_summary</span></span>
 <span><span class="co">#&gt;      Min   Q1.25%   Median     Mean   Q3.75%      Max </span></span>
-<span><span class="co">#&gt; 1.108098 1.238707 1.281717 1.288164 1.357667 1.459161 </span></span>
+<span><span class="co">#&gt; 1.109209 1.238711 1.281725 1.288101 1.357724 1.458811 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $prop_gain</span></span>
 <span><span class="co">#&gt; [1] 100</span></span>

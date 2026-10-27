@@ -8,10 +8,7 @@
   // Initialize language state before render to prevent FOUC
   (function() {
     var savedLang = localStorage.getItem('fastsae_lang') || 'en';
-    // Indonesian articles (articles/id/) are always shown in ID mode
-    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
-    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -33,6 +30,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="articles/getting-started.html">Getting Started with fastsae</a></li>
+    <li><a class="dropdown-item" href="articles/optimal-workflow.html">An Optimal SAE Workflow</a></li>
     <li><a class="dropdown-item" href="articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="articles/hb-priors.html">Default Priors of the HB Models</a></li>
@@ -43,8 +41,6 @@
     <li><a class="dropdown-item" href="articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="articles/finite-population-validation.html">Finite Population Validation</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="articles/id/glosarium.html">Daftar Istilah (Bahasa Indonesia)</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
@@ -93,8 +89,6 @@
 <ul><li>Bayesian tests and examples need <strong>INLA</strong>, which is not on CRAN: <code>install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)</code>. Without it, those tests are skipped (<code>skip_if_not_installed("INLA")</code>) and do not fail. The same goes for <code>sae</code>, <code>emdi</code>, <code>sf</code>, and <code>MASS</code>. The <code><a href="reference/hb_engine.html">jax_engine()</a></code> tests need Python with <code>jax</code>/<code>numpyro</code> (<code><a href="reference/setup_numpyro_env.html">setup_numpyro_env()</a></code>) and are skipped on CRAN and without it.</li>
 <li>
 <strong>Scripts in <code>benchmarks/</code>, <code>rjournal/</code> and the vignettes use the <em>installed</em> fastsae</strong>, not <code>load_all()</code>. Run <code>R CMD INSTALL . --preclean</code> before benchmarks or renders, or the numbers come from an old build (this happened once: the installed build was days older than the source).</li>
-<li>
-<strong>Indonesian documentation</strong> (site only): <code>vignettes/articles/id/*.Rmd</code> translate the home page (<code>beranda.Rmd</code>, from <code>pkgdown/index.md</code>) and the 10 articles, plus <code>glosarium.Rmd</code> (term list). Technical terms stay in English (small area estimation, direct estimator, random effect, …); only the prose is Indonesian. Code, code comments and outputs are identical to the English article. <strong>When an English article or <code>pkgdown/index.md</code> changes, update its Indonesian copy in the same PR.</strong> <code>benchmarks/update_benchmark_docs.R</code> writes the generated blocks (data arrays, <code>BENCH-SUMMARY</code>, <code>BENCH-README</code>) into the Indonesian copies too, with Indonesian number format. The language switcher (<code>pkgdown/extra.js</code>) maps each English page to its <code>articles/id/</code> copy; the articles are listed in the <code>articles:</code> section of <code>_pkgdown.yml</code> (full vignette names, e.g. <code>articles/id/beranda</code>). They are excluded from the package build with the rest of <code>vignettes/articles/</code>.</li>
 <li>
 <code>pkgdown/index.md</code> is the site home page and is written separately from <code>README.Rmd</code>; <code>benchmarks/update_benchmark_docs.R</code> writes the benchmark tables into both, and into <code>vignettes/benchmarks.Rmd</code> and <code>vignettes/hb-area-inla.Rmd</code>.</li>
 <li>

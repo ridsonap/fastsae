@@ -192,6 +192,10 @@ Explore detailed guides, worked examples, and performance analyses:
   fastsae**](https://ridsonap.is-a.dev/fastsae/articles/getting-started.md):
   Step-by-step walkthrough of model fitting, diagnostics, and S3
   extraction.
+- [**An Optimal SAE
+  Workflow**](https://ridsonap.is-a.dev/fastsae/articles/optimal-workflow.md):
+  The order of a complete analysis, from reliability of the direct
+  estimates to benchmarking and reporting.
 - [**Spatial & Spatio-Temporal Models
   (EBLUP)**](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.md):
   Working with spatial weights matrices, spatial kriging, and

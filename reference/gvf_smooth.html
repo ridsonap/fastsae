@@ -14,10 +14,7 @@ Supports log-linear regression (Wolter, 2007), Gamma generalized linear models
   // Initialize language state before render to prevent FOUC
   (function() {
     var savedLang = localStorage.getItem('fastsae_lang') || 'en';
-    // Indonesian articles (articles/id/) are always shown in ID mode
-    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
-    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -39,6 +36,7 @@ Supports log-linear regression (Wolter, 2007), Gamma generalized linear models
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
+    <li><a class="dropdown-item" href="../articles/optimal-workflow.html">An Optimal SAE Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-priors.html">Default Priors of the HB Models</a></li>
@@ -49,8 +47,6 @@ Supports log-linear regression (Wolter, 2007), Gamma generalized linear models
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Daftar Istilah (Bahasa Indonesia)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">

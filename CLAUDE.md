@@ -46,21 +46,6 @@ Rscript -e 'pkgdown::build_site()'              # site into docs/
   `R CMD INSTALL . --preclean` before benchmarks or renders, or the
   numbers come from an old build (this happened once: the installed
   build was days older than the source).
-- **Indonesian documentation** (site only):
-  `vignettes/articles/id/*.Rmd` translate the home page (`beranda.Rmd`,
-  from `pkgdown/index.md`) and the 10 articles, plus `glosarium.Rmd`
-  (term list). Technical terms stay in English (small area estimation,
-  direct estimator, random effect, …); only the prose is Indonesian.
-  Code, code comments and outputs are identical to the English article.
-  **When an English article or `pkgdown/index.md` changes, update its
-  Indonesian copy in the same PR.** `benchmarks/update_benchmark_docs.R`
-  writes the generated blocks (data arrays, `BENCH-SUMMARY`,
-  `BENCH-README`) into the Indonesian copies too, with Indonesian number
-  format. The language switcher (`pkgdown/extra.js`) maps each English
-  page to its `articles/id/` copy; the articles are listed in the
-  `articles:` section of `_pkgdown.yml` (full vignette names,
-  e.g. `articles/id/beranda`). They are excluded from the package build
-  with the rest of `vignettes/articles/`.
 - `pkgdown/index.md` is the site home page and is written separately
   from `README.Rmd`; `benchmarks/update_benchmark_docs.R` writes the
   benchmark tables into both, and into `vignettes/benchmarks.Rmd` and

@@ -32,10 +32,7 @@ for JAX), so hb_area() itself only describes the model."><meta property="og:imag
   // Initialize language state before render to prevent FOUC
   (function() {
     var savedLang = localStorage.getItem('fastsae_lang') || 'en';
-    // Indonesian articles (articles/id/) are always shown in ID mode
-    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
-    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -57,6 +54,7 @@ for JAX), so hb_area() itself only describes the model."><meta property="og:imag
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with fastsae</a></li>
+    <li><a class="dropdown-item" href="../articles/optimal-workflow.html">An Optimal SAE Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/spatial-temporal.html">Spatial &amp; Spatio-Temporal Models (EBLUP)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-inla.html">Bayesian Area-Level Models (INLA)</a></li>
     <li><a class="dropdown-item" href="../articles/hb-priors.html">Default Priors of the HB Models</a></li>
@@ -67,8 +65,6 @@ for JAX), so hb_area() itself only describes the model."><meta property="og:imag
     <li><a class="dropdown-item" href="../articles/benchmarks.html">Performance Benchmarks</a></li>
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Daftar Istilah (Bahasa Indonesia)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
@@ -504,14 +500,14 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (INLA mode status 0)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (Non-spatial)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.880409 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.880424 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7075e-05  1.5557e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7082e-05  1.5557e+00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8340e-02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x3           3.3458e-02  5.9934e-02  5.5826e-01  5.7667e-01 -8.5902e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8341e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3           3.3459e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.7053</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1            0.0181</span>
@@ -520,19 +516,19 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.608036    7.608036 0.7646522 0.5846930 10.05059 6.123800</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.779534    6.779534 0.8360680 0.6990098 12.33223 5.161204</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.183060    5.183060 0.8343353 0.6961154 16.09735 3.557406</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.201225    4.201225 0.7385933 0.5455200 17.58043 2.744930</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.322898    6.322898 0.9421049 0.8875617 14.89989 4.473098</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.608035    7.608035 0.7646554 0.5846979 10.05063 6.123793</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.779534    6.779534 0.8360713 0.6990152 12.33228 5.161198</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.183060    5.183060 0.8343360 0.6961165 16.09736 3.557405</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.201225    4.201225 0.7385937 0.5455207 17.58044 2.744929</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.322898    6.322898 0.9421050 0.8875618 14.89989 4.473098</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.048398    4.048398 0.5872603 0.3448747 14.50599 2.894943</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.121599    2.93893672 0.6618838</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.439302    2.54245094 0.8374691</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.830947    0.96059586 0.8822257</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.642492   -1.31947715 0.6581716</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.172683   -0.03983675 1.2788021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.198417   -0.82111040 0.3878004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.121605    2.93893586 0.6618838</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.439309    2.54245018 0.8374691</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.830948    0.96059511 0.8822257</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.642492   -1.31947718 0.6581716</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.172683   -0.03983691 1.2788021</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.198417   -0.82111043 0.3878004</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -545,11 +541,11 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (Non-spatial)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Self-Benchmarking</span>: Active (benchmarked posterior draws)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.880422 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.880424 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7081e-05  1.5557e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7082e-05  1.5557e+00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8341e-02</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x3           3.3458e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02</span>
@@ -561,19 +557,19 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.548617    7.608038 0.8070467 0.6513243 10.69132 5.951369</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.731275    6.779536 0.8591115 0.7380725 12.76298 5.021845</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.135398    5.183061 0.8601109 0.7397908 16.74867 3.486815</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.132188    4.201224 0.7707513 0.5940575 18.65238 2.654689</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.332544    6.322898 0.9175892 0.8419700 14.49006 4.518932</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.018297    4.048398 0.6820985 0.4652584 16.97481 2.718343</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.549572    7.608036 0.8107472 0.6573110 10.73898 5.982429</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.731970    6.779535 0.8632644 0.7452254 12.82335 5.023218</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.136848    5.183060 0.8616819 0.7424957 16.77453 3.478006</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.133351    4.201225 0.7679292 0.5897153 18.57885 2.713962</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.333314    6.322898 0.9136388 0.8347358 14.42592 4.555429</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.019872    4.048398 0.6775283 0.4590446 16.85447 2.745366</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir hb_unbenchmarked</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.125968    2.93893862 0.6618838         7.608038</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.355545    2.54245274 0.8374691         6.779536</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.890482    0.96059597 0.8822257         5.183061</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.626270   -1.31947855 0.6581716         4.201224</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.100638   -0.03983695 1.2788021         6.322898</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.352785   -0.82111131 0.3878004         4.048398</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.125745    2.93893681 0.6618838         7.608036</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.454311    2.54245105 0.8374691         6.779535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.909821    0.96059537 0.8822257         5.183060</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.634351   -1.31947768 0.6581716         4.201225</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.121042   -0.03983694 1.2788021         6.322898</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.352785   -0.82111075 0.3878004         4.048398</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -586,37 +582,37 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (INLA mode status 0)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (BYM2)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 3.010537 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial autocorrelation (rho): 0.1575 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial mixing fraction (phi): 0.1575 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 3.010627 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial autocorrelation (rho): 0.157 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial mixing fraction (phi): 0.157 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.08483702  0.79904885  3.86063631  0.00011309  1.52666701</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.00112348  0.01042980 -0.10771798  0.91421941 -0.02194655</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.05043048  0.06429369  0.78437687  0.43281901 -0.07552440</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.03819435  0.06062749  0.62998401  0.52870504 -0.08230841</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.08479765  0.79893958  3.86111506  0.00011287  1.52685998</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.00112362  0.01042805 -0.10775021  0.91419384 -0.02194370</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.05043227  0.06428419  0.78452051  0.43273475 -0.07550292</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.03819336  0.06061890  0.63005688  0.52865737 -0.08229438</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.6804</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.6802</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1            0.0193</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x2            0.1781</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x3            0.1568</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.578856    7.578856 0.7695466 0.5922019 10.15386 6.083743</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.777203    6.777203 0.8383317 0.7028001 12.36988 5.153303</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.158502    5.158502 0.8351990 0.6975574 16.19073 3.531710</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.201976    4.201976 0.7376046 0.5440605 17.55376 2.747645</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.286994    6.286994 0.9469891 0.8967883 15.06267 4.428674</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.070611    4.070611 0.5896568 0.3476952 14.48571 2.912478</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.578590    7.578590 0.7695227 0.5921652 10.15390 6.083571</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.776897    6.776897 0.8383054 0.7027560 12.37005 5.153097</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.158381    5.158381 0.8351607 0.6974934 16.19036 3.531671</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.202089    4.202089 0.7375780 0.5440213 17.55265 2.747802</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.287026    6.287026 0.9469188 0.8966552 15.06147 4.428838</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.070633    4.070633 0.5896405 0.3476760 14.48523 2.912531</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.100729    2.88849207 0.6618838</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.440284    2.54103643 0.8374691</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.808509    0.98867767 0.8822257</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.641330   -1.27482867 0.6581716</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.147143   -0.06686397 1.2788021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.225308   -0.75084610 0.3878004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.100472    2.88825539 0.6618838</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.439987    2.54075941 0.8374691</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.808325    0.98857552 0.8822257</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.641386   -1.27470646 0.6581716</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.147033   -0.06682508 1.2788021</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.225298   -0.75081252 0.3878004</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
