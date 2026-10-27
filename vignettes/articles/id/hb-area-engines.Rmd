@@ -1,0 +1,521 @@
+---
+title: "Engine hb_area(): INLA vs JAX (CPU, Apple GPU, CUDA) vs tipsae"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.width = 8, fig.height = 4.6, dpi = 110
+)
+library(ggplot2)
+
+bench_dir <- Filter(dir.exists, c(
+  file.path("..", "..", "..", "inst", "extdata"),
+  file.path("..", "..", "inst", "extdata"),
+  file.path("inst", "extdata")
+))[1]
+bench_files <- list.files(bench_dir, pattern = "^hb_engine_benchmark.*\\.rds$", full.names = TRUE)
+bench <- lapply(bench_files, readRDS)
+tm <- do.call(rbind, lapply(bench, `[[`, "timings"))
+ag <- do.call(rbind, lapply(bench, `[[`, "agreement"))
+metas <- lapply(bench, `[[`, "meta")
+
+machines <- unique(tm$machine)
+cloud <- grepl("Colab|Kaggle", machines)
+machines <- c(machines[!cloud], machines[cloud])
+has_cuda <- "cuda" %in% tm$engine
+
+engine_labels <- c(
+  inla = "INLA (inla_engine)",
+  cpu = "JAX NUTS, CPU",
+  metal = "JAX NUTS, Apple GPU (Metal)",
+  cuda = "JAX NUTS, NVIDIA GPU (CUDA)",
+  tipsae = "tipsae (Stan NUTS)"
+)
+engine_colours <- c(
+  inla = "#1D6A5C", cpu = "#E69F00", metal = "#7B5EA7",
+  cuda = "#76B900", tipsae = "#C0392B"
+)
+design_labels <- c(gaussian = "Spatial Fay-Herriot (Gaussian)", beta = "Spatial Beta (proporsi)")
+short_labels <- c(gaussian = "Gaussian", beta = "Beta")
+
+used <- intersect(names(engine_labels), unique(tm$engine))
+tm$engine_f <- factor(tm$engine, levels = used)
+tm$design_f <- factor(design_labels[tm$design], levels = design_labels)
+tm$machine_f <- factor(tm$machine, levels = machines)
+
+fmt_s <- function(x) {
+  ifelse(is.na(x), "-", ifelse(x < 10, sprintf("%.1f s", x), sprintf("%s s", format(round(x), big.mark = ","))))
+}
+fmt_n <- function(n) format(n, big.mark = ",")
+time_of <- function(machine, design, engine, n, col = "time_warm") {
+  v <- tm[tm$machine == machine & tm$design == design & tm$engine == engine & tm$n == n, col]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+gpu_of <- function(machine) {
+  e <- intersect(c("metal", "cuda"), tm$engine[tm$machine == machine])
+  if (length(e) == 0) NA_character_ else e[1]
+}
+```
+
+*Terjemahan dari [versi bahasa Inggris](../hb-area-engines.html). Penjelasan istilah ada di [Daftar Istilah](glosarium.html).*
+
+`hb_area()` dapat diestimasi dengan dua engine:
+
+- **`inla_engine()`** (bawaan): integrated nested Laplace approximation dengan
+  [INLA](https://www.r-inla.org).
+- **`jax_engine()`**: MCMC penuh dengan No-U-Turn sampler dari NumPyro di atas
+  [JAX](https://jax.readthedocs.io). Berjalan di CPU, di GPU NVIDIA
+  (`device = "cuda"`), atau di GPU Apple silicon (`device = "metal"`).
+
+Waktu INLA di halaman ini diukur dalam mode `"compact"` bawaan INLA. Sejak fastsae 1.0.0,
+model Gaussian diestimasi dalam mode `"classic"` INLA, yang lebih akurat untuk model tersebut
+(lihat bagian Engines pada `?hb_area`) dan memakan waktu kurang lebih sama pada pengecekan kami;
+family lainnya masih memakai mode compact.
+
+Halaman ini membandingkan kecepatan kedua engine, di CPU dan di GPU, serta seberapa dekat
+estimasi keduanya. Perbandingan memakai model area-level spasial. Untuk model Beta, perbandingan
+juga menyertakan paket [tipsae](https://CRAN.R-project.org/package=tipsae), yang mengestimasi
+model yang sama dengan MCMC di Stan.
+
+```{r pending, results = "asis"}
+if (!has_cuda) {
+  cat(
+    "> **Hasil NVIDIA GPU (CUDA) menyusul.** Hasilnya akan ditambahkan di sini dan dapat direproduksi",
+    "dengan notebook yang ditautkan di akhir halaman ini.\n"
+  )
+}
+```
+
+## Pengaturan
+
+**Model.**
+
+- **Data:** grid reguler berisi $D$ sel dengan queen adjacency, disimulasikan dengan
+  `sim_area_data(D = n, W = W, n_unsampled = 0, seed = 42 + n)`.
+- **Gaussian:** `hb_area(y_gaussian ~ x1 + x2, spatial = "besag")`, model
+  Fay-Herriot dengan efek area intrinsic CAR (Besag).
+- **Beta:** `hb_area(y_beta ~ x1 + x2, family = "beta", spatial = "besag")`.
+  tipsae mengestimasinya dengan `fit_sae(likelihood = "beta", spatial_error = TRUE)`,
+  yang juga memakai efek ICAR.
+
+tipsae dijalankan hanya untuk model Beta, sampai
+$D = `r fmt_n(max(tm$n[tm$engine == "tipsae"]))`$.
+
+```{r setup-table}
+py_txt <- function(py) {
+  if (is.null(py)) {
+    return("-")
+  }
+  py <- py[!is.na(py)]
+  paste(sprintf("%s %s", names(py), py), collapse = ", ")
+}
+knitr::kable(do.call(rbind, lapply(metas, function(m) {
+  data.frame(
+    Mesin = m$machine,
+    CPU = sprintf("%s (%d core, RAM %.0f GB)", m$cpu, m$cpu_cores, m$ram_gb),
+    GPU = ifelse(is.na(m$gpu), "-", m$gpu),
+    Software = sprintf(
+      "R %s; fastsae %s; INLA %s; tipsae %s; %s",
+      sub("R version ([0-9.]+).*", "\\1", m$r_version), m$fastsae, m$inla,
+      ifelse(is.na(m$tipsae), "-", m$tipsae), py_txt(m$python)
+    ),
+    Tanggal = m$date
+  )
+})))
+```
+
+Setiap engine dijalankan dalam proses R terpisah, karena JAX menetapkan device-nya pada
+fit pertama dalam suatu sesi. Setiap fit dijalankan `r metas[[1]]$reps` kali pada data yang
+sama. Penjalanan pertama mencakup kompilasi JAX; tabel dan gambar menampilkan penjalanan warm
+yang lebih cepat (explorer juga dapat menampilkan penjalanan pertama). JAX memakai default
+`jax_engine()` (2 chain × 1.000 draw setelah 500 warmup), dan tipsae memakai defaultnya
+sendiri. Kodenya ada di
+[`benchmarks/bench_hb_area_engines.R`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/bench_hb_area_engines.R).
+
+**Membandingkan mesin.** Waktu yang diukur pada mesin berbeda tidak dapat dibandingkan satu
+sama lain. Yang dapat dibandingkan adalah rasio dalam satu mesin: GPU vs CPU, dan INLA vs
+tipsae.
+
+## Waktu Komputasi
+
+Pilih model, mesin, dan jenis waktu yang ditampilkan. Arahkan kursor ke sebuah titik untuk
+melihat waktu, device, dan R-hat dari fit tersebut.
+
+```{r explorer-data, results = "asis"}
+js_rows <- tm[, c("machine", "design", "engine", "n", "time_warm", "time_first", "device", "rhat_max")]
+cat("<script>\nwindow.ENGINE_BENCH = ",
+  # I(): keep length-1 vectors as JSON arrays (auto_unbox would turn them into scalars)
+  jsonlite::toJSON(
+    list(
+      rows = js_rows, machines = I(machines), engines = I(used),
+      labels = as.list(engine_labels[used]),
+      colours = as.list(engine_colours[used]),
+      designs = as.list(short_labels)
+    ),
+    dataframe = "rows", auto_unbox = TRUE, digits = 6, na = "null"
+  ),
+  ";\n</script>\n",
+  sep = ""
+)
+```
+
+```{=html}
+<div class="my-4 p-3 border rounded bg-light" id="engine-explorer">
+  <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="btn-group" role="group" aria-label="Model" id="eng-design-group"></div>
+    <div class="btn-group" role="group" aria-label="Machine" id="eng-machine-group"></div>
+    <div class="btn-group" role="group" aria-label="Timing" id="eng-time-group"></div>
+  </div>
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-bold" id="eng-main-title">Waktu komputasi</div>
+    <div class="card-body" style="position: relative; height: 360px;">
+      <canvas id="eng-main-chart"></canvas>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold" id="eng-speed-title">Seberapa lebih cepat INLA</div>
+    <div class="card-body" style="position: relative; height: 280px;">
+      <canvas id="eng-speed-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const B = window.ENGINE_BENCH;
+  if (!B) return;
+  B.machines = [].concat(B.machines);
+  B.engines = [].concat(B.engines);
+  const cur = { design: "gaussian", machine: B.machines[0], time: "time_warm" };
+  const TIMES = { time_warm: "Penjalanan warm", time_first: "Penjalanan pertama (dengan kompilasi)" };
+  let chartMain = null, chartSpeed = null;
+
+  const fmtS = x => x == null ? "n/a" :
+    (x < 10 ? x.toFixed(1) : Math.round(x).toLocaleString("en")) + " s";
+  const rowsNow = () => B.rows.filter(r => r.design === cur.design && r.machine === cur.machine);
+  const sizes = rows => [...new Set(rows.map(r => r.n))].sort((a, b) => a - b);
+  const find = (rows, e, n) => rows.find(r => r.engine === e && r.n === n);
+
+  function buttonGroup(id, items, key, colour) {
+    const box = document.getElementById(id);
+    box.innerHTML = "";
+    Object.entries(items).forEach(([value, label]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      const on = cur[key] === value;
+      b.className = "btn btn-sm " + (on ? "btn-" + colour + " active" : "btn-outline-" + colour);
+      b.onclick = () => { cur[key] = value; drawButtons(); update(); };
+      box.appendChild(b);
+    });
+  }
+
+  function drawButtons() {
+    buttonGroup("eng-design-group", B.designs, "design", "primary");
+    const machines = {};
+    B.machines.forEach(m => machines[m] = m);
+    buttonGroup("eng-machine-group", machines, "machine", "secondary");
+    buttonGroup("eng-time-group", TIMES, "time", "success");
+  }
+
+  function update() {
+    const rows = rowsNow();
+    const ns = sizes(rows);
+    const engines = B.engines.filter(e => rows.some(r => r.engine === e));
+    const labels = ns.map(n => n.toLocaleString("en"));
+
+    chartMain.data.labels = labels;
+    chartMain.data.datasets = engines.map(e => ({
+      label: B.labels[e], engine: e,
+      data: ns.map(n => { const r = find(rows, e, n); return r ? r[cur.time] : null; }),
+      borderColor: B.colours[e], backgroundColor: B.colours[e],
+      tension: 0.25, pointRadius: 5, pointHoverRadius: 7
+    }));
+    chartMain.$ns = ns;
+    chartMain.update();
+
+    const others = engines.filter(e => e !== "inla");
+    chartSpeed.data.labels = labels;
+    chartSpeed.data.datasets = others.map(e => ({
+      label: "vs " + B.labels[e], engine: e,
+      data: ns.map(n => {
+        const i = find(rows, "inla", n), o = find(rows, e, n);
+        return i && o ? o[cur.time] / i[cur.time] : null;
+      }),
+      backgroundColor: B.colours[e], borderRadius: 4
+    }));
+    chartSpeed.update();
+
+    document.getElementById("eng-main-title").textContent =
+      "Waktu komputasi, model " + B.designs[cur.design] + ", " + cur.machine +
+      " (" + TIMES[cur.time].toLowerCase() + ", skala log)";
+    document.getElementById("eng-speed-title").textContent =
+      "Seberapa lebih cepat INLA, model " + B.designs[cur.design] + ", " + cur.machine + " (skala log)";
+  }
+
+  function init() {
+    const c1 = document.getElementById("eng-main-chart");
+    const c2 = document.getElementById("eng-speed-chart");
+    if (!c1 || !c2) return;
+    if (typeof Chart === "undefined") { setTimeout(init, 200); return; }
+    drawButtons();
+    chartMain = new Chart(c1.getContext("2d"), {
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false },
+        scales: {
+          x: { title: { display: true, text: "Jumlah domain (D)" } },
+          y: { type: "logarithmic", title: { display: true, text: "Waktu (detik)" } }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: ctx => {
+            const r = find(rowsNow(), ctx.dataset.engine, chartMain.$ns[ctx.dataIndex]);
+            let s = ctx.dataset.label + ": " + fmtS(ctx.raw);
+            if (r && r.device) s += " · " + r.device;
+            if (r && r.rhat_max != null) s += " · R-hat " + r.rhat_max.toFixed(3);
+            return s;
+          } } }
+        }
+      }
+    });
+    chartSpeed = new Chart(c2.getContext("2d"), {
+      type: "bar",
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: "Jumlah domain (D)" } },
+          y: { type: "logarithmic", title: { display: true, text: "INLA lebih cepat ... x" } }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: ctx =>
+            ctx.dataset.label + ": INLA " + (ctx.raw ? ctx.raw.toFixed(1) + "x lebih cepat" : "n/a") } }
+        }
+      }
+    });
+    update();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+```
+
+```{=html}
+<details class="mb-3"><summary>Gambar statis (semua mesin)</summary>
+```
+
+```{r time-plot, fig.height = 2.3 + 2.3 * length(machines), fig.cap = "Waktu komputasi warm (skala log). Makin rendah makin cepat. Satu baris per mesin."}
+ggplot(tm, aes(n, time_warm, colour = engine_f)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2.2) +
+  facet_grid(machine_f ~ design_f, labeller = labeller(machine_f = label_wrap_gen(14))) +
+  scale_x_log10(labels = scales::label_comma()) +
+  scale_y_log10(labels = function(x) paste(format(x, scientific = FALSE, drop0trailing = TRUE), "s")) +
+  scale_colour_manual(values = engine_colours[used], labels = engine_labels[used], name = NULL) +
+  guides(colour = guide_legend(nrow = 2)) +
+  labs(x = "Jumlah domain (D)", y = "Waktu (detik)") +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "bottom", panel.grid.minor = element_blank(),
+    panel.spacing = grid::unit(1.2, "lines"),
+    strip.text.y = element_text(angle = 0, hjust = 0)
+  )
+```
+
+```{=html}
+</details>
+```
+
+```{r time-table}
+keys <- unique(tm[, c("machine", "design", "n")])
+keys <- keys[order(match(keys$machine, machines), match(keys$design, names(design_labels)), keys$n), ]
+tab <- do.call(rbind, lapply(seq_len(nrow(keys)), function(i) {
+  k <- keys[i, ]
+  gpu <- gpu_of(k$machine)
+  t_inla <- time_of(k$machine, k$design, "inla", k$n)
+  t_cpu <- time_of(k$machine, k$design, "cpu", k$n)
+  t_gpu <- if (is.na(gpu)) NA_real_ else time_of(k$machine, k$design, gpu, k$n)
+  t_tip <- time_of(k$machine, k$design, "tipsae", k$n)
+  data.frame(
+    Mesin = k$machine,
+    Model = short_labels[[k$design]],
+    D = fmt_n(k$n),
+    INLA = fmt_s(t_inla),
+    `JAX CPU` = fmt_s(t_cpu),
+    `JAX GPU` = if (is.na(gpu)) "-" else paste0(fmt_s(t_gpu), " (", gpu, ")"),
+    `GPU vs CPU` = ifelse(is.na(t_gpu) | is.na(t_cpu), "-",
+      ifelse(t_gpu > t_cpu, sprintf("%.1fx lebih lambat", t_gpu / t_cpu),
+        sprintf("**%.1fx lebih cepat**", t_cpu / t_gpu)
+      )
+    ),
+    tipsae = fmt_s(t_tip),
+    `INLA vs tipsae` = ifelse(is.na(t_tip), "-", sprintf("%sx lebih cepat", fmt_n(round(t_tip / t_inla)))),
+    check.names = FALSE
+  )
+}))
+knitr::kable(tab, row.names = FALSE, align = "lllrrrrrr")
+```
+
+```{r findings}
+crossover <- function(machine, design) {
+  gpu <- gpu_of(machine)
+  if (is.na(gpu)) {
+    return(NA_character_)
+  }
+  ns <- sort(unique(tm$n[tm$machine == machine & tm$design == design & tm$engine == gpu]))
+  wins <- ns[vapply(ns, function(n) {
+    isTRUE(time_of(machine, design, gpu, n) < time_of(machine, design, "cpu", n))
+  }, logical(1))]
+  if (length(wins) == 0) {
+    sprintf("CPU lebih cepat pada setiap ukuran yang diuji untuk model %s", short_labels[[design]])
+  } else {
+    sprintf("GPU lebih cepat mulai $D = %s$ untuk model %s", fmt_n(min(wins)), short_labels[[design]])
+  }
+}
+gpu_txt <- vapply(machines, function(m) {
+  gpu <- gpu_of(m)
+  if (is.na(gpu)) {
+    return(NA_character_)
+  }
+  sprintf(
+    "Pada %s (%s): %s.", m, c(metal = "Metal", cuda = "CUDA")[[gpu]],
+    paste(vapply(names(design_labels), function(d) crossover(m, d), character(1)),
+      collapse = ", dan "
+    )
+  )
+}, character(1))
+gpu_txt <- paste(gpu_txt[!is.na(gpu_txt)], collapse = " ")
+
+tip <- tm[tm$engine == "tipsae", ]
+tip_txt <- if (nrow(tip) == 0) {
+  ""
+} else {
+  m <- machines[machines %in% tip$machine][1]
+  n_tip <- max(tip$n[tip$machine == m])
+  both <- tip[tip$machine == m, "n"]
+  r <- vapply(both, function(n) time_of(m, "beta", "tipsae", n) / time_of(m, "beta", "cpu", n), numeric(1))
+  s <- sprintf(
+    paste0(
+      "Pada $D = %s$ di %s, tipsae membutuhkan %s untuk model Beta spasial, ",
+      "INLA membutuhkan %s (%sx lebih cepat), dan JAX di CPU membutuhkan %s."
+    ),
+    fmt_n(n_tip), m, fmt_s(time_of(m, "beta", "tipsae", n_tip)),
+    fmt_s(time_of(m, "beta", "inla", n_tip)),
+    fmt_n(round(time_of(m, "beta", "tipsae", n_tip) / time_of(m, "beta", "inla", n_tip))),
+    fmt_s(time_of(m, "beta", "cpu", n_tip))
+  )
+  sprintf(
+    "%s Jadi engine JAX di CPU %.0fx sampai %.0fx lebih cepat daripada tipsae pada ukuran yang dijalankan keduanya.",
+    s, min(r), max(r)
+  )
+}
+m1 <- machines[1]
+n_max <- max(tm$n[tm$machine == m1])
+```
+
+Hasilnya:
+
+- **INLA adalah engine tercepat pada setiap ukuran.** INLA tidak melakukan sampling.
+  Misalnya, pada `r m1`, model Gaussian spasial dengan
+  $D = `r fmt_n(n_max)`$ membutuhkan `r fmt_s(time_of(m1, "gaussian", "inla", n_max))`.
+- **tipsae.** `r tip_txt`
+- **Waktu engine JAX tumbuh cepat terhadap $D$ pada model spasial.** Engine ini
+  merepresentasikan efek ICAR melalui eigenvector graph Laplacian $D \times D$.
+  Menghitungnya membutuhkan biaya $O(D^3)$ sekali, lalu setiap evaluasi gradien
+  membutuhkan $O(D^2)$. Pekerjaan matriks padat semacam inilah yang terbantu oleh
+  GPU.
+- **CPU atau GPU?** `r gpu_txt` GPU memiliki biaya tetap per fit (pada Metal,
+  setiap putaran loop pembentukan pohon NUTS menunggu GPU dan CPU
+  tersinkronisasi), sehingga baru menguntungkan bila $D$ besar.
+  `jax_engine(device = "auto")` memakai CUDA bila ada GPU NVIDIA dan
+  memakai CPU selain itu, termasuk di macOS.
+
+## Kesesuaian Estimasi
+
+Setiap engine dibandingkan dengan INLA pada mesin dan data yang sama. `cor` adalah
+korelasi posterior mean, `max |diff|` adalah selisih absolut terbesar di antara
+keduanya, dan `sd ratio` adalah median rasio posterior standard deviation
+(engine / INLA).
+
+```{r agreement}
+ag <- ag[order(
+  match(ag$machine, machines), match(ag$design, names(design_labels)),
+  match(ag$engine, names(engine_labels)), ag$n
+), ]
+knitr::kable(data.frame(
+  Mesin = ag$machine,
+  Model = short_labels[ag$design],
+  Engine = c(cpu = "JAX CPU", metal = "JAX Metal", cuda = "JAX CUDA", tipsae = "tipsae")[ag$engine],
+  D = fmt_n(ag$n),
+  cor = sprintf("%.4f", ag$cor_hb),
+  `max |diff|` = signif(ag$max_abs_diff_hb, 2),
+  `sd ratio` = sprintf("%.3f", ag$median_ratio_sd),
+  check.names = FALSE
+), row.names = FALSE)
+```
+
+```{r agreement-text}
+jx <- ag[ag$engine %in% c("cpu", "metal", "cuda"), ]
+tp <- ag[ag$engine == "tipsae", ]
+rh <- tm[tm$engine != "inla", ]
+```
+
+- **Engine JAX.** Pada setiap device, posterior mean sesuai dengan INLA dengan
+  korelasi paling sedikit `r sprintf("%.4f", floor(min(jx$cor_hb) * 1e4) / 1e4)`,
+  dan hal yang sama berlaku antardevice. GPU mengevaluasi operasi floating-point
+  dalam urutan yang berbeda dari CPU, sehingga chain berbeda sedikit, tetapi
+  menghasilkan estimasi yang sama.
+- **tipsae.** `r if (nrow(tp) > 0) sprintf("tipsae sesuai dengan INLA dengan korelasi paling sedikit %.3f. Posterior standard deviation-nya %s (median rasio %.2f sampai %.2f), kemungkinan karena kedua paket memakai prior yang berbeda.", floor(min(tp$cor_hb) * 1e3) / 1e3, ifelse(max(tp$median_ratio_sd) < 1, "lebih kecil", "berbeda"), min(tp$median_ratio_sd), max(tp$median_ratio_sd)) else ""`
+- **Konvergensi.** Pada semua fit JAX, split R-hat terbesar adalah
+  `r sprintf("%.3f", max(rh$rhat_max[rh$engine != "tipsae"], na.rm = TRUE))`.
+  `r if (any(rh$engine == "tipsae")) { tr <- rh[rh$engine == "tipsae", ]; worst <- tr[which.max(tr$rhat_max), ]; sprintf("Untuk tipsae nilainya %.3f (pada $D = %s$ di %s)%s.", worst$rhat_max, fmt_n(worst$n), worst$machine, if (worst$rhat_max > 1.05) ", di atas ambang lazim 1.05, sehingga panjang penjalanan defaultnya kurang memadai di sana" else "") } else ""`
+
+## Memakai GPU
+
+```r
+# One-time setup of the Python environment (CUDA on Linux/Windows, Metal on Apple silicon)
+fastsae::setup_numpyro_env(device = "cuda")   # or device = "metal"
+
+# In a new R session: request the GPU before any other JAX fit
+fit <- hb_area(y ~ x1 + x2, vardir = "vardir", data = df, spatial = "besag", W = W,
+               engine = jax_engine(device = "cuda"))
+fit$device
+```
+
+**Metal.** jax-metal tidak mengimplementasikan dua operasi yang dipakai sampler NUTS
+NumPyro: penghitung bit `popcnt`, dan beberapa pernyataan `lax.cond` dengan keluaran
+konstan. Dengan `device = "metal"`, fastsae mengganti keduanya dengan operasi yang
+setara dan men-sampling chain secara berurutan. Bila suatu model tetap tidak dapat
+dikompilasi di Metal, fit beralih ke CPU disertai peringatan.
+
+**Mereproduksi hasil CUDA.** Dua notebook memasang fastsae, INLA, tipsae,
+dan JAX dengan CUDA, lalu menjalankan benchmark yang sama:
+
+- **Kaggle** (disarankan):
+  [`benchmarks/kaggle/hb_area_engines_kaggle.ipynb`](https://github.com/ridsonap/fastsae/blob/main/benchmarks/kaggle/hb_area_engines_kaggle.ipynb).
+  Impor ke notebook Kaggle. Notebook ini berupa notebook Python, karena Kaggle
+  memberi GPU kepada notebook Python, dan ia memasang R sendiri. Pilih akselerator
+  GPU dan aktifkan internet. Lalu gunakan *Save & Run All*, yang
+  menjalankan seluruh benchmark di server Kaggle tanpa perlu membuka browser.
+- **Google Colab**:
+  [`benchmarks/colab/hb_area_engines_colab.ipynb`](https://colab.research.google.com/github/ridsonap/fastsae/blob/main/benchmarks/colab/hb_area_engines_colab.ipynb).
+  Pilih runtime R dengan GPU T4 dan jalankan semua sel. Biarkan tab tetap terbuka
+  sampai penjalanan selesai.
+
+**Singkatnya:**
+
+- Untuk sebagian besar survei (ratusan hingga beberapa ribu domain), `inla_engine()` adalah
+  pilihan tercepat.
+- Untuk MCMC penuh, engine JAX di CPU saja lebih cepat daripada Stan melalui
+  tipsae: `r if (exists("r") && length(r) > 0) sprintf("%.0fx sampai %.0fx di sini", min(r), max(r)) else ""`,
+  dengan selisih yang menyempit seiring $D$ membesar.
+- GPU baru bermanfaat untuk engine JAX pada model spasial yang besar.

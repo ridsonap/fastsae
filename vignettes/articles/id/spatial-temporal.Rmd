@@ -1,0 +1,210 @@
+---
+title: "Spatial and Spatio-Temporal Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Spatial and Spatio-Temporal Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+*Terjemahan dari [versi bahasa Inggris](../spatial-temporal.html). Penjelasan istilah ada di [Daftar Istilah](glosarium.html).*
+
+## Gambaran Umum
+
+Bila area kecil berupa unit geografis (seperti kabupaten/kota atau kecamatan), spatial correlation sering muncul: area yang bertetangga cenderung memiliki hasil yang lebih mirip daripada area yang berjauhan. Selain itu, bila survei diulang selama beberapa tahun, temporal correlation antarperiode juga ada.
+
+**fastsae** menyediakan implementasi khusus berkinerja tinggi untuk keduanya:
+
+1. **Spatial Fay-Herriot (`eblup_sfh`)**: random effect Simultaneous Autoregressive SAR(1).
+2. **Spatio-Temporal Fay-Herriot (`eblup_stfh`)**: gabungan random effect spatial SAR(1) dan temporal AR(1).
+
+---
+
+## 1. Model Spatial Fay-Herriot (`eblup_sfh`)
+
+### Formulasi Model
+
+Model Spatial Fay-Herriot (Pratesi & Salvati, 2008) memodelkan random effect area dengan proses Simultaneous Autoregressive (SAR(1)):
+
+$$y = X\beta + u + e$$
+
+$$u = \rho_1 W u + \epsilon_1 \implies u = (I - \rho_1 W)^{-1} \epsilon_1$$
+
+dengan:
+
+- $W$ adalah matriks proximity spasial ($D \times D$) yang diketahui dan row-standardized.
+- $\rho_1 \in (-1, 1)$ adalah parameter autoregresif spasial.
+- $\epsilon_1 \sim N(0, \sigma_{u1}^2 I_D)$ adalah noise inovasi yang saling bebas.
+- $e \sim N(0, V_e)$ adalah sampling error dengan matriks diagonal $V_e = \text{diag}(D_1, \dots, D_D)$.
+
+### Mengestimasi Model
+
+```{r sfh_fit}
+library(fastsae)
+data("mys")
+data("mys_proxmat")
+
+# Fit Spatial Fay-Herriot model with REML
+fit_sfh <- eblup_sfh(
+  formula = y ~ x1 + x2 + x3,
+  vardir = ~vardir,
+  data = mys,
+  W = mys_proxmat,
+  method = "REML",
+  print_result = FALSE
+)
+
+summary(fit_sfh)
+```
+
+### Unsampled Area dan Spatial Kriging
+
+Keunggulan utama `eblup_sfh` di **fastsae** adalah penanganan otomatis untuk unsampled area (domain dengan `y = NA`). Alih-alih menampilkan error atau meminta subsetting manual, `eblup_sfh` secara otomatis melakukan **full-spatial kriging**:
+
+```{r unsampled}
+# Count sampled vs unsampled domains
+table(is.na(mys$y))
+
+# Inspect estimates for unsampled domains
+head(fit_sfh$df_eblup[is.na(mys$y), ])
+```
+
+Untuk unsampled area, prediksi meminjam informasi dari komponen synthetic regresi $x_d^\top \hat{\beta}$ dan dari kedekatan spasial dengan area tetangga yang tersampel melalui $(I - \hat{\rho}_1 W)^{-1}$.
+
+### Bootstrap MSE Multi-Thread
+
+Selain MSE analitik bergaya Prasad-Rao, `eblup_sfh` mendukung estimasi bootstrap MSE multi-thread dengan OpenMP:
+
+- **Parametric Bootstrap (`mse_type = "pbmse"`)**
+- **Non-Parametric Bootstrap (`mse_type = "npbmse"`)**
+
+```{r sfh_pbmse}
+fit_sfh_pb <- eblup_sfh(
+  formula = y ~ x1 + x2 + x3,
+  vardir = ~vardir,
+  data = mys,
+  W = mys_proxmat,
+  mse_type = "pbmse",
+  B = 50,
+  n_threads = 2,
+  seed = 123,
+  print_result = FALSE
+)
+
+head(fit_sfh_pb$df_eblup[, c("domain", "y", "eblup", "mse", "mse_pb", "mse_pbbc")])
+```
+
+---
+
+## 2. Model Spatio-Temporal Fay-Herriot (`eblup_stfh`)
+
+### Formulasi Model
+
+Model Spatio-Temporal (Marhuenda, Molina, & Morales, 2013) menggabungkan spatial correlation dan autoregresi temporal untuk $D$ area selama $T$ periode. Panel tidak harus lengkap: sel tanpa direct estimator tetap diprediksi (lihat di bawah).
+
+$$y_{dt} = x_{dt}^\top \beta + u_{1d} + u_{2dt} + e_{dt}$$
+
+dengan:
+
+- $u_1 = (u_{11}, \dots, u_{1D})^\top$ menangkap efek spasial statis: $u_1 = \rho_1 W u_1 + \epsilon_1$.
+- $u_{2d} = (u_{2d1}, \dots, u_{2dT})^\top$ menangkap efek temporal dinamis untuk area $d$: $u_{2dt} = \rho_2 u_{2d,t-1} + \epsilon_{2dt}$.
+- $e_{dt} \sim \text{ind. } N(0, D_{dt})$ adalah sampling error.
+
+Model didefinisikan pada grid penuh $D \times T$: $u_1$ pada semua domain di $W$, dan $u_2$ pada semua periode.
+
+### Mengestimasi Model Spatio-Temporal
+
+```{r stfh_fit}
+data("mys_panel")
+
+# 42 domains x 11 years; y is NA for the two domains that are never sampled
+table(sampled = !is.na(mys_panel$y))
+
+# Fit Spatio-Temporal model with the analytical MSE, on the full panel and full W
+fit_stfh <- eblup_stfh(
+  formula = y ~ x1 + x2 + x3,
+  data = mys_panel,
+  vardir = ~vardir,
+  domain = ~area,
+  time = ~year,
+  W = mys_proxmat,
+  model = "ST",
+  mse_type = "analytical",
+  print_result = FALSE
+)
+
+summary(fit_stfh)
+```
+
+Komponen variance dan correlation yang diestimasi meliputi:
+
+- `sigma21`: varians random effect spasial ($\sigma_{u1}^2$).
+- `rho1`: spatial autocorrelation ($\rho_1$).
+- `sigma22`: varians random effect temporal ($\sigma_{u2}^2$).
+- `rho2`: koefisien autoregresi temporal AR(1) ($\rho_2$).
+
+MSE analitik adalah $g_1 + g_2 + 2 g_3 - g_4$ (tipe Prasad-Rao, dengan turunan eksak EBLUP pada $g_3$ dan suku kurvatur $g_4$ untuk $\rho_1$, $\rho_2$ yang nonlinear); komponennya dikembalikan sebagai `fit_stfh$g1`, ..., `fit_stfh$g4`. Bootstrap MSE parametrik tersedia dengan `mse_type = "bootstrap"` (beserta `B` dan `seed`).
+
+### Unsampled Domain dan Periode yang Hilang
+
+Baris dengan respons `NA` tetap dipertahankan dan diprediksi, selama auxiliary variable-nya diketahui. Variance component diestimasi hanya dari sel yang tersampel (marginal likelihood dengan sel yang hilang diintegralkan keluar), dan setiap sel yang hilang memperoleh best linear unbiased predictor berdasarkan data yang tersampel (Saei & Chambers, 2005; Benedetti dkk., 2024):
+
+- **periode yang hilang** pada domain yang tersampel meminjam informasi dari periode lain di domain tersebut (korelasi AR(1)) dan dari domain tetangga (SAR);
+- **domain yang tidak pernah tersampel** diprediksi hanya dari tetangganya (spatial kriging), sehingga `W` harus menyertakannya.
+
+```{r stfh_unsampled}
+est <- fit_stfh$df_eblup
+# Cells predicted without a direct estimate
+head(est[!est$sampled, c("domain", "time", "eblup", "mse", "rse")])
+
+# Their MSE is larger: no direct estimate, only borrowed strength
+tapply(est$mse, ifelse(est$sampled, "sampled", "unsampled"), median)
+```
+
+Untuk sel-sel ini, MSE analitik adalah $g_1 + g_2 + g_3$ ($g_3$ dari turunan eksak prediktor terhadap variance component); bootstrap membangkitkan random effect pada grid penuh dan juga mencakup setiap sel.
+
+---
+
+## 3. Membandingkan Model dengan `autoplot`
+
+Estimasi EBLUP dan ketidakpastian dari beberapa model dapat dibandingkan langsung dengan `autoplot()`:
+
+```{r compare_models}
+# Compare Fay-Herriot vs Spatial Fay-Herriot
+fit_fh <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(mys), print_result = FALSE)
+W_clean <- mys_proxmat[!is.na(mys$y), !is.na(mys$y)]
+fit_sfh_clean <- eblup_sfh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(mys), W = W_clean, print_result = FALSE)
+
+autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "comparison")
+```
+
+---
+
+## 4. Pemodelan Bayesian Spatio-Temporal (`hb_area`)
+
+Selain implementasi EBLUP frequentist dalam C++ (`eblup_sfh` dan `eblup_stfh`), **fastsae** menyediakan `hb_area()` untuk pemodelan Bayesian spatio-temporal berbasis **INLA**. Fungsi ini mendukung:
+
+- Proporsi terbatas melalui regresi Beta (sesuai dengan `tipsae`)
+- Data cacah diskret melalui regresi Poisson dan Negative Binomial
+- Agregat biner melalui regresi Binomial
+- Struktur ruang-waktu yang fleksibel, termasuk random walk spesifik domain, separable dynamic field, dan Knorr-Held Tipe I–IV.
+
+Untuk rincian lengkap dan studi kasus data kemiskinan Italia, lihat artikel [Area-Level Small Area Estimation dengan INLA](hb-area-inla.html).
+
+---
+
+## Daftar Pustaka
+
+- Benedetti, R., Piersimoni, F., Pratesi, M., Salvati, N., & Suesse, T. (2024). Handling out-of-sample areas to estimate the unemployment rate at local labour market areas in Italy. *International Statistical Review*. https://doi.org/10.1111/insr.12596
+- Marhuenda, Y., Molina, I., & Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models. *Computational Statistics & Data Analysis*, 58, 308–325.
+- Pratesi, M., & Salvati, N. (2008). Small area estimation: The EBLUP estimator based on spatially correlated random area effects. *Statistical Methods & Applications*, 17(1), 113–141.
+- Saei, A., & Chambers, R. (2005). Out of sample estimation for small areas using area level data. Southampton Statistical Sciences Research Institute, Methodology Working Paper M05/11.
