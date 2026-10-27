@@ -410,6 +410,8 @@ Built-in empirical and synthetic survey datasets
 
 - [Performance & Scalability
   Benchmarks](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.md):
+- [Is fastsae Better? Accuracy, Speed and Memory against sae, emdi and
+  tipsae](https://ridsonap.is-a.dev/fastsae/articles/fastsae-evaluation.md):
 - [Finite Population Simulation: Validating fastsae against Ground
   Truth](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.md):
 - [Getting Started with

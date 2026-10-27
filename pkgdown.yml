@@ -3,6 +3,7 @@ pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   benchmarks: benchmarks.html
+  articles/fastsae-evaluation: fastsae-evaluation.html
   finite-population-validation: finite-population-validation.html
   getting-started: getting-started.html
   articles/hb-area-engines: hb-area-engines.html
@@ -13,7 +14,7 @@ articles:
   spatial-temporal: spatial-temporal.html
   twofold-subarea: twofold-subarea.html
   unit-level-bhf: unit-level-bhf.html
-last_built: 2026-10-27T06:40Z
+last_built: 2026-10-27T22:08Z
 urls:
   reference: https://ridsonap.is-a.dev/fastsae/reference
   article: https://ridsonap.is-a.dev/fastsae/articles
