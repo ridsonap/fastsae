@@ -138,6 +138,7 @@ remotes::install_github("ridsonap/fastsae")
 Explore detailed guides, worked examples, and performance analyses:
 
 - [**Getting Started with fastsae**](articles/getting-started.html): Step-by-step walkthrough of model fitting, diagnostics, and S3 extraction.
+- [**An Optimal SAE Workflow**](articles/optimal-workflow.html): The order of a complete analysis, from reliability of the direct estimates to benchmarking and reporting.
 - [**Spatial & Spatio-Temporal Models (EBLUP)**](articles/spatial-temporal.html): Working with spatial weights matrices, spatial kriging, and spatio-temporal panels.
 - [**Bayesian Area-Level Models (INLA)**](articles/hb-area-inla.html): Hierarchical Bayesian SAE using INLA with 6 distributions and spatial-temporal effects.
 - [**Model Diagnostics & Calibration**](articles/model-diagnostics.html): Diagnostics and benchmarking to aggregate targets.
