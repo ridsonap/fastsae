@@ -111,6 +111,6 @@ fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #> 
 tmp_file <- tempfile(fileext = ".xlsx")
 export_sae(fit_fh, file = tmp_file)
-#> ✔ Successfully exported SAE results to Excel: /tmp/RtmpNwxllC/file26b86b94e30.xlsx
+#> ✔ Successfully exported SAE results to Excel: /tmp/RtmpchhAX3/file24337b75df2b.xlsx
 unlink(tmp_file)
 ```
