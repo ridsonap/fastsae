@@ -85,6 +85,13 @@ estimators of 0.1.0. The changes below are relative to fastsae 0.1.0 on CRAN.
   (Gaussian: exact INLA linear combinations; binomial and Poisson: draws from the Gaussian
   approximation of the latent field at INLA's configurations, `inla_engine(draws = 2000)` by
   default). Missing or negative weights give a warning.
+* Binomial models of `hb_area()` and `hb_twofold()` take survey-weighted proportions with
+  effective sample sizes $n^* = n/\mathrm{deff}$ in `trials` (the binomial/logit-normal model
+  of Chen, Wakefield and Lumley, 2014, and Franco and Bell, 2015): proportions become the
+  effective numbers of cases $n^* \hat p$, which are not rounded, and direct estimates of 0
+  stay sampling zeros. Non-integer cases or trials use INLA's `"xbinomial"` likelihood (equal
+  to the binomial one on whole numbers, which keep `"binomial"`); `jax_engine()` accepts them
+  too. A response outside $[0, n]$ is an error.
 * Estimation engines: `inla_engine()` (default) and `jax_engine()` hold all settings of an
   engine, so the model functions only describe the model; `engine = "inla"` or `"jax"` take the
   defaults. `inla_engine(strategy, link, scale_model, prior_*, draws, seed, ...)` passes `...`

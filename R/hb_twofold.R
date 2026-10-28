@@ -22,7 +22,12 @@
 #' @param family Character string specifying the response likelihood. Options:
 #'   \itemize{
 #'     \item \code{"gaussian"}: Continuous response with known sampling variance (default).
-#'     \item \code{"binomial"}: Binary / count proportion with sample sizes specified by \code{trials}.
+#'     \item \code{"binomial"}: Counts or proportions with sample sizes specified by \code{trials}.
+#'       Proportions (all in [0, 1], at least one not a whole number) become numbers of cases
+#'       \eqn{y_{ij} n_{ij}}, without rounding. For survey-weighted proportions give effective
+#'       sample sizes (sample size divided by the design effect) in \code{trials}; \eqn{y_{ij} n_{ij}}
+#'       is then the effective number of cases (Chen, Wakefield and Lumley 2014; Franco and Bell
+#'       2015). Direct estimates of 0 or 1 are kept as such. See \code{\link{hb_area}}.
 #'     \item \code{"poisson"}: Count response with expected exposures specified by \code{exposure}.
 #'   }
 #' @param spatial Character string specifying the spatial structure across primary areas:
@@ -37,8 +42,9 @@
 #' @param weight Optional character string or numeric vector specifying sub-area population weights
 #'   (\eqn{w_{ij}}) used to aggregate sub-area predictions to primary area estimates
 #'   \eqn{\hat{\theta}_i = \sum_j w_{ij} \hat{\theta}_{ij}}. If \code{NULL}, equal weights per area are used.
-#' @param trials Optional character string or vector specifying total number of trials per sub-area.
-#'   Required when \code{family = "binomial"}.
+#' @param trials Optional character string or vector specifying total number of trials per sub-area,
+#'   or effective sample sizes, which need not be whole numbers. Required when
+#'   \code{family = "binomial"}.
 #' @param exposure Optional character string or vector specifying expected baseline exposures per sub-area.
 #'   Required when \code{family = "poisson"}.
 #' @param engine Estimation engine: \code{"inla"} (default) or an \code{\link{inla_engine}()}
@@ -139,6 +145,12 @@
 #'   \item Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a sub-area
 #'     level model. \emph{Journal of Multivariate Analysis}, 127, 36-55.
 #'   \item Rao, J. N. K., & Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.). John Wiley & Sons.
+#'   \item Chen, C., Wakefield, J., & Lumley, T. (2014). The use of sampling weights in Bayesian
+#'     hierarchical models for small area estimation. \emph{Spatial and Spatio-temporal
+#'     Epidemiology}, 11, 33-43.
+#'   \item Franco, C., & Bell, W. R. (2015). Borrowing information over time in binomial/logit
+#'     normal models for small area estimation. \emph{Statistics in Transition new series},
+#'     16(4), 563-584.
 #'   \item Riebler, A., S\enc{ø}{o}rbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive Bayesian spatial model
 #'     for disease mapping that accounts for scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
 #' }
@@ -264,6 +276,9 @@ hb_twofold <- function(
     if (is.null(trials_vec)) {
       cli::cli_abort("Sample size / trial count {.arg trials} must be provided for {.code family = 'binomial'}.")
     }
+    # Proportions become (effective) numbers of cases y * trials, not rounded
+    y <- .binomial_cases(y, trials_vec, "subarea")$y
+    trials_vec <- as.numeric(trials_vec)
     scale_vec <- NULL
   } else if (family == "poisson") {
     scale_vec <- NULL
@@ -327,7 +342,7 @@ hb_twofold <- function(
   inla_args <- list(
     formula = inla_form,
     data = inla_data,
-    family = family,
+    family = if (family == "binomial") .inla_binomial_family(.binomial_non_integer(y, trials_vec)) else family,
     control.predictor = list(compute = TRUE, link = 1),
     control.inla = list(strategy = strategy),
     control.compute = list(
@@ -352,7 +367,7 @@ hb_twofold <- function(
     inla_args$scale <- scale_vec
     inla_args$control.family <- list(hyper = list(prec = list(initial = 0, fixed = TRUE)))
   } else if (family == "binomial") {
-    inla_args$Ntrials <- as.integer(round(trials_vec))
+    inla_args$Ntrials <- trials_vec
   } else if (family == "poisson") {
     if (!is.null(exposure_vec)) {
       inla_args$E <- as.numeric(exposure_vec)

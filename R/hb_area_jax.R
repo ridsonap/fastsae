@@ -270,7 +270,9 @@
       cli::cli_abort("{.arg vardir} must be finite and strictly positive for sampled domains ({sum(bad)} invalid).")
     }
   }
-  if (family %in% c("binomial", "poisson", "nbinomial") && any(y_fit[obs] < 0 | y_fit[obs] %% 1 != 0)) {
+  # binomial cases may be non-integer (effective sample sizes); hb_area() and
+  # hb_twofold() have checked them against trials
+  if (family %in% c("poisson", "nbinomial") && any(y_fit[obs] < 0 | y_fit[obs] %% 1 != 0)) {
     cli::cli_abort("For {.code family = \"{family}\"}, the response must be non-negative integer counts.")
   }
   if (family == "beta" && any(y_fit[obs] <= 0 | y_fit[obs] >= 1)) {

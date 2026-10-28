@@ -29,7 +29,9 @@
   n <- length(y_fit)
   obs <- !is.na(y_fit)
 
-  if (family %in% c("binomial", "poisson") && any(y_fit[obs] < 0 | y_fit[obs] %% 1 != 0)) {
+  # binomial cases may be non-integer (effective sample sizes); hb_area() and
+  # hb_twofold() have checked them against trials
+  if (family == "poisson" && any(y_fit[obs] < 0 | y_fit[obs] %% 1 != 0)) {
     cli::cli_abort("For {.code family = \"{family}\"}, the response must be non-negative integer counts.")
   }
   trials_num <- if (!is.null(trials)) as.numeric(trials) else NULL

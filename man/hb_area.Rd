@@ -52,7 +52,16 @@ Options:
     is provided, sampling variances are treated as known. If \code{vardir = NULL},
     residual variance is estimated, with a half-normal(sd y) prior on its SD; it is
     then only weakly identified against the area effect.
-  \item \code{"binomial"}: Binary / proportion response. Requires \code{trials}.
+  \item \code{"binomial"}: Counts or proportions. Requires \code{trials}. Proportions
+    (all in [0, 1], at least one not a whole number) are turned into numbers of cases
+    \eqn{y_i n_i}, without rounding. For survey-weighted proportions give effective
+    sample sizes \eqn{n_i = n_i^{obs} / \mathrm{deff}_i} in \code{trials}: then
+    \eqn{y_i n_i} is the effective number of cases and the binomial variance
+    \eqn{p_i(1 - p_i)/n_i} matches the design variance of the direct estimate (Chen,
+    Wakefield and Lumley 2014; Franco and Bell 2015). Direct estimates of 0 or 1 are
+    kept as such. Non-integer cases or trials use INLA's \code{"xbinomial"} likelihood,
+    which equals the binomial one on whole numbers. The design effects are not
+    estimated by the model: the intervals are only as good as the effective sample sizes.
   \item \code{"poisson"}: Count response / disease rate. Supports \code{exposure}.
   \item \code{"nbinomial"}: Negative Binomial for overdispersed counts. If \code{vardir}
     is provided, the size of each area is fixed by \eqn{V_i = \mu_i + \mu_i^2/n_i} at
@@ -67,7 +76,8 @@ Options:
     posterior mean of a first fit with the precision at the direct estimate
     \eqn{y_i} (Janicki 2020), so the model is fitted twice. If \code{trials} is
     provided instead, the precision is \eqn{n_i - 1} (simple random sampling; give
-    effective sample sizes for complex designs); with both, \code{trials} is ignored
+    effective sample sizes for complex designs, which gives the beta-logistic model of
+    Liu, Lahiri and Kalton 2014); with both, \code{trials} is ignored
     (a warning). Without either, one precision is estimated, which is weakly
     identified against the area effect.
   \item \code{"gamma"}: Skewed positive continuous response. If \code{vardir} is
@@ -158,7 +168,8 @@ direct estimator (for \code{family = "gaussian"}, \code{"beta"}, \code{"gamma"} 
 \code{"nbinomial"}).}
 
 \item{trials}{Vector, column name, or formula specifying sample sizes / total trials
-per area (for \code{family = "binomial"}).}
+per area (for \code{family = "binomial"}); effective sample sizes (sample size divided by
+the design effect) need not be whole numbers.}
 
 \item{exposure}{Vector, column name, or formula specifying expected counts or population
 exposure offsets (for \code{family = "poisson"} or \code{"nbinomial"}).}
@@ -373,6 +384,14 @@ if (setup_numpyro_env(check_only = TRUE)) {
     Statistics}, 11(2), 169-182.
   \item Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation under a restriction.
     \emph{Survey Methodology}, 34(1), 29-36.
+  \item Chen, C., Wakefield, J., and Lumley, T. (2014). The use of sampling weights in Bayesian
+    hierarchical models for small area estimation. \emph{Spatial and Spatio-temporal
+    Epidemiology}, 11, 33-43.
+  \item Liu, B., Lahiri, P., and Kalton, G. (2014). Hierarchical Bayes modeling of
+    survey-weighted small area proportions. \emph{Survey Methodology}, 40(1), 1-13.
+  \item Franco, C., and Bell, W. R. (2015). Borrowing information over time in binomial/logit
+    normal models for small area estimation. \emph{Statistics in Transition new series},
+    16(4), 563-584.
   \item Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An intuitive Bayesian spatial model
     for disease mapping that accounts for scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
   \item Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area estimation with spatio-temporal Fay-Herriot models.

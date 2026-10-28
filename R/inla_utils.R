@@ -705,6 +705,70 @@
   df_hb
 }
 
+#' Numbers of cases and trials of a binomial response
+#'
+#' `y` holds counts, or proportions (all in [0, 1], at least one not a whole number), which
+#' become `y * trials` without rounding: with effective sample sizes in `trials`
+#' (n / deff), that is the effective number of cases of Chen, Wakefield and Lumley (2014),
+#' which need not be a whole number. Whole numbers (up to rounding error) are rounded, so
+#' integer data keep INLA's binomial likelihood. `non_integer` tells whether the fit needs
+#' the "xbinomial" likelihood.
+#' @noRd
+.binomial_cases <- function(y, trials, unit = "area") {
+  y <- as.numeric(y)
+  trials <- as.numeric(trials)
+  obs <- !is.na(y)
+  if (any(!is.finite(trials[obs]) | trials[obs] <= 0)) {
+    cli::cli_abort("{.arg trials} must be finite and strictly positive for every sampled {unit}.")
+  }
+  if (any(obs) && all(y[obs] >= 0 & y[obs] <= 1) && any(y[obs] %% 1 != 0)) {
+    cli::cli_alert_info("Response {.arg y} appears to be proportions; using {.code y * trials} as the number of cases (not rounded).")
+    y <- y * trials
+  }
+  whole <- obs & .is_whole(y)
+  y[whole] <- round(y[whole])
+  if (any(y[obs] < 0 | y[obs] > trials[obs])) {
+    cli::cli_abort(c(
+      "The binomial response must lie between 0 and {.arg trials} (counts) or between 0 and 1 (proportions).",
+      "x" = "{sum(y[obs] < 0 | y[obs] > trials[obs])} sampled {unit}{?s} outside that range."
+    ))
+  }
+  list(y = y, non_integer = .binomial_non_integer(y, trials))
+}
+
+#' Whole numbers up to rounding error
+#' @noRd
+.is_whole <- function(x) abs(x - round(x)) <= 1e-8 * pmax(1, abs(x))
+
+#' Does a binomial response have non-integer cases or trials among its sampled rows?
+#' @noRd
+.binomial_non_integer <- function(y, trials) {
+  obs <- !is.na(y)
+  !all(.is_whole(c(y[obs], trials[obs])))
+}
+
+#' Is a likelihood available in the installed INLA?
+#' @noRd
+.inla_has_likelihood <- function(name) name %in% names(INLA::inla.models()$likelihood)
+
+#' INLA likelihood of a binomial response
+#'
+#' "xbinomial" accepts non-integer numbers of cases and trials (effective sample sizes);
+#' on whole numbers it gives the same posterior as "binomial", which is kept for them.
+#' @noRd
+.inla_binomial_family <- function(non_integer) {
+  if (!non_integer) {
+    return("binomial")
+  }
+  if (!.inla_has_likelihood("xbinomial")) {
+    cli::cli_abort(c(
+      "Non-integer numbers of cases or trials (effective sample sizes) need INLA's {.val xbinomial} likelihood, which the installed {.pkg INLA} does not have.",
+      "i" = "Update {.pkg INLA}, or use {.code engine = \"jax\"}."
+    ))
+  }
+  "xbinomial"
+}
+
 #' Link functions supported per response family (INLA names)
 #'
 #' The first entry is the canonical link used when `link = NULL`.

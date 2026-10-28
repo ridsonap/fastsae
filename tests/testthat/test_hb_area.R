@@ -283,8 +283,10 @@ test_that("hb_area automatically handles Binomial response with proportions", {
       trials = "n_samp",
       print_result = FALSE
     ),
-    "converting to integer counts"
+    "not rounded"
   )
+  # weighted proportions give non-integer numbers of cases
+  expect_identical(fit_bin$fit$.args$family, "xbinomial")
 
   expect_s3_class(fit_bin, "fastsae_hb_area")
   expect_true("estimated_total" %in% names(fit_bin$df_hb))
@@ -693,4 +695,95 @@ test_that("a beta model with vardir and trials warns that trials is ignored", {
     "is ignored"
   )
   expect_no_warning(hb_area(y ~ x, data = d, family = "beta", trials = "n", print_result = FALSE))
+})
+
+# Proportions from a complex survey: n_eff = n / deff and the effective number of cases
+# n_eff * p_hat are not integers (Chen, Wakefield and Lumley, 2014)
+neff_area_data <- function(D = 30, seed = 1) {
+  set.seed(seed)
+  n <- sample(30:150, D, replace = TRUE)
+  x <- stats::rnorm(D)
+  p <- stats::plogis(-1.2 + 0.6 * x + stats::rnorm(D, sd = 0.4))
+  d <- data.frame(area = seq_len(D), x = x, n_eff = n / stats::runif(D, 1.2, 2.5))
+  d$p_hat <- stats::rbinom(D, n, p) / n
+  d$p_hat[1:2] <- 0
+  d
+}
+
+test_that("hb_area binomial keeps non-integer effective numbers of cases", {
+  skip_if_not_installed("INLA")
+  d <- neff_area_data()
+  expect_message(
+    fit <- hb_area(p_hat ~ x,
+      data = d, domain = "area", family = "binomial", trials = "n_eff",
+      print_result = FALSE
+    ),
+    "not rounded"
+  )
+  expect_identical(fit$fit$.args$family, "xbinomial")
+  expect_equal(fit$fit$.args$Ntrials, d$n_eff)
+  expect_equal(fit$df_hb$y, d$p_hat * d$n_eff)
+  expect_equal(fit$df_hb$trials, d$n_eff)
+  # direct estimates of 0 are sampling zeros, not boundary estimates
+  expect_true(all(fit$df_hb$hb > 0 & fit$df_hb$hb < 1))
+  expect_lt(max(fit$df_hb$hb[1:2]), 0.25)
+
+  # the same model fitted with INLA directly
+  ref <- INLA::inla(
+    y ~ x + f(id, model = "iid", hyper = list(prec = fit$engine_spec$prior_prec)),
+    family = "xbinomial", Ntrials = d$n_eff,
+    data = data.frame(y = d$p_hat * d$n_eff, x = d$x, id = d$area),
+    control.predictor = list(compute = TRUE, link = 1)
+  )
+  expect_equal(fit$df_hb$hb, ref$summary.fitted.values$mean, tolerance = 1e-3)
+
+  # an unsampled area is predicted
+  d$p_hat[3] <- NA
+  fit_na <- suppressMessages(hb_area(p_hat ~ x,
+    data = d, domain = "area", family = "binomial", trials = "n_eff",
+    print_result = FALSE
+  ))
+  expect_true(is.na(fit_na$df_hb$y[3]))
+  expect_false(is.na(fit_na$df_hb$hb[3]))
+})
+
+test_that("hb_area binomial with integer counts keeps INLA's binomial likelihood", {
+  skip_if_not_installed("INLA")
+  set.seed(4)
+  d <- data.frame(area = 1:15, x = rnorm(15), n = 40)
+  d$cnt <- stats::rbinom(15, d$n, 0.3)
+  fit <- hb_area(cnt ~ x, data = d, domain = "area", family = "binomial", trials = "n", print_result = FALSE)
+  expect_identical(fit$fit$.args$family, "binomial")
+  # proportions of integer counts give the same counts
+  d$p <- d$cnt / d$n
+  fit_p <- suppressMessages(hb_area(p ~ x, data = d, domain = "area", family = "binomial", trials = "n", print_result = FALSE))
+  expect_identical(fit_p$fit$.args$family, "binomial")
+  expect_equal(fit_p$df_hb$y, d$cnt)
+  expect_equal(fit_p$df_hb$hb, fit$df_hb$hb, tolerance = 1e-5)
+})
+
+test_that("hb_area binomial checks the number of cases against trials", {
+  d <- neff_area_data(D = 10)
+  d$cnt <- round(d$p_hat * d$n_eff)
+  d$cnt[2] <- d$n_eff[2] + 5
+  expect_error(
+    hb_area(cnt ~ x, data = d, domain = "area", family = "binomial", trials = "n_eff", print_result = FALSE),
+    "between 0 and"
+  )
+  d$n_eff[1] <- 0
+  expect_error(
+    hb_area(p_hat ~ x, data = d, domain = "area", family = "binomial", trials = "n_eff", print_result = FALSE),
+    "strictly positive"
+  )
+})
+
+test_that("non-integer binomial data need INLA's xbinomial likelihood", {
+  skip_if_not_installed("INLA")
+  local_mocked_bindings(.inla_has_likelihood = function(name) FALSE)
+  d <- neff_area_data(D = 10)
+  expect_error(
+    suppressMessages(hb_area(p_hat ~ x, data = d, domain = "area", family = "binomial", trials = "n_eff", print_result = FALSE)),
+    "xbinomial"
+  )
+  expect_identical(.inla_binomial_family(FALSE), "binomial")
 })

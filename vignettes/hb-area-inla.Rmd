@@ -42,7 +42,7 @@ The **fastsae** package introduces `hb_area()`, a unified hierarchical Bayesian 
 | **`"beta"`** | Rates and proportions strictly in $(0, 1)$ | `vardir` or `trials` | Precision $\phi_d = \hat\mu_d(1 - \hat\mu_d)/V_d - 1$ from a first fit (Janicki, 2020), or $n_d - 1$ from `trials` |
 | **`"poisson"`** | Counts and rare event rates | `exposure` (expected count / population offset) | Log-link offset $\log(E_d)$ |
 | **`"nbinomial"`** | Overdispersed counts and clustered events | `exposure`; optional `vardir` | Log-link offset; size $\hat\mu_d^2/(V_d - \hat\mu_d)$ from a first fit when `vardir` is given |
-| **`"binomial"`** | Aggregated binary proportions | `trials` (domain sample size $n_d$) | Number of trials per domain |
+| **`"binomial"`** | Aggregated binary proportions | `trials` (domain sample size $n_d$, or the effective sample size $n_d/\mathrm{deff}_d$ for survey-weighted proportions; not rounded) | Number of trials per domain |
 | **`"gamma"`** | Positive, right-skewed indicators (e.g., expenditures) | `vardir` | Precision (shape) $y_d^2/V_d$ |
 
 ---

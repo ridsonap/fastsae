@@ -510,3 +510,48 @@ test_that(".inla_predictor_draws() matches inla.posterior.sample()", {
   expect_identical(runif(1), u)
   expect_null(.inla_predictor_draws(list(misc = list()), 5, 3))
 })
+
+test_that("hb_twofold binomial takes effective sample sizes (province + district model)", {
+  skip_if_not_installed("INLA")
+  set.seed(21)
+  m <- 8
+  dat <- do.call(rbind, lapply(seq_len(m), function(d) {
+    nd <- sample(3:6, 1)
+    data.frame(prov = d, kab = paste0(d, "-", seq_len(nd)), x1 = rnorm(nd), pop = runif(nd, 1e3, 1e4))
+  }))
+  n <- sample(40:200, nrow(dat), replace = TRUE)
+  p <- stats::plogis(-1 + 0.5 * dat$x1 + rnorm(m, sd = 0.4)[dat$prov] + rnorm(nrow(dat), sd = 0.3))
+  dat$n_eff <- n / runif(nrow(dat), 1.2, 2.5)
+  dat$p_hat <- stats::rbinom(nrow(dat), n, p) / n
+  dat$p_hat[1] <- 0
+
+  expect_message(
+    fit <- hb_twofold(p_hat ~ x1,
+      domain = "prov", subarea = "kab", data = dat, family = "binomial",
+      trials = "n_eff", weight = "pop", print_result = FALSE
+    ),
+    "not rounded"
+  )
+  expect_identical(fit$fit$.args$family, "xbinomial")
+  expect_equal(fit$fit$.args$Ntrials, dat$n_eff)
+  expect_equal(fit$df_hb$y, dat$p_hat * dat$n_eff)
+  expect_true(all(fit$df_hb$hb > 0 & fit$df_hb$hb < 1))
+  expect_equal(nrow(fit$df_area), m)
+  expect_false(anyNA(fit$df_area$sd_area))
+  expect_true(all(fit$df_area$hb_area > 0 & fit$df_area$hb_area < 1))
+
+  # integer counts keep the binomial likelihood
+  dat$cnt <- round(dat$p_hat * n)
+  dat$n <- n
+  fit_int <- hb_twofold(cnt ~ x1,
+    domain = "prov", subarea = "kab", data = dat, family = "binomial",
+    trials = "n", print_result = FALSE
+  )
+  expect_identical(fit_int$fit$.args$family, "binomial")
+
+  dat$cnt[2] <- dat$n[2] + 1
+  expect_error(
+    hb_twofold(cnt ~ x1, domain = "prov", subarea = "kab", data = dat, family = "binomial", trials = "n", print_result = FALSE),
+    "between 0 and"
+  )
+})
