@@ -319,6 +319,27 @@ test_that("engine = 'jax' converts binomial proportions and keeps draws optional
   expect_true(all(c("trials", "estimated_total") %in% names(fit$df_hb)))
 })
 
+test_that("engine = 'jax' takes non-integer effective numbers of cases", {
+  env <- new.env()
+  local_fake_backend(env)
+  set.seed(2)
+  n <- sample(30:120, 15, replace = TRUE)
+  df <- data.frame(id = 1:15, x = rnorm(15), n_eff = n / runif(15, 1.2, 2.5))
+  df$p <- rbinom(15, n, 0.3) / n
+  expect_message(
+    hb_area(p ~ x, data = df, domain = "id", family = "binomial", trials = "n_eff", engine = "jax", print_result = FALSE),
+    "not rounded"
+  )
+  expect_equal(env$args$y, df$p * df$n_eff)
+  expect_equal(env$args$trials, df$n_eff)
+  df$cnt <- round(df$p * df$n_eff)
+  df$cnt[1] <- df$n_eff[1] + 2
+  expect_error(
+    hb_area(cnt ~ x, data = df, domain = "id", family = "binomial", trials = "n_eff", engine = "jax", print_result = FALSE),
+    "between 0 and"
+  )
+})
+
 test_that("benchmark_sae() uses the stored draws of engine = 'jax'", {
   env <- new.env()
   local_fake_backend(env)

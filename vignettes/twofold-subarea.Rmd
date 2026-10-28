@@ -273,6 +273,67 @@ head(fit_jax$df_area)
 Both engines use the same priors by default (`jax_engine(priors = "inla")`), so their
 estimates differ only by INLA's approximation and the Monte Carlo error.
 
+### Proportions from complex surveys
+
+A proportion $\hat p_{ij}$ estimated from a clustered, weighted sample is less precise than one
+from a simple random sample of the same size $n_{ij}$. The binomial/logit-normal model with
+*effective sample sizes* (Chen, Wakefield and Lumley 2014; Franco and Bell 2015) takes this into
+account: with the design effect $\mathrm{deff}_{ij}$, the effective sample size is
+$n^*_{ij} = n_{ij} / \mathrm{deff}_{ij}$ and the effective number of cases $y^*_{ij} = n^*_{ij}
+\hat p_{ij}$, and
+
+$$y^*_{ij} \mid p_{ij} \sim \text{Binomial}(n^*_{ij}, p_{ij}), \qquad \text{logit}(p_{ij}) = x_{ij}^\top \beta + v_i + u_{ij},$$
+
+so that the binomial variance $p_{ij}(1 - p_{ij}) / n^*_{ij}$ matches the design variance of
+$\hat p_{ij}$. Neither $n^*_{ij}$ nor $y^*_{ij}$ is a whole number. `hb_twofold()` (and
+`hb_area()`) take the proportions as the response and the effective sample sizes as `trials`,
+and do not round them: INLA then uses its `"xbinomial"` likelihood, which equals the binomial
+likelihood on whole numbers. A direct estimate of 0 is a sampling zero and enters the model as
+such.
+
+```{r neff_data}
+set.seed(7)
+prov <- rep(1:12, times = sample(4:8, 12, replace = TRUE))
+svy <- data.frame(
+  prov = prov,
+  kab = seq_along(prov),
+  x1 = rnorm(length(prov)),
+  pop = round(runif(length(prov), 2e4, 2e5))
+)
+p_true <- plogis(-2.5 + 0.5 * svy$x1 + rnorm(12, sd = 0.4)[prov] +
+  rnorm(nrow(svy), sd = 0.3))
+n <- sample(30:200, nrow(svy), replace = TRUE)
+svy$deff <- runif(nrow(svy), 1.3, 2.5) # from the survey, e.g. design-based variance estimates
+svy$n_eff <- n / svy$deff
+# clustered sample: the direct estimate varies like a binomial proportion on n_eff
+svy$p_hat <- rbinom(nrow(svy), round(svy$n_eff), p_true) / round(svy$n_eff)
+sum(svy$p_hat == 0) # districts with a direct estimate of 0
+```
+
+```{r neff_fit, eval = has_inla}
+fit_neff <- hb_twofold(
+  p_hat ~ x1,
+  domain = "prov",
+  subarea = "kab",
+  weight = "pop",
+  data = svy,
+  family = "binomial",
+  trials = "n_eff",
+  print_result = FALSE
+)
+head(fit_neff$df_hb[, c("domain", "subarea", "y", "hb", "sd", "ci_lower", "ci_upper")])
+head(fit_neff$df_area)
+# the districts with a direct estimate of 0
+fit_neff$df_hb[svy$p_hat == 0, c("subarea", "hb", "ci_lower", "ci_upper")]
+```
+
+The model is only as good as the design effects: they are not estimated by the model, so
+effective sample sizes that are too large give intervals that are too narrow. Design effects of
+small areas are themselves noisy, and are often smoothed (for example, pooled within a larger
+area or modeled) before use. The default priors are those of the other families
+(`vignette("hb-priors")`); a $N(0, 1)$ prior on the coefficients, for example, is set with
+`inla_engine(control.fixed = list(mean = 0, prec = 1))`.
+
 ---
 
 ## Practical notes
@@ -288,6 +349,11 @@ estimates differ only by INLA's approximation and the Monte Carlo error.
 
 - Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a sub-area level model.
   *Journal of Multivariate Analysis*, 127, 36–55.
+- Chen, C., Wakefield, J., & Lumley, T. (2014). The use of sampling weights in Bayesian
+  hierarchical models for small area estimation. *Spatial and Spatio-temporal Epidemiology*,
+  11, 33–43.
+- Franco, C., & Bell, W. R. (2015). Borrowing information over time in binomial/logit normal
+  models for small area estimation. *Statistics in Transition new series*, 16(4), 563–584.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.
 - Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian
   models by using integrated nested Laplace approximations. *Journal of the Royal Statistical

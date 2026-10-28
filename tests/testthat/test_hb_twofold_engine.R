@@ -173,6 +173,24 @@ test_that("hb_twofold(engine = 'jax') passes counts, spatial structure and MCMC 
   expect_null(fit2$df_area)
 })
 
+test_that("hb_twofold(engine = 'jax') takes non-integer effective numbers of cases", {
+  env <- new.env()
+  local_fake_twofold_backend(env)
+  dat <- tf_engine_data()
+  n <- sample(30:120, nrow(dat), replace = TRUE)
+  dat$n_eff <- n / runif(nrow(dat), 1.2, 2.5)
+  dat$p <- stats::rbinom(nrow(dat), n, 0.3) / n
+  expect_message(
+    hb_twofold(p ~ x1,
+      domain = "area", data = dat, family = "binomial", trials = "n_eff",
+      engine = "jax", print_result = FALSE
+    ),
+    "not rounded"
+  )
+  expect_equal(env$args$y, dat$p * dat$n_eff)
+  expect_equal(env$args$trials, dat$n_eff)
+})
+
 test_that("hb_twofold(engine = 'jax') rejects INLA settings and keeps the input checks", {
   dat <- tf_engine_data()
   fit_jax <- function(...) {
@@ -197,6 +215,8 @@ test_that("hb_twofold(engine = 'jax') agrees with INLA", {
   dat <- tf_engine_data(m = 20, seed = 2)
   dat$n <- 60
   dat$cnt_b <- stats::rbinom(nrow(dat), dat$n, stats::plogis(-0.5 + 0.5 * dat$x1))
+  dat$n_eff <- dat$n / runif(nrow(dat), 1.2, 2.5)
+  dat$p_eff <- dat$cnt_b / dat$n
   dat$E <- 40
   dat$cnt_p <- stats::rpois(nrow(dat), dat$E * exp(-1 + 0.4 * dat$x1))
   eng <- jax_engine(warmup = 500, samples = 500, chains = 2, device = "cpu", progress = FALSE)
@@ -205,12 +225,13 @@ test_that("hb_twofold(engine = 'jax') agrees with INLA", {
   cfgs <- list(
     list(y ~ x1, vardir = "vardir"),
     list(cnt_b ~ x1, family = "binomial", trials = "n"),
+    list(p_eff ~ x1, family = "binomial", trials = "n_eff"),
     list(cnt_p ~ x1, family = "poisson", exposure = "E")
   )
   for (cfg in cfgs) {
     args <- c(cfg, list(domain = "area", subarea = "subarea", data = dat, weight = "pop", print_result = FALSE))
     fit_jax <- quiet_mcmc(do.call(hb_twofold, c(args, list(engine = eng))))
-    fit_inla <- do.call(hb_twofold, args)
+    fit_inla <- suppressMessages(do.call(hb_twofold, args))
     expect_named(fit_jax$df_hb, names(fit_inla$df_hb))
     expect_named(fit_jax$df_area, names(fit_inla$df_area))
     expect_true(fit_jax$convergence)

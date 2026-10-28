@@ -40,7 +40,12 @@ in \code{data}. If \code{NULL}, sub-areas are numbered consecutively per domain.
 \item{family}{Character string specifying the response likelihood. Options:
 \itemize{
   \item \code{"gaussian"}: Continuous response with known sampling variance (default).
-  \item \code{"binomial"}: Binary / count proportion with sample sizes specified by \code{trials}.
+  \item \code{"binomial"}: Counts or proportions with sample sizes specified by \code{trials}.
+    Proportions (all in [0, 1], at least one not a whole number) become numbers of cases
+    \eqn{y_{ij} n_{ij}}, without rounding. For survey-weighted proportions give effective
+    sample sizes (sample size divided by the design effect) in \code{trials}; \eqn{y_{ij} n_{ij}}
+    is then the effective number of cases (Chen, Wakefield and Lumley 2014; Franco and Bell
+    2015). Direct estimates of 0 or 1 are kept as such. See \code{\link{hb_area}}.
   \item \code{"poisson"}: Count response with expected exposures specified by \code{exposure}.
 }}
 
@@ -59,8 +64,9 @@ match the total number of unique primary areas in \code{domain}. Required when \
 (\eqn{w_{ij}}) used to aggregate sub-area predictions to primary area estimates
 \eqn{\hat{\theta}_i = \sum_j w_{ij} \hat{\theta}_{ij}}. If \code{NULL}, equal weights per area are used.}
 
-\item{trials}{Optional character string or vector specifying total number of trials per sub-area.
-Required when \code{family = "binomial"}.}
+\item{trials}{Optional character string or vector specifying total number of trials per sub-area,
+or effective sample sizes, which need not be whole numbers. Required when
+\code{family = "binomial"}.}
 
 \item{exposure}{Optional character string or vector specifying expected baseline exposures per sub-area.
 Required when \code{family = "poisson"}.}
@@ -205,6 +211,12 @@ if (requireNamespace("INLA", quietly = TRUE)) {
   \item Torabi, M., & Rao, J. N. K. (2014). On small area estimation under a sub-area
     level model. \emph{Journal of Multivariate Analysis}, 127, 36-55.
   \item Rao, J. N. K., & Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.). John Wiley & Sons.
+  \item Chen, C., Wakefield, J., & Lumley, T. (2014). The use of sampling weights in Bayesian
+    hierarchical models for small area estimation. \emph{Spatial and Spatio-temporal
+    Epidemiology}, 11, 33-43.
+  \item Franco, C., & Bell, W. R. (2015). Borrowing information over time in binomial/logit
+    normal models for small area estimation. \emph{Statistics in Transition new series},
+    16(4), 563-584.
   \item Riebler, A., S\enc{ø}{o}rbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive Bayesian spatial model
     for disease mapping that accounts for scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
 }
