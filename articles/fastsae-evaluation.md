@@ -302,24 +302,34 @@ against a true 1).
 
 | Scenario | Method | RMSE (MCSE) | Mean relative RMSE | Mean abs. bias | Coverage (MCSE) | Width |
 |:---|:---|---:|---:|---:|---:|---:|
-| Base (grid, D = 50) | fastsae, INLA | 0.0662 (0.0007) | 23.8% | 0.0067 | 93.1% (0.4%) | 0.246 |
+| Base (grid, D = 50) | fastsae, INLA | **0.0662 (0.0007)** | 23.8% | 0.0067 | **93.1% (0.4%)** | 0.246 |
 | Base (grid, D = 50) | fastsae, NumPyro (CPU) | 0.0667 (0.0007) | 24.0% | 0.0082 | 93.0% (0.4%) | 0.251 |
 | Base (grid, D = 50) | tipsae (Stan) | 0.0664 (0.0008) | 23.7% | 0.0113 | 92.0% (0.4%) | 0.257 |
-| sigma_s = 0.2 | fastsae, INLA | 0.0527 (0.0007) | 19.0% | 0.0092 | 94.4% (0.4%) | 0.204 |
+| sigma_s = 0.2 | fastsae, INLA | **0.0527 (0.0007)** | 19.0% | 0.0092 | **94.4% (0.4%)** | 0.204 |
 | sigma_s = 0.2 | fastsae, NumPyro (CPU) | 0.0531 (0.0007) | 19.2% | 0.0104 | 93.7% (0.4%) | 0.205 |
 | sigma_s = 0.2 | tipsae (Stan) | 0.0530 (0.0007) | 19.1% | 0.0129 | 92.7% (0.4%) | 0.204 |
-| sigma_s = 1 | fastsae, INLA | 0.0731 (0.0009) | 25.4% | 0.0065 | 90.8% (0.4%) | 0.251 |
-| sigma_s = 1 | fastsae, NumPyro (CPU) | 0.0733 (0.0009) | 25.4% | 0.0073 | 91.2% (0.4%) | 0.258 |
+| sigma_s = 1 | fastsae, INLA | **0.0731 (0.0009)** | 25.4% | 0.0065 | 90.8% (0.4%) | 0.251 |
+| sigma_s = 1 | fastsae, NumPyro (CPU) | 0.0733 (0.0009) | 25.4% | 0.0073 | **91.2% (0.4%)** | 0.258 |
 | sigma_s = 1 | tipsae (Stan) | 0.0895 (0.0061) | 30.0% | 0.0170 | 90.2% (0.5%) | 0.284 |
-| kappa = 10 | fastsae, INLA | 0.0962 (0.0012) | 34.4% | 0.0116 | 88.6% (0.4%) | 0.334 |
+| kappa = 10 | fastsae, INLA | 0.0962 (0.0012) | 34.4% | 0.0116 | **88.6% (0.4%)** | 0.334 |
 | kappa = 10 | fastsae, NumPyro (CPU) | 0.0980 (0.0012) | 34.9% | 0.0151 | 88.0% (0.5%) | 0.347 |
-| kappa = 10 | tipsae (Stan) | 0.0916 (0.0011) | 32.6% | 0.0171 | 87.7% (0.5%) | 0.338 |
-| kappa = 100 | fastsae, INLA | 0.0394 (0.0004) | 14.0% | 0.0026 | 94.5% (0.3%) | 0.147 |
-| kappa = 100 | fastsae, NumPyro (CPU) | 0.0394 (0.0004) | 14.1% | 0.0027 | 94.7% (0.3%) | 0.148 |
+| kappa = 10 | tipsae (Stan) | **0.0916 (0.0011)** | 32.6% | 0.0171 | 87.7% (0.5%) | 0.338 |
+| kappa = 100 | fastsae, INLA | **0.0394 (0.0004)** | 14.0% | 0.0026 | 94.5% (0.3%) | 0.147 |
+| kappa = 100 | fastsae, NumPyro (CPU) | 0.0394 (0.0004) | 14.1% | 0.0027 | **94.7% (0.3%)** | 0.148 |
 | kappa = 100 | tipsae (Stan) | 0.0418 (0.0016) | 15.0% | 0.0049 | 94.4% (0.3%) | 0.154 |
-| Irregular map (D = 50) | fastsae, INLA | 0.0671 (0.0009) | 24.6% | 0.0082 | 92.7% (0.3%) | 0.248 |
+| Irregular map (D = 50) | fastsae, INLA | **0.0671 (0.0009)** | 24.6% | 0.0082 | **92.7% (0.3%)** | 0.248 |
 | Irregular map (D = 50) | fastsae, NumPyro (CPU) | 0.0677 (0.0009) | 24.8% | 0.0102 | 92.5% (0.4%) | 0.253 |
 | Irregular map (D = 50) | tipsae (Stan) | 0.0682 (0.0009) | 25.2% | 0.0157 | 91.1% (0.4%) | 0.258 |
+
+Shaded: in each scenario, the method with the smallest RMSE and the
+method whose coverage is closest to 95% (in bold), together with any
+method whose paired difference from it over the same replicates is
+within two Monte Carlo standard errors, so that a shaded cell that is
+not bold is not distinguishably worse. An unshaded cell can still be
+close to the best: because every method was fitted to the same data
+sets, a difference in the fourth decimal of the RMSE can exceed its
+Monte Carlo error. The other columns are not marked: they have no Monte
+Carlo error to tell a real difference from noise.
 
 ![](fastsae-evaluation_files/figure-html/beta-coverage-1.png)
 
@@ -421,21 +431,22 @@ scenario of the accuracy study.
 
 |     D | fastsae::eblup_sfh | sae::mseSFH | emdi::fh |
 |------:|-------------------:|------------:|---------:|
-|   100 |             0.01 s |      0.03 s |   0.03 s |
-|   500 |             0.24 s |      3.02 s |   3.32 s |
-| 1,000 |             1.04 s |        20 s |     22 s |
-| 2,500 |             9.10 s |       316 s |    354 s |
+|   100 |         **0.01 s** |      0.03 s |   0.03 s |
+|   500 |         **0.24 s** |      3.02 s |   3.32 s |
+| 1,000 |         **1.04 s** |        20 s |     22 s |
+| 2,500 |         **9.10 s** |       316 s |    354 s |
 
-Spatial Fay-Herriot: REML fit and analytical MSE (warm time) {.table}
+Spatial Fay-Herriot: REML fit and analytical MSE (warm time; shaded:
+fastest) {.table}
 
 | D | fastsae, INLA | fastsae, NumPyro (CPU) | fastsae, NumPyro (Apple GPU) | tipsae (Stan) |
 |---:|---:|---:|---:|---:|
-| 50 | 1.33 s | 6.63 s | 204 s | 33 s |
-| 100 | 1.42 s | 9.38 s | 217 s | 39 s |
-| 500 | 2.04 s | 57 s | 272 s | 101 s |
-| 1,000 | 2.87 s | 112 s | 416 s | 212 s |
+| 50 | **1.33 s** | 6.63 s | 204 s | 33 s |
+| 100 | **1.42 s** | 9.38 s | 217 s | 39 s |
+| 500 | **2.04 s** | 57 s | 272 s | 101 s |
+| 1,000 | **2.87 s** | 112 s | 416 s | 212 s |
 
-Spatial Beta (warm time) {.table}
+Spatial Beta (warm time; shaded: fastest) {.table}
 
 ![](fastsae-evaluation_files/figure-html/speed-plot-1.png)![](fastsae-evaluation_files/figure-html/speed-plot-2.png)
 
@@ -445,10 +456,12 @@ that fit) is the fairer comparison:
 
 |     D | NumPyro (CPU) | NumPyro (Apple GPU) |  tipsae |
 |------:|--------------:|--------------------:|--------:|
-|    50 |       0.026 s |             0.922 s | 0.082 s |
-|   100 |       0.053 s |             1.431 s | 0.134 s |
-|   500 |       2.032 s |             9.812 s | 2.072 s |
-| 1,000 |       3.011 s |            14.399 s | 6.975 s |
+|    50 |   **0.026 s** |             0.922 s | 0.082 s |
+|   100 |   **0.053 s** |             1.431 s | 0.134 s |
+|   500 |   **2.032 s** |             9.812 s | 2.072 s |
+| 1,000 |   **3.011 s** |            14.399 s | 6.975 s |
+
+Time per effective draw (shaded: smallest) {.table style="width:100%;"}
 
 - **Spatial Fay-Herriot:** fastsae is faster at every size, and the gap
   grows with $`D`$ (sparse Cholesky factorisations instead of dense
@@ -474,21 +487,23 @@ JAX.
 
 |     D | fastsae::eblup_sfh | sae::mseSFH | emdi::fh |
 |------:|-------------------:|------------:|---------:|
-|   100 |              38 MB |       50 MB |    50 MB |
-|   500 |              80 MB |      153 MB |   141 MB |
-| 1,000 |             140 MB |      284 MB |   231 MB |
-| 2,500 |             745 MB |      886 MB |   770 MB |
+|   100 |          **38 MB** |       50 MB |    50 MB |
+|   500 |          **80 MB** |      153 MB |   141 MB |
+| 1,000 |         **140 MB** |      284 MB |   231 MB |
+| 2,500 |         **745 MB** |      886 MB |   770 MB |
 
-Spatial Fay-Herriot: increase of the peak memory {.table}
+Spatial Fay-Herriot: increase of the peak memory (shaded: lowest
+measured) {.table}
 
 | D | fastsae, INLA | fastsae, NumPyro (CPU) | fastsae, NumPyro (Apple GPU) | tipsae (Stan) |
 |---:|---:|---:|---:|---:|
-| 50 | 112 MB | 907 MB | 726 MB | 69 MB |
-| 100 | 123 MB | 837 MB | 676 MB | 181 MB |
-| 500 | 168 MB | 781 MB | 722 MB | 932 MB |
-| 1,000 | 268 MB | 854 MB | 730 MB | 1.40 GB |
+| 50 | 112 MB | 907 MB | 726 MB | **69 MB** |
+| 100 | **123 MB** | 837 MB | 676 MB | 181 MB |
+| 500 | **168 MB** | 781 MB | 722 MB | 932 MB |
+| 1,000 | **268 MB** | 854 MB | 730 MB | 1.40 GB |
 
-Spatial Beta: increase of the peak memory {.table}
+Spatial Beta: increase of the peak memory (shaded: lowest measured)
+{.table}
 
 - **Spatial Fay-Herriot:** fastsae needs less memory than `sae` and
   `emdi` at $`D = 500`$ and 1,000; at $`D = 100`$ the differences are
