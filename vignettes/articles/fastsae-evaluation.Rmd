@@ -47,6 +47,17 @@ fmt_s <- function(x) ifelse(is.na(x), "-", ifelse(x < 10, sprintf("%.2f s", x), 
 fmt_mb <- function(x) ifelse(is.na(x), "-", ifelse(x >= 1024, sprintf("%.2f GB", x / 1024), sprintf("%.0f MB", x)))
 # mean and Monte Carlo standard error over independent replicates
 mc <- function(x) c(mean = mean(x), mcse = stats::sd(x) / sqrt(length(x)))
+# Marking of the best method in a table: the span is shaded by pkgdown/extra.css; the
+# numerically best value is also bold. `tie` marks values not distinguishable from it.
+best_cell <- function(x, best, tie = best) {
+  ifelse(best, sprintf('<span class="sae-best"><strong>%s</strong></span>', x),
+         ifelse(tie, sprintf('<span class="sae-best">%s</span>', x), x))
+}
+# Formats the columns of the numeric matrix v with fmt and marks the smallest value of each row
+row_best <- function(v, fmt) {
+  lo <- apply(v, 1, function(r) if (all(is.na(r))) NA_real_ else min(r, na.rm = TRUE))
+  lapply(seq_len(ncol(v)), function(j) best_cell(fmt(v[, j]), !is.na(v[, j]) & v[, j] == lo))
+}
 ```
 
 ```{r missing, eval = !have, results = "asis"}
@@ -350,24 +361,49 @@ and $\hat\sigma^2$ was often small (median `r f2(stats::median(fl_$sigma2), 2)` 
 ### Accuracy of the area estimates
 
 ```{r beta-accuracy}
+beta_methods <- c("inla", "jax", "tipsae")
+# a method ties with the best when their paired difference over the common replicates is
+# within two Monte Carlo standard errors
+ties <- function(v, best) vapply(v, function(x) {
+  d <- x - v[[best]]
+  abs(mean(d)) <= 2 * stats::sd(d) / sqrt(length(d))
+}, NA)
 tab <- do.call(rbind, lapply(names(beta_scen_labels), function(s) {
-  do.call(rbind, lapply(c("inla", "jax", "tipsae"), function(m) {
-    x <- br[br$scenario == s & br$method == m, ]
+  x <- lapply(stats::setNames(beta_methods, beta_methods), function(m) {
+    r <- br[br$scenario == s & br$method == m, ]
+    r[order(r$rep), ]
+  })
+  mse <- lapply(x, `[[`, "mse"); cover <- lapply(x, `[[`, "cover")
+  b_rmse <- which.min(vapply(mse, mean, 0))
+  b_cover <- which.min(vapply(cover, function(v) abs(mean(v) - 0.95), 0))
+  t_rmse <- ties(mse, b_rmse); t_cover <- ties(cover, b_cover)
+  do.call(rbind, lapply(seq_along(beta_methods), function(j) {
+    m <- beta_methods[j]
     a <- bta$area[bta$area$scenario == s & bta$area$method == m, ]
-    rm <- sqrt(mean(x$mse))
+    rm <- sqrt(mean(mse[[m]]))
     data.frame(
       Scenario = beta_scen_labels[[s]], Method = method_labels[[m]],
-      `RMSE (MCSE)` = sprintf("%s (%s)", f2(rm, 4), f2(stats::sd(x$mse) / sqrt(nrow(x)) / (2 * rm), 4)),
+      `RMSE (MCSE)` = best_cell(sprintf("%s (%s)", f2(rm, 4), f2(stats::sd(mse[[m]]) / sqrt(length(mse[[m]])) / (2 * rm), 4)),
+                                j == b_rmse, t_rmse[[m]]),
       `Mean relative RMSE` = pct(mean(a$rmse / a$truth)),
       `Mean abs. bias` = f2(mean(abs(a$bias)), 4),
-      `Coverage (MCSE)` = sprintf("%s (%s)", pct(mean(x$cover)), pct(stats::sd(x$cover) / sqrt(nrow(x)))),
-      `Width` = f2(mean(x$width)),
+      `Coverage (MCSE)` = best_cell(sprintf("%s (%s)", pct(mean(cover[[m]])), pct(stats::sd(cover[[m]]) / sqrt(length(cover[[m]])))),
+                                    j == b_cover, t_cover[[m]]),
+      `Width` = f2(mean(x[[m]]$width)),
       check.names = FALSE
     )
   }))
 }))
 knitr::kable(tab, row.names = FALSE, align = "llrrrrr")
 ```
+
+Shaded: in each scenario, the method with the smallest RMSE and the method whose coverage is
+closest to 95% (in bold), together with any method whose paired difference from it over the
+same replicates is within two Monte Carlo standard errors, so that a shaded cell that is not
+bold is not distinguishably worse. An unshaded cell can still be close to the best: because
+every method was fitted to the same data sets, a difference in the fourth decimal of the RMSE
+can exceed its Monte Carlo error. The other columns are not marked: they have no Monte Carlo
+error to tell a real difference from noise.
 
 ```{r beta-coverage, fig.height = 4.2}
 cv <- aggregate(cover ~ scenario + method, br, function(v) c(m = mean(v), se = stats::sd(v) / sqrt(length(v))))
@@ -478,13 +514,14 @@ mk <- function(model, methods) {
   w <- reshape(x[, c("method", "D", "time_warm")], idvar = "D", timevar = "method", direction = "wide")
   w <- w[order(w$D), ]
   out <- data.frame(D = format(w$D, big.mark = ","))
-  for (m in methods) out[[method_labels[[m]]]] <- fmt_s(w[[paste0("time_warm.", m)]])
+  cols <- row_best(as.matrix(w[paste0("time_warm.", methods)]), fmt_s)
+  for (j in seq_along(methods)) out[[method_labels[[methods[j]]]]] <- cols[[j]]
   out
 }
 knitr::kable(mk("sfh", c("fastsae", "sae", "emdi")), row.names = FALSE, align = "rrrr",
-             caption = "Spatial Fay-Herriot: REML fit and analytical MSE (warm time)")
+             caption = "Spatial Fay-Herriot: REML fit and analytical MSE (warm time; shaded: fastest)")
 knitr::kable(mk("beta", c("inla", "jax", "metal", "tipsae")), row.names = FALSE, align = "rrrrr",
-             caption = "Spatial Beta (warm time)")
+             caption = "Spatial Beta (warm time; shaded: fastest)")
 ```
 
 ```{r speed-plot, fig.width = 4.6, fig.height = 4.2, fig.show = "hold", out.width = "49%"}
@@ -512,13 +549,14 @@ x <- sp[sp$model == "beta" & sp$method %in% c("jax", "metal", "tipsae"), ]
 w <- reshape(transform(x, tpe = time_warm / ess_min)[, c("method", "D", "tpe")], idvar = "D",
              timevar = "method", direction = "wide")
 w <- w[order(w$D), ]
+cols <- row_best(as.matrix(w[c("tpe.jax", "tpe.metal", "tpe.tipsae")]), function(v) sprintf("%.3f s", v))
 knitr::kable(data.frame(
   D = format(w$D, big.mark = ","),
-  `NumPyro (CPU)` = sprintf("%.3f s", w$tpe.jax),
-  `NumPyro (Apple GPU)` = sprintf("%.3f s", w$tpe.metal),
-  tipsae = sprintf("%.3f s", w$tpe.tipsae),
+  `NumPyro (CPU)` = cols[[1]],
+  `NumPyro (Apple GPU)` = cols[[2]],
+  tipsae = cols[[3]],
   check.names = FALSE
-), row.names = FALSE, align = "rrrr")
+), row.names = FALSE, align = "rrrr", caption = "Time per effective draw (shaded: smallest)")
 ```
 
 - **Spatial Fay-Herriot:** fastsae is faster at every size, and the gap grows with $D$ (sparse
@@ -545,13 +583,14 @@ mm <- function(model, methods) {
   w <- reshape(x[, c("method", "D", "peak_increase_mb")], idvar = "D", timevar = "method", direction = "wide")
   w <- w[order(w$D), ]
   out <- data.frame(D = format(w$D, big.mark = ","))
-  for (m in methods) out[[method_labels[[m]]]] <- fmt_mb(w[[paste0("peak_increase_mb.", m)]])
+  cols <- row_best(as.matrix(w[paste0("peak_increase_mb.", methods)]), fmt_mb)
+  for (j in seq_along(methods)) out[[method_labels[[methods[j]]]]] <- cols[[j]]
   out
 }
 knitr::kable(mm("sfh", c("fastsae", "sae", "emdi")), row.names = FALSE, align = "rrrr",
-             caption = "Spatial Fay-Herriot: increase of the peak memory")
+             caption = "Spatial Fay-Herriot: increase of the peak memory (shaded: lowest measured)")
 knitr::kable(mm("beta", c("inla", "jax", "metal", "tipsae")), row.names = FALSE, align = "rrrrr",
-             caption = "Spatial Beta: increase of the peak memory")
+             caption = "Spatial Beta: increase of the peak memory (shaded: lowest measured)")
 ```
 
 - **Spatial Fay-Herriot:** fastsae needs less memory than `sae` and `emdi` at $D = 500$ and

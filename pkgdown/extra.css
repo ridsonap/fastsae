@@ -118,3 +118,16 @@ img.logo {
   margin-bottom: 2rem !important;
   opacity: 0.15 !important;
 }
+
+/* Best method in the tables of the evaluation article (span.sae-best in a cell).
+   Bootstrap paints cells with an inset box-shadow, so its variables are set too. */
+td:has(.sae-best) {
+  --bs-table-bg-state: rgba(29, 106, 92, 0.16);
+  --bs-table-accent-bg: rgba(29, 106, 92, 0.16);
+  background-color: rgba(29, 106, 92, 0.16);
+}
+[data-bs-theme="dark"] td:has(.sae-best) {
+  --bs-table-bg-state: rgba(72, 190, 160, 0.24);
+  --bs-table-accent-bg: rgba(72, 190, 160, 0.24);
+  background-color: rgba(72, 190, 160, 0.24);
+}
