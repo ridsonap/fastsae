@@ -153,6 +153,19 @@ relative to fastsae 0.1.0 on CRAN.
   approximation of the latent field at INLA’s configurations,
   `inla_engine(draws = 2000)` by default). Missing or negative weights
   give a warning.
+- Binomial models of
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+  and
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
+  take survey-weighted proportions with effective sample sizes
+  $`n^* = n/\mathrm{deff}`$ in `trials` (the binomial/logit-normal model
+  of Chen, Wakefield and Lumley, 2014, and Franco and Bell, 2015):
+  proportions become the effective numbers of cases $`n^* \hat p`$,
+  which are not rounded, and direct estimates of 0 stay sampling zeros.
+  Non-integer cases or trials use INLA’s `"xbinomial"` likelihood (equal
+  to the binomial one on whole numbers, which keep `"binomial"`);
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  accepts them too. A response outside $`[0, n]`$ is an error.
 - Estimation engines:
   [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   (default) and

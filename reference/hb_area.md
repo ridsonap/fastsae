@@ -88,7 +88,18 @@ hb_area(
     half-normal(sd y) prior on its SD; it is then only weakly identified
     against the area effect.
 
-  - `"binomial"`: Binary / proportion response. Requires `trials`.
+  - `"binomial"`: Counts or proportions. Requires `trials`. Proportions
+    (all in \[0, 1\], at least one not a whole number) are turned into
+    numbers of cases \\y_i n_i\\, without rounding. For survey-weighted
+    proportions give effective sample sizes \\n_i = n_i^{obs} /
+    \mathrm{deff}\_i\\ in `trials`: then \\y_i n_i\\ is the effective
+    number of cases and the binomial variance \\p_i(1 - p_i)/n_i\\
+    matches the design variance of the direct estimate (Chen, Wakefield
+    and Lumley 2014; Franco and Bell 2015). Direct estimates of 0 or 1
+    are kept as such. Non-integer cases or trials use INLA's
+    `"xbinomial"` likelihood, which equals the binomial one on whole
+    numbers. The design effects are not estimated by the model: the
+    intervals are only as good as the effective sample sizes.
 
   - `"poisson"`: Count response / disease rate. Supports `exposure`.
 
@@ -107,9 +118,10 @@ hb_area(
     fit with the precision at the direct estimate \\y_i\\ (Janicki
     2020), so the model is fitted twice. If `trials` is provided
     instead, the precision is \\n_i - 1\\ (simple random sampling; give
-    effective sample sizes for complex designs); with both, `trials` is
-    ignored (a warning). Without either, one precision is estimated,
-    which is weakly identified against the area effect.
+    effective sample sizes for complex designs, which gives the
+    beta-logistic model of Liu, Lahiri and Kalton 2014); with both,
+    `trials` is ignored (a warning). Without either, one precision is
+    estimated, which is weakly identified against the area effect.
 
   - `"gamma"`: Skewed positive continuous response. If `vardir` is
     provided, the precision of each area is scaled as \\y_i^2 / V_i\\;
@@ -241,7 +253,8 @@ hb_area(
 - trials:
 
   Vector, column name, or formula specifying sample sizes / total trials
-  per area (for `family = "binomial"`).
+  per area (for `family = "binomial"`); effective sample sizes (sample
+  size divided by the design effect) need not be whole numbers.
 
 - exposure:
 
@@ -473,37 +486,49 @@ repository (`benchmarks/validation`).
 6.  Wang, J., Fuller, W. A., and Qu, Y. (2008). Small area estimation
     under a restriction. *Survey Methodology*, 34(1), 29-36.
 
-7.  Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An
+7.  Chen, C., Wakefield, J., and Lumley, T. (2014). The use of sampling
+    weights in Bayesian hierarchical models for small area estimation.
+    *Spatial and Spatio-temporal Epidemiology*, 11, 33-43.
+
+8.  Liu, B., Lahiri, P., and Kalton, G. (2014). Hierarchical Bayes
+    modeling of survey-weighted small area proportions. *Survey
+    Methodology*, 40(1), 1-13.
+
+9.  Franco, C., and Bell, W. R. (2015). Borrowing information over time
+    in binomial/logit normal models for small area estimation.
+    *Statistics in Transition new series*, 16(4), 563-584.
+
+10. Riebler, A., Sørbye, S. H., Simpson, D., and Rue, H. (2016). An
     intuitive Bayesian spatial model for disease mapping that accounts
     for scaling. *Statistical Methods in Medical Research*, 25(4),
     1145-1165.
 
-8.  Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area
+11. Marhuenda, Y., Molina, I., and Morales, D. (2013). Small area
     estimation with spatio-temporal Fay-Herriot models. *Computational
     Statistics & Data Analysis*, 58, 308-325.
 
-9.  De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools
+12. De Nicolò, S., and Gardini, A. (2024). The R Package tipsae: Tools
     for Mapping Proportions and Indicators on the Unit Interval.
     *Journal of Statistical Software*, 108(1), 1-36.
 
-10. Phan, D., Pradhan, N., and Jankowiak, M. (2019). Composable effects
+13. Phan, D., Pradhan, N., and Jankowiak, M. (2019). Composable effects
     for flexible and accelerated probabilistic programming in NumPyro.
     *arXiv:1912.11554*.
 
-11. Piironen, J., and Vehtari, A. (2017). Sparsity information and
+14. Piironen, J., and Vehtari, A. (2017). Sparsity information and
     regularization in the horseshoe and other shrinkage priors.
     *Electronic Journal of Statistics*, 11(2), 5018-5051.
 
-12. Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian
+15. Rue, H., Martino, S., and Chopin, N. (2009). Approximate Bayesian
     inference for latent Gaussian models by using integrated nested
     Laplace approximations. *Journal of the Royal Statistical Society:
     Series B*, 71(2), 319-392.
 
-13. Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time
+16. Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time
     variation in disease risk. *Statistics in Medicine*, 19(17-18),
     2555-2567.
 
-14. van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A
+17. van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A
     new avenue for Bayesian inference with INLA. *Computational
     Statistics & Data Analysis*, 181, 107692.
 
@@ -554,14 +579,14 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 2.880415 
+#> Random effect variance (sigma2_u): 2.880431 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7079e-05  1.5557e+00
+#> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7084e-05  1.5557e+00
 #> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02
-#> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8341e-02
-#> x3           3.3459e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5902e-02
+#> x2           5.5695e-02  6.3488e-02  8.7724e-01  3.8035e-01 -6.8341e-02
+#> x3           3.3458e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02
 #>             ci_upper
 #> (Intercept)   4.7053
 #> x1            0.0181
@@ -570,19 +595,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.608035    7.608035 0.7646543 0.5846963 10.05062 6.123794
-#> 2      2 7.599650 6.779533    6.779533 0.8360701 0.6990133 12.33227 5.161199
-#> 3      3 5.514137 5.183059    5.183059 0.8343356 0.6961160 16.09736 3.557405
-#> 4      4 3.869326 4.201226    4.201226 0.7385935 0.5455203 17.58043 2.744930
-#> 5      5 6.305063 6.322898    6.322898 0.9421047 0.8875613 14.89989 4.473098
-#> 6      6 3.926807 4.048399    4.048399 0.5872603 0.3448746 14.50599 2.894943
+#> 1      1 8.359527 7.608040    7.608040 0.7646534 0.5846948 10.05060 6.123803
+#> 2      2 7.599650 6.779538    6.779538 0.8360695 0.6990122 12.33225 5.161206
+#> 3      3 5.514137 5.183062    5.183062 0.8343360 0.6961165 16.09736 3.557407
+#> 4      4 3.869326 4.201224    4.201224 0.7385938 0.5455209 17.58045 2.744927
+#> 5      5 6.305063 6.322898    6.322898 0.9421058 0.8875634 14.89991 4.473096
+#> 6      6 3.926807 4.048398    4.048398 0.5872605 0.3448749 14.50600 2.894942
 #>   ci_upper random_effect    vardir
-#> 1 9.121602    2.93893523 0.6618838
-#> 2 8.439305    2.54244955 0.8374691
-#> 3 6.830947    0.96059519 0.8822257
-#> 4 5.642493   -1.31947659 0.6581716
-#> 5 8.172683   -0.03983681 1.2788021
-#> 6 5.198417   -0.82111006 0.3878004
+#> 1 9.121607    2.93894020 0.6618838
+#> 2 8.439311    2.54245425 0.8374691
+#> 3 6.830950    0.96059621 0.8822257
+#> 4 5.642492   -1.31947960 0.6581716
+#> 5 8.172685   -0.03983707 1.2788021
+#> 6 5.198417   -0.82111196 0.3878004
 #> ... and 36 more rows.
 #> 
 #> 
@@ -595,14 +620,14 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Self-Benchmarking: Active (benchmarked posterior draws)
-#> Random effect variance (sigma2_u): 2.880403 
+#> Random effect variance (sigma2_u): 2.88042 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7075e-05  1.5557e+00
+#> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7081e-05  1.5557e+00
 #> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02
-#> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8340e-02
-#> x3           3.3459e-02  5.9934e-02  5.5826e-01  5.7667e-01 -8.5902e-02
+#> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8341e-02
+#> x3           3.3459e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02
 #>             ci_upper
 #> (Intercept)   4.7053
 #> x1            0.0181
@@ -611,19 +636,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.548372    7.608029 0.8070425 0.6513176 10.69161 5.951108
-#> 2      2 7.599650 6.731016    6.779527 0.8590991 0.7380513 12.76329 5.021608
-#> 3      3 5.514137 5.135271    5.183057 0.8600860 0.7397478 16.74860 3.486745
-#> 4      4 3.869326 4.132266    4.201228 0.7707283 0.5940220 18.65147 2.654851
-#> 5      5 6.305063 6.332527    6.322898 0.9175365 0.8418732 14.48926 4.519024
-#> 6      6 3.926807 4.018317    4.048399 0.6820859 0.4652412 16.97442 2.718370
+#> 1      1 8.359527 7.549144    7.608034 0.8011783 0.6418866 10.61284 5.935060
+#> 2      2 7.599650 6.731270    6.779532 0.8510220 0.7242384 12.64281 5.056698
+#> 3      3 5.514137 5.138015    5.183059 0.8617977 0.7426953 16.77297 3.495006
+#> 4      4 3.869326 4.134535    4.201226 0.7670608 0.5883823 18.55253 2.671112
+#> 5      5 6.305063 6.333538    6.322898 0.9173764 0.8415795 14.48442 4.518959
+#> 6      6 3.926807 4.020352    4.048399 0.6797371 0.4620426 16.90740 2.738571
 #>   ci_upper random_effect    vardir hb_unbenchmarked
-#> 1 9.125688    2.93892984 0.6618838         7.608029
-#> 2 8.355217    2.54244451 0.8374691         6.779527
-#> 3 6.890301    0.96059401 0.8822257         5.183057
-#> 4 5.626314   -1.31947342 0.6581716         4.201228
-#> 5 8.100546   -0.03983654 1.2788021         6.322898
-#> 6 5.352771   -0.82110801 0.3878004         4.048399
+#> 1 9.125855    2.93893427 0.6618838         7.608034
+#> 2 8.350112    2.54244869 0.8374691         6.779532
+#> 3 6.892465    0.96059477 0.8822257         5.183059
+#> 4 5.617999   -1.31947623 0.6581716         4.201226
+#> 5 8.093983   -0.03983683 1.2788021         6.322898
+#> 6 5.352782   -0.82110982 0.3878004         4.048399
 #> ... and 36 more rows.
 #> 
 #> 
@@ -636,37 +661,37 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (BYM2)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 3.010429 
-#> Spatial autocorrelation (rho): 0.1572 
-#> Spatial mixing fraction (phi): 0.1572 
+#> Random effect variance (sigma2_u): 3.010148 
+#> Spatial autocorrelation (rho): 0.1573 
+#> Spatial mixing fraction (phi): 0.1573 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.08434692  0.79815328  3.86435411  0.00011138  1.52790422
-#> x1          -0.00111539  0.01041857 -0.10705790  0.91474304 -0.02191360
-#> x2           0.05038523  0.06423429  0.78439776  0.43280675 -0.07545596
-#> x3           0.03823958  0.06057243  0.63130339  0.52784217 -0.08214325
+#> (Intercept)  3.08481438  0.79903746  3.86066301  0.00011308  1.52667823
+#> x1          -0.00112306  0.01042974 -0.10767870  0.91425057 -0.02194621
+#> x2           0.05042799  0.06429338  0.78434192  0.43283951 -0.07552550
+#> x3           0.03819688  0.06062722  0.63002848  0.52867595 -0.08230634
 #>             ci_upper
-#> (Intercept)   4.6780
+#> (Intercept)   4.6804
 #> x1            0.0193
-#> x2            0.1780
-#> x3            0.1567
+#> x2            0.1781
+#> x3            0.1568
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.577604    7.577604 0.7693024 0.5918261 10.15232 6.082914
-#> 2      2 7.599650 6.775951    6.775951 0.8380189 0.7022758 12.36755 5.152587
-#> 3      3 5.514137 5.157669    5.157669 0.8350444 0.6972992 16.19035 3.531163
-#> 4      4 3.869326 4.202498    4.202498 0.7374585 0.5438450 17.54810 2.748485
-#> 5      5 6.305063 6.286798    6.286798 0.9467369 0.8963107 15.05913 4.428992
-#> 6      6 3.926807 4.070947    4.070947 0.5896202 0.3476520 14.48361 2.912898
+#> 1      1 8.359527 7.578804    7.578804 0.7695606 0.5922236 10.15412 6.083663
+#> 2      2 7.599650 6.777156    6.777156 0.8383388 0.7028120 12.37007 5.153248
+#> 3      3 5.514137 5.158459    5.158459 0.8352005 0.6975599 16.19089 3.531671
+#> 4      4 3.869326 4.201996    4.201996 0.7376020 0.5440567 17.55361 2.747666
+#> 5      5 6.305063 6.286978    6.286978 0.9469822 0.8967753 15.06260 4.428673
+#> 6      6 3.926807 4.070629    4.070629 0.5896574 0.3476959 14.48566 2.912495
 #>   ci_upper random_effect    vardir
-#> 1 9.098934     2.8871788 0.6618838
-#> 2 8.438338     2.5399614 0.8374691
-#> 3 6.807346     0.9885069 0.8822257
-#> 4 5.641594    -1.2738026 0.6581716
-#> 5 8.146448    -0.0669407 1.2788021
-#> 6 5.225583    -0.7499356 0.3878004
+#> 1 9.100703    2.88843548 0.6618838
+#> 2 8.440255    2.54099770 0.8374691
+#> 3 6.808475    0.98866859 0.8822257
+#> 4 5.641341   -1.27478365 0.6581716
+#> 5 8.147116   -0.06687522 1.2788021
+#> 6 5.225327   -0.75079785 0.3878004
 #> ... and 36 more rows.
 #> 
 

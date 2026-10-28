@@ -67,8 +67,15 @@ hb_twofold(
   - `"gaussian"`: Continuous response with known sampling variance
     (default).
 
-  - `"binomial"`: Binary / count proportion with sample sizes specified
-    by `trials`.
+  - `"binomial"`: Counts or proportions with sample sizes specified by
+    `trials`. Proportions (all in \[0, 1\], at least one not a whole
+    number) become numbers of cases \\y\_{ij} n\_{ij}\\, without
+    rounding. For survey-weighted proportions give effective sample
+    sizes (sample size divided by the design effect) in `trials`;
+    \\y\_{ij} n\_{ij}\\ is then the effective number of cases (Chen,
+    Wakefield and Lumley 2014; Franco and Bell 2015). Direct estimates
+    of 0 or 1 are kept as such. See
+    [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md).
 
   - `"poisson"`: Count response with expected exposures specified by
     `exposure`.
@@ -105,7 +112,8 @@ hb_twofold(
 - trials:
 
   Optional character string or vector specifying total number of trials
-  per sub-area. Required when `family = "binomial"`.
+  per sub-area, or effective sample sizes, which need not be whole
+  numbers. Required when `family = "binomial"`.
 
 - exposure:
 
@@ -289,7 +297,15 @@ regularized horseshoe prior on the coefficients.
 2.  Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd
     ed.). John Wiley & Sons.
 
-3.  Riebler, A., Sørbye, S. H., Simpson, D., & Rue, H. (2016). An
+3.  Chen, C., Wakefield, J., & Lumley, T. (2014). The use of sampling
+    weights in Bayesian hierarchical models for small area estimation.
+    *Spatial and Spatio-temporal Epidemiology*, 11, 33-43.
+
+4.  Franco, C., & Bell, W. R. (2015). Borrowing information over time in
+    binomial/logit normal models for small area estimation. *Statistics
+    in Transition new series*, 16(4), 563-584.
+
+5.  Riebler, A., Sørbye, S. H., Simpson, D., & Rue, H. (2016). An
     intuitive Bayesian spatial model for disease mapping that accounts
     for scaling. *Statistical Methods in Medical Research*, 25(4),
     1145-1165.
