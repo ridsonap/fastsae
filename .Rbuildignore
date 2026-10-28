@@ -42,3 +42,4 @@
 ^\.git$
 ^vignettes/articles$
 ^data-raw$
+^\.playwright-mcp$
