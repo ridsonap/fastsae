@@ -1,15 +1,14 @@
 ## Test environments
-All on the submitted version (2026-10-28):
+All on the submitted version (2026-10-29):
 
 * local macOS 26.6.2 (aarch64), R 4.6.1, `--as-cran`
 * win-builder: Windows, R-devel and R-release
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release, oldrel-1)
 * GitHub Actions, CRAN-like: Ubuntu (release), `--as-cran`, without the non-CRAN package 'INLA'
 
-The local check also reports two NOTEs that come from the local machine, not from the
-package: the HTML manual could not be validated (old 'tidy', no 'V8'), and an example of
-`diagnose()` that runs only when 'INLA' is installed spends its elapsed time in the external
-INLA program. Neither appears on win-builder.
+The local check also reports a NOTE that comes from the local machine, not from the
+package: the HTML manual could not be validated (old 'tidy', no 'V8'). It does not appear on
+win-builder.
 
 ## R CMD check results
 
@@ -56,6 +55,8 @@ their estimation error. Details are in NEWS.md.
 * Updated package title to "High-Performance Frequentist and Bayesian Small Area Estimation" to reflect the inclusion of both Frequentist and Bayesian methods.
 * Added Hierarchical Bayes Small Area Estimation models via INLA (`hb_area`, `hb_unit`, `hb_twofold`), with engine objects `inla_engine()` and `jax_engine()` (optional MCMC backend in Python).
 * Added Two-Fold subarea EBLUP models (`eblup_twofold`).
+* The binomial HB models take survey-weighted proportions with effective sample sizes
+  (sample size / design effect), which need not be whole numbers.
 * Added model benchmarking (`benchmark_sae`), diagnostics (`diagnose`), comparison (`compare_sae`), mapping (`map_sae`), and export (`export_sae`).
 * `eblup_stfh()` now predicts unsampled domains and missing periods (NA responses)
   instead of requiring a complete panel.
