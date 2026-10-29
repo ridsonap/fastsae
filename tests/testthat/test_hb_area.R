@@ -759,7 +759,10 @@ test_that("hb_area binomial with integer counts keeps INLA's binomial likelihood
   fit_p <- suppressMessages(hb_area(p ~ x, data = d, domain = "area", family = "binomial", trials = "n", print_result = FALSE))
   expect_identical(fit_p$fit$.args$family, "binomial")
   expect_equal(fit_p$df_hb$y, d$cnt)
-  expect_equal(fit_p$df_hb$hb, fit$df_hb$hb, tolerance = 1e-5)
+  expect_identical(fit_p$fit$.args$Ntrials, fit$fit$.args$Ntrials)
+  # INLA's compact mode varies slightly between identical calls (relative differences
+  # up to 3e-5 on GitHub Actions), so the estimates are compared loosely
+  expect_equal(fit_p$df_hb$hb, fit$df_hb$hb, tolerance = 1e-3)
 })
 
 test_that("hb_area binomial checks the number of cases against trials", {
