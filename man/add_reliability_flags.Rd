@@ -64,5 +64,6 @@ df_flagged <- add_reliability_flags(fit_fh)
 table(df_flagged$reliability)
 
 # classes of the estimate and their probabilities
-head(add_reliability_flags(fit_fh, classes = c(5, 7, 9))[, c("eblup", "rse", "est_class", "p_class")])
+df_class <- add_reliability_flags(fit_fh, classes = c(5, 7, 9))
+head(df_class[, c("eblup", "rse", "est_class", "p_class")])
 }
