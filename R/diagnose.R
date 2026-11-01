@@ -12,6 +12,15 @@
 #' @param truth Optional numeric vector containing true parameter values \eqn{\theta_d} (useful for simulation studies).
 #' @param rse_threshold Numeric. Threshold for reliable Relative Standard Error (default is 25\%).
 #' @param alpha_level Numeric. Significance level for hypothesis tests (default is 0.05).
+#' @param pit_method Character. Predictive distribution of the PIT values of Bayesian fits:
+#'   \code{"mixed"} (mixed predictive, see Details; area-level INLA fits with independent area
+#'   effects and a binomial or Poisson likelihood), \code{"cpo"} (INLA's leave-one-out
+#'   \code{cpo$pit}), or \code{"auto"} (default: \code{"mixed"} where it is available,
+#'   otherwise \code{"cpo"}).
+#' @param n_draws Integer. Posterior draws for the mixed predictive (default 1000).
+#' @param seed Integer seed of the posterior draws and of the randomization of discrete PIT
+#'   values (default 1); \code{NULL} uses the session's random number stream. A seed does not
+#'   change the session's random number stream.
 #'
 #' @return An object of class \code{c("fastsae_diagnose", "list")} containing:
 #'   \describe{
@@ -22,7 +31,12 @@
 #'       \code{goodness_of_fit} (the \eqn{W} statistic with its upper-tail \eqn{\chi^2} p-value).}
 #'     \item{spatial_test}{Moran's I test for spatial autocorrelation in model residuals (if \code{W} is available).}
 #'     \item{bayesian_metrics}{For Bayesian fits: DIC, WAIC, marginal log-likelihood and, when they are
-#'       available per domain, CPO summaries and a Kolmogorov-Smirnov test of the PIT values.}
+#'       available per domain, CPO summaries and \code{pit_test}: the PIT \code{method}
+#'       (\code{"mixed"} or \code{"cpo"}), whether the values were \code{randomized}, a
+#'       Kolmogorov-Smirnov test against the uniform (\code{d_stat}, \code{p_value},
+#'       \code{is_calibrated}), the share of PIT values in the central 90\% band
+#'       \code{central90} with the range \code{central90_range} expected under a calibrated model,
+#'       and the number of domains \code{n}.}
 #'     \item{simulation_metrics}{Mean relative bias, mean absolute relative error, relative RMSE across
 #'       domains, and coverage rate (if \code{truth} is supplied).}
 #'     \item{df_diag}{Data frame combining direct estimates, SAE predictions, MSE, RSE, and residuals for diagnostics.}
@@ -43,6 +57,33 @@
 #' variation not explained by the covariates), so that test would reject correct models. Inspect
 #' the regression (and \code{autoplot(x, type = "calibration")}) for systematic deviations instead.
 #'
+#' \strong{PIT of Bayesian fits.} The probability integral transform \eqn{u_d = F_d(y_d)} of each
+#' direct estimate under its predictive distribution is uniform for a calibrated model. For a count
+#' likelihood (binomial, Poisson, negative binomial) \eqn{F_d} is a step function, and
+#' \eqn{F_d(y_d)} is not uniform even under the true model (it piles up near 1 and, with many zero
+#' counts, at \eqn{P(Y_d = 0)}); the randomized PIT \eqn{u_d = F_d(y_d - 1) + V_d\{F_d(y_d) -
+#' F_d(y_d - 1)\}}, \eqn{V_d \sim U(0, 1)}, is uniform (Czado, Gneiting and Held, 2009). INLA's
+#' \code{cpo$pit} of a count is \eqn{P(Y_d \le y_d \mid y_{-d})} and \code{cpo$cpo} is
+#' \eqn{P(Y_d = y_d \mid y_{-d})}, so \eqn{F_d(y_d - 1)} is their difference.
+#'
+#' INLA's CPO of binomial likelihoods can be far from the leave-one-out predictive when the
+#' hyperparameters are integrated over: for a correct binomial model with 300 areas, 20 trials
+#' and 68\% zero counts, INLA 26.8.7 gave a CPO of 0.03 where refitting without the area gave
+#' 0.71, with no CPO failure flagged (with \code{int.strategy = "eb"} the two agreed). Poisson
+#' and Gaussian fits agreed with refitting. Hence \code{pit_method = "auto"} uses the mixed
+#' predictive of Marshall and Spiegelhalter (2003) where it is available: for each posterior draw
+#' the area effect is replaced by a new draw from its population distribution
+#' \eqn{N(0, \sigma_v^2)} and \eqn{F_d} is the average of the likelihood CDF over the draws. This
+#' approximates leave-one-out cross-validation (the fixed effects and \eqn{\sigma_v} are not
+#' refitted, which matters little with many areas). For binomial fits with non-integer
+#' (effective) numbers of cases or trials, both are rounded for the PIT, the area with the
+#' observed proportion. With \code{"mixed"}, the column \code{cpo} of \code{df_diag} is the mixed
+#' predictive probability of the observed count.
+#'
+#' The Kolmogorov-Smirnov test rejects small departures with hundreds of domains; the share of
+#' PIT values in \eqn{[0.05, 0.95]} is easier to read: a calibrated model gives 0.90, within
+#' \code{central90_range} (the binomial 1 - \code{alpha_level} interval) for the number of domains.
+#'
 #' \strong{Moran's I} on the residuals \eqn{y_d - \hat\theta_d} of the sampled domains uses the
 #' randomisation variance of Cliff and Ord (1981), two-sided.
 #'
@@ -54,6 +95,11 @@
 #'     Statistical Agency}.
 #'   \item Rao, J. N. K., & Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.). John Wiley & Sons.
 #'   \item Cliff, A. D., & Ord, J. K. (1981). \emph{Spatial Processes: Models & Applications}. Pion London.
+#'   \item Czado, C., Gneiting, T., & Held, L. (2009). Predictive model assessment for count data.
+#'     \emph{Biometrics}, 65(4), 1254--1261. \doi{10.1111/j.1541-0420.2009.01191.x}
+#'   \item Marshall, E. C., & Spiegelhalter, D. J. (2003). Approximate cross-validatory predictive
+#'     checks in disease mapping models. \emph{Statistics in Medicine}, 22(10), 1649--1660.
+#'     \doi{10.1002/sim.1403}
 #' }
 #'
 #' @examples
@@ -78,10 +124,25 @@ diagnose <- function(object,
                      W = NULL,
                      truth = NULL,
                      rse_threshold = 25,
-                     alpha_level = 0.05) {
+                     alpha_level = 0.05,
+                     pit_method = c("auto", "mixed", "cpo"),
+                     n_draws = 1000,
+                     seed = 1L) {
   if (!inherits(object, "fastsae")) {
     cli::cli_abort("{.arg object} must be a fitted model of class {.cls fastsae}.")
   }
+  pit_method <- match.arg(pit_method)
+  if (!is.numeric(n_draws) || length(n_draws) != 1 || is.na(n_draws) || n_draws < 1) {
+    cli::cli_abort("{.arg n_draws} must be a positive integer.")
+  }
+  mixed_ok <- .mixed_pit_available(object)
+  if (pit_method == "mixed" && !mixed_ok) {
+    cli::cli_abort(c(
+      "{.code pit_method = \"mixed\"} needs an {.fn hb_area} fit by INLA with independent area effects only (no spatial or temporal effects), a binomial or Poisson likelihood, and the package {.pkg sn}.",
+      "i" = "Use {.code pit_method = \"cpo\"}."
+    ))
+  }
+  use_mixed <- pit_method == "mixed" || (pit_method == "auto" && mixed_ok)
 
   # 1. Extract data frame of estimates
   df <- .sae_table(object)
@@ -327,7 +388,14 @@ diagnose <- function(object,
     cpo_summary <- NULL
     pit_test <- NULL
 
-    if (!is.null(cpo_obj)) {
+    pit_lo <- NULL
+    failures <- 0
+    if (use_mixed) {
+      mp <- .mixed_predictive(object, n_draws, seed)
+      cpo_vec <- mp$dens
+      pit_vec <- mp$cdf
+      pit_lo <- mp$cdf_lo
+    } else if (!is.null(cpo_obj)) {
       if (!is.null(cpo_obj$cpo)) {
         cpo_raw <- cpo_obj$cpo[seq_len(min(length(cpo_obj$cpo), N_total))]
         cpo_vec[seq_along(cpo_raw)] <- cpo_raw
@@ -336,9 +404,18 @@ diagnose <- function(object,
         pit_raw <- cpo_obj$pit[seq_len(min(length(cpo_obj$pit), N_total))]
         pit_vec[seq_along(pit_raw)] <- pit_raw
       }
-
       failures <- if (!is.null(cpo_obj$failure)) sum(cpo_obj$failure > 0, na.rm = TRUE) else 0
+      # INLA's pit of a count is P(Y <= y | y_-i) and cpo is P(Y = y | y_-i)
+      if (.is_count_family(object$family)) pit_lo <- pmax(pit_vec - cpo_vec, 0)
+      if (identical(object$family, "binomial")) {
+        cli::cli_warn(c(
+          "INLA's CPO of binomial likelihoods can be far from the leave-one-out predictive; the PIT summary may be unreliable.",
+          "i" = "See the PIT section of {.help fastsae::diagnose}."
+        ))
+      }
+    }
 
+    if (use_mixed || !is.null(cpo_obj)) {
       cpo_clean <- cpo_vec[!is.na(cpo_vec)]
       cpo_summary <- list(
         mean_cpo = if (length(cpo_clean) > 0) mean(cpo_clean) else NA_real_,
@@ -346,13 +423,27 @@ diagnose <- function(object,
         failures = failures
       )
 
-      pit_clean <- pit_vec[!is.na(pit_vec) & pit_vec > 0 & pit_vec < 1]
+      randomized <- !is.null(pit_lo)
+      if (randomized) {
+        # seed + 1: the uniforms are not the stream of the posterior draws
+        pit_vec <- .with_seed(if (is.null(seed)) NULL else seed + 1L, .randomized_pit(pit_lo, pit_vec))
+        pit_clean <- pit_vec[!is.na(pit_vec)]
+      } else {
+        pit_clean <- pit_vec[!is.na(pit_vec) & pit_vec > 0 & pit_vec < 1]
+      }
       if (length(pit_clean) >= 5) {
         ks_res <- suppressWarnings(stats::ks.test(pit_clean, "punif", 0, 1))
+        n_pit <- length(pit_clean)
+        half <- stats::qnorm(1 - alpha_level / 2) * sqrt(0.9 * 0.1 / n_pit)
         pit_test <- list(
+          method = if (use_mixed) "mixed" else "cpo",
+          randomized = randomized,
           d_stat = unname(ks_res$statistic),
           p_value = ks_res$p.value,
-          is_calibrated = (ks_res$p.value >= alpha_level)
+          is_calibrated = (ks_res$p.value >= alpha_level),
+          central90 = mean(pit_clean >= 0.05 & pit_clean <= 0.95),
+          central90_range = c(0.9 - half, 0.9 + half),
+          n = n_pit
         )
       }
     }
@@ -396,7 +487,7 @@ diagnose <- function(object,
     is_sampled = sampled_mask,
     stringsAsFactors = FALSE
   )
-  if (!is.null(cpo_obj)) {
+  if (use_mixed || !is.null(cpo_obj)) {
     df_diag$cpo <- cpo_vec
     df_diag$pit <- pit_vec
   }
@@ -524,6 +615,19 @@ print.fastsae_diagnose <- function(x, ...) {
       cli::cli_alert_info("Marginal Log-Likelihood: {.val {round(bm$log_mlik, 2)}}")
     }
     if (!is.null(bm$pit_test)) {
+      pt <- bm$pit_test
+      lbl <- paste0(
+        if (identical(pt$method, "mixed")) "mixed predictive" else "INLA CPO",
+        if (isTRUE(pt$randomized)) ", randomized" else ""
+      )
+      rng <- if (!is.null(pt$central90_range)) round(pt$central90_range, 3)
+      if (is.null(pt$central90)) {
+        # objects from fastsae <= 1.0.0 have no central90
+      } else if (pt$central90 >= pt$central90_range[1] && pt$central90 <= pt$central90_range[2]) {
+        cli::cli_alert_success("PIT ({lbl}) in the central 90% band: {.strong {round(100 * pt$central90, 1)}%} of {pt$n} domains (expected {100 * rng[1]}-{100 * rng[2]}%)")
+      } else {
+        cli::cli_alert_warning("PIT ({lbl}) in the central 90% band: {.strong {round(100 * pt$central90, 1)}%} of {pt$n} domains (expected {100 * rng[1]}-{100 * rng[2]}%; below: predictive too narrow, above: too wide)")
+      }
       if (bm$pit_test$is_calibrated) {
         cli::cli_alert_success("PIT Calibration Test vs Uniform(0,1): D = {.val {round(bm$pit_test$d_stat, 3)}}, p-value = {.val {round(bm$pit_test$p_value, 4)}} [Well-calibrated predictive distribution]")
       } else {
@@ -551,4 +655,77 @@ print.fastsae_diagnose <- function(x, ...) {
   cli::cli_rule()
 
   invisible(x)
+}
+
+#' Can diagnose() compute the mixed predictive PIT of this fit?
+#'
+#' Area-level INLA fits whose only random effect is the iid area effect, with a
+#' binomial or Poisson likelihood; inla.posterior.sample() needs 'sn'.
+#' @noRd
+.mixed_pit_available <- function(object) {
+  fit <- object$fit
+  inherits(object, "fastsae_hb_area") && inherits(fit, "inla") &&
+    isTRUE(object$family %in% c("binomial", "poisson")) &&
+    identical(object$spatial, "none") && identical(object$temporal, "none") &&
+    identical(names(fit$summary.random), "..domain_id..") &&
+    isTRUE(fit$.args$control.compute$config) && .has_sn()
+}
+
+#' Count likelihoods, whose PIT needs randomizing
+#' @noRd
+.is_count_family <- function(family) isTRUE(family %in% c("binomial", "poisson", "nbinomial"))
+
+#' Randomized PIT of a count from its predictive CDF below and at the count
+#'
+#' u = F(y - 1) + V (F(y) - F(y - 1)), V ~ U(0, 1) (Czado, Gneiting and Held, 2009).
+#' @noRd
+.randomized_pit <- function(cdf_lo, cdf) {
+  u <- cdf_lo + stats::runif(length(cdf)) * (cdf - cdf_lo)
+  u[is.na(cdf)] <- NA_real_
+  u
+}
+
+#' Mixed predictive of the counts of an area-level INLA fit with iid area effects
+#'
+#' Marshall and Spiegelhalter (2003): in each posterior draw the area effect v_d
+#' is replaced by a new draw from N(0, sigma_v^2), so the observation of area d
+#' does not inform its own predictive (approximate cross-validation). Returns the
+#' predictive probability of the observed count (dens) and the predictive CDF at
+#' it (cdf) and below it (cdf_lo), NA for unsampled areas. Non-integer binomial
+#' cases and trials (effective sample sizes) are rounded.
+#' @noRd
+.mixed_predictive <- function(object, n_draws, seed) {
+  fit <- object$fit
+  args <- fit$.args
+  y <- args$data[[all.vars(args$formula)[1]]]
+  did <- args$data$..domain_id..
+  n <- length(y)
+  .with_seed(seed, {
+    smp <- .inla_draws(fit, n_draws, if (is.null(seed)) 0L else seed)
+    rn <- rownames(smp[[1]]$latent)
+    pred_rows <- grep("^Predictor:", rn)[seq_len(n)]
+    v_rows <- grep("^\\.\\.domain_id\\.\\.:", rn)
+    eta <- vapply(smp, function(s) s$latent[pred_rows, 1], numeric(n))
+    v <- vapply(smp, function(s) s$latent[v_rows, 1], numeric(length(v_rows)))[did, , drop = FALSE]
+    tau <- vapply(smp, function(s) s$hyperpar[["Precision for ..domain_id.."]], numeric(1))
+    v_new <- matrix(stats::rnorm(n * n_draws), n) * rep(1 / sqrt(tau), each = n)
+  })
+  mu <- .inla_inv_link(eta - v + v_new, object$family, object$link)
+  if (object$family == "binomial") {
+    size <- pmax(round(args$Ntrials), 1)
+    yc <- pmin(round(y), size)
+    cdf <- rowMeans(stats::pbinom(yc, size, mu))
+    cdf_lo <- rowMeans(stats::pbinom(yc - 1, size, mu))
+    dens <- rowMeans(stats::dbinom(yc, size, mu))
+  } else {
+    lambda <- mu * (if (is.null(args$E)) 1 else args$E)
+    cdf <- rowMeans(stats::ppois(y, lambda))
+    cdf_lo <- rowMeans(stats::ppois(y - 1, lambda))
+    dens <- rowMeans(stats::dpois(y, lambda))
+  }
+  miss <- is.na(y)
+  cdf[miss] <- NA_real_
+  cdf_lo[miss] <- NA_real_
+  dens[miss] <- NA_real_
+  list(dens = dens, cdf = cdf, cdf_lo = cdf_lo)
 }

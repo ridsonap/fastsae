@@ -9,7 +9,10 @@ diagnose(
   W = NULL,
   truth = NULL,
   rse_threshold = 25,
-  alpha_level = 0.05
+  alpha_level = 0.05,
+  pit_method = c("auto", "mixed", "cpo"),
+  n_draws = 1000,
+  seed = 1L
 )
 }
 \arguments{
@@ -25,6 +28,18 @@ it is automatically extracted from \code{object}.}
 \item{rse_threshold}{Numeric. Threshold for reliable Relative Standard Error (default is 25\%).}
 
 \item{alpha_level}{Numeric. Significance level for hypothesis tests (default is 0.05).}
+
+\item{pit_method}{Character. Predictive distribution of the PIT values of Bayesian fits:
+\code{"mixed"} (mixed predictive, see Details; area-level INLA fits with independent area
+effects and a binomial or Poisson likelihood), \code{"cpo"} (INLA's leave-one-out
+\code{cpo$pit}), or \code{"auto"} (default: \code{"mixed"} where it is available,
+otherwise \code{"cpo"}).}
+
+\item{n_draws}{Integer. Posterior draws for the mixed predictive (default 1000).}
+
+\item{seed}{Integer seed of the posterior draws and of the randomization of discrete PIT
+values (default 1); \code{NULL} uses the session's random number stream. A seed does not
+change the session's random number stream.}
 }
 \value{
 An object of class \code{c("fastsae_diagnose", "list")} containing:
@@ -36,7 +51,12 @@ An object of class \code{c("fastsae_diagnose", "list")} containing:
       \code{goodness_of_fit} (the \eqn{W} statistic with its upper-tail \eqn{\chi^2} p-value).}
     \item{spatial_test}{Moran's I test for spatial autocorrelation in model residuals (if \code{W} is available).}
     \item{bayesian_metrics}{For Bayesian fits: DIC, WAIC, marginal log-likelihood and, when they are
-      available per domain, CPO summaries and a Kolmogorov-Smirnov test of the PIT values.}
+      available per domain, CPO summaries and \code{pit_test}: the PIT \code{method}
+      (\code{"mixed"} or \code{"cpo"}), whether the values were \code{randomized}, a
+      Kolmogorov-Smirnov test against the uniform (\code{d_stat}, \code{p_value},
+      \code{is_calibrated}), the share of PIT values in the central 90\% band
+      \code{central90} with the range \code{central90_range} expected under a calibrated model,
+      and the number of domains \code{n}.}
     \item{simulation_metrics}{Mean relative bias, mean absolute relative error, relative RMSE across
       domains, and coverage rate (if \code{truth} is supplied).}
     \item{df_diag}{Data frame combining direct estimates, SAE predictions, MSE, RSE, and residuals for diagnostics.}
@@ -62,6 +82,33 @@ without a formal test of \eqn{\alpha = 0, \beta = 1}: for shrinkage estimators s
 the slope exceeds 1 even when the model is correct (about \eqn{1/\gamma_d} for the part of the
 variation not explained by the covariates), so that test would reject correct models. Inspect
 the regression (and \code{autoplot(x, type = "calibration")}) for systematic deviations instead.
+
+\strong{PIT of Bayesian fits.} The probability integral transform \eqn{u_d = F_d(y_d)} of each
+direct estimate under its predictive distribution is uniform for a calibrated model. For a count
+likelihood (binomial, Poisson, negative binomial) \eqn{F_d} is a step function, and
+\eqn{F_d(y_d)} is not uniform even under the true model (it piles up near 1 and, with many zero
+counts, at \eqn{P(Y_d = 0)}); the randomized PIT \eqn{u_d = F_d(y_d - 1) + V_d\{F_d(y_d) -
+F_d(y_d - 1)\}}, \eqn{V_d \sim U(0, 1)}, is uniform (Czado, Gneiting and Held, 2009). INLA's
+\code{cpo$pit} of a count is \eqn{P(Y_d \le y_d \mid y_{-d})} and \code{cpo$cpo} is
+\eqn{P(Y_d = y_d \mid y_{-d})}, so \eqn{F_d(y_d - 1)} is their difference.
+
+INLA's CPO of binomial likelihoods can be far from the leave-one-out predictive when the
+hyperparameters are integrated over: for a correct binomial model with 300 areas, 20 trials
+and 68\% zero counts, INLA 26.8.7 gave a CPO of 0.03 where refitting without the area gave
+0.71, with no CPO failure flagged (with \code{int.strategy = "eb"} the two agreed). Poisson
+and Gaussian fits agreed with refitting. Hence \code{pit_method = "auto"} uses the mixed
+predictive of Marshall and Spiegelhalter (2003) where it is available: for each posterior draw
+the area effect is replaced by a new draw from its population distribution
+\eqn{N(0, \sigma_v^2)} and \eqn{F_d} is the average of the likelihood CDF over the draws. This
+approximates leave-one-out cross-validation (the fixed effects and \eqn{\sigma_v} are not
+refitted, which matters little with many areas). For binomial fits with non-integer
+(effective) numbers of cases or trials, both are rounded for the PIT, the area with the
+observed proportion. With \code{"mixed"}, the column \code{cpo} of \code{df_diag} is the mixed
+predictive probability of the observed count.
+
+The Kolmogorov-Smirnov test rejects small departures with hundreds of domains; the share of
+PIT values in \eqn{[0.05, 0.95]} is easier to read: a calibrated model gives 0.90, within
+\code{central90_range} (the binomial 1 - \code{alpha_level} interval) for the number of domains.
 
 \strong{Moran's I} on the residuals \eqn{y_d - \hat\theta_d} of the sampled domains uses the
 randomisation variance of Cliff and Ord (1981), two-sided.
@@ -92,5 +139,10 @@ if (requireNamespace("INLA", quietly = TRUE)) {
     Statistical Agency}.
   \item Rao, J. N. K., & Molina, I. (2015). \emph{Small Area Estimation} (2nd ed.). John Wiley & Sons.
   \item Cliff, A. D., & Ord, J. K. (1981). \emph{Spatial Processes: Models & Applications}. Pion London.
+  \item Czado, C., Gneiting, T., & Held, L. (2009). Predictive model assessment for count data.
+    \emph{Biometrics}, 65(4), 1254--1261. \doi{10.1111/j.1541-0420.2009.01191.x}
+  \item Marshall, E. C., & Spiegelhalter, D. J. (2003). Approximate cross-validatory predictive
+    checks in disease mapping models. \emph{Statistics in Medicine}, 22(10), 1649--1660.
+    \doi{10.1002/sim.1403}
 }
 }
