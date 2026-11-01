@@ -222,10 +222,13 @@ If the classical (sae-compatible) Fisher scoring fails, or converges to
 a negative \\\sigma^2\\ (which
 [`sae::eblupSFH`](https://rdrr.io/pkg/sae/man/eblupSFH.html) truncates
 to 0 without re-estimating \\\rho\\), the (RE)ML likelihood is maximised
-under the constraints \\\sigma^2 \ge 0\\, \\\|\rho\| \le 0.999\\. A
-lower-bound estimate \\\rho = -0.999\\ is reported as \\-1\\ (as `sae`)
-only when \\I + W\\ is non-singular (not for bipartite graphs such as a
-rook grid).
+under the constraints \\\sigma^2 \ge 0\\, \\\|\rho\| \le 0.999\\. At
+\\\sigma^2 = 0\\, \\\rho\\ is unidentified, so a fit ending there is
+accepted only if the score of \\\sigma^2\\ at 0 is not positive on a
+grid of \\\rho\\ (step 0.05); otherwise the maximisation is restarted
+from the \\\rho\\ with the largest score. A lower-bound estimate \\\rho
+= -0.999\\ is reported as \\-1\\ (as `sae`) only when \\I + W\\ is
+non-singular (not for bipartite graphs such as a rook grid).
 
 Computation. No \\D \times D\\ inverse is formed: with \\A = (I - \rho
 W')(I - \rho W)\\ and \\M = A + \sigma^2 E'\Psi^{-1}E\\ (\\E\\ selects

@@ -109,7 +109,10 @@ eblup_stfh(
   covariance matrix becomes indefinite) it falls back to constrained
   REML (variances \\\ge 0\\, \\\|\rho\| \le 0.999\\) with step halving.
   When a variance is estimated at 0, its autocorrelation is not
-  identified and its standard error is reported as `NA`.
+  identified and its standard error is reported as `NA`. Such a fit is
+  accepted only if the score of that variance at 0 is not positive on a
+  grid of its autocorrelation (step 0.05); otherwise the constrained
+  REML is restarted from the autocorrelation with the largest score.
 
 - mse_type:
 
@@ -318,33 +321,33 @@ m1 <- eblup_stfh(
 #> eblup_stfh(formula = y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_panel,
 #> domain = ~area, time = ~year, W = mys_proxmat, model = "ST")
 #> 
-#> ✔ Convergence: Yes (in 11 iterations)
+#> ✔ Convergence: Yes (in 16 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
 #> Cells without a direct estimate: 22 of 462 (predicted from the model)
 #> 
 #> Fixed Effects Coefficients:
-#>                   beta  std.error     zvalue pvalue
-#> (Intercept)  4.4442780  0.4445132  9.9980779 0.0000
-#> x1          -0.0008817  0.0060240 -0.1463646 0.8836
-#> x2           0.0254871  0.0277726  0.9177081 0.3588
-#> x3           0.0163716  0.0256365  0.6386035 0.5231
+#>                    beta   std.error      zvalue pvalue
+#> (Intercept)  4.39878365  0.44921728  9.79210703 0.0000
+#> x1          -0.00068256  0.00597669 -0.11420395 0.9091
+#> x2           0.02595246  0.02772502  0.93606644 0.3492
+#> x3           0.01695061  0.02570240  0.65949541 0.5096
 #> 
 #> EBLUP Estimates (First 6 domains):
 #>   domain time        y    eblup    vardir        mse      rse mse_pb
-#> 1      1 2016 8.260507 8.377887 0.6618838 0.07413741 3.250006     NA
-#> 2      2 2016 7.483862 7.669905 0.8374691 0.08422617 3.783847     NA
-#> 3      3 2016 5.553658 5.561797 0.8822257 0.08902309 5.364586     NA
-#> 4      4 2016 3.426513 4.008761 0.6581716 0.07340455 6.758515     NA
-#> 5      5 2016 6.457152 6.361538 1.2788021 0.12313756 5.516113     NA
-#> 6      6 2016 3.608120 4.050605 0.3878004 0.05601510 5.842956     NA
+#> 1      1 2016 8.260507 8.370100 0.6618838 0.06426212 3.028635     NA
+#> 2      2 2016 7.483862 7.668278 0.8374691 0.07652140 3.607394     NA
+#> 3      3 2016 5.553658 5.558744 0.8822257 0.08198098 5.150861     NA
+#> 4      4 2016 3.426513 4.002471 0.6581716 0.06339932 6.290920     NA
+#> 5      5 2016 6.457152 6.355127 1.2788021 0.11932960 5.435629     NA
+#> 6      6 2016 3.608120 4.045786 0.3878004 0.03765996 4.796639     NA
 #>   random_effect_u1 random_effect_u2 sampled
-#> 1        3.1977947                0    TRUE
-#> 2        2.7040777                0    TRUE
-#> 3        0.6227519                0    TRUE
-#> 4       -1.5624851                0    TRUE
-#> 5        0.4308669                0    TRUE
-#> 6       -1.2267558                0    TRUE
+#> 1        3.0684754       0.12355285    TRUE
+#> 2        2.4947222       0.22107970    TRUE
+#> 3        0.5861747       0.05692708    TRUE
+#> 4       -1.4344038      -0.13326350    TRUE
+#> 5        0.4973583      -0.09175695    TRUE
+#> 6       -1.2465177       0.02165289    TRUE
 #> ... and 456 more rows.
 #> 
 
@@ -367,43 +370,43 @@ m2 <- eblup_stfh(
 #> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =
 #> "analytical")
 #> 
-#> ✔ Convergence: Yes (in 11 iterations)
+#> ✔ Convergence: Yes (in 16 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
 #> Cells without a direct estimate: 22 of 462 (predicted from the model)
 #> 
 #> Fixed Effects Coefficients:
-#>                   beta  std.error     zvalue pvalue
-#> (Intercept)  4.4442780  0.4445132  9.9980779 0.0000
-#> x1          -0.0008817  0.0060240 -0.1463646 0.8836
-#> x2           0.0254871  0.0277726  0.9177081 0.3588
-#> x3           0.0163716  0.0256365  0.6386035 0.5231
+#>                    beta   std.error      zvalue pvalue
+#> (Intercept)  4.39878365  0.44921728  9.79210703 0.0000
+#> x1          -0.00068256  0.00597669 -0.11420395 0.9091
+#> x2           0.02595246  0.02772502  0.93606644 0.3492
+#> x3           0.01695061  0.02570240  0.65949541 0.5096
 #> 
 #> EBLUP Estimates (First 6 domains):
 #>   domain time        y    eblup    vardir        mse      rse mse_pb
-#> 1      1 2016 8.260507 8.377887 0.6618838 0.07413741 3.250006     NA
-#> 2      2 2016 7.483862 7.669905 0.8374691 0.08422617 3.783847     NA
-#> 3      3 2016 5.553658 5.561797 0.8822257 0.08902309 5.364586     NA
-#> 4      4 2016 3.426513 4.008761 0.6581716 0.07340455 6.758515     NA
-#> 5      5 2016 6.457152 6.361538 1.2788021 0.12313756 5.516113     NA
-#> 6      6 2016 3.608120 4.050605 0.3878004 0.05601510 5.842956     NA
+#> 1      1 2016 8.260507 8.370100 0.6618838 0.06426212 3.028635     NA
+#> 2      2 2016 7.483862 7.668278 0.8374691 0.07652140 3.607394     NA
+#> 3      3 2016 5.553658 5.558744 0.8822257 0.08198098 5.150861     NA
+#> 4      4 2016 3.426513 4.002471 0.6581716 0.06339932 6.290920     NA
+#> 5      5 2016 6.457152 6.355127 1.2788021 0.11932960 5.435629     NA
+#> 6      6 2016 3.608120 4.045786 0.3878004 0.03765996 4.796639     NA
 #>   random_effect_u1 random_effect_u2 sampled
-#> 1        3.1977947                0    TRUE
-#> 2        2.7040777                0    TRUE
-#> 3        0.6227519                0    TRUE
-#> 4       -1.5624851                0    TRUE
-#> 5        0.4308669                0    TRUE
-#> 6       -1.2267558                0    TRUE
+#> 1        3.0684754       0.12355285    TRUE
+#> 2        2.4947222       0.22107970    TRUE
+#> 3        0.5861747       0.05692708    TRUE
+#> 4       -1.4344038      -0.13326350    TRUE
+#> 5        0.4973583      -0.09175695    TRUE
+#> 6       -1.2465177       0.02165289    TRUE
 #> ... and 456 more rows.
 #> 
 head(m2$df_eblup[!m2$df_eblup$sampled, ])
 #>     domain time  y    eblup vardir      mse      rse mse_pb random_effect_u1
-#> 21      21 2016 NA 6.356729     NA 2.389320 24.31664     NA         1.624999
-#> 25      25 2016 NA 3.225462     NA 2.405876 48.08889     NA        -1.771180
-#> 63      21 2017 NA 6.367907     NA 2.385248 24.25326     NA         1.624999
-#> 67      25 2017 NA 3.213502     NA 2.416602 48.37534     NA        -1.771180
-#> 105     21 2018 NA 6.361026     NA 2.389905 24.30319     NA         1.624999
-#> 109     25 2018 NA 3.174470     NA 2.438947 49.19602     NA        -1.771180
+#> 21      21 2016 NA 6.137783     NA 2.626182 26.40285     NA         1.437982
+#> 25      25 2016 NA 3.369663     NA 2.557295 47.45741     NA        -1.621873
+#> 63      21 2017 NA 6.148986     NA 2.619596 26.32168     NA         1.437982
+#> 67      25 2017 NA 3.359054     NA 2.572143 47.74530     NA        -1.621873
+#> 105     21 2018 NA 6.142760     NA 2.625602 26.37855     NA         1.437982
+#> 109     25 2018 NA 3.319488     NA 2.595463 48.53291     NA        -1.621873
 #>     random_effect_u2 sampled
 #> 21                 0   FALSE
 #> 25                 0   FALSE

@@ -149,12 +149,12 @@ fit_sfh_pb <- eblup_sfh(
 
 head(fit_sfh_pb$df_eblup[, c("domain", "y", "eblup", "mse", "mse_pb", "mse_pbbc")])
 #>   domain        y    eblup       mse    mse_pb  mse_pbbc
-#> 1      1 8.359527 7.535193 0.4999462 0.5838185 0.5822064
-#> 2      2 7.599650 6.564385 0.5831410 0.7059036 0.6571795
-#> 3      3 5.514137 5.109460 0.6095214 0.7555265 0.6814817
-#> 4      4 3.869326 4.273391 0.5018535 0.5742035 0.5552008
-#> 5      5 6.305063 6.791422 0.7644430 0.7705470 0.8859110
-#> 6      6 3.926807 4.016701 0.3398919 0.3798275 0.3712704
+#> 1      1 8.359527 7.535193 0.4999462 0.5854030 0.5806763
+#> 2      2 7.599650 6.564385 0.5831410 0.7066187 0.6551951
+#> 3      3 5.514137 5.109460 0.6095214 0.7523068 0.6805248
+#> 4      4 3.869326 4.273391 0.5018535 0.5752400 0.5553161
+#> 5      5 6.305063 6.791422 0.7644430 0.7612421 0.8819870
+#> 6      6 3.926807 4.016701 0.3398919 0.3751907 0.3681698
 ```
 
 ------------------------------------------------------------------------
@@ -215,37 +215,37 @@ summary(fit_stfh)
 #> domain = ~area, time = ~year, W = mys_proxmat, model = "ST", mse_type =
 #> "analytical", print_result = FALSE)
 #> 
-#> ✔ Convergence: Yes (in 11 iterations)
+#> ✔ Convergence: Yes (in 16 iterations)
 #> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
 #> Method: REML
 #> Cells without a direct estimate: 22 of 462 (predicted from the model)
 #> 
 #> Variance & Correlation Components:
-#>    estimate  std.error
-#>   2.2066952 0.64896010
-#>  -0.9011506 0.31237444
-#>   0.0000000 0.02602554
-#>   0.7526384         NA
+#>       estimate   std.error
+#>   1.8250368492 0.790026019
+#>  -0.9990000000          NA
+#>   0.0005145706 0.001444823
+#>   0.9990000000          NA
 #> 
 #> Coefficients:
-#>                   beta  std.error     zvalue pvalue
-#> (Intercept)  4.4442780  0.4445132  9.9980779 0.0000
-#> x1          -0.0008817  0.0060240 -0.1463646 0.8836
-#> x2           0.0254871  0.0277726  0.9177081 0.3588
-#> x3           0.0163716  0.0256365  0.6386035 0.5231
+#>                    beta   std.error      zvalue pvalue
+#> (Intercept)  4.39878365  0.44921728  9.79210703 0.0000
+#> x1          -0.00068256  0.00597669 -0.11420395 0.9091
+#> x2           0.02595246  0.02772502  0.93606644 0.3492
+#> x3           0.01695061  0.02570240  0.65949541 0.5096
 #> 
 #> Goodness of Fit:
 #> loglikelihood           AIC           BIC 
-#>     -597.2647     1210.5294     1243.2236 
+#>     -597.2793     1210.5587     1243.2529 
 #> 
 #> EBLUP Summary Statistics:
 #>       mse               rse          
-#>  Min.   :0.03199   Min.   :   2.997  
-#>  1st Qu.:0.08171   1st Qu.:   5.256  
-#>  Median :0.11107   Median :   6.117  
-#>  Mean   :0.25728   Mean   :  29.722  
-#>  3rd Qu.:0.16233   3rd Qu.:   9.613  
-#>  Max.   :2.47830   Max.   :2521.153
+#>  Min.   :0.01994   Min.   :   2.912  
+#>  1st Qu.:0.07623   1st Qu.:   5.056  
+#>  Median :0.10770   Median :   5.980  
+#>  Mean   :0.26423   Mean   :  24.908  
+#>  3rd Qu.:0.16075   3rd Qu.:   9.470  
+#>  Max.   :2.63652   Max.   :2680.093
 ```
 
 The estimated variance and correlation components include: - `sigma21`:
@@ -281,17 +281,17 @@ est <- fit_stfh$df_eblup
 # Cells predicted without a direct estimate
 head(est[!est$sampled, c("domain", "time", "eblup", "mse", "rse")])
 #>     domain time    eblup      mse      rse
-#> 21      21 2016 6.356729 2.389320 24.31664
-#> 25      25 2016 3.225462 2.405876 48.08889
-#> 63      21 2017 6.367907 2.385248 24.25326
-#> 67      25 2017 3.213502 2.416602 48.37534
-#> 105     21 2018 6.361026 2.389905 24.30319
-#> 109     25 2018 3.174470 2.438947 49.19602
+#> 21      21 2016 6.137783 2.626182 26.40285
+#> 25      25 2016 3.369663 2.557295 47.45741
+#> 63      21 2017 6.148986 2.619596 26.32168
+#> 67      25 2017 3.359054 2.572143 47.74530
+#> 105     21 2018 6.142760 2.625602 26.37855
+#> 109     25 2018 3.319488 2.595463 48.53291
 
 # Their MSE is larger: no direct estimate, only borrowed strength
 tapply(est$mse, ifelse(est$sampled, "sampled", "unsampled"), median)
 #>   sampled unsampled 
-#> 0.1084668 2.4016341
+#> 0.1061676 2.6167041
 ```
 
 For these cells the analytical MSE is $`g_1 + g_2 + g_3`$ ($`g_3`$ from
