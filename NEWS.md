@@ -10,6 +10,12 @@
   larger likelihood. The result previously depended on rounding, and could differ between
   platforms.
 
+* `eblup_stfh()`: the same problem for a spatial (`sigma21`) or temporal (`sigma22`,
+  model `"ST"`) variance estimated at 0 by the constrained fallback: its autocorrelation
+  stayed where it was, although a positive variance at another autocorrelation could have
+  a larger REML likelihood. The same grid check and restart are applied, also in the
+  bootstrap replicates.
+
 # fastsae 1.0.0
 
 fastsae 1.0.0 adds hierarchical Bayes (HB) models, the two-fold sub-area model and

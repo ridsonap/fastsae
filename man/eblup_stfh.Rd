@@ -76,7 +76,10 @@ The REML fit first uses the same Fisher-scoring iteration as \code{sae::eblupSTF
 if that fails (typically a variance iterate turns negative and the covariance matrix
 becomes indefinite) it falls back to constrained REML (variances \eqn{\ge 0},
 \eqn{|\rho| \le 0.999}) with step halving. When a variance is estimated at 0, its
-autocorrelation is not identified and its standard error is reported as \code{NA}.}
+autocorrelation is not identified and its standard error is reported as \code{NA}.
+Such a fit is accepted only if the score of that variance at 0 is not positive on a
+grid of its autocorrelation (step 0.05); otherwise the constrained REML is restarted
+from the autocorrelation with the largest score.}
 
 \item{mse_type}{character, method for MSE estimation: \code{"analytical"} (default; fast
 Prasad-Rao type estimator g1 + g2 + 2 g3 - g4; g3 uses
