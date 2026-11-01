@@ -151,7 +151,10 @@ MSE differs from \code{sae::mseSFH}, which keeps those terms.
 If the classical (sae-compatible) Fisher scoring fails, or converges to a negative
 \eqn{\sigma^2} (which \code{sae::eblupSFH} truncates to 0 without re-estimating
 \eqn{\rho}), the (RE)ML likelihood is maximised under the constraints
-\eqn{\sigma^2 \ge 0}, \eqn{|\rho| \le 0.999}. A lower-bound estimate
+\eqn{\sigma^2 \ge 0}, \eqn{|\rho| \le 0.999}. At \eqn{\sigma^2 = 0}, \eqn{\rho} is
+unidentified, so a fit ending there is accepted only if the score of \eqn{\sigma^2} at
+0 is not positive on a grid of \eqn{\rho} (step 0.05); otherwise the maximisation is
+restarted from the \eqn{\rho} with the largest score. A lower-bound estimate
 \eqn{\rho = -0.999} is reported as \eqn{-1} (as \code{sae}) only when \eqn{I + W} is
 non-singular (not for bipartite graphs such as a rook grid).
 

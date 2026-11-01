@@ -323,6 +323,46 @@ static SfhFitRes sfh_fit(SarEngine& S, const mat& X, const vec& y, const vec& ps
     out.rho = th(1);
   }
   if (out.s2 < 0.0) out.s2 = 0.0;
+
+  // sigma2 = 0 leaves rho unidentified, so the iterations stop at whatever rho
+  // they had when sigma2 reached 0. That point is a constrained maximum only if
+  // the sigma2 score at sigma2 = 0 is not positive for any rho. Otherwise,
+  // restart from the rho with the largest standardized score and keep the
+  // restart when it converges to a larger likelihood.
+  if (out.s2 == 0.0) {
+    double zbest = 10.0 * precision, ll0 = 0.0;
+    vec thbest, Sc0;
+    mat F0;
+    bool have_ll0 = false;
+    for (int i = 0; i <= 40; ++i) {
+      vec t0(2);
+      t0(0) = 0.0;
+      t0(1) = std::min(std::max(-0.999 + 0.05 * i, -0.999), 0.999);
+      double lli;
+      if (!sfh_eval(S, t0, X, y, psi, isML, true, lli, Sc0, F0) || !(F0(0, 0) > 0.0)) continue;
+      if (!have_ll0) {
+        ll0 = lli;
+        have_ll0 = true;
+      }
+      const double z = Sc0(0) / std::sqrt(F0(0, 0));
+      if (z > zbest) {
+        zbest = z;
+        thbest = t0;
+        thbest(0) = Sc0(0) / F0(0, 0);
+      }
+    }
+    if (have_ll0 && thbest.n_elem == 2) {
+      int it2 = 0;
+      double ll1;
+      if (sfh_fit_safeguarded(S, X, y, psi, isML, maxiter, precision, thbest, it2) &&
+          sfh_eval(S, thbest, X, y, psi, isML, false, ll1, Sc0, F0) && ll1 > ll0) {
+        out.conv = true;
+        out.s2 = thbest(0);
+        out.rho = thbest(1);
+      }
+      out.k += it2;
+    }
+  }
   return out;
 }
 
