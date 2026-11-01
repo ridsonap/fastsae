@@ -183,8 +183,10 @@ hb_ratio <- function(formula,
     level_cond
   }
 
-  # df_hb$y of a binomial hb_area() fit holds the numbers of cases
-  ratio_direct <- fit_s$df_hb$y / fit_s$df_hb$trials
+  # Direct sub-proportion from the data (counts or proportions, as hb_area() reads them)
+  trials_vec <- as.numeric(.get_variable(data, trials))
+  y_raw <- data[[all.vars(formula)[1]]]
+  ratio_direct <- suppressMessages(.binomial_cases(y_raw, trials_vec))$y / trials_vec
   est <- rowMeans(level_cond)
   sd_lv <- apply(level, 1, stats::sd)
   rse_of <- function(sd) ifelse(est > 0, 100 * sd / est, NA_real_)
