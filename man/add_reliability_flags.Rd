@@ -4,7 +4,13 @@
 \alias{add_reliability_flags}
 \title{Add Official Statistical Reliability Flags}
 \usage{
-add_reliability_flags(object, rse_col = "rse", thresholds = c(25, 50))
+add_reliability_flags(
+  object,
+  rse_col = "rse",
+  thresholds = c(25, 50),
+  classes = NULL,
+  draws = NULL
+)
 }
 \arguments{
 \item{object}{A \code{fastsae} model object or a data frame containing an RSE column.}
@@ -13,9 +19,18 @@ add_reliability_flags(object, rse_col = "rse", thresholds = c(25, 50))
 If it is missing, the RSE is computed from the \code{mse} and estimate columns.}
 
 \item{thresholds}{Numeric vector of length 2 with the RSE (\%) cut-offs. Default is \code{c(25, 50)}.}
+
+\item{classes}{Optional increasing numeric vector of class boundaries for the estimate (for
+instance \code{c(0.01, 0.03, 0.05)} for a prevalence). Adds the class of each estimate and
+the probability that the true value lies in it (see Details).}
+
+\item{draws}{Optional matrix of posterior (or bootstrap) draws of the estimates, one row per
+domain of the estimation table, for the class probabilities. Without it they use a normal
+approximation.}
 }
 \value{
-The estimation table (a data frame) with an additional factor column \code{reliability}.
+The estimation table (a data frame) with an additional factor column \code{reliability}
+  and, with \code{classes}, the factor \code{est_class} and the probability \code{p_class}.
 }
 \description{
 Categorizes small area estimates into publication reliability tiers based on their
@@ -31,6 +46,15 @@ The Australian Bureau of Statistics uses the same cut-offs; for other agencies' 
 set \code{thresholds} accordingly. For hierarchical Bayes fits the RSE is computed from the
 posterior standard deviation.
 }
+\details{
+The RSE grows without bound as an estimate approaches 0, so for rare characteristics most
+small-area estimates are flagged unreliable even when their absolute error is small. A class
+of the estimate together with the probability of that class can then be published instead of
+the point estimate (for instance "below 1\%, probability 0.87"). With \code{draws} the
+probability is the share of draws in the class of the estimate; otherwise it is
+\eqn{\Phi((b_{k} - \hat\theta)/s) - \Phi((b_{k-1} - \hat\theta)/s)} with \eqn{s = \sqrt{MSE}},
+which for estimates near a bound of their range (proportions near 0) is only a rough guide.
+}
 \examples{
 library(fastsae)
 data(mys)
@@ -38,4 +62,7 @@ data(mys)
 fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 df_flagged <- add_reliability_flags(fit_fh)
 table(df_flagged$reliability)
+
+# classes of the estimate and their probabilities
+head(add_reliability_flags(fit_fh, classes = c(5, 7, 9))[, c("eblup", "rse", "est_class", "p_class")])
 }

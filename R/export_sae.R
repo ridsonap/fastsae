@@ -22,8 +22,24 @@
 #' @param rse_col Character string specifying the name of the RSE column. Default is \code{"rse"}.
 #'   If it is missing, the RSE is computed from the \code{mse} and estimate columns.
 #' @param thresholds Numeric vector of length 2 with the RSE (\%) cut-offs. Default is \code{c(25, 50)}.
+#' @param classes Optional increasing numeric vector of class boundaries for the estimate (for
+#'   instance \code{c(0.01, 0.03, 0.05)} for a prevalence). Adds the class of each estimate and
+#'   the probability that the true value lies in it (see Details).
+#' @param draws Optional matrix of posterior (or bootstrap) draws of the estimates, one row per
+#'   domain of the estimation table, for the class probabilities. Without it they use a normal
+#'   approximation.
 #'
-#' @return The estimation table (a data frame) with an additional factor column \code{reliability}.
+#' @details
+#' The RSE grows without bound as an estimate approaches 0, so for rare characteristics most
+#' small-area estimates are flagged unreliable even when their absolute error is small. A class
+#' of the estimate together with the probability of that class can then be published instead of
+#' the point estimate (for instance "below 1\%, probability 0.87"). With \code{draws} the
+#' probability is the share of draws in the class of the estimate; otherwise it is
+#' \eqn{\Phi((b_{k} - \hat\theta)/s) - \Phi((b_{k-1} - \hat\theta)/s)} with \eqn{s = \sqrt{MSE}},
+#' which for estimates near a bound of their range (proportions near 0) is only a rough guide.
+#'
+#' @return The estimation table (a data frame) with an additional factor column \code{reliability}
+#'   and, with \code{classes}, the factor \code{est_class} and the probability \code{p_class}.
 #'
 #' @export
 #' @examples
@@ -33,8 +49,18 @@
 #' fit_fh <- eblup_fh(y ~ x1 + x2, vardir = "vardir", data = mys)
 #' df_flagged <- add_reliability_flags(fit_fh)
 #' table(df_flagged$reliability)
-add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(25, 50)) {
+#'
+#' # classes of the estimate and their probabilities
+#' head(add_reliability_flags(fit_fh, classes = c(5, 7, 9))[, c("eblup", "rse", "est_class", "p_class")])
+add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(25, 50), classes = NULL, draws = NULL) {
   .check_thresholds(thresholds)
+  if (!is.null(classes) && (!is.numeric(classes) || length(classes) < 1 || anyNA(classes) ||
+    any(!is.finite(classes)) || is.unsorted(classes, strictly = TRUE))) {
+    cli::cli_abort("{.arg classes} must be a strictly increasing vector of finite numbers.")
+  }
+  if (!is.null(draws) && is.null(classes)) {
+    cli::cli_abort("{.arg draws} is only used with {.arg classes}.")
+  }
   df <- if (inherits(object, "fastsae")) .sae_table(object) else as.data.frame(object)
   if (is.null(df)) {
     cli::cli_abort("Could not extract estimation data from {.arg object}.")
@@ -49,6 +75,36 @@ add_reliability_flags <- function(object, rse_col = "rse", thresholds = c(25, 50
   }
 
   df$reliability <- .reliability_tier(df[[rse_col]], thresholds)
+  if (!is.null(classes)) {
+    est_col <- .sae_est_col(df)
+    if (is.na(est_col)) {
+      cli::cli_abort("{.arg classes} needs an estimate column ({.val hb} or {.val eblup}).")
+    }
+    est <- df[[est_col]]
+    k <- findInterval(est, classes) + 1L
+    labels <- c(
+      paste("<", classes[1]),
+      if (length(classes) > 1) paste0(utils::head(classes, -1), " - <", classes[-1]),
+      paste(">=", classes[length(classes)])
+    )
+    df$est_class <- factor(labels[k], levels = labels)
+    lo <- c(-Inf, classes)[k]
+    hi <- c(classes, Inf)[k]
+    if (!is.null(draws)) {
+      draws <- as.matrix(draws)
+      if (nrow(draws) != nrow(df)) {
+        cli::cli_abort("{.arg draws} must have one row per domain ({nrow(df)}), not {nrow(draws)}.")
+      }
+      df$p_class <- rowMeans(draws >= lo & draws < hi)
+    } else {
+      if (!"mse" %in% names(df)) {
+        cli::cli_abort("Class probabilities need {.arg draws} or an {.val mse} column.")
+      }
+      s <- sqrt(df$mse)
+      df$p_class <- ifelse(s > 0, stats::pnorm((hi - est) / s) - stats::pnorm((lo - est) / s), 1)
+    }
+    df$p_class[is.na(est)] <- NA_real_
+  }
   df
 }
 

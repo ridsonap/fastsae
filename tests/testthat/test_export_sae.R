@@ -181,3 +181,28 @@ test_that("export_sae handles openxlsx branch and package missing fallback", {
   unlink(fallback_csv)
   if (file.exists(tmp_xlsx2)) unlink(tmp_xlsx2)
 })
+
+test_that("add_reliability_flags adds classes of the estimate and their probabilities", {
+  df <- data.frame(domain = 1:4, eblup = c(0.004, 0.012, 0.03, NA), mse = c(0.002, 0.004, 0.01, 0.01)^2)
+  out <- add_reliability_flags(df, classes = c(0.01, 0.03))
+  expect_equal(levels(out$est_class), c("< 0.01", "0.01 - <0.03", ">= 0.03"))
+  expect_equal(as.character(out$est_class[1:3]), c("< 0.01", "0.01 - <0.03", ">= 0.03"))
+  expect_equal(out$p_class[1], pnorm((0.01 - 0.004) / 0.002))
+  expect_equal(out$p_class[2], pnorm((0.03 - 0.012) / 0.004) - pnorm((0.01 - 0.012) / 0.004))
+  expect_equal(out$p_class[3], 1 - pnorm((0.03 - 0.03) / 0.01))
+  expect_true(is.na(out$p_class[4]))
+  # draws
+  set.seed(1)
+  dr <- matrix(rnorm(4 * 2000, rep(c(0.004, 0.012, 0.03, 0.02), 2000), 0.003), 4)
+  out_d <- add_reliability_flags(df, classes = c(0.01, 0.03), draws = dr)
+  expect_equal(out_d$p_class[1], mean(dr[1, ] < 0.01))
+  expect_equal(out_d$p_class[2], mean(dr[2, ] >= 0.01 & dr[2, ] < 0.03))
+  # input checks
+  expect_error(add_reliability_flags(df, classes = c(0.03, 0.01)), "strictly increasing")
+  expect_error(add_reliability_flags(df, draws = dr), "only used with")
+  expect_error(add_reliability_flags(df, classes = 0.01, draws = dr[1:2, ]), "one row per domain")
+  expect_error(add_reliability_flags(data.frame(eblup = 1, rse = 3), classes = 0.5), "mse")
+  expect_error(add_reliability_flags(data.frame(x = 1, rse = 3), classes = 0.5), "estimate column")
+  # unchanged without classes
+  expect_false("est_class" %in% names(add_reliability_flags(df)))
+})

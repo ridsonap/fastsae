@@ -8,6 +8,11 @@
   `benchmarks/validation/binomial_neff.R`) or taken per area where defined; areas with a direct
   proportion of 0 or 1, whose design effect is undefined, take a supplied fallback (such as the
   design effect of a related indicator) or the pooled one.
+* `add_reliability_flags()` gains `classes` and `draws`: the class of each estimate
+  (`est_class`) and the probability that the true value lies in it (`p_class`, from posterior or
+  bootstrap draws, or a normal approximation). For rare characteristics the RSE of estimates
+  near 0 is large even when their absolute error is small; a class with its probability can
+  then be published instead of the point estimate.
 
 ## Bug fixes
 
