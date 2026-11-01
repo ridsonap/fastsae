@@ -441,7 +441,9 @@ test_that("SFH bootstrap validity does not depend on the scale of y", {
   set.seed(seed)
   x1 <- rnorm(m)
   vd <- runif(m, 0.5, 1.5)
-  u <- as.numeric(MASS::mvrnorm(1, rep(0, m), 0.05 * solve(crossprod(diag(m) + 0.5 * W))))
+  # u ~ N(0, 0.05 [(I + 0.5 W)'(I + 0.5 W)]^-1) without eigen(): the grid covariance
+  # has repeated eigenvalues, so MASS::mvrnorm() draws differ between LAPACK builds
+  u <- sqrt(0.05) * as.numeric(solve(diag(m) + 0.5 * W, rnorm(m)))
   list(data = data.frame(y = 1 + x1 + u + rnorm(m, sd = sqrt(vd)), x1, vardir = vd), W = W)
 }
 
@@ -458,8 +460,7 @@ test_that("SFH bootstrap validity does not depend on the scale of y", {
 }
 
 test_that("SFH returns the constrained REML maximiser when sigma2 is at 0", {
-  skip_if_not_installed("MASS")
-  g <- .sfh_grid_data(27)
+  g <- .sfh_grid_data(38)
   fit <- eblup_sfh(y ~ x1, vardir = "vardir", data = g$data, W = g$W, print_result = FALSE)
   expect_true(fit$convergence)
   expect_equal(fit$random_effect_var, 0)
@@ -469,10 +470,9 @@ test_that("SFH returns the constrained REML maximiser when sigma2 is at 0", {
 })
 
 test_that("rho = -0.999 is not mapped to -1 when I + W is singular (bipartite grid)", {
-  skip_if_not_installed("MASS")
-  # REML maximum at the lower bound, 0.36 log-likelihood units above the best
-  # interior rho (seed 30, used before, has an interior maximum)
-  g <- .sfh_grid_data(93)
+  # REML maximum at the lower bound, 0.58 log-likelihood units above the best
+  # rho in [-0.95, 0.95]
+  g <- .sfh_grid_data(108)
   fit <- eblup_sfh(y ~ x1, vardir = "vardir", data = g$data, W = g$W, print_result = FALSE)
   expect_equal(fit$rho, -0.999)
   expect_true(all(is.finite(fit$df_eblup$mse)))
@@ -487,10 +487,10 @@ test_that("rho = -0.999 is not mapped to -1 when I + W is singular (bipartite gr
 }
 
 test_that("SFH does not stop at sigma2 = 0 when sigma2 > 0 at another rho is better", {
-  skip_if_not_installed("MASS")
   # sigma2 = 0 leaves rho unidentified; the fit used to stop at sigma2 = 0,
-  # rho = -0.999 although the REML maximum is interior (rho near -0.7)
-  g <- .sfh_grid_data(30)
+  # rho = 0.5 (the start) although sigma2 > 0 at rho near -0.96 is 0.51
+  # log-likelihood units better
+  g <- .sfh_grid_data(235)
   fit <- eblup_sfh(y ~ x1, vardir = "vardir", data = g$data, W = g$W, print_result = FALSE)
   expect_true(fit$convergence)
   expect_gt(fit$random_effect_var, 0)
