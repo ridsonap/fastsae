@@ -66,11 +66,13 @@
 #' \code{cpo$pit} of a count is \eqn{P(Y_d \le y_d \mid y_{-d})} and \code{cpo$cpo} is
 #' \eqn{P(Y_d = y_d \mid y_{-d})}, so \eqn{F_d(y_d - 1)} is their difference.
 #'
-#' INLA's CPO of binomial likelihoods can be far from the leave-one-out predictive when the
+#' INLA's CPO of count likelihoods can be far from the leave-one-out predictive when the
 #' hyperparameters are integrated over: for a correct binomial model with 300 areas, 20 trials
 #' and 68\% zero counts, INLA 26.8.7 gave a CPO of 0.03 where refitting without the area gave
-#' 0.71, with no CPO failure flagged (with \code{int.strategy = "eb"} the two agreed). Poisson
-#' and Gaussian fits agreed with refitting. Hence \code{pit_method = "auto"} uses the mixed
+#' 0.71 (with \code{int.strategy = "eb"} the two agreed), and in replicated correct binomial and
+#' Poisson models the randomized PIT from INLA's CPO fell in the central 90\% band for as few
+#' as 23-37\% of the areas, with no CPO failure flagged. Gaussian fits agreed with refitting.
+#' Hence \code{pit_method = "auto"} uses the mixed
 #' predictive of Marshall and Spiegelhalter (2003) where it is available: for each posterior draw
 #' the area effect is replaced by a new draw from its population distribution
 #' \eqn{N(0, \sigma_v^2)} and \eqn{F_d} is the average of the likelihood CDF over the draws. This
@@ -407,9 +409,9 @@ diagnose <- function(object,
       failures <- if (!is.null(cpo_obj$failure)) sum(cpo_obj$failure > 0, na.rm = TRUE) else 0
       # INLA's pit of a count is P(Y <= y | y_-i) and cpo is P(Y = y | y_-i)
       if (.is_count_family(object$family)) pit_lo <- pmax(pit_vec - cpo_vec, 0)
-      if (identical(object$family, "binomial")) {
+      if (.is_count_family(object$family)) {
         cli::cli_warn(c(
-          "INLA's CPO of binomial likelihoods can be far from the leave-one-out predictive; the PIT summary may be unreliable.",
+          "INLA's CPO of count likelihoods can be far from the leave-one-out predictive; the PIT summary may be unreliable.",
           "i" = "See the PIT section of {.help fastsae::diagnose}."
         ))
       }

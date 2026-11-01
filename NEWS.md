@@ -25,13 +25,15 @@
 * `diagnose()`: the PIT check of Bayesian fits with a count likelihood (binomial, Poisson,
   negative binomial) rejected correct models. It tested INLA's `cpo$pit`, which for a count
   is $P(Y_d \le y_d \mid y_{-d})$ and is not uniform even under the true model, against the
-  uniform (KS p-values near 0 in 20 of 20 replicates of a correct binomial model). The PIT
-  of a count is now randomized (Czado, Gneiting and Held, 2009). Moreover, INLA's CPO of
-  binomial likelihoods was far from the leave-one-out predictive when the hyperparameters
-  are integrated over (0.03 against 0.71 by refitting, no failure flagged), so binomial and
+  uniform (KS rejection in 20 of 20 replicates of a correct binomial model and 19 of 20 of a
+  Poisson one). The PIT of a count is now randomized (Czado, Gneiting and Held, 2009).
+  Moreover, INLA's CPO of count likelihoods can be far from the leave-one-out predictive
+  when the hyperparameters are integrated over (0.03 against 0.71 by refitting, no failure
+  flagged; randomized, it still rejected 45% and 90% of the replicates), so binomial and
   Poisson `hb_area()` fits with independent area effects now use the mixed predictive of
-  Marshall and Spiegelhalter (2003) from posterior draws (`pit_method = "auto"`); other
-  binomial fits use INLA's CPO with a warning (`benchmarks/validation/pit_discrete.R`).
+  Marshall and Spiegelhalter (2003) from posterior draws (`pit_method = "auto"`; no
+  rejection in the replicates, central 90% share 0.90 on average); other count fits use
+  INLA's CPO with a warning (`benchmarks/validation/pit_discrete.R`).
 * `diagnose()` gains `pit_method`, `n_draws` and `seed`, and `pit_test` gains `method`,
   `randomized`, `central90` (share of PIT values in the central 90% band), its expected range
   `central90_range` and `n`; `print()` reports the central 90% share.

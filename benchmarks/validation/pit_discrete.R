@@ -9,8 +9,22 @@
 #    values in the central 90% band for INLA's unrandomized PIT (fastsae 1.0.0),
 #    INLA's randomized PIT and the randomized mixed predictive PIT (default).
 #
-# Usage (from the package root, needs INLA and sn):
+# Usage (from the package root, needs INLA and sn; PIT_REPS=0 runs part 1 only):
 #   R CMD INSTALL . --preclean && Rscript benchmarks/validation/pit_discrete.R
+#
+# Result (2026-11-01, INLA 26.8.7, ~25 minutes):
+# 1. Binomial (300 areas, 20 trials, 68% zeros): INLA CPO 0.027, 0.103, 0.133 for three
+#    zero counts where refitting gives 0.711, 0.583, 0.634 (mixed predictive 0.706, 0.578,
+#    0.637). Poisson: the three areas agree (0.768 / 0.770 / 0.768).
+# 2. 20 replicates, KS rejection at 5% and mean central-90% share [range]:
+#      binomial  INLA PIT            1.00   0.774 [0.497, 0.873]
+#                INLA, randomized    0.45   0.777 [0.370, 0.930]
+#                mixed, randomized   0.00   0.902 [0.863, 0.927]
+#      poisson   INLA PIT            0.95   0.831 [0.257, 0.940]
+#                INLA, randomized    0.90   0.800 [0.230, 0.923]
+#                mixed, randomized   0.00   0.900 [0.873, 0.930]
+#    INLA's CPO fails in some replicates of both families (central share down to 0.23),
+#    with no CPO failure flagged; the mixed predictive is calibrated in all of them.
 # ==============================================================================
 
 suppressPackageStartupMessages({
@@ -32,8 +46,8 @@ sim_poisson <- function(seed, D = 300) {
   E <- runif(D, 2, 10)
   data.frame(area = seq_len(D), y = rpois(D, E * exp(-2 + 0.4 * x + rnorm(D, 0, 0.4))), E = E, x = x)
 }
-fit_binomial <- function(d) suppressMessages(hb_area(y ~ x, data = d, family = "binomial", trials = "n", domain = "area"))
-fit_poisson <- function(d) suppressMessages(hb_area(y ~ x, data = d, family = "poisson", exposure = "E", domain = "area"))
+fit_binomial <- function(d) suppressMessages(hb_area(y ~ x, data = d, family = "binomial", trials = "n", domain = "area", print_result = FALSE))
+fit_poisson <- function(d) suppressMessages(hb_area(y ~ x, data = d, family = "poisson", exposure = "E", domain = "area", print_result = FALSE))
 
 # ---- 1. CPO against refitting ---------------------------------------------------
 loo <- function(d, fitter, dens, ids) {
@@ -66,7 +80,7 @@ rep_one <- function(r, sim, fitter) {
     mixed = summ(diagnose(f, pit_method = "mixed", seed = r)$df_diag$pit)
   )
 }
-for (fam in c("binomial", "poisson")) {
+for (fam in if (R > 0) c("binomial", "poisson")) {
   res <- t(vapply(seq_len(R), rep_one, numeric(6),
     sim = if (fam == "binomial") sim_binomial else sim_poisson,
     fitter = if (fam == "binomial") fit_binomial else fit_poisson

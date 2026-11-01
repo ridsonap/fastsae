@@ -361,7 +361,7 @@ test_that("diagnose randomizes INLA's PIT of discrete families", {
   E <- runif(D, 5, 30)
   dat <- data.frame(area = seq_len(D), y = rpois(D, E * exp(-2 + 0.4 * x + rnorm(D, 0, 0.4))), E = E, x = x)
   fit <- suppressMessages(hb_area(y ~ x, data = dat, family = "poisson", exposure = "E", domain = "area"))
-  d <- diagnose(fit, pit_method = "cpo")
+  expect_warning(d <- diagnose(fit, pit_method = "cpo"), "count likelihoods")
   cpo <- fit$fit$cpo
   # INLA's pit is P(Y <= y | y_-i): the randomized PIT lies in [pit - cpo, pit]
   expect_identical(d$bayesian_metrics$pit_test$method, "cpo")
