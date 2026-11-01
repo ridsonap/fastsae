@@ -28,7 +28,7 @@ parent), or the number of parent cases with the sub-characteristic.}
 \item{data}{Data frame with one row per area.}
 
 \item{trials}{Vector, column name, or formula: (effective) numbers of sampled parent cases,
-e.g. from \code{\link{effective_trials}} with the parent cases as \code{n}.}
+e.g. from \code{effective_trials()} with the parent cases as \code{n}.}
 
 \item{parent}{Vector, column name, or formula: the parent estimate \eqn{P_d} (non-negative).}
 
@@ -121,5 +121,5 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 }
 }
 \seealso{
-\code{\link{hb_area}}, \code{\link{effective_trials}}, \code{\link{benchmark_sae}}.
+\code{\link{hb_area}}, \code{\link{benchmark_sae}}.
 }

@@ -15,7 +15,7 @@
 #'   parent), or the number of parent cases with the sub-characteristic.
 #' @param data Data frame with one row per area.
 #' @param trials Vector, column name, or formula: (effective) numbers of sampled parent cases,
-#'   e.g. from \code{\link{effective_trials}} with the parent cases as \code{n}.
+#'   e.g. from \code{effective_trials()} with the parent cases as \code{n}.
 #' @param parent Vector, column name, or formula: the parent estimate \eqn{P_d} (non-negative).
 #' @param parent_se Optional vector, column name, or formula: standard errors of \code{parent}.
 #'   With them, \code{sd}, \code{mse}, \code{rse} and the intervals include the uncertainty of
@@ -65,7 +65,7 @@
 #'   and \code{estcoef}, \code{random_effect_var}, \code{goodness}, \code{convergence},
 #'   \code{inla_mode_status}, \code{formula}, \code{model} and \code{call}.
 #'
-#' @seealso \code{\link{hb_area}}, \code{\link{effective_trials}}, \code{\link{benchmark_sae}}.
+#' @seealso \code{\link{hb_area}}, \code{\link{benchmark_sae}}.
 #'
 #' @examples
 #' \donttest{
