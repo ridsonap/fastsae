@@ -722,7 +722,8 @@ test_that("hb_area binomial keeps non-integer effective numbers of cases", {
   )
   expect_identical(fit$fit$.args$family, "xbinomial")
   expect_equal(fit$fit$.args$Ntrials, d$n_eff)
-  expect_equal(fit$df_hb$y, d$p_hat * d$n_eff)
+  expect_equal(fit$df_hb$cases, d$p_hat * d$n_eff)
+  expect_equal(fit$df_hb$y, d$p_hat)
   expect_equal(fit$df_hb$trials, d$n_eff)
   # direct estimates of 0 are sampling zeros, not boundary estimates
   expect_true(all(fit$df_hb$hb > 0 & fit$df_hb$hb < 1))
@@ -758,7 +759,8 @@ test_that("hb_area binomial with integer counts keeps INLA's binomial likelihood
   d$p <- d$cnt / d$n
   fit_p <- suppressMessages(hb_area(p ~ x, data = d, domain = "area", family = "binomial", trials = "n", print_result = FALSE))
   expect_identical(fit_p$fit$.args$family, "binomial")
-  expect_equal(fit_p$df_hb$y, d$cnt)
+  expect_equal(fit_p$df_hb$cases, d$cnt)
+  expect_equal(fit_p$df_hb$y, d$p)
   expect_identical(fit_p$fit$.args$Ntrials, fit$fit$.args$Ntrials)
   # INLA's compact mode varies slightly between identical calls (relative differences
   # up to 3e-5 on GitHub Actions), so the estimates are compared loosely
@@ -789,4 +791,35 @@ test_that("non-integer binomial data need INLA's xbinomial likelihood", {
     "xbinomial"
   )
   expect_identical(.inla_binomial_family(FALSE), "binomial")
+})
+
+test_that("hb_area reports the direct estimates on the scale of hb", {
+  skip_if_not_installed("INLA")
+  set.seed(11)
+  D <- 40
+  x <- rnorm(D)
+  n <- rpois(D, 30) + 5
+  cases <- rbinom(D, n, plogis(-1 + 0.5 * x))
+  d <- data.frame(area = seq_len(D), p = cases / n, n = n, x = x)
+  d$p[4] <- NA
+  fit <- suppressMessages(hb_area(p ~ x, data = d, family = "binomial", trials = "n", domain = "area",
+                                  print_result = FALSE))
+  # proportions, like hb (before: the numbers of cases)
+  expect_equal(fit$df_hb$y, d$p)
+  expect_equal(fit$df_hb$cases, ifelse(is.na(d$p), NA, cases))
+  expect_equal(residuals(fit), d$p - fit$df_hb$hb)
+  expect_equal(suppressWarnings(diagnose(fit))$df_diag$residuals, d$p - fit$df_hb$hb)
+
+  E <- runif(D, 5, 20)
+  counts <- rpois(D, E * exp(-1 + 0.3 * x))
+  dp <- data.frame(area = seq_len(D), y = counts, E = E, x = x)
+  fp <- suppressMessages(hb_area(y ~ x, data = dp, family = "poisson", exposure = "E", domain = "area",
+                                 print_result = FALSE))
+  # rates per unit exposure, like hb
+  expect_equal(fp$df_hb$y, counts / E)
+  expect_equal(fp$df_hb$count, counts)
+  # without exposure hb is the mean count, and y stays the count
+  fp0 <- suppressMessages(hb_area(y ~ x, data = dp, family = "poisson", domain = "area", print_result = FALSE))
+  expect_equal(fp0$df_hb$y, counts)
+  expect_null(fp0$df_hb$count)
 })

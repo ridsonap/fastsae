@@ -219,7 +219,10 @@ warning.}
 An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containing:
 \itemize{
   \item \code{df_hb}: Data frame with domain estimates, including \code{domain},
-    \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},
+    \code{time} (if specified), the direct estimate \code{y} on the scale of \code{hb} (a
+    proportion for the binomial family, a rate per unit exposure for counts with
+    \code{exposure}; the fitted numbers of cases or counts are in \code{cases} or
+    \code{count}), predicted \code{hb}, linear predictor \code{linear_pred},
     posterior standard deviation \code{sd}, \code{mse} (the posterior variance
     \eqn{sd^2}, named as in the EBLUP results; it is not a frequentist MSE), relative error
     \code{rse} (\%),

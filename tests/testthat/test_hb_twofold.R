@@ -196,6 +196,9 @@ test_that("hb_twofold works for Binomial and Poisson response models", {
   expect_s3_class(fit_bin, "fastsae_hb_twofold")
   expect_equal(fit_bin$family, "binomial")
   expect_true(all(fit_bin$df_hb$hb >= 0 & fit_bin$df_hb$hb <= 1))
+  # direct estimates on the scale of hb (proportions), cases kept
+  expect_equal(fit_bin$df_hb$y, dat$y_bin / dat$n_trials)
+  expect_equal(fit_bin$df_hb$cases, dat$y_bin)
 
   # 2. Poisson
   lambda <- exp(0.2 + 0.5 * dat$x1)
@@ -210,6 +213,8 @@ test_that("hb_twofold works for Binomial and Poisson response models", {
   expect_s3_class(fit_pois, "fastsae_hb_twofold")
   expect_equal(fit_pois$family, "poisson")
   expect_true(all(fit_pois$df_hb$hb >= 0))
+  expect_equal(fit_pois$df_hb$y, dat$y_pois / dat$exposure)
+  expect_equal(fit_pois$df_hb$count, dat$y_pois)
 })
 
 test_that("hb_twofold input validation throws informative errors", {
@@ -534,7 +539,8 @@ test_that("hb_twofold binomial takes effective sample sizes (province + district
   )
   expect_identical(fit$fit$.args$family, "xbinomial")
   expect_equal(fit$fit$.args$Ntrials, dat$n_eff)
-  expect_equal(fit$df_hb$y, dat$p_hat * dat$n_eff)
+  expect_equal(fit$df_hb$cases, dat$p_hat * dat$n_eff)
+  expect_equal(fit$df_hb$y, dat$p_hat)
   expect_true(all(fit$df_hb$hb > 0 & fit$df_hb$hb < 1))
   expect_equal(nrow(fit$df_area), m)
   expect_false(anyNA(fit$df_area$sd_area))

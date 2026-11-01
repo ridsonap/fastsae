@@ -74,7 +74,9 @@
 #'     \itemize{
 #'       \item \code{domain}: Primary area identifier.
 #'       \item \code{subarea}: Sub-area identifier.
-#'       \item \code{y}: Direct estimate / observed response (NA for unsampled).
+#'       \item \code{y}: Direct estimate on the scale of \code{hb} (NA for unsampled): a proportion
+#'         for the binomial family (the fitted numbers of cases are in \code{cases}) and a rate
+#'         per unit exposure for Poisson counts with \code{exposure} (counts in \code{count}).
 #'       \item \code{hb}: Posterior mean estimate of sub-area mean.
 #'       \item \code{linear_pred}: Posterior mean of linear predictor.
 #'       \item \code{vardir}: Direct sampling variance (for Gaussian).
@@ -431,6 +433,7 @@ hb_twofold <- function(
     random_effect_subarea = subarea_re_mean,
     stringsAsFactors = FALSE
   )
+  df_hb <- .direct_on_hb_scale(df_hb, y, family, trials_vec, exposure_vec)
 
   # 10. Area-Level Aggregation
   df_area <- NULL
