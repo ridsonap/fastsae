@@ -86,6 +86,7 @@ Collate:
     methods.R
     autoplot.R
     gvf.R
+    effective_trials.R
     create_weights.R
     eblup_fh.R
     eblup_sfh.R
