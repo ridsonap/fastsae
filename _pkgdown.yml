@@ -100,6 +100,7 @@ reference:
     contents:
       - eblup_twofold
       - hb_twofold
+      - hb_ratio
   - title: "Unit-Level Models"
     desc: "Battese-Harter-Fuller models for unit-level survey data via REML EBLUP and Bayesian INLA"
     contents:

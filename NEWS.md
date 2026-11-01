@@ -1,5 +1,15 @@
 # fastsae (development version)
 
+## New models
+
+* `hb_ratio()`: estimates an indicator that is a subset of a parent indicator (extreme poverty
+  within poverty, severe within all stunting) as a given parent estimate times a sub-proportion
+  with a binomial `hb_area()` model, so the estimates never exceed the parent. Optional
+  benchmarking on the logit scale of the sub-proportion (per posterior draw, per group) keeps
+  that property, and `parent_se` adds the uncertainty of the parent. Returns the posterior
+  draws for `add_reliability_flags()`-style summaries and the sub-proportion fit for
+  `diagnose()`.
+
 ## New features
 
 * `effective_trials()`: effective sample sizes $n_d / \mathrm{deff}_d$ for binomial models
