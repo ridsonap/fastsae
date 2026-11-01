@@ -386,3 +386,52 @@ test_that("eblup_stfh is invariant to the row order of the panel", {
   key_dm <- paste(fit_fast$df_eblup$domain, fit_fast$df_eblup$time)
   expect_equal(fit_tm$df_eblup$eblup, fit_fast$df_eblup$eblup[match(key_tm, key_dm)], tolerance = 1e-8)
 })
+
+test_that("eblup_stfh does not stop at a zero variance when its correlation elsewhere is better", {
+  # A variance at 0 leaves its correlation unidentified; the fit used to keep
+  # the correlation wherever it was when the variance reached 0, although a
+  # positive variance at another correlation had a larger REML likelihood.
+  stfh_small <- function(seed) {
+    sim <- sim_series_data(
+      D = 12, T = 5, n_unsampled = 0, prop_intermittent = 0,
+      sigma_s = 0.05, sigma_t = 0.05, rho_s = 0.4, rho_t = 0.5, seed = seed
+    )
+    d <- sim$data[order(sim$data$area, sim$data$year), ]
+    W <- unclass(sim$W)
+    W <- W / rowSums(W)
+    attributes(W)[c("coords", "type", "style")] <- NULL
+    list(d = d, W = W, X = cbind(1, d$x1, d$x2))
+  }
+  # Largest REML log-likelihood from a few L-BFGS-B starts (dense reference)
+  reml_max <- function(z, model) {
+    np <- if (model == "ST") 4 else 3
+    f <- function(t) {
+      v <- tryCatch(
+        as.numeric(.stfh_dense_reml(c(t, 0)[1:4], z$X, z$d$y_gaussian, z$d$vardir, z$W, 12, 5, model)),
+        error = function(e) -1e10
+      )
+      if (is.finite(v)) v else -1e10
+    }
+    best <- -Inf
+    for (r in c(-0.8, 0.8)) for (s in c(0.02, 0.3)) {
+      o <- optim(c(s, r, s, -r)[1:np], f,
+        method = "L-BFGS-B", lower = c(0, -0.999, 0, -0.999)[1:np],
+        upper = c(Inf, 0.999, Inf, 0.999)[1:np], control = list(fnscale = -1, maxit = 500)
+      )
+      best <- max(best, o$value)
+    }
+    list(max = best, f = f)
+  }
+  # seed 11, "ST": sigma22 stopped at 0 (rho2 0.29), REML maximum at rho2 near -0.98;
+  # seed 2, "S": sigma21 stopped at 0 (rho1 0.95), REML maximum at rho1 = -0.999
+  for (case in list(list(seed = 11, model = "ST"), list(seed = 2, model = "S"))) {
+    z <- stfh_small(case$seed)
+    fit <- suppressMessages(eblup_stfh(y_gaussian ~ x1 + x2,
+      data = z$d, vardir = ~vardir, domain = ~area, time = ~year,
+      W = z$W, model = case$model, mse_type = "none", print_result = FALSE
+    ))
+    expect_true(fit$convergence)
+    r <- reml_max(z, case$model)
+    expect_gt(r$f(fit$estvarcomp$estimate), r$max - 1e-3)
+  }
+})

@@ -1,3 +1,21 @@
+# fastsae (development version)
+
+## Bug fixes
+
+* `eblup_sfh()`: when the (RE)ML iterations end at a zero random effect variance, the
+  spatial correlation is unidentified there, and the fit used to stop at whatever `rho` it
+  had reached (often the bound -0.999) although a positive variance at another `rho` gave a
+  larger likelihood. The fit now checks the variance score at zero over a grid of `rho`
+  and restarts from the most promising one, keeping the restart when it converges to a
+  larger likelihood. The result previously depended on rounding, and could differ between
+  platforms.
+
+* `eblup_stfh()`: the same problem for a spatial (`sigma21`) or temporal (`sigma22`,
+  model `"ST"`) variance estimated at 0 by the constrained fallback: its autocorrelation
+  stayed where it was, although a positive variance at another autocorrelation could have
+  a larger REML likelihood. The same grid check and restart are applied, also in the
+  bootstrap replicates.
+
 # fastsae 1.0.0
 
 fastsae 1.0.0 adds hierarchical Bayes (HB) models, the two-fold sub-area model and

@@ -662,6 +662,60 @@ static bool stfh_fit_safeguarded(
 }
 
 // ============================================================================
+// stfh_zero_variance_restart()
+//
+// A variance at 0 leaves its correlation unidentified (sigma21 -> rho1 and, in
+// model "ST", sigma22 -> rho2), and stfh_fit_safeguarded() holds it wherever it
+// was when the variance reached 0. That point is a constrained maximum only if
+// the score of the variance at 0 is not positive for any correlation.
+// Otherwise restart from the correlation (grid step 0.05) with the largest
+// standardized score, the variance one Fisher step from 0, and keep the
+// restart when it converges to a larger likelihood. Same check as sfh_fit().
+// ============================================================================
+static void stfh_zero_variance_restart(
+    const arma::mat& X, const arma::vec& y, const arma::vec& vardir,
+    const arma::mat& W, const StIndex& ix, bool isST,
+    int maxiter, double precision, arma::vec& th, int& iters
+) {
+  for (int pass = 0; pass < 2; ++pass) {
+    bool improved = false;
+    for (int v = 0; v <= 2; v += 2) {
+      if (th(v) > 0.0 || (v == 2 && !isST)) continue;
+      const int r = v + 1;
+      double ll0;
+      arma::vec S;
+      arma::mat F;
+      if (!stfh_reml_eval(th, isST, ix, X, y, vardir, W, false, ll0, S, F)) continue;
+      double zbest = 10.0 * precision;
+      arma::vec start;
+      for (int i = 0; i <= 40; ++i) {
+        arma::vec t0 = th;
+        t0(v) = 0.0;
+        t0(r) = std::min(std::max(-0.999 + 0.05 * i, -0.999), 0.999);
+        double lli;
+        if (!stfh_reml_eval(t0, isST, ix, X, y, vardir, W, true, lli, S, F) || !(F(v, v) > 0.0)) continue;
+        const double z = S(v) / std::sqrt(F(v, v));
+        if (z > zbest) {
+          zbest = z;
+          start = t0;
+          start(v) = S(v) / F(v, v);
+        }
+      }
+      if (start.n_elem == 0) continue;
+      int it2 = 0;
+      double ll1;
+      if (stfh_fit_safeguarded(X, y, vardir, W, ix, isST, maxiter, precision, start, it2) &&
+          stfh_reml_eval(start, isST, ix, X, y, vardir, W, false, ll1, S, F) && ll1 > ll0) {
+        th = start;
+        improved = true;
+      }
+      iters += it2;
+    }
+    if (!improved) break;
+  }
+}
+
+// ============================================================================
 // st_full_u(): random effects on the full D x T grid from V^-1 (y - X beta)
 //   u1 = sigma21 Omega1 Z'V^-1 r  (all D domains: kriging for unsampled ones)
 //   u2_d = sigma22 Omega2[., tix_d] (V^-1 r)_d  (all T periods of domain d;
@@ -771,6 +825,7 @@ STFitArma stfh_fit_arma(
     }
     thetak1 = th;
     k += it2;
+    stfh_zero_variance_restart(X, y, vardir, W, ix, isST, maxiter, precision, thetak1, k);
   } else if (thetak1(0) < 0.0 || thetak1(2) < 0.0) {
     // same constrained re-maximisation as in .eblup_stfh_core()
     arma::vec th = thetak1;
@@ -781,6 +836,7 @@ STFitArma stfh_fit_arma(
     }
     thetak1 = th;
     k += it2;
+    stfh_zero_variance_restart(X, y, vardir, W, ix, isST, maxiter, precision, thetak1, k);
   }
   res.n_iter = k;
 
@@ -967,6 +1023,7 @@ List eblup_stfh_core(
     if (!ok2) return make_fail_result(false);
     thetak1 = th;
     used_fallback = true;
+    stfh_zero_variance_restart(X, y, vardir, W, ix, isST, maxiter, precision, thetak1, k);
   } else if (thetak1(0) < 0.0 || thetak1(2) < 0.0) {
     // The classical iteration converged to a point with a NEGATIVE variance;
     // truncating it to 0 (as sae::eblupSTFH does) leaves the other parameters
@@ -980,6 +1037,7 @@ List eblup_stfh_core(
     if (!ok2) return make_fail_result(false);
     thetak1 = th;
     used_fallback = true;
+    stfh_zero_variance_restart(X, y, vardir, W, ix, isST, maxiter, precision, thetak1, k);
   }
 
   // ==========================================================================

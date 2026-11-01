@@ -441,7 +441,9 @@ test_that("SFH bootstrap validity does not depend on the scale of y", {
   set.seed(seed)
   x1 <- rnorm(m)
   vd <- runif(m, 0.5, 1.5)
-  u <- as.numeric(MASS::mvrnorm(1, rep(0, m), 0.05 * solve(crossprod(diag(m) + 0.5 * W))))
+  # u ~ N(0, 0.05 [(I + 0.5 W)'(I + 0.5 W)]^-1) without eigen(): the grid covariance
+  # has repeated eigenvalues, so MASS::mvrnorm() draws differ between LAPACK builds
+  u <- sqrt(0.05) * as.numeric(solve(diag(m) + 0.5 * W, rnorm(m)))
   list(data = data.frame(y = 1 + x1 + u + rnorm(m, sd = sqrt(vd)), x1, vardir = vd), W = W)
 }
 
@@ -458,8 +460,7 @@ test_that("SFH bootstrap validity does not depend on the scale of y", {
 }
 
 test_that("SFH returns the constrained REML maximiser when sigma2 is at 0", {
-  skip_if_not_installed("MASS")
-  g <- .sfh_grid_data(27)
+  g <- .sfh_grid_data(38)
   fit <- eblup_sfh(y ~ x1, vardir = "vardir", data = g$data, W = g$W, print_result = FALSE)
   expect_true(fit$convergence)
   expect_equal(fit$random_effect_var, 0)
@@ -469,12 +470,32 @@ test_that("SFH returns the constrained REML maximiser when sigma2 is at 0", {
 })
 
 test_that("rho = -0.999 is not mapped to -1 when I + W is singular (bipartite grid)", {
-  skip_if_not_installed("MASS")
-  g <- .sfh_grid_data(30)
+  # REML maximum at the lower bound, 0.58 log-likelihood units above the best
+  # rho in [-0.95, 0.95]
+  g <- .sfh_grid_data(108)
   fit <- eblup_sfh(y ~ x1, vardir = "vardir", data = g$data, W = g$W, print_result = FALSE)
   expect_equal(fit$rho, -0.999)
   expect_true(all(is.finite(fit$df_eblup$mse)))
   expect_lt(max(fit$df_eblup$mse), max(g$data$vardir) * 2)
+})
+
+# Largest REML log-likelihood over a rho grid, profiling sigma2 out.
+.sfh_reml_profile_max <- function(d, W) {
+  max(vapply(seq(-0.95, 0.95, by = 0.05), function(r) {
+    optimize(function(s) .sfh_reml_ll(s, r, d, W), c(0, 1), maximum = TRUE)$objective
+  }, numeric(1)))
+}
+
+test_that("SFH does not stop at sigma2 = 0 when sigma2 > 0 at another rho is better", {
+  # sigma2 = 0 leaves rho unidentified; the fit used to stop at sigma2 = 0,
+  # rho = 0.5 (the start) although sigma2 > 0 at rho near -0.96 is 0.51
+  # log-likelihood units better
+  g <- .sfh_grid_data(235)
+  fit <- eblup_sfh(y ~ x1, vardir = "vardir", data = g$data, W = g$W, print_result = FALSE)
+  expect_true(fit$convergence)
+  expect_gt(fit$random_effect_var, 0)
+  ll_fit <- .sfh_reml_ll(fit$random_effect_var, max(fit$rho, -0.999), g$data, g$W)
+  expect_gt(ll_fit, .sfh_reml_profile_max(g$data, g$W) - 1e-6)
 })
 
 test_that("SFH MSE of kriged (unsampled) domains matches an independent second-order computation", {
