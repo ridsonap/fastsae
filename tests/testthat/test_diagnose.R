@@ -319,3 +319,84 @@ test_that("diagnose standardises residuals by sqrt(vardir - MSE)", {
   expect_gt(sd(d$std_residuals), 0.85)
   expect_lt(sd(d$std_residuals), 1.15)
 })
+
+# Correct binomial model with small counts (68% zeros): the PIT must be uniform.
+sim_binomial_area <- function(seed, D = 300, n = 20) {
+  set.seed(seed)
+  x <- rnorm(D)
+  p <- plogis(-4 + 0.5 * x + rnorm(D, 0, 0.3))
+  data.frame(area = seq_len(D), y = rbinom(D, n, p) / n, n = n, x = x)
+}
+
+test_that("diagnose PIT of a correct binomial model is uniform (mixed predictive, randomized)", {
+  skip_on_cran()
+  skip_if_not_installed("INLA")
+  skip_if_not_installed("sn")
+  dat <- sim_binomial_area(112)
+  fit <- suppressMessages(hb_area(y ~ x, data = dat, family = "binomial", trials = "n", domain = "area"))
+  d <- diagnose(fit)
+  pt <- d$bayesian_metrics$pit_test
+  # Before: INLA's PIT P(Y <= y) without randomization gave D = 0.4, p ~ 1e-44,
+  # and INLA's CPO itself was far from the leave-one-out predictive.
+  expect_identical(pt$method, "mixed")
+  expect_gt(pt$p_value, 0.01)
+  expect_gte(pt$central90, 0.85)
+  expect_lte(pt$central90, 0.95)
+  expect_true(all(d$df_diag$pit >= 0 & d$df_diag$pit <= 1))
+  # reproducible with the same seed, and the session's RNG is left alone
+  set.seed(5)
+  r1 <- runif(1)
+  set.seed(5)
+  d2 <- diagnose(fit)
+  expect_identical(runif(1), r1)
+  expect_identical(d2$df_diag$pit, d$df_diag$pit)
+})
+
+test_that("diagnose randomizes INLA's PIT of discrete families", {
+  skip_on_cran()
+  skip_if_not_installed("INLA")
+  set.seed(3)
+  D <- 200
+  x <- rnorm(D)
+  E <- runif(D, 5, 30)
+  dat <- data.frame(area = seq_len(D), y = rpois(D, E * exp(-2 + 0.4 * x + rnorm(D, 0, 0.4))), E = E, x = x)
+  fit <- suppressMessages(hb_area(y ~ x, data = dat, family = "poisson", exposure = "E", domain = "area"))
+  expect_warning(d <- diagnose(fit, pit_method = "cpo"), "count likelihoods")
+  cpo <- fit$fit$cpo
+  # INLA's pit is P(Y <= y | y_-i): the randomized PIT lies in [pit - cpo, pit]
+  expect_identical(d$bayesian_metrics$pit_test$method, "cpo")
+  expect_true(all(d$df_diag$pit <= cpo$pit + 1e-12 & d$df_diag$pit >= cpo$pit - cpo$cpo - 1e-12))
+  expect_false(isTRUE(all.equal(d$df_diag$pit, cpo$pit)))
+  expect_gt(d$bayesian_metrics$pit_test$p_value, 0.01)
+})
+
+test_that("diagnose PIT of a correct Poisson model is uniform (mixed predictive, randomized)", {
+  skip_on_cran()
+  skip_if_not_installed("INLA")
+  set.seed(3)
+  D <- 200
+  x <- rnorm(D)
+  E <- runif(D, 5, 30)
+  dat <- data.frame(area = seq_len(D), y = rpois(D, E * exp(-2 + 0.4 * x + rnorm(D, 0, 0.4))), E = E, x = x)
+  fit <- suppressMessages(hb_area(y ~ x, data = dat, family = "poisson", exposure = "E", domain = "area"))
+  d <- diagnose(fit)
+  pt <- d$bayesian_metrics$pit_test
+  expect_identical(pt$method, "mixed")
+  expect_true(pt$randomized)
+  expect_gt(pt$p_value, 0.01)
+  expect_gte(pt$central90, 0.85)
+  expect_lte(pt$central90, 0.95)
+  expect_true(all(d$df_diag$pit >= 0 & d$df_diag$pit <= 1))
+  # a central 90% share outside its expected range is reported as a warning
+  d$bayesian_metrics$pit_test$central90 <- 0.5
+  msgs <- paste(capture_messages(utils::capture.output(print(d))), collapse = "\n")
+  expect_match(msgs, "predictive too narrow")
+})
+
+test_that("diagnose checks pit_method", {
+  data("mys", package = "fastsae")
+  fit_fh <- eblup_fh(y ~ x1 + x2, data = mys, vardir = ~vardir, domain = ~area, print_result = FALSE)
+  expect_error(diagnose(fit_fh, pit_method = "mixed"), "mixed")
+  expect_error(diagnose(fit_fh, n_draws = 0), "n_draws")
+  expect_null(diagnose(fit_fh)$bayesian_metrics)
+})
