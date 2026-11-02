@@ -233,7 +233,10 @@
 #' @returns An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containing:
 #' \itemize{
 #'   \item \code{df_hb}: Data frame with domain estimates, including \code{domain},
-#'     \code{time} (if specified), observed \code{y}, predicted \code{hb}, linear predictor \code{linear_pred},
+#'     \code{time} (if specified), the direct estimate \code{y} on the scale of \code{hb} (a
+#'     proportion for the binomial family, a rate per unit exposure for counts with
+#'     \code{exposure}; the fitted numbers of cases or counts are in \code{cases} or
+#'     \code{count}), predicted \code{hb}, linear predictor \code{linear_pred},
 #'     posterior standard deviation \code{sd}, \code{mse} (the posterior variance
 #'     \eqn{sd^2}, named as in the EBLUP results; it is not a frequentist MSE), relative error
 #'     \code{rse} (\%),
@@ -1207,8 +1210,8 @@ hb_area <- function(
     )
     if (identical(sb_info$method, "wfq")) {
       res$df_hb$y <- sb_info$original_y
-      res$hb$y <- sb_info$original_y
-      res$df_eblup$y <- sb_info$original_y
+      res$df_hb <- .direct_on_hb_scale(res$df_hb, sb_info$original_y, family, trials, exposure)
+      res$hb <- res$df_eblup <- res$df_hb
     }
   }
 

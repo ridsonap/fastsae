@@ -431,7 +431,8 @@
       estimates = out$df_hb$hb
     )
     if (identical(sb_info$method, "wfq")) {
-      out$df_hb$y <- out$hb$y <- out$df_eblup$y <- sb_info$original_y
+      out$df_hb$y <- sb_info$original_y
+      out$hb <- out$df_eblup <- out$df_hb
     }
   }
   if (isTRUE(ctrl$keep_draws)) out$draws <- draws

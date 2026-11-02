@@ -94,6 +94,7 @@
     random_effect_subarea = or_na(fit_py$rand_eff_subarea_mean),
     stringsAsFactors = FALSE
   )
+  df_hb <- .direct_on_hb_scale(df_hb, y, family, trials_num, exposure_num)
 
   df_area <- NULL
   if (compute_area) {

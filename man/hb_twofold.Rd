@@ -102,7 +102,9 @@ An object of class \code{c("fastsae_hb_twofold", "fastsae_hb", "fastsae")} conta
     \itemize{
       \item \code{domain}: Primary area identifier.
       \item \code{subarea}: Sub-area identifier.
-      \item \code{y}: Direct estimate / observed response (NA for unsampled).
+      \item \code{y}: Direct estimate on the scale of \code{hb} (NA for unsampled): a proportion
+        for the binomial family (the fitted numbers of cases are in \code{cases}) and a rate
+        per unit exposure for Poisson counts with \code{exposure} (counts in \code{count}).
       \item \code{hb}: Posterior mean estimate of sub-area mean.
       \item \code{linear_pred}: Posterior mean of linear predictor.
       \item \code{vardir}: Direct sampling variance (for Gaussian).

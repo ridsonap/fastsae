@@ -690,6 +690,7 @@
   if (!is.null(trials)) {
     df_hb$trials <- trials
     if (family == "binomial") {
+      df_hb <- .direct_on_hb_scale(df_hb, y, family, trials)
       df_hb$estimated_total <- hb_est * trials
     } else if (family == "beta" && is.null(vardir)) {
       df_hb$precision <- pmax(trials - 1, 1, na.rm = TRUE)
@@ -698,9 +699,29 @@
 
   # If exposure provided (Poisson / NegBinom)
   if (!is.null(exposure)) {
+    df_hb <- .direct_on_hb_scale(df_hb, y, family, exposure = exposure)
     df_hb$exposure <- exposure
     df_hb$rate <- hb_est
     df_hb$estimated_count <- hb_est * exposure
+  }
+  df_hb
+}
+
+#' Direct estimates on the scale of the HB estimates
+#'
+#' Binomial responses are fitted as numbers of cases and count responses with an
+#' exposure as counts, while `hb` is a proportion or a rate per unit exposure. The
+#' direct estimate `y` is put on the scale of `hb` (so that `y - hb`, the calibration
+#' plots and the diagnostics compare like with like), and the fitted cases or counts
+#' are kept in `cases` / `count`. Other families are unchanged.
+#' @noRd
+.direct_on_hb_scale <- function(df_hb, y, family, trials = NULL, exposure = NULL) {
+  if (family == "binomial" && !is.null(trials)) {
+    df_hb$y <- y / trials
+    df_hb$cases <- y
+  } else if (family %in% c("poisson", "nbinomial") && !is.null(exposure)) {
+    df_hb$y <- y / exposure
+    df_hb$count <- y
   }
   df_hb
 }
