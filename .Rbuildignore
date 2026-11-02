@@ -43,3 +43,4 @@
 ^vignettes/articles$
 ^data-raw$
 ^\.playwright-mcp$
+^codecov\.yml$
