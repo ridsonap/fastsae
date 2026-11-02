@@ -300,6 +300,21 @@ test_that("engine = 'jax' posterior self-benchmarking holds per group", {
   expect_match(printed(fit), "benchmarked posterior draws")
 })
 
+test_that("engine = 'jax' wfq self-benchmarking reports the direct estimates as y", {
+  env <- new.env()
+  local_fake_backend(env)
+  df <- sim_engine_df()
+  fit <- hb_area(y ~ x,
+    data = df, domain = "area", vardir = "vardir", engine = "jax",
+    self_benchmark = TRUE, benchmark_method = "wfq", benchmark_weight = "w",
+    benchmark_group = "prov", print_result = FALSE
+  )
+  expect_equal(fit$benchmark_method, "wfq")
+  expect_equal(fit$df_hb$y, df$y)
+  expect_identical(fit$hb, fit$df_hb)
+  expect_identical(fit$df_eblup, fit$df_hb)
+})
+
 test_that("engine = 'jax' converts binomial proportions and keeps draws optional", {
   env <- new.env()
   local_fake_backend(env)
