@@ -21,6 +21,23 @@
   another autocorrelation could have a larger REML likelihood. The same
   grid check and restart are applied, also in the bootstrap replicates.
 
+- [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+  and
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md):
+  the direct estimate `y` of `df_hb` is now on the scale of `hb`. For
+  the binomial family it held the numbers of cases while `hb` is a
+  proportion, and for counts with `exposure` the counts while `hb` is a
+  rate, so [`residuals()`](https://rdrr.io/r/stats/residuals.html),
+  [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md)
+  (residuals, bias regression), the calibration plots of
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html),
+  [`map_sae()`](https://ridsonap.is-a.dev/fastsae/reference/map_sae.md)
+  and
+  [`export_sae()`](https://ridsonap.is-a.dev/fastsae/reference/export_sae.md)
+  compared different scales (e.g. 7 cases against a proportion of 0.18).
+  The fitted numbers of cases and counts are kept in the new columns
+  `cases` and `count`.
+
 ## fastsae 1.0.0
 
 fastsae 1.0.0 adds hierarchical Bayes (HB) models, the two-fold sub-area
