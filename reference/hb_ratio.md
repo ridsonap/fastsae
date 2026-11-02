@@ -50,7 +50,7 @@ hb_ratio(
 
   Vector, column name, or formula: (effective) numbers of sampled parent
   cases, e.g. from
-  [`effective_trials()`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md)
+  [`effective_trials`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md)
   with the parent cases as `n`.
 
 - parent:
@@ -160,6 +160,7 @@ Only the INLA engine is supported.
 ## See also
 
 [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`effective_trials`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md),
 [`benchmark_sae`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md).
 
 ## Examples
