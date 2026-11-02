@@ -2,6 +2,43 @@
 
 ## fastsae (development version)
 
+### New models
+
+- [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md):
+  estimates an indicator that is a subset of a parent indicator (extreme
+  poverty within poverty, severe within all stunting) as a given parent
+  estimate times a sub-proportion with a binomial
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+  model, so the estimates never exceed the parent. Optional benchmarking
+  on the logit scale of the sub-proportion (per posterior draw, per
+  group) keeps that property, and `parent_se` adds the uncertainty of
+  the parent. Returns the posterior draws for
+  [`add_reliability_flags()`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)-style
+  summaries and the sub-proportion fit for
+  [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md).
+
+### New features
+
+- [`effective_trials()`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md):
+  effective sample sizes $`n_d / \mathrm{deff}_d`$ for binomial models
+  (`trials` of
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+  and
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md))
+  from direct proportions, design variances and sample sizes. Design
+  effects are pooled per group (the method validated in
+  `benchmarks/validation/binomial_neff.R`) or taken per area where
+  defined; areas with a direct proportion of 0 or 1, whose design effect
+  is undefined, take a supplied fallback (such as the design effect of a
+  related indicator) or the pooled one.
+- [`add_reliability_flags()`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)
+  gains `classes` and `draws`: the class of each estimate (`est_class`)
+  and the probability that the true value lies in it (`p_class`, from
+  posterior or bootstrap draws, or a normal approximation). For rare
+  characteristics the RSE of estimates near 0 is large even when their
+  absolute error is small; a class with its probability can then be
+  published instead of the point estimate.
+
 ### Bug fixes
 
 - [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md):

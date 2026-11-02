@@ -19,7 +19,13 @@ fits the RSE is computed from the posterior standard deviation.
 ## Usage
 
 ``` r
-add_reliability_flags(object, rse_col = "rse", thresholds = c(25, 50))
+add_reliability_flags(
+  object,
+  rse_col = "rse",
+  thresholds = c(25, 50),
+  classes = NULL,
+  draws = NULL
+)
 ```
 
 ## Arguments
@@ -39,10 +45,36 @@ add_reliability_flags(object, rse_col = "rse", thresholds = c(25, 50))
   Numeric vector of length 2 with the RSE (%) cut-offs. Default is
   `c(25, 50)`.
 
+- classes:
+
+  Optional increasing numeric vector of class boundaries for the
+  estimate (for instance `c(0.01, 0.03, 0.05)` for a prevalence). Adds
+  the class of each estimate and the probability that the true value
+  lies in it (see Details).
+
+- draws:
+
+  Optional matrix of posterior (or bootstrap) draws of the estimates,
+  one row per domain of the estimation table, for the class
+  probabilities. Without it they use a normal approximation.
+
 ## Value
 
 The estimation table (a data frame) with an additional factor column
-`reliability`.
+`reliability` and, with `classes`, the factor `est_class` and the
+probability `p_class`.
+
+## Details
+
+The RSE grows without bound as an estimate approaches 0, so for rare
+characteristics most small-area estimates are flagged unreliable even
+when their absolute error is small. A class of the estimate together
+with the probability of that class can then be published instead of the
+point estimate (for instance "below 1%, probability 0.87"). With `draws`
+the probability is the share of draws in the class of the estimate;
+otherwise it is \\\Phi((b\_{k} - \hat\theta)/s) - \Phi((b\_{k-1} -
+\hat\theta)/s)\\ with \\s = \sqrt{MSE}\\, which for estimates near a
+bound of their range (proportions near 0) is only a rough guide.
 
 ## Examples
 
@@ -84,4 +116,15 @@ table(df_flagged$reliability)
 #>                                 22                                 19 
 #>             Unreliable (RSE > 50%) 
 #>                                  1 
+
+# classes of the estimate and their probabilities
+df_class <- add_reliability_flags(fit_fh, classes = c(5, 7, 9))
+head(df_class[, c("eblup", "rse", "est_class", "p_class")])
+#>      eblup       rse est_class   p_class
+#> 1 7.594807  9.855256    7 - <9 0.7563665
+#> 2 6.777056 12.137828    5 - <7 0.5914414
+#> 3 5.247512 15.999508    5 - <7 0.5975006
+#> 4 4.247072 17.551750       < 5 0.8437645
+#> 5 6.353632 15.185005    5 - <7 0.6682498
+#> 6 4.090117 14.458337       < 5 0.9380516
 ```

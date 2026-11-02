@@ -45,6 +45,9 @@ subarea random effects via REML EBLUP and Bayesian INLA
   Fay-Herriot Model.
 - [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   : Two-Fold Hierarchical Bayes for Sub-Area Level Small Area Estimation
+- [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
+  : Hierarchical Bayes Ratio Model for a Sub-Proportion of a Parent
+  Indicator
 
 ## Unit-Level Models
 
@@ -68,6 +71,8 @@ sampling variances
   : Pre-Modeling Spatial Diagnostic and Autocorrelation Tests
 - [`gvf_smooth()`](https://ridsonap.is-a.dev/fastsae/reference/gvf_smooth.md)
   : Generalized Variance Function (GVF) Smoothing for Sampling Variances
+- [`effective_trials()`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md)
+  : Effective Sample Sizes of Direct Proportions
 
 ## Model Diagnostics & Visualization
 
