@@ -432,30 +432,30 @@ aggregates come from posterior draws
 <span></span>
 <span><span class="va">fit_hb</span><span class="op">$</span><span class="va">random_effect_var</span></span>
 <span><span class="co">#&gt;  sigma2_v  sigma2_u </span></span>
-<span><span class="co">#&gt; 1.2368827 0.1869415</span></span>
+<span><span class="co">#&gt; 1.2363507 0.1874079</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain subarea        y       hb linear_pred   vardir        sd       mse</span></span>
-<span><span class="co">#&gt; 1    A01   A01-1 12.20118 12.39291    12.39291 1.663801 0.6266775 0.3927247</span></span>
-<span><span class="co">#&gt; 2    A01   A01-2 14.48113 14.48306    14.48306 1.105026 0.6021906 0.3626336</span></span>
-<span><span class="co">#&gt; 3    A01   A01-3 15.01471 14.56058    14.56058 1.301555 0.6148579 0.3780502</span></span>
-<span><span class="co">#&gt; 4    A01   A01-4 11.36094 12.20731    12.20731 1.406429 0.6221345 0.3870513</span></span>
-<span><span class="co">#&gt; 5    A02   A02-1 12.02304 12.65289    12.65289 1.986447 0.6498255 0.4222732</span></span>
-<span><span class="co">#&gt; 6    A02   A02-2       NA 10.39838    10.39838 1.268523 0.7104706 0.5047684</span></span>
+<span><span class="co">#&gt; 1    A01   A01-1 12.20118 12.39292    12.39292 1.663801 0.6265957 0.3926221</span></span>
+<span><span class="co">#&gt; 2    A01   A01-2 14.48113 14.48306    14.48306 1.105026 0.6021239 0.3625532</span></span>
+<span><span class="co">#&gt; 3    A01   A01-3 15.01471 14.56053    14.56053 1.301555 0.6147844 0.3779598</span></span>
+<span><span class="co">#&gt; 4    A01   A01-4 11.36094 12.20738    12.20738 1.406429 0.6220624 0.3869617</span></span>
+<span><span class="co">#&gt; 5    A02   A02-1 12.02304 12.65294    12.65294 1.986447 0.6497471 0.4221713</span></span>
+<span><span class="co">#&gt; 6    A02   A02-2       NA 10.39838    10.39838 1.268523 0.7103545 0.5046035</span></span>
 <span><span class="co">#&gt;        rse  ci_lower ci_upper random_effect_area random_effect_subarea</span></span>
-<span><span class="co">#&gt; 1 5.056743 11.151589 13.62601         -0.4211373         -2.072799e-02</span></span>
-<span><span class="co">#&gt; 2 4.157896 13.296756 15.66941         -0.4211373         -1.332861e-03</span></span>
-<span><span class="co">#&gt; 3 4.222757 13.363527 15.78868         -0.4211373          5.682072e-02</span></span>
-<span><span class="co">#&gt; 4 5.096411 10.953962 13.40855         -0.4211373         -9.916925e-02</span></span>
-<span><span class="co">#&gt; 5 5.135788 11.354131 13.91977         -0.8380926         -5.534552e-02</span></span>
-<span><span class="co">#&gt; 6 6.832510  8.993673 11.81460         -0.8380926         -2.506173e-11</span></span>
+<span><span class="co">#&gt; 1 5.056077 11.151745 13.62586         -0.4211447         -2.072055e-02</span></span>
+<span><span class="co">#&gt; 2 4.157435 13.296876 15.66928         -0.4211447         -1.331609e-03</span></span>
+<span><span class="co">#&gt; 3 4.222265 13.363624 15.78850         -0.4211447          5.678262e-02</span></span>
+<span><span class="co">#&gt; 4 5.095788 10.954149 13.40847         -0.4211447         -9.909454e-02</span></span>
+<span><span class="co">#&gt; 5 5.135149 11.354300 13.91964         -0.8380961         -5.531192e-02</span></span>
+<span><span class="co">#&gt; 6 6.831394  8.993868 11.81435         -0.8380961         -2.536496e-11</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_area</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain  hb_area   sd_area  mse_area rse_area ci_lower_area ci_upper_area</span></span>
-<span><span class="co">#&gt; 1    A01 13.42840 0.5161905 0.2664526 3.844021      12.41294      14.43824</span></span>
-<span><span class="co">#&gt; 2    A02 11.18137 0.5548771 0.3078886 4.962514      10.08439      12.26192</span></span>
-<span><span class="co">#&gt; 3    A03 14.08161 0.4637541 0.2150678 3.293330      13.17468      14.99396</span></span>
-<span><span class="co">#&gt; 4    A04 16.66042 0.5772648 0.3332347 3.464888      15.53877      17.80382</span></span>
-<span><span class="co">#&gt; 5    A05 13.24774 0.6584824 0.4335991 4.970526      11.94814      14.53390</span></span>
-<span><span class="co">#&gt; 6    A06 12.79909 0.5224744 0.2729795 4.082122      11.77398      13.82416</span></span>
+<span><span class="co">#&gt; 1    A01 13.42841 0.5161851 0.2664471 3.843978      12.41295      14.43824</span></span>
+<span><span class="co">#&gt; 2    A02 11.18142 0.5548681 0.3078786 4.962413      10.08444      12.26193</span></span>
+<span><span class="co">#&gt; 3    A03 14.08161 0.4637486 0.2150628 3.293294      13.17469      14.99395</span></span>
+<span><span class="co">#&gt; 4    A04 16.66040 0.5772713 0.3332422 3.464931      15.53876      17.80383</span></span>
+<span><span class="co">#&gt; 5    A05 13.24781 0.6584668 0.4335785 4.970381      11.94823      14.53393</span></span>
+<span><span class="co">#&gt; 6    A06 12.79907 0.5224603 0.2729648 4.082016      11.77400      13.82412</span></span>
 <span><span class="co">#&gt;   n_subareas</span></span>
 <span><span class="co">#&gt; 1          4</span></span>
 <span><span class="co">#&gt; 2          5</span></span>
@@ -497,9 +497,9 @@ correlation below):</p>
 <span><span class="co">#&gt;  Value            </span></span>
 <span><span class="co">#&gt;  131              </span></span>
 <span><span class="co">#&gt;  -0.0004          </span></span>
-<span><span class="co">#&gt;  [-0.0208, 0.0200]</span></span>
-<span><span class="co">#&gt;  0.0076           </span></span>
-<span><span class="co">#&gt;  0.0104           </span></span>
+<span><span class="co">#&gt;  [-0.0206, 0.0199]</span></span>
+<span><span class="co">#&gt;  0.0075           </span></span>
+<span><span class="co">#&gt;  0.0103           </span></span>
 <span><span class="co">#&gt;  1.0000           </span></span>
 <span><span class="co">#&gt;  0.008            </span></span>
 <span><span class="co">#&gt;  0.0%             </span></span>
@@ -507,8 +507,8 @@ correlation below):</p>
 <span><span class="co">#&gt;  0.18             </span></span>
 <span><span class="co">#&gt;  13 / 13          </span></span>
 <span><span class="co">#&gt;  13 / 13          </span></span>
-<span><span class="co">#&gt;  1.0441           </span></span>
-<span><span class="co">#&gt;  1.0528           </span></span>
+<span><span class="co">#&gt;  1.0443           </span></span>
+<span><span class="co">#&gt;  1.0529           </span></span>
 <span><span class="co">#&gt;  78.6%            </span></span>
 <span><span class="co">#&gt;  4.97%            </span></span>
 <span><span class="co">#&gt;  4.89%</span></span>
@@ -528,7 +528,7 @@ settles it; here the two are practically equal:</p>
 <span>  hb_two_fold <span class="op">=</span> <span class="fu">emp_mse</span><span class="op">(</span><span class="va">fit_hb</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span>, <span class="va">sampled</span> <span class="op">|</span> <span class="va">in_sampled_area</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; eblup_two_fold    hb_two_fold </span></span>
-<span><span class="co">#&gt;      0.5583827      0.5571181</span></span></code></pre></div>
+<span><span class="co">#&gt;      0.5583827      0.5571438</span></span></code></pre></div>
 <p>For counts or proportions, use <code>family = "poisson"</code> with
 <code>exposure</code> or <code>family = "binomial"</code> with
 <code>trials</code>; with <code>spatial = "bym2"</code> and a
@@ -626,37 +626,37 @@ sampling zero and enters the model as such.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Response `y` appears to be proportions; using `y * trials` as the number of cases (not rounded).</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_neff</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"subarea"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain subarea          y         hb         sd   ci_lower  ci_upper</span></span>
-<span><span class="co">#&gt; 1      1       1 0.41836735 0.37409346 0.04307235 0.29453974 0.4627750</span></span>
-<span><span class="co">#&gt; 2      1       2 0.05128205 0.13068016 0.03276658 0.07144428 0.1984518</span></span>
-<span><span class="co">#&gt; 3      1       3 0.29310345 0.28807518 0.03512971 0.22249360 0.3603268</span></span>
-<span><span class="co">#&gt; 4      1       4 0.18181818 0.16933158 0.03333342 0.11034921 0.2415763</span></span>
-<span><span class="co">#&gt; 5      1       5 0.07692308 0.08946096 0.02336377 0.05011463 0.1413169</span></span>
-<span><span class="co">#&gt; 6      2       6 0.11009174 0.11499317 0.02219461 0.07582956 0.1629783</span></span>
+<span><span class="co">#&gt; 1      1       1 0.41836735 0.37409487 0.04307265 0.29454049 0.4627769</span></span>
+<span><span class="co">#&gt; 2      1       2 0.05128205 0.13067875 0.03276690 0.07144299 0.1984514</span></span>
+<span><span class="co">#&gt; 3      1       3 0.29310345 0.28807516 0.03512997 0.22249315 0.3603274</span></span>
+<span><span class="co">#&gt; 4      1       4 0.18181818 0.16933158 0.03333392 0.11034848 0.2415776</span></span>
+<span><span class="co">#&gt; 5      1       5 0.07692308 0.08946065 0.02336401 0.05011408 0.1413173</span></span>
+<span><span class="co">#&gt; 6      2       6 0.11009174 0.11499302 0.02219487 0.07582907 0.1629788</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_neff</span><span class="op">$</span><span class="va">df_area</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain    hb_area    sd_area     mse_area  rse_area ci_lower_area</span></span>
-<span><span class="co">#&gt; 1      1 0.21368585 0.02102946 0.0004422381  9.841296    0.17544732</span></span>
-<span><span class="co">#&gt; 2      2 0.17879562 0.01825195 0.0003331336 10.208275    0.14510634</span></span>
-<span><span class="co">#&gt; 3      3 0.09158905 0.01079891 0.0001166164 11.790608    0.07157925</span></span>
-<span><span class="co">#&gt; 4      4 0.05061360 0.01078486 0.0001163133 21.308232    0.03198419</span></span>
-<span><span class="co">#&gt; 5      5 0.12943224 0.01795292 0.0003223074 13.870519    0.09692034</span></span>
-<span><span class="co">#&gt; 6      6 0.10547237 0.02022184 0.0004089227 19.172639    0.07000909</span></span>
+<span><span class="co">#&gt; 1      1 0.21368580 0.02102950 0.0004422397  9.841316    0.17544735</span></span>
+<span><span class="co">#&gt; 2      2 0.17879567 0.01825201 0.0003331360 10.208308    0.14510696</span></span>
+<span><span class="co">#&gt; 3      3 0.09158914 0.01079894 0.0001166171 11.790635    0.07157924</span></span>
+<span><span class="co">#&gt; 4      4 0.05061344 0.01078488 0.0001163136 21.308329    0.03198396</span></span>
+<span><span class="co">#&gt; 5      5 0.12943220 0.01795295 0.0003223084 13.870544    0.09692067</span></span>
+<span><span class="co">#&gt; 6      6 0.10547239 0.02022195 0.0004089273 19.172744    0.07000875</span></span>
 <span><span class="co">#&gt;   ci_upper_area n_subareas</span></span>
-<span><span class="co">#&gt; 1     0.2558150          5</span></span>
-<span><span class="co">#&gt; 2     0.2166353          6</span></span>
-<span><span class="co">#&gt; 3     0.1139555          7</span></span>
-<span><span class="co">#&gt; 4     0.0739051          5</span></span>
-<span><span class="co">#&gt; 5     0.1670614          5</span></span>
-<span><span class="co">#&gt; 6     0.1500306          6</span></span>
+<span><span class="co">#&gt; 1    0.25581521          5</span></span>
+<span><span class="co">#&gt; 2    0.21663459          6</span></span>
+<span><span class="co">#&gt; 3    0.11395533          7</span></span>
+<span><span class="co">#&gt; 4    0.07390542          5</span></span>
+<span><span class="co">#&gt; 5    0.16706174          5</span></span>
+<span><span class="co">#&gt; 6    0.15003142          6</span></span>
 <span><span class="co"># the districts with a direct estimate of 0</span></span>
 <span><span class="va">fit_neff</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span><span class="va">svy</span><span class="op">$</span><span class="va">p_hat</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"subarea"</span>, <span class="st">"hb"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    subarea         hb   ci_lower   ci_upper</span></span>
-<span><span class="co">#&gt; 24      24 0.08050399 0.03983473 0.13449826</span></span>
-<span><span class="co">#&gt; 32      32 0.05450054 0.02616804 0.09442606</span></span>
-<span><span class="co">#&gt; 37      37 0.07686739 0.03966632 0.12537142</span></span>
-<span><span class="co">#&gt; 61      61 0.04219270 0.02001923 0.07550040</span></span>
-<span><span class="co">#&gt; 62      62 0.03536612 0.01692763 0.06207807</span></span>
-<span><span class="co">#&gt; 63      63 0.02568177 0.01187238 0.04668552</span></span>
-<span><span class="co">#&gt; 65      65 0.03351642 0.01613135 0.05817597</span></span></code></pre></div>
+<span><span class="co">#&gt; 24      24 0.08050353 0.03983394 0.13449891</span></span>
+<span><span class="co">#&gt; 32      32 0.05450023 0.02616756 0.09442643</span></span>
+<span><span class="co">#&gt; 37      37 0.07686680 0.03966549 0.12537163</span></span>
+<span><span class="co">#&gt; 61      61 0.04219246 0.02001880 0.07550074</span></span>
+<span><span class="co">#&gt; 62      62 0.03536580 0.01692725 0.06207808</span></span>
+<span><span class="co">#&gt; 63      63 0.02568159 0.01187213 0.04668565</span></span>
+<span><span class="co">#&gt; 65      65 0.03351604 0.01613097 0.05817583</span></span></code></pre></div>
 <p>The model is only as good as the design effects: they are not
 estimated by the model, so effective sample sizes that are too large
 give intervals that are too narrow. Design effects of small areas are

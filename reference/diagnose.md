@@ -14,7 +14,10 @@ diagnose(
   W = NULL,
   truth = NULL,
   rse_threshold = 25,
-  alpha_level = 0.05
+  alpha_level = 0.05,
+  pit_method = c("auto", "mixed", "cpo"),
+  n_draws = 1000,
+  seed = 1L
 )
 ```
 
@@ -50,6 +53,25 @@ diagnose(
 
   Numeric. Significance level for hypothesis tests (default is 0.05).
 
+- pit_method:
+
+  Character. Predictive distribution of the PIT values of Bayesian fits:
+  `"mixed"` (mixed predictive, see Details; area-level INLA fits with
+  independent area effects and a binomial or Poisson likelihood),
+  `"cpo"` (INLA's leave-one-out `cpo$pit`), or `"auto"` (default:
+  `"mixed"` where it is available, otherwise `"cpo"`).
+
+- n_draws:
+
+  Integer. Posterior draws for the mixed predictive (default 1000).
+
+- seed:
+
+  Integer seed of the posterior draws and of the randomization of
+  discrete PIT values (default 1); `NULL` uses the session's random
+  number stream. A seed does not change the session's random number
+  stream.
+
 ## Value
 
 An object of class `c("fastsae_diagnose", "list")` containing:
@@ -79,8 +101,12 @@ An object of class `c("fastsae_diagnose", "list")` containing:
 - bayesian_metrics:
 
   For Bayesian fits: DIC, WAIC, marginal log-likelihood and, when they
-  are available per domain, CPO summaries and a Kolmogorov-Smirnov test
-  of the PIT values.
+  are available per domain, CPO summaries and `pit_test`: the PIT
+  `method` (`"mixed"` or `"cpo"`), whether the values were `randomized`,
+  a Kolmogorov-Smirnov test against the uniform (`d_stat`, `p_value`,
+  `is_calibrated`), the share of PIT values in the central 90% band
+  `central90` with the range `central90_range` expected under a
+  calibrated model, and the number of domains `n`.
 
 - simulation_metrics:
 
@@ -115,6 +141,41 @@ explained by the covariates), so that test would reject correct models.
 Inspect the regression (and `autoplot(x, type = "calibration")`) for
 systematic deviations instead.
 
+**PIT of Bayesian fits.** The probability integral transform \\u_d =
+F_d(y_d)\\ of each direct estimate under its predictive distribution is
+uniform for a calibrated model. For a count likelihood (binomial,
+Poisson, negative binomial) \\F_d\\ is a step function, and \\F_d(y_d)\\
+is not uniform even under the true model (it piles up near 1 and, with
+many zero counts, at \\P(Y_d = 0)\\); the randomized PIT \\u_d =
+F_d(y_d - 1) + V_d\\F_d(y_d) - F_d(y_d - 1)\\\\, \\V_d \sim U(0, 1)\\,
+is uniform (Czado, Gneiting and Held, 2009). INLA's `cpo$pit` of a count
+is \\P(Y_d \le y_d \mid y\_{-d})\\ and `cpo$cpo` is \\P(Y_d = y_d \mid
+y\_{-d})\\, so \\F_d(y_d - 1)\\ is their difference.
+
+INLA's CPO of count likelihoods can be far from the leave-one-out
+predictive when the hyperparameters are integrated over: for a correct
+binomial model with 300 areas, 20 trials and 68% zero counts, INLA
+26.8.7 gave a CPO of 0.03 where refitting without the area gave 0.71
+(with `int.strategy = "eb"` the two agreed), and in replicated correct
+binomial and Poisson models the randomized PIT from INLA's CPO fell in
+the central 90% band for as few as 23-37% of the areas, with no CPO
+failure flagged. Gaussian fits agreed with refitting. Hence
+`pit_method = "auto"` uses the mixed predictive of Marshall and
+Spiegelhalter (2003) where it is available: for each posterior draw the
+area effect is replaced by a new draw from its population distribution
+\\N(0, \sigma_v^2)\\ and \\F_d\\ is the average of the likelihood CDF
+over the draws. This approximates leave-one-out cross-validation (the
+fixed effects and \\\sigma_v\\ are not refitted, which matters little
+with many areas). For binomial fits with non-integer (effective) numbers
+of cases or trials, both are rounded for the PIT, the area with the
+observed proportion. With `"mixed"`, the column `cpo` of `df_diag` is
+the mixed predictive probability of the observed count.
+
+The Kolmogorov-Smirnov test rejects small departures with hundreds of
+domains; the share of PIT values in \\\[0.05, 0.95\]\\ is easier to
+read: a calibrated model gives 0.90, within `central90_range` (the
+binomial 1 - `alpha_level` interval) for the number of domains.
+
 **Moran's I** on the residuals \\y_d - \hat\theta_d\\ of the sampled
 domains uses the randomisation variance of Cliff and Ord (1981),
 two-sided.
@@ -131,6 +192,15 @@ two-sided.
 
 3.  Cliff, A. D., & Ord, J. K. (1981). *Spatial Processes: Models &
     Applications*. Pion London.
+
+4.  Czado, C., Gneiting, T., & Held, L. (2009). Predictive model
+    assessment for count data. *Biometrics*, 65(4), 1254–1261.
+    [doi:10.1111/j.1541-0420.2009.01191.x](https://doi.org/10.1111/j.1541-0420.2009.01191.x)
+
+5.  Marshall, E. C., & Spiegelhalter, D. J. (2003). Approximate
+    cross-validatory predictive checks in disease mapping models.
+    *Statistics in Medicine*, 22(10), 1649–1660.
+    [doi:10.1002/sim.1403](https://doi.org/10.1002/sim.1403)
 
 ## Examples
 
@@ -201,29 +271,29 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 2.829989 
+#> Random effect variance (sigma2_u): 2.829988 
 #> 
 #> Fixed Effects Coefficients:
 #>                   beta  std.error     zvalue     pvalue   ci_lower ci_upper
-#> (Intercept)  3.0715574  0.7909895  3.8831834  0.0001031  1.5330603   4.6544
-#> x1          -0.0041512  0.0094343 -0.4400153  0.6599261 -0.0229834   0.0143
-#> x2           0.0862090  0.0320401  2.6906553  0.0071312  0.0230294   0.1495
+#> (Intercept)  3.0715570  0.7909896  3.8831824  0.0001031  1.5330602   4.6544
+#> x1          -0.0041512  0.0094343 -0.4400150  0.6599263 -0.0229834   0.0143
+#> x2           0.0862090  0.0320401  2.6906554  0.0071312  0.0230294   0.1495
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.590847    7.590847 0.7640231 0.5837313 10.06506 6.107742
-#> 2      2 7.599650 6.775393    6.775393 0.8337956 0.6952150 12.30623 5.161057
-#> 3      3 5.514137 5.245482    5.245482 0.8229082 0.6771779 15.68794 3.640202
-#> 4      4 3.869326 4.247402    4.247402 0.7360700 0.5417991 17.32989 2.794585
-#> 5      5 6.305063 6.352990    6.352990 0.9388751 0.8814865 14.77848 4.508181
-#> 6      6 3.926807 4.091352    4.091352 0.5837764 0.3407949 14.26855 2.943485
+#> 1      1 8.359527 7.590845    7.590845 0.7640244 0.5837333 10.06508 6.107737
+#> 2      2 7.599650 6.775391    6.775391 0.8337967 0.6952169 12.30625 5.161053
+#> 3      3 5.514137 5.245481    5.245481 0.8229081 0.6771778 15.68794 3.640202
+#> 4      4 3.869326 4.247402    4.247402 0.7360701 0.5417992 17.32989 2.794585
+#> 5      5 6.305063 6.352990    6.352990 0.9388748 0.8814858 14.77847 4.508182
+#> 6      6 3.926807 4.091352    4.091352 0.5837764 0.3407948 14.26854 2.943485
 #>   ci_upper random_effect    vardir
-#> 1 9.103081    2.96522791 0.6618838
-#> 2 8.430376    2.52170476 0.8374691
-#> 3 6.869508    0.77265169 0.8822257
-#> 4 5.682178   -1.47621004 0.6581716
-#> 5 8.195014   -0.09886324 1.2788021
-#> 6 5.233334   -1.08176020 0.3878004
+#> 1 9.103081    2.96522607 0.6618838
+#> 2 8.430376    2.52170303 0.8374691
+#> 3 6.869508    0.77265122 0.8822257
+#> 4 5.682178   -1.47620902 0.6581716
+#> 5 8.195014   -0.09886315 1.2788021
+#> 6 5.233334   -1.08175958 0.3878004
 #> ... and 36 more rows.
 #> 
 #> ── fastsae Small Area Estimation Diagnostic Report ─────────────────────────────
@@ -244,6 +314,7 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ── 5. Bayesian Information Criteria & Predictive Diagnostics ──
 #> 
 #> ℹ WAIC: 114.2 (p_eff: 13.09) | DIC: 118.64 (p_eff: 22.2)
+#> ✔ PIT (INLA CPO) in the central 90% band: 90.6% of 32 domains (expected 79.6-100.4%)
 #> ✔ PIT Calibration Test vs Uniform(0,1): D = 0.079, p-value = 0.9802 [Well-calibrated predictive distribution]
 #> ! Leave-One-Out CPO: 2 observation(s) flagged with numerical caution.
 #> ────────────────────────────────────────────────────────────────────────────────
