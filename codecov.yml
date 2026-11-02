@@ -1,0 +1,13 @@
+# The project status compares total coverage with the base commit. Coverage of
+# identical code can move by a line or two between runs (MCMC-dependent
+# branches, gcov line counts), so allow 0.1% before failing; the patch status
+# keeps its default.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0.1%
+    patch:
+      default:
+        target: auto
