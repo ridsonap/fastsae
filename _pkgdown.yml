@@ -111,6 +111,7 @@ reference:
       - create_weights
       - spatial_test
       - gvf_smooth
+      - effective_trials
   - title: "Model Diagnostics & Visualization"
     desc: "Universal diagnostic framework and ggplot2 visualization methods"
     contents:

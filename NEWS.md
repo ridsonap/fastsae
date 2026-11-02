@@ -1,5 +1,14 @@
 # fastsae (development version)
 
+## New features
+
+* `effective_trials()`: effective sample sizes $n_d / \mathrm{deff}_d$ for binomial models
+  (`trials` of `hb_area()` and `hb_twofold()`) from direct proportions, design variances and
+  sample sizes. Design effects are pooled per group (the method validated in
+  `benchmarks/validation/binomial_neff.R`) or taken per area where defined; areas with a direct
+  proportion of 0 or 1, whose design effect is undefined, take a supplied fallback (such as the
+  design effect of a related indicator) or the pooled one.
+
 ## Bug fixes
 
 * `eblup_sfh()`: when the (RE)ML iterations end at a zero random effect variance, the
