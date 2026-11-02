@@ -370,6 +370,29 @@ test_that("diagnose randomizes INLA's PIT of discrete families", {
   expect_gt(d$bayesian_metrics$pit_test$p_value, 0.01)
 })
 
+test_that("diagnose PIT of a correct Poisson model is uniform (mixed predictive, randomized)", {
+  skip_on_cran()
+  skip_if_not_installed("INLA")
+  set.seed(3)
+  D <- 200
+  x <- rnorm(D)
+  E <- runif(D, 5, 30)
+  dat <- data.frame(area = seq_len(D), y = rpois(D, E * exp(-2 + 0.4 * x + rnorm(D, 0, 0.4))), E = E, x = x)
+  fit <- suppressMessages(hb_area(y ~ x, data = dat, family = "poisson", exposure = "E", domain = "area"))
+  d <- diagnose(fit)
+  pt <- d$bayesian_metrics$pit_test
+  expect_identical(pt$method, "mixed")
+  expect_true(pt$randomized)
+  expect_gt(pt$p_value, 0.01)
+  expect_gte(pt$central90, 0.85)
+  expect_lte(pt$central90, 0.95)
+  expect_true(all(d$df_diag$pit >= 0 & d$df_diag$pit <= 1))
+  # a central 90% share outside its expected range is reported as a warning
+  d$bayesian_metrics$pit_test$central90 <- 0.5
+  msgs <- paste(capture_messages(utils::capture.output(print(d))), collapse = "\n")
+  expect_match(msgs, "predictive too narrow")
+})
+
 test_that("diagnose checks pit_method", {
   data("mys", package = "fastsae")
   fit_fh <- eblup_fh(y ~ x1 + x2, data = mys, vardir = ~vardir, domain = ~area, print_result = FALSE)
