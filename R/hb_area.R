@@ -28,6 +28,7 @@
 #'   \code{temporal} \tab all \tab all but \code{"rw2"} \cr
 #'   \code{st_interaction} \tab all \tab all \cr
 #'   Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
+#'   Covariates measured with error (\code{var_x}) \tab yes \tab yes \cr
 #'   Horseshoe prior, Student-t random effects \tab -- \tab yes \cr
 #' }
 #' By default both engines use the same priors (see \code{prior_prec} of
@@ -64,6 +65,56 @@
 #' with a small area variance, the classic summary of that variance (\code{random_effect_var}) was
 #' biased downwards, while the area estimates were accurate. The validation scripts are in the
 #' package repository (\code{benchmarks/validation}).
+#'
+#' @section Covariates measured with error:
+#' A covariate that is itself an estimate, for instance from another survey, is observed as
+#' \eqn{w_{dk} = x_{dk} + \eta_{dk}}, where \eqn{x_{dk}} is its true value and
+#' \eqn{\eta_{dk} \sim N(0, C_{dk})} an error with known variance \eqn{C_{dk}} (\code{var_x}),
+#' independent of the sampling error of \eqn{y_d}, of the area effect and of the errors of the
+#' other covariates. Used as if it were the true value, \eqn{w_{dk}} gets an attenuated
+#' coefficient and every area is shrunk alike, however large its \eqn{C_{dk}}, and the
+#' predictor can be worse than the direct estimate (Ybarra and Lohr, 2008). With \code{var_x}
+#' the true values replace the observed ones in the linear predictor:
+#' \itemize{
+#'   \item \code{"structural"} (default): \eqn{x_{dk} \sim N(\mu_k, \sigma_k^2)} independently,
+#'     the structural model of Bell et al. (2019) with a common mean, with
+#'     \eqn{\mu_k \sim N(\bar w_k, (100 s_k)^2)} and a half-normal(\eqn{s_k}) prior on
+#'     \eqn{\sigma_k}, where \eqn{\bar w_k} and \eqn{s_k} are the mean and SD of the observed
+#'     values. The coefficient is that of the true covariate.
+#'   \item \code{"functional"}: a flat prior on the true values (Arima, Datta and Liseo, 2015),
+#'     the Bayesian counterpart of the model of Ybarra and Lohr. Integrating the true values out
+#'     gives \eqn{y_d \sim N(w_d'\beta, \psi_d + \sigma_u^2 + \beta' C_d \beta)}, the regression
+#'     on the observed values with a larger variance: the area estimates agree with the
+#'     Ybarra-Lohr EBLUP (\code{emdi::fh(method = "me")}), but the coefficient keeps the
+#'     attenuation that the moment estimator of Ybarra and Lohr removes.
+#' }
+#' The coefficients of these covariates get the prior of the other coefficients (with INLA
+#' \code{control.fixed}, \eqn{N(0, 1000)} by default; \code{prior_beta} of
+#' \code{jax_engine()}). A variance of 0 marks a value without error. Rows of the same domain
+#' with the same observed value and variance share one true value (an estimate used in several
+#' periods); every other row has its own. Not available with \code{spatial = "slm"}, whose
+#' latent effect contains the covariates.
+#'
+#' In a simulation with 60 areas (10 without a direct estimate) and 100 replicates per scenario
+#' (moderate and heavy errors, skewed true values, and a mix of exact and very noisy
+#' covariates; \code{benchmarks/validation/me_area_coverage.R}), the 95\% intervals of the
+#' structural model covered 94-97\% of the true area means in every scenario and its RMSE was
+#' the smallest, also against the Ybarra-Lohr EBLUP; the naive model covered 88.7\% of the
+#' areas with noisy covariates in the mixed scenario (96.5\% of those without error). For a
+#' true coefficient of 0.8, the structural estimates averaged 0.80-0.86 (their intervals
+#' covered 85-97\%), the naive and functional ones 0.36-0.67 and those of Ybarra-Lohr
+#' 0.79-0.95.
+#'
+#' With INLA, each covariate is a classical measurement error term (\code{"mec"}; Muff et al.,
+#' 2015) whose coefficient is a hyperparameter, and the model is fitted in INLA's classic mode
+#' (compact moved the posterior means of binomial models by up to 0.08 posterior SD against
+#' Stan, classic 0.02). For the structural model, \eqn{\mu_k} and \eqn{\sigma_k} are fixed at
+#' their posterior mode given the observed values, which \eqn{y} hardly informs: against Stan,
+#' which integrates them out, the posterior means of the areas were within 0.03 posterior SD
+#' and the SDs within 0.97-1.02 times with one such covariate (Gaussian and binomial models,
+#' 30-100 areas); with two, the means were within 0.11 SD and the posterior SDs of the
+#' coefficients 0.87-0.98 times those of Stan. As two more hyperparameters, \eqn{\mu_k} and
+#' \eqn{\sigma_k} moved the means by up to 0.22 SD. The JAX engine samples them.
 #'
 #' @param formula An object of class \code{formula} specifying the fixed-effects model
 #'   (e.g., \code{y ~ x1 + x2}).
@@ -151,6 +202,16 @@
 #'   the design effect) need not be whole numbers.
 #' @param exposure Vector, column name, or formula specifying expected counts or population
 #'   exposure offsets (for \code{family = "poisson"} or \code{"nbinomial"}).
+#' @param var_x Optional variances of the errors of covariates measured with error, for
+#'   instance the squared standard errors of covariates that are themselves survey estimates:
+#'   a vector or list named by the covariates, each element a column name, one-sided formula
+#'   or numeric vector (one value per row of \code{data}), e.g. \code{var_x = c(x1 = "var_x1")}.
+#'   The covariates must enter \code{formula} as main effects, not transformed or in
+#'   interactions, and must not be constant. A variance of 0 marks a value without error.
+#'   See the section Covariates measured with error.
+#' @param me_model Model of the true values of the covariates in \code{var_x}:
+#'   \code{"structural"} (default) or \code{"functional"}; see the section Covariates measured
+#'   with error.
 #' @param engine Estimation engine: \code{\link{inla_engine}()} or \code{\link{jax_engine}()},
 #'   or the strings \code{"inla"} (default) and \code{"jax"} for their default settings.
 #'   See the Engines section.
@@ -250,6 +311,10 @@
 #'   \item \code{random_effect_var_time}: Estimated temporal random effect variance (if temporal).
 #'   \item \code{phi}: Estimated spatial variance proportion (for BYM2) or spatial autocorrelation.
 #'   \item \code{rho_time}: Estimated temporal autocorrelation parameter (for AR1).
+#'   \item \code{measurement_error}: With \code{var_x}, a list with the \code{model}, the
+#'     \code{covariates} measured with error and, for the structural model, the mean
+#'     \code{mu_x} and variance \code{sigma2_x} of their true values; \code{NULL} otherwise.
+#'     The coefficients of these covariates are in \code{estcoef} with the others.
 #'   \item \code{goodness}: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
 #'   \item \code{family}: Response family used.
 #'   \item \code{spatial}: Spatial model type used.
@@ -310,6 +375,17 @@
 #'     risk. \emph{Statistics in Medicine}, 19(17-18), 2555-2567.
 #'   \item van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A new avenue for Bayesian
 #'     inference with INLA. \emph{Computational Statistics & Data Analysis}, 181, 107692.
+#'   \item Ybarra, L. M. R., and Lohr, S. L. (2008). Small area estimation when auxiliary
+#'     information is measured with error. \emph{Biometrika}, 95(4), 919-931.
+#'   \item Arima, S., Datta, G. S., and Liseo, B. (2015). Bayesian estimators for small area
+#'     models when auxiliary information is measured with error. \emph{Scandinavian Journal of
+#'     Statistics}, 42(2), 518-529.
+#'   \item Bell, W. R., Chung, H. C., Datta, G. S., and Franco, C. (2019). Measurement error in
+#'     small area estimation: Functional versus structural versus naive models. \emph{Survey
+#'     Methodology}, 45(1), 61-80.
+#'   \item Muff, S., Riebler, A., Held, L., Rue, H., and Saner, P. (2015). Bayesian analysis of
+#'     measurement error models using integrated nested Laplace approximations. \emph{Journal of
+#'     the Royal Statistical Society: Series C (Applied Statistics)}, 64(2), 231-252.
 #' }
 #'
 #' @export
@@ -373,6 +449,8 @@ hb_area <- function(
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
+  var_x = NULL,
+  me_model = c("structural", "functional"),
   engine = "inla",
   self_benchmark = FALSE,
   benchmark_weight = NULL,
@@ -390,6 +468,18 @@ hb_area <- function(
   if (spatial == "leroux") spatial <- "generic1" # same model; INLA calls it generic1
   temporal <- match.arg(tolower(temporal), choices = c("none", "rw1", "rw2", "ar1", "iid"))
   st_interaction <- match.arg(tolower(st_interaction), choices = c("none", "domain-specific", "separable", "type1", "type2", "type3", "type4"))
+  # missing() is FALSE once the argument is reassigned: check before match.arg()
+  if (is.null(var_x) && !missing(me_model)) {
+    cli::cli_warn("{.arg me_model} is ignored without {.arg var_x}.")
+  }
+  me_model <- match.arg(tolower(me_model), choices = c("structural", "functional"))
+  if (!is.null(var_x) && spatial == "slm") {
+    cli::cli_abort(c(
+      "{.arg var_x} cannot be combined with {.code spatial = \"slm\"}.",
+      "x" = "The spatial lag model filters the covariates through (I - rho W)^-1, inside its latent effect.",
+      "i" = "Use {.code spatial = \"sar\"} for a SAR area effect with the covariates as fixed effects."
+    ))
+  }
   # A random walk in time leaves one level (rw1) or one linear trend (rw2) per domain
   # with a flat prior when nothing else carries it: the separable field has no
   # spatial main effect, and the domain-specific rw2 no common trend. A domain
@@ -544,6 +634,7 @@ hb_area <- function(
   if (any(!is.na(y))) {
     .check_design(X_fixed[!is.na(y), , drop = FALSE], "sampled observations")
   }
+  me <- if (!is.null(var_x)) .me_spec(var_x, me_model, formula, data, X_fixed, domain_vec) else NULL
   if (!is.null(vardir_vec) && family %in% c("gaussian", "beta", "gamma", "nbinomial")) {
     .check_vardir(y, vardir_vec, if (is.null(time_vec)) "area" else "observation")
   }
@@ -615,6 +706,7 @@ hb_area <- function(
       vardir = vardir_vec,
       trials = trials_vec,
       exposure = exposure_vec,
+      me = me,
       engine = engine,
       sb_info = sb_info,
       benchmark_weight = benchmark_weight,
@@ -640,6 +732,7 @@ hb_area <- function(
         vardir = vardir_vec,
         trials = trials_vec,
         exposure = exposure_vec,
+        me = me,
         strategy = engine$strategy,
         link = engine$link,
         scale_model = engine$scale_model,
@@ -687,6 +780,7 @@ hb_area <- function(
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
+  me = NULL,
   strategy = "laplace",
   link = NULL,
   scale_model = TRUE,
@@ -753,9 +847,10 @@ hb_area <- function(
     "gaussian"
   )
 
-  # Construct INLA formula with random effect
+  # Construct INLA formula with random effect; covariates measured with error
+  # enter through their 'mec' terms below, not as fixed effects
   response_var <- all.vars(formula)[1]
-  terms_fixed <- attr(stats::terms(formula), "term.labels")
+  terms_fixed <- setdiff(attr(stats::terms(formula), "term.labels"), me$cov)
   fixed_str <- if (length(terms_fixed) > 0) paste(terms_fixed, collapse = " + ") else "1"
 
   X_mat <- NULL
@@ -972,6 +1067,29 @@ hb_area <- function(
     }
   }
 
+  # 3. Covariates measured with error (see .me_inla_terms()); their coefficients
+  # get the prior of the other coefficients (control.fixed, WFQ's diffuse one)
+  me_inla <- NULL
+  if (!is.null(me)) {
+    control_fixed <- list(...)$control.fixed
+    if (is.null(control_fixed) && !is.null(sb_info) && identical(sb_info$method, "wfq")) {
+      control_fixed <- list(mean = 0, prec = 1e-6)
+    }
+    mf_me <- stats::model.frame(formula, data, na.action = stats::na.pass)
+    me_inla <- .me_inla_terms(me,
+      y = y, X = stats::model.matrix(attr(mf_me, "terms"), mf_me), family = family,
+      trials = trials, exposure = exposure, link = .check_inla_link(link, family),
+      control_fixed = control_fixed
+    )
+    for (k in seq_along(me_inla$terms)) {
+      inla_data[[me_inla$terms[[k]]$index]] <- me_inla$terms[[k]]$x
+      rand_terms <- c(rand_terms, sprintf(
+        "f(%s, model = 'mec', values = me_inla$terms[[%d]]$values, scale = me_inla$terms[[%d]]$scale, hyper = me_inla$terms[[%d]]$hyper)",
+        me_inla$terms[[k]]$index, k, k, k
+      ))
+    }
+  }
+
   if (spatial == "slm") {
     inla_formula_str <- paste(response_var, "~ -1 +", paste(rand_terms, collapse = " + "))
   } else {
@@ -1003,7 +1121,7 @@ hb_area <- function(
   # models were validated, so larger models keep INLA's default (CCD).
   # inla_engine(control.inla = ) overrides.
   if (family == "gaussian" && st_interaction %in% c("type1", "type2", "type3", "type4") &&
-    .n_hyper_st(spatial, temporal, st_interaction, vardir_known = !is.null(vardir)) <= 3) {
+    .n_hyper_st(spatial, temporal, st_interaction, vardir_known = !is.null(vardir), n_me = .me_n_hyper(me)) <= 3) {
     control_inla <- c(control_inla, list(int.strategy = "grid", dz = 0.5, diff.logdens = 8))
   }
 
@@ -1023,7 +1141,9 @@ hb_area <- function(
   # Poisson Leroux and SLM models by 0.12-0.15 SD; classic matched Stan. For the
   # other non-Gaussian models both modes matched Stan, and classic was much
   # slower for many areas (beta, n = 2000: 32 s against 1.3 s), so they keep
-  # INLA's default. inla_engine(inla.mode = ) overrides.
+  # INLA's default. Models with covariates measured with error are classic too:
+  # compact moved the means of binomial models by up to 0.08 SD, classic 0.02
+  # (benchmarks/validation/me_area.R). inla_engine(inla.mode = ) overrides.
   # Negative binomial size: half-normal(10), as jax_engine(). With one count per area
   # the size follows its prior (median estimates 8-12 with this prior and 110-180 with
   # INLA's pc.mgamma(7) for true sizes 3-100); pc.mgamma shrinks towards Poisson and
@@ -1045,7 +1165,7 @@ hb_area <- function(
   if (family == "gaussian" && is.null(vardir)) {
     inla_args$control.family <- list(hyper = list(prec = .half_normal_prec(.prior_sd_scale(y))))
   }
-  use_classic <- family == "gaussian" || spatial %in% c("generic1", "sar", "slm")
+  use_classic <- family == "gaussian" || spatial %in% c("generic1", "sar", "slm") || !is.null(me)
   if (use_classic && "inla.mode" %in% names(formals(INLA::inla))) inla_args$inla.mode <- "classic"
   # User settings (inla_engine(...)) override; control.* lists are merged
   inla_args <- utils::modifyList(inla_args, list(...))
@@ -1188,7 +1308,8 @@ hb_area <- function(
     unique_domains = unique_domains,
     unique_times = unique_times,
     call = call,
-    beta_phi = if (family == "beta" && !is.null(vardir)) inla_args$scale
+    beta_phi = if (family == "beta" && !is.null(vardir)) inla_args$scale,
+    me = me_inla
   )
 
   if (!is.null(sb_info)) {
@@ -1259,4 +1380,97 @@ hb_area <- function(
   ok <- !is.na(mu) & !is.na(vardir) & mu > 0 & vardir > mu
   size[ok] <- mu[ok]^2 / (vardir[ok] - mu[ok])
   pmin(size, 1e8)
+}
+
+#' Covariates measured with error: check `var_x` and collect the observed values
+#'
+#' `var_x` maps covariates of `formula` to the variances of their measurement
+#' errors (a column name, one-sided formula or vector per covariate). Each must
+#' enter the formula only as a numeric main effect: its true value replaces the
+#' observed one in the linear predictor, which does not carry over to
+#' transformations or interactions of it. Rows of the same domain with the same
+#' observed value and variance share one true value (an estimate reused in
+#' several periods); every other row has its own.
+#' @return A list with the model, the covariate names `cov` and n x K matrices
+#'   `w` (observed values), `var` (error variances) and `group` (true value of
+#'   each row, numbered in order of appearance).
+#' @noRd
+.me_spec <- function(var_x, me_model, formula, data, X, domain) {
+  if (!(is.character(var_x) || is.list(var_x)) || length(var_x) == 0) {
+    cli::cli_abort("{.arg var_x} must be a named character vector or a named list, e.g. {.code var_x = c(x1 = \"var_x1\")}.")
+  }
+  cov <- names(var_x)
+  if (is.null(cov) || anyNA(cov) || any(!nzchar(cov)) || anyDuplicated(cov)) {
+    cli::cli_abort(c(
+      "{.arg var_x} must be named by the covariates measured with error, each once.",
+      "i" = "For example {.code var_x = c(x1 = \"var_x1\", x3 = \"var_x3\")}."
+    ))
+  }
+  labels <- attr(stats::terms(formula), "term.labels")
+  for (v in cov) {
+    if (!v %in% labels) {
+      cli::cli_abort(c(
+        "{.arg var_x} names {.val {v}}, which is not a main effect of {.arg formula}.",
+        "i" = "A covariate measured with error must enter the formula as it is, e.g. {.code y ~ {v} + ...}."
+      ))
+    }
+    other <- setdiff(labels, v)
+    in_other <- other[vapply(other, function(t) v %in% all.vars(str2lang(t)), logical(1))]
+    if (length(in_other) > 0) {
+      cli::cli_abort(c(
+        "{.val {v}} is measured with error but also enters {.arg formula} through {.code {in_other}}.",
+        "i" = "Its true value replaces the observed one in the main effect only; transformations and interactions of it are not supported."
+      ))
+    }
+    if (!v %in% colnames(X)) {
+      cli::cli_abort("The covariate {.val {v}} in {.arg var_x} must be numeric, not a factor or logical.")
+    }
+    # only possible without an intercept (.check_design()); the priors of the true
+    # values, the floor of a variance of 0 and the INLA term all scale with sd(w)
+    if (!isTRUE(stats::sd(X[, v]) > 0)) {
+      cli::cli_abort(c(
+        "The covariate {.val {v}} in {.arg var_x} has the same value in every row.",
+        "i" = "A covariate measured with error has to vary; a constant one plays the part of an intercept."
+      ))
+    }
+  }
+
+  n <- nrow(X)
+  w <- X[, cov, drop = FALSE]
+  vx <- matrix(vapply(cov, function(v) {
+    val <- tryCatch(.get_variable(data, var_x[[v]]),
+      error = function(e) cli::cli_abort("{.arg var_x} of {.val {v}} is not valid.", parent = e)
+    )
+    if (!is.numeric(val) || length(val) != n) {
+      cli::cli_abort("{.arg var_x} of {.val {v}} must be numeric with one value per row of {.arg data}.")
+    }
+    bad <- which(!is.finite(val) | val < 0)
+    if (length(bad) > 0) {
+      cli::cli_abort(c(
+        "{.arg var_x} of {.val {v}} must be finite and non-negative in every row (0 for a value without error).",
+        "x" = "It is missing, infinite or negative in {length(bad)} row{?s}: {.val {utils::head(bad, 10)}}."
+      ))
+    }
+    as.numeric(val)
+  }, numeric(n)), nrow = n, dimnames = list(NULL, cov))
+
+  # %a prints a double exactly, so only identical values share a key
+  did <- match(domain, unique(domain))
+  group <- matrix(vapply(seq_along(cov), function(k) {
+    key <- sprintf("%d %a %a", did, w[, k], vx[, k])
+    match(key, unique(key))
+  }, integer(n)), nrow = n, dimnames = list(NULL, cov))
+
+  list(model = me_model, cov = cov, w = w, var = vx, group = group)
+}
+
+#' Number of hyperparameters the INLA measurement error terms add: the
+#' coefficient of each covariate (the other parameters are fixed, see
+#' .me_inla_terms())
+#' @noRd
+.me_n_hyper <- function(me) {
+  if (is.null(me)) {
+    return(0L)
+  }
+  length(me$cov)
 }

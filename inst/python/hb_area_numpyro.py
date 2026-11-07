@@ -120,16 +120,20 @@ def horseshoe_shrinkage(tau, lam, c2, xp=np):
     lam_tilde = xp.sqrt(c2) * lam / xp.sqrt(c2 + tau ** 2 * lam ** 2)
     return lam_tilde, 1.0 / (1.0 + (tau * lam_tilde) ** 2)
 
-def init_coefficients_at_zero(site=None, init_to_median=None):
-    """NumPyro init strategy: coefficients at 0, every other site at its prior median.
-    The median of 15 prior draws of an N(0, 1000) coefficient can be far out (|beta| ~ 10
-    on a log scale), where a sharp likelihood (a gamma shape known from vardir) left
-    chains stuck."""
+def init_coefficients_at_zero(site=None, init_to_median=None, values=None):
+    """NumPyro init strategy: coefficients at 0, the sites in `values` at the given
+    values, every other site at its prior median. The median of 15 prior draws of an
+    N(0, 1000) coefficient can be far out (|beta| ~ 10 on a log scale), where a sharp
+    likelihood (a gamma shape known from vardir) left chains stuck; the same holds for
+    the mean of true covariate values, whose prior SD is 100 times that of the values."""
     if site is None:
-        return partial(init_coefficients_at_zero, init_to_median=init_to_median)
-    if site["type"] == "sample" and not site["is_observed"] and site["name"] in ("beta", "beta_0"):
+        return partial(init_coefficients_at_zero, init_to_median=init_to_median, values=values)
+    if site["type"] == "sample" and not site["is_observed"]:
         import jax.numpy as jnp_
-        return jnp_.zeros(site["fn"].shape())
+        if site["name"] in ("beta", "beta_0"):
+            return jnp_.zeros(site["fn"].shape())
+        if values is not None and site["name"] in values:
+            return jnp_.asarray(values[site["name"]], dtype=jnp_.float32)
     return init_to_median(site)
 
 
@@ -309,6 +313,12 @@ def mcmc_diagnostics(samples, num_chains, hb_rows=None, max_trace_beta=8):
     for key, name in _DIAG_SCALARS:
         if key in samples:
             blocks.append(([name], np.asarray(samples[key], dtype=np.float64).reshape(-1, 1)))
+    # mean and variance of the true values of each covariate measured with error
+    for key in ("mu_x", "sigma2_x"):
+        if key in samples:
+            v = np.asarray(samples[key], dtype=np.float64)
+            v = v.reshape(v.shape[0], -1)
+            blocks.append((["%s[%d]" % (key, j + 1) for j in range(v.shape[1])], v))
     n_hyper = sum(len(b[0]) for b in blocks)
     beta = np.asarray(samples["beta"], dtype=np.float64)
     blocks.append((["beta[%d]" % (j + 1) for j in range(beta.shape[1])], beta))
@@ -362,6 +372,11 @@ def fit_numpyro_hb(
     W_sar=None,
     nb_size=None,
     beta_phi=None,
+    me_cols=None,
+    me_group=None,
+    me_w=None,
+    me_var=None,
+    me_model="structural",
     num_warmup=500,
     num_samples=1000,
     num_chains=2,
@@ -463,6 +478,32 @@ def fit_numpyro_hb(
 
     pen_idx = np.where(int_mask == 0.0)[0]
 
+    # Covariates measured with error (hb_area(var_x = )): per covariate its column of X,
+    # the true value of each row, and the observed value and error variance of each true
+    # value (floored in R as for INLA). Structural priors, the same as those of the posterior
+    # mode that inla_engine() fixes them at: mean N(mean w, (100 sd w)^2), SD half-normal(sd w),
+    # with sd w over the rows.
+    me_terms = []
+    me_init = {}
+    if me_cols is not None:
+        for k, col in enumerate(np.atleast_1d(np.asarray(me_cols, dtype=np.int64))):
+            w_k = np.atleast_1d(np.asarray(me_w[k], dtype=np.float64))
+            c_k = np.atleast_1d(np.asarray(me_var[k], dtype=np.float64))
+            w_sd = float(np.std(X_np[:, int(col)], ddof=1))
+            if not np.isfinite(w_sd) or w_sd <= 0:
+                w_sd = 1.0
+            me_terms.append({
+                "col": int(col),
+                "group": jnp.asarray(np.atleast_1d(np.asarray(me_group[k], dtype=np.int64)), dtype=jnp.int32),
+                "w": jnp.asarray(w_k, dtype=jnp.float32),
+                "c": jnp.asarray(c_k, dtype=jnp.float32),
+                "w_mean": float(np.mean(w_k)),
+                "w_sd": w_sd,
+            })
+            me_init["mu_x%d" % k] = float(np.mean(w_k))
+            me_init["sigma_x%d" % k] = float(np.sqrt(max(np.var(w_k) - np.mean(c_k), 0.05 * w_sd ** 2)))
+    me_structural = me_model == "structural"
+
     # Negative binomial with vardir: known size per area, computed in R
     nb_size_np = np.asarray(nb_size, dtype=np.float64)[obs_idx] if (family == "nbinomial" and nb_size is not None) else None
     nb_size_obs = jnp.asarray(nb_size_np, dtype=jnp.float32) if nb_size_np is not None else None
@@ -529,7 +570,34 @@ def fit_numpyro_hb(
             numpyro.deterministic("kappa_shrinkage", jnp.zeros(P).at[pen_idx].set(kappa))
         else:
             beta = numpyro.sample("beta", dist.Normal(0.0, beta_scale).expand([P]))
-        linpred_fixed = jnp.dot(X_jnp, beta)
+
+        # True values of the covariates measured with error replace their columns. With
+        # w = x + e, e ~ N(0, C): functional, a flat prior on x, so x = w - sqrt(C) z; structural,
+        # x ~ N(mu, sigma^2), drawn from x | w (precision 1 / sigma^2 + 1 / C) with the marginal
+        # N(w; mu, sigma^2 + C) of the observed values, as INLA's mec model.
+        X_eff = X_jnp
+        mu_x_all, sigma2_x_all = [], []
+        for k, t in enumerate(me_terms):
+            z_x = numpyro.sample("z_me%d" % k, dist.Normal(0.0, 1.0).expand([t["w"].shape[0]]))
+            if me_structural:
+                mu_x = numpyro.sample("mu_x%d" % k, dist.Normal(t["w_mean"], 100.0 * t["w_sd"]))
+                sigma_x = numpyro.sample("sigma_x%d" % k, dist.HalfNormal(t["w_sd"]))
+                prec_x = 1.0 / sigma_x ** 2 + 1.0 / t["c"]
+                m_x = (mu_x / sigma_x ** 2 + t["w"] / t["c"]) / prec_x
+                x_true = m_x + z_x / jnp.sqrt(prec_x)
+                numpyro.factor(
+                    "w_me%d" % k,
+                    jnp.sum(dist.Normal(mu_x, jnp.sqrt(sigma_x ** 2 + t["c"])).log_prob(t["w"]))
+                )
+                mu_x_all.append(mu_x)
+                sigma2_x_all.append(sigma_x ** 2)
+            else:
+                x_true = t["w"] - jnp.sqrt(t["c"]) * z_x
+            X_eff = X_eff.at[:, t["col"]].set(x_true[t["group"]])
+        if mu_x_all:
+            numpyro.deterministic("mu_x", jnp.stack(mu_x_all))
+            numpyro.deterministic("sigma2_x", jnp.stack(sigma2_x_all))
+        linpred_fixed = jnp.dot(X_eff, beta)
 
         # 1. Spatial / Domain Random Effect
         u_spatial = jnp.zeros(D)
@@ -756,7 +824,8 @@ def fit_numpyro_hb(
     on_metal = dev_str.lower().startswith("metal")
     pref_chain_method = "sequential" if on_metal else ("vectorized" if num_chains > 1 else "sequential")
     rng_key = jax.random.PRNGKey(seed)
-    kernel = NUTS(model, init_strategy=partial(init_coefficients_at_zero, init_to_median=init_to_median),
+    kernel = NUTS(model, init_strategy=partial(init_coefficients_at_zero, init_to_median=init_to_median,
+                                               values=me_init or None),
                   target_accept_prob=0.85, max_tree_depth=max_tree_depth)
     # divergent transitions and the number of leapfrog steps of each iteration (tree depth)
     extra_fields = ("diverging", "num_steps")
@@ -830,7 +899,8 @@ def fit_numpyro_hb(
                 samples[k] = y_s * samples[k]
         samples["beta"] = y_s * samples["beta"] + y_c * int_mask
         for k in list(samples):
-            if k.startswith("sigma2_"):
+            # the true covariate values are in the unit of the covariate, not of y
+            if k.startswith("sigma2_") and k != "sigma2_x":
                 samples[k] = (y_s ** 2) * samples[k]
 
     # Convergence: rank-normalized split R-hat and bulk/tail ESS of every hyperparameter,
@@ -980,6 +1050,10 @@ def fit_numpyro_hb(
         hyperparams["tau_horseshoe"] = float(np.mean(samples["tau_horseshoe"]))
     if "sigma2_e" in samples:
         hyperparams["sigma2_e"] = float(np.mean(samples["sigma2_e"]))
+    for key in ("mu_x", "sigma2_x"):
+        if key in samples:
+            for j, v in enumerate(np.mean(np.asarray(samples[key], dtype=np.float64), axis=0)):
+                hyperparams["%s[%d]" % (key, j + 1)] = float(v)
     if "sigma2_subarea" in samples:
         hyperparams["sigma2_subarea"] = float(np.mean(samples["sigma2_subarea"]))
         if "sigma2_u" in hyperparams:

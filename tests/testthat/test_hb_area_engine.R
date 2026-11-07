@@ -710,3 +710,28 @@ test_that("engine = 'jax' beta model with vardir agrees with INLA", {
   expect_lt(max(abs(fj$df_hb$sd / fi$df_hb$sd - 1)), 0.2)
   expect_lt(fj$rhat_max, 1.05)
 })
+
+test_that("engine = 'jax' measurement error models agree with INLA", {
+  skip_if_no_numpyro()
+  skip_if_not_installed("INLA")
+  d <- sim_me_df(D = 40, n_unsampled = 4)
+  eng <- jax_engine(warmup = 500, samples = 500, chains = 2, device = "cpu", progress = FALSE)
+  for (model in c("structural", "functional")) {
+    fit_jax <- quiet_mcmc(hb_area(y ~ w,
+      data = d, domain = "area", vardir = "vardir", var_x = c(w = "vx"), me_model = model,
+      engine = eng, print_result = FALSE
+    ))
+    fit_inla <- hb_area(y ~ w,
+      data = d, domain = "area", vardir = "vardir", var_x = c(w = "vx"), me_model = model,
+      print_result = FALSE
+    )
+    expect_identical(names(fit_jax$df_hb), names(fit_inla$df_hb))
+    expect_lt(max(abs(fit_jax$df_hb$hb - fit_inla$df_hb$hb) / fit_inla$df_hb$sd), 0.25)
+    expect_lt(max(abs(fit_jax$df_hb$sd / fit_inla$df_hb$sd - 1)), 0.15)
+    expect_lt(
+      abs(fit_jax$estcoef["w", "beta"] - fit_inla$estcoef["w", "beta"]) / fit_inla$estcoef["w", "std.error"],
+      0.25
+    )
+    expect_true(fit_jax$convergence)
+  }
+})

@@ -568,8 +568,49 @@ summary(fit_pois)
 
 ---
 
+## Covariates Measured with Error
+
+Area-level covariates are often estimates themselves, for instance a mean from another survey with its own sampling variance. Used as if it were exact, such a covariate gets an attenuated coefficient, every area is shrunk alike however noisy its covariate is, and the model-based estimate can be worse than the direct one (Ybarra and Lohr, 2008). `var_x` gives the variances of these errors: the true values of the covariates then replace the observed ones in the model, with a normal distribution (`me_model = "structural"`, the default; Bell et al., 2019) or a flat prior (`me_model = "functional"`, the Bayesian counterpart of the Ybarra–Lohr model; Arima, Datta and Liseo, 2015). A variance of 0 marks a value without error.
+
+```{r me_example, message = FALSE, warning = FALSE}
+set.seed(2)
+D <- 60
+x_true <- rnorm(D, 5, 2)                              # the covariate, not observed
+var_x1 <- sample(c(0.05, 0.5, 4), D, replace = TRUE)  # variances of its estimates
+d_me <- data.frame(
+  area = seq_len(D),
+  x1 = x_true + rnorm(D, 0, sqrt(var_x1)),            # the estimates
+  var_x1 = var_x1,
+  vardir = runif(D, 0.5, 1.5)
+)
+d_me$y <- 1 + 0.8 * x_true + rnorm(D, 0, 0.7) + rnorm(D, 0, sqrt(d_me$vardir))
+d_me$y[1:6] <- NA                                     # areas without a direct estimate
+
+fit_naive <- hb_area(y ~ x1, data = d_me, domain = "area", vardir = "vardir", print_result = FALSE)
+fit_me <- hb_area(y ~ x1,
+  data = d_me, domain = "area", vardir = "vardir",
+  var_x = c(x1 = "var_x1"), print_result = FALSE
+)
+
+# Coefficient of the covariate: 0.8 in the simulation
+rbind(
+  naive = fit_naive$estcoef["x1", c("beta", "ci_lower", "ci_upper")],
+  structural = fit_me$estcoef["x1", c("beta", "ci_lower", "ci_upper")]
+)
+
+# Mean posterior SD of the areas by the error variance of their covariate
+sds <- data.frame(var_x1 = d_me$var_x1, naive = fit_naive$df_hb$sd, structural = fit_me$df_hb$sd)
+aggregate(cbind(naive, structural) ~ var_x1, data = sds, FUN = mean)
+```
+
+The naive interval for the coefficient misses its true value, and the naive model gives areas with precise and with noisy covariates about the same posterior SD. The measurement error model narrows the intervals of the areas whose covariate is precise and widens those whose covariate is noisy. With `me_model = "functional"` the area estimates agree with the Ybarra–Lohr EBLUP (`emdi::fh(method = "me")`), but the coefficient stays close to the naive one: integrating the true values out leaves the regression on the observed values, only with a larger variance. The details, and the validation against Stan, are in the section *Covariates measured with error* of `?hb_area`.
+
+---
+
 ## References
 
+- Arima, S., Datta, G. S., & Liseo, B. (2015). Bayesian estimators for small area models when auxiliary information is measured with error. *Scandinavian Journal of Statistics*, 42(2), 518–529.
+- Bell, W. R., Chung, H. C., Datta, G. S., & Franco, C. (2019). Measurement error in small area estimation: Functional versus structural versus naive models. *Survey Methodology*, 45(1), 61–80.
 - De Nicolò, S., & Gardini, A. (2024). The R package tipsae: Tools for mapping proportions and indicators on the unit interval. *Journal of Statistical Software*, 108(1), 1–36.
 - Janicki, R. (2020). Properties of the beta regression model for small area estimation of proportions and application to estimation of poverty rates. *Communications in Statistics - Theory and Methods*, 49(9), 2264–2284.
 - Knorr-Held, L. (2000). Bayesian modelling of inhomogeneous spatial and temporal variation in rates. *Statistics in Medicine*, 19(17-18), 2555–2567.
@@ -577,3 +618,4 @@ summary(fit_pois)
 - Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian models by using integrated nested Laplace approximations. *Journal of the Royal Statistical Society: Series B*, 71(2), 319–392.
 - Simpson, D., Rue, H., Riebler, A., Martins, T. G., & Sørbye, S. H. (2017). Penalising model component complexity: A principled, practical approach to constructing priors. *Statistical Science*, 32(1), 1–28.
 - Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C. (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing convergence of MCMC. *Bayesian Analysis*, 16(2), 667–718.
+- Ybarra, L. M. R., & Lohr, S. L. (2008). Small area estimation when auxiliary information is measured with error. *Biometrika*, 95(4), 919–931.
