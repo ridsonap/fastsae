@@ -126,6 +126,8 @@ for JAX), so <code>hb_area()</code> itself only describes the model.</p>
 <span>  vardir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  trials <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  var_x <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  me_model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"structural"</span>, <span class="st">"functional"</span><span class="op">)</span>,</span>
 <span>  engine <span class="op">=</span> <span class="st">"inla"</span>,</span>
 <span>  self_benchmark <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  benchmark_weight <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -300,6 +302,22 @@ the design effect) need not be whole numbers.</p></dd>
 exposure offsets (for <code>family = "poisson"</code> or <code>"nbinomial"</code>).</p></dd>
 
 
+<dt id="arg-var-x">var_x<a class="anchor" aria-label="anchor" href="#arg-var-x"></a></dt>
+<dd><p>Optional variances of the errors of covariates measured with error, for
+instance the squared standard errors of covariates that are themselves survey estimates:
+a vector or list named by the covariates, each element a column name, one-sided formula
+or numeric vector (one value per row of <code>data</code>), e.g. <code>var_x = c(x1 = "var_x1")</code>.
+The covariates must enter <code>formula</code> as main effects, not transformed or in
+interactions, and must not be constant. A variance of 0 marks a value without error.
+See the section Covariates measured with error.</p></dd>
+
+
+<dt id="arg-me-model">me_model<a class="anchor" aria-label="anchor" href="#arg-me-model"></a></dt>
+<dd><p>Model of the true values of the covariates in <code>var_x</code>:
+<code>"structural"</code> (default) or <code>"functional"</code>; see the section Covariates measured
+with error.</p></dd>
+
+
 <dt id="arg-engine">engine<a class="anchor" aria-label="anchor" href="#arg-engine"></a></dt>
 <dd><p>Estimation engine: <code><a href="hb_engine.html">inla_engine()</a></code> or <code><a href="hb_engine.html">jax_engine()</a></code>,
 or the strings <code>"inla"</code> (default) and <code>"jax"</code> for their default settings.
@@ -379,6 +397,10 @@ warning.</p></dd>
 <li><p><code>random_effect_var_time</code>: Estimated temporal random effect variance (if temporal).</p></li>
 <li><p><code>phi</code>: Estimated spatial variance proportion (for BYM2) or spatial autocorrelation.</p></li>
 <li><p><code>rho_time</code>: Estimated temporal autocorrelation parameter (for AR1).</p></li>
+<li><p><code>measurement_error</code>: With <code>var_x</code>, a list with the <code>model</code>, the
+    <code>covariates</code> measured with error and, for the structural model, the mean
+    <code>mu_x</code> and variance <code>sigma2_x</code> of their true values; <code>NULL</code> otherwise.
+    The coefficients of these covariates are in <code>estcoef</code> with the others.</p></li>
 <li><p><code>goodness</code>: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).</p></li>
 <li><p><code>family</code>: Response family used.</p></li>
 <li><p><code>spatial</code>: Spatial model type used.</p></li>
@@ -403,7 +425,7 @@ warning.</p></dd>
 
 <p>Both engines return the same structure, so <code>print</code>, <code>summary</code>,
 <code><a href="benchmark_sae.html">benchmark_sae</a></code>, <code><a href="compare_sae.html">compare_sae</a></code> and the other methods work
-with either. Feature support:</p><table class="table table"><tr><td><strong>Feature</strong></td><td><strong>inla</strong></td><td><strong>jax</strong></td></tr><tr><td>Families</td><td>all six</td><td>all six</td></tr><tr><td><code>spatial</code></td><td>all</td><td>all but <code>"slm"</code></td></tr><tr><td><code>temporal</code></td><td>all</td><td>all but <code>"rw2"</code></td></tr><tr><td><code>st_interaction</code></td><td>all</td><td>all</td></tr><tr><td>Self-benchmarking</td><td>posterior, wfq</td><td>posterior; wfq (gaussian)</td></tr><tr><td>Horseshoe prior, Student-t random effects</td><td>–</td><td>yes</td></tr></table><p>By default both engines use the same priors (see <code>prior_prec</code> of
+with either. Feature support:</p><table class="table table"><tr><td><strong>Feature</strong></td><td><strong>inla</strong></td><td><strong>jax</strong></td></tr><tr><td>Families</td><td>all six</td><td>all six</td></tr><tr><td><code>spatial</code></td><td>all</td><td>all but <code>"slm"</code></td></tr><tr><td><code>temporal</code></td><td>all</td><td>all but <code>"rw2"</code></td></tr><tr><td><code>st_interaction</code></td><td>all</td><td>all</td></tr><tr><td>Self-benchmarking</td><td>posterior, wfq</td><td>posterior; wfq (gaussian)</td></tr><tr><td>Covariates measured with error (<code>var_x</code>)</td><td>yes</td><td>yes</td></tr><tr><td>Horseshoe prior, Student-t random effects</td><td>–</td><td>yes</td></tr></table><p>By default both engines use the same priors (see <code>prior_prec</code> of
 <code><a href="hb_engine.html">inla_engine()</a></code> and <code>priors</code> of <code><a href="hb_engine.html">jax_engine()</a></code>), so their estimates
 differ only by the INLA approximation and the Monte Carlo error.</p>
 <p>With the <code>"inla"</code> engine, Gaussian models and the Leroux and SLM effects of any family are
@@ -433,6 +455,54 @@ Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held interac
 with a small area variance, the classic summary of that variance (<code>random_effect_var</code>) was
 biased downwards, while the area estimates were accurate. The validation scripts are in the
 package repository (<code>benchmarks/validation</code>).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="covariates-measured-with-error">Covariates measured with error<a class="anchor" aria-label="anchor" href="#covariates-measured-with-error"></a></h2>
+
+
+<p>A covariate that is itself an estimate, for instance from another survey, is observed as
+\(w_{dk} = x_{dk} + \eta_{dk}\), where \(x_{dk}\) is its true value and
+\(\eta_{dk} \sim N(0, C_{dk})\) an error with known variance \(C_{dk}\) (<code>var_x</code>),
+independent of the sampling error of \(y_d\), of the area effect and of the errors of the
+other covariates. Used as if it were the true value, \(w_{dk}\) gets an attenuated
+coefficient and every area is shrunk alike, however large its \(C_{dk}\), and the
+predictor can be worse than the direct estimate (Ybarra and Lohr, 2008). With <code>var_x</code>
+the true values replace the observed ones in the linear predictor:</p><ul><li><p><code>"structural"</code> (default): \(x_{dk} \sim N(\mu_k, \sigma_k^2)\) independently,
+    the structural model of Bell et al. (2019) with a common mean, with
+    \(\mu_k \sim N(\bar w_k, (100 s_k)^2)\) and a half-normal(\(s_k\)) prior on
+    \(\sigma_k\), where \(\bar w_k\) and \(s_k\) are the mean and SD of the observed
+    values. The coefficient is that of the true covariate.</p></li>
+<li><p><code>"functional"</code>: a flat prior on the true values (Arima, Datta and Liseo, 2015),
+    the Bayesian counterpart of the model of Ybarra and Lohr. Integrating the true values out
+    gives \(y_d \sim N(w_d'\beta, \psi_d + \sigma_u^2 + \beta' C_d \beta)\), the regression
+    on the observed values with a larger variance: the area estimates agree with the
+    Ybarra-Lohr EBLUP (<code>emdi::fh(method = "me")</code>), but the coefficient keeps the
+    attenuation that the moment estimator of Ybarra and Lohr removes.</p></li>
+</ul><p>The coefficients of these covariates get the prior of the other coefficients (with INLA
+<code>control.fixed</code>, \(N(0, 1000)\) by default; <code>prior_beta</code> of
+<code><a href="hb_engine.html">jax_engine()</a></code>). A variance of 0 marks a value without error. Rows of the same domain
+with the same observed value and variance share one true value (an estimate used in several
+periods); every other row has its own. Not available with <code>spatial = "slm"</code>, whose
+latent effect contains the covariates.</p>
+<p>In a simulation with 60 areas (10 without a direct estimate) and 100 replicates per scenario
+(moderate and heavy errors, skewed true values, and a mix of exact and very noisy
+covariates; <code>benchmarks/validation/me_area_coverage.R</code>), the 95% intervals of the
+structural model covered 94-97% of the true area means in every scenario and its RMSE was
+the smallest, also against the Ybarra-Lohr EBLUP; the naive model covered 88.7% of the
+areas with noisy covariates in the mixed scenario (96.5% of those without error). For a
+true coefficient of 0.8, the structural estimates averaged 0.80-0.86 (their intervals
+covered 85-97%), the naive and functional ones 0.36-0.67 and those of Ybarra-Lohr
+0.79-0.95.</p>
+<p>With INLA, each covariate is a classical measurement error term (<code>"mec"</code>; Muff et al.,
+2015) whose coefficient is a hyperparameter, and the model is fitted in INLA's classic mode
+(compact moved the posterior means of binomial models by up to 0.08 posterior SD against
+Stan, classic 0.02). For the structural model, \(\mu_k\) and \(\sigma_k\) are fixed at
+their posterior mode given the observed values, which \(y\) hardly informs: against Stan,
+which integrates them out, the posterior means of the areas were within 0.03 posterior SD
+and the SDs within 0.97-1.02 times with one such covariate (Gaussian and binomial models,
+30-100 areas); with two, the means were within 0.11 SD and the posterior SDs of the
+coefficients 0.87-0.98 times those of Stan. As two more hyperparameters, \(\mu_k\) and
+\(\sigma_k\) moved the means by up to 0.22 SD. The JAX engine samples them.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -476,6 +546,17 @@ package repository (<code>benchmarks/validation</code>).</p>
     risk. <em>Statistics in Medicine</em>, 19(17-18), 2555-2567.</p></li>
 <li><p>van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A new avenue for Bayesian
     inference with INLA. <em>Computational Statistics &amp; Data Analysis</em>, 181, 107692.</p></li>
+<li><p>Ybarra, L. M. R., and Lohr, S. L. (2008). Small area estimation when auxiliary
+    information is measured with error. <em>Biometrika</em>, 95(4), 919-931.</p></li>
+<li><p>Arima, S., Datta, G. S., and Liseo, B. (2015). Bayesian estimators for small area
+    models when auxiliary information is measured with error. <em>Scandinavian Journal of
+    Statistics</em>, 42(2), 518-529.</p></li>
+<li><p>Bell, W. R., Chung, H. C., Datta, G. S., and Franco, C. (2019). Measurement error in
+    small area estimation: Functional versus structural versus naive models. <em>Survey
+    Methodology</em>, 45(1), 61-80.</p></li>
+<li><p>Muff, S., Riebler, A., Held, L., Rue, H., and Saner, P. (2015). Bayesian analysis of
+    measurement error models using integrated nested Laplace approximations. <em>Journal of
+    the Royal Statistical Society: Series C (Applied Statistics)</em>, 64(2), 231-252.</p></li>
 </ol></div>
 
     <div class="section level2">
@@ -524,11 +605,11 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (INLA mode status 0)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (Non-spatial)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.880434 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.880427 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7086e-05  1.5557e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7084e-05  1.5557e+00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x2           5.5695e-02  6.3488e-02  8.7724e-01  3.8035e-01 -6.8341e-02</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x3           3.3458e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02</span>
@@ -540,19 +621,19 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.608038    7.608038 0.7646551 0.5846974 10.05062 6.123798</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.779537    6.779537 0.8360711 0.6990149 12.33228 5.161202</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.183061    5.183061 0.8343362 0.6961169 16.09736 3.557406</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.201224    4.201224 0.7385940 0.5455210 17.58045 2.744927</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.322898    6.322898 0.9421056 0.8875630 14.89990 4.473096</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.048398    4.048398 0.5872605 0.3448749 14.50600 2.894942</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.608038    7.608038 0.7646542 0.5846960 10.05061 6.123799</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.779536    6.779536 0.8360702 0.6990134 12.33226 5.161203</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.183061    5.183061 0.8343359 0.6961165 16.09736 3.557406</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.201224    4.201224 0.7385938 0.5455208 17.58044 2.744928</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.322898    6.322898 0.9421055 0.8875627 14.89990 4.473097</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.048398    4.048398 0.5872604 0.3448748 14.50600 2.894942</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.121609    2.93893883 0.6618838</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.439313    2.54245298 0.8374691</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.830950    0.96059568 0.8822257</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.642492   -1.31947900 0.6581716</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.172685   -0.03983708 1.2788021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.198417   -0.82111158 0.3878004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.121606     2.9389384 0.6618838</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.439310     2.5424526 0.8374691</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.830949     0.9605958 0.8822257</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.642492    -1.3194786 0.6581716</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.172684    -0.0398370 1.2788021</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.198417    -0.8211113 0.3878004</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -565,14 +646,14 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (Non-spatial)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Self-Benchmarking</span>: Active (benchmarked posterior draws)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.88042 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 2.88043 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7081e-05  1.5557e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7084e-05  1.5557e+00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8341e-02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x3           3.3459e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           5.5695e-02  6.3488e-02  8.7724e-01  3.8035e-01 -6.8341e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3           3.3458e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.7053</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1            0.0181</span>
@@ -581,19 +662,19 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.548249    7.608034 0.8089715 0.6544349 10.71734 5.918177</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.730943    6.779532 0.8608393 0.7410443 12.78928 5.021747</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.135817    5.183059 0.8615770 0.7423148 16.77585 3.486798</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.133501    4.201226 0.7679702 0.5897782 18.57917 2.654743</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.333042    6.322898 0.9166739 0.8402910 14.47446 4.515313</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.018387    4.048399 0.6820395 0.4651779 16.97297 2.718343</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.549761    7.608040 0.8082664 0.6532946 10.70585 5.951396</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.732247    6.779538 0.8590779 0.7380148 12.76064 5.021879</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.137559    5.183062 0.8642473 0.7469234 16.82214 3.486832</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.132869    4.201224 0.7690848 0.5914914 18.60898 2.654658</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.332665    6.322898 0.9177923 0.8423427 14.49299 4.515273</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.020022    4.048398 0.6805457 0.4631424 16.92890 2.718330</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir hb_unbenchmarked</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.125875    2.93893466 0.6618838         7.608034</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.337922    2.54244906 0.8374691         6.779532</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.890422    0.96059487 0.8822257         5.183059</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.626291   -1.31947645 0.6581716         4.201226</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.100615   -0.03983685 1.2788021         6.322898</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.352782   -0.82110996 0.3878004         4.048399</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.153156    2.93893997 0.6618838         7.608040</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.338095    2.54245403 0.8374691         6.779538</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.890517    0.96059616 0.8822257         5.183062</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.626265   -1.31947946 0.6581716         4.201224</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.100661   -0.03983705 1.2788021         6.322898</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.352789   -0.82111186 0.3878004         4.048398</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -606,37 +687,37 @@ package repository (<code>benchmarks/validation</code>).</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Convergence: Yes (INLA mode status 0)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Model</span>: HB-GAUSSIAN (BYM2)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Engine</span>: inla</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 3.010387 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial autocorrelation (rho): 0.1571 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial mixing fraction (phi): 0.1571 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Random effect variance (sigma2_u): 3.010629 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial autocorrelation (rho): 0.1575 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Spatial mixing fraction (phi): 0.1575 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed Effects Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    beta   std.error      zvalue      pvalue    ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.08481499  0.79893962  3.86113657  0.00011286  1.52686793</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.00112399  0.01042793 -0.10778609  0.91416538 -0.02194369</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.05043448  0.06428356  0.78456266  0.43271003 -0.07549996</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.03819114  0.06061832  0.63002641  0.52867730 -0.08229474</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.08439701  0.79828816  3.86376396  0.00011165  1.52767840</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1          -0.00111530  0.01042069 -0.10702792  0.91476683 -0.02191738</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2           0.05038359  0.06424577  0.78423200  0.43290399 -0.07548008</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x3           0.03824033  0.06058285  0.63120722  0.52790504 -0.08216187</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             ci_upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.6802</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   4.6783</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x1            0.0193</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2            0.1781</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2            0.1780</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> x3            0.1568</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> HB Estimates (First 6 domains):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   domain        y       hb linear_pred        sd       mse      rse ci_lower</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.578617    7.578617 0.7695133 0.5921507 10.15374 6.083612</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.776917    6.776917 0.8383007 0.7027481 12.36994 5.153120</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.158410    5.158410 0.8351582 0.6974892 16.19022 3.531701</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.202079    4.202079 0.7375788 0.5440225 17.55271 2.747792</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.287041    6.287041 0.9469206 0.8966587 15.06147 4.428847</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.070619    4.070619 0.5896392 0.3476743 14.48525 2.912521</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1 8.359527 7.577917    7.577917 0.7693246 0.5918603 10.15219 6.083137</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      2 7.599650 6.776312    6.776312 0.8380426 0.7023153 12.36724 5.152850</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      3 5.514137 5.157808    5.157808 0.8350899 0.6973751 16.19079 3.531204</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      4 3.869326 4.202365    4.202365 0.7374892 0.5438904 17.54939 2.748301</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      5 6.305063 6.286759    6.286759 0.9468196 0.8964673 15.06054 4.428799</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      6 3.926807 4.070923    4.070923 0.5896402 0.3476756 14.48419 2.912835</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ci_upper random_effect    vardir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.100476    2.88828691 0.6618838</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.439992    2.54077519 0.8374691</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.808345    0.98857699 0.8822257</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.641379   -1.27473789 0.6581716</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.147049   -0.06681433 1.2788021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.225282   -0.75085120 0.3878004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 9.099238    2.88745981 0.6618838</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 8.438686    2.54028718 0.8374691</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 6.807561    0.98861922 0.8822257</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 5.641528   -1.27395010 0.6581716</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 8.146576   -0.06698827 1.2788021</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 5.225598   -0.74997802 0.3878004</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... and 36 more rows.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>

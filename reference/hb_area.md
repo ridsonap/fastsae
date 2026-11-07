@@ -39,6 +39,8 @@ hb_area(
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
+  var_x = NULL,
+  me_model = c("structural", "functional"),
   engine = "inla",
   self_benchmark = FALSE,
   benchmark_weight = NULL,
@@ -262,6 +264,23 @@ hb_area(
   population exposure offsets (for `family = "poisson"` or
   `"nbinomial"`).
 
+- var_x:
+
+  Optional variances of the errors of covariates measured with error,
+  for instance the squared standard errors of covariates that are
+  themselves survey estimates: a vector or list named by the covariates,
+  each element a column name, one-sided formula or numeric vector (one
+  value per row of `data`), e.g. `var_x = c(x1 = "var_x1")`. The
+  covariates must enter `formula` as main effects, not transformed or in
+  interactions, and must not be constant. A variance of 0 marks a value
+  without error. See the section Covariates measured with error.
+
+- me_model:
+
+  Model of the true values of the covariates in `var_x`: `"structural"`
+  (default) or `"functional"`; see the section Covariates measured with
+  error.
+
 - engine:
 
   Estimation engine:
@@ -364,6 +383,12 @@ containing:
 
 - `rho_time`: Estimated temporal autocorrelation parameter (for AR1).
 
+- `measurement_error`: With `var_x`, a list with the `model`, the
+  `covariates` measured with error and, for the structural model, the
+  mean `mu_x` and variance `sigma2_x` of their true values; `NULL`
+  otherwise. The coefficients of these covariates are in `estcoef` with
+  the others.
+
 - `goodness`: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
 
 - `family`: Response family used.
@@ -412,6 +437,7 @@ and the other methods work with either. Feature support:
 | `temporal` | all | all but `"rw2"` |
 | `st_interaction` | all | all |
 | Self-benchmarking | posterior, wfq | posterior; wfq (gaussian) |
+| Covariates measured with error (`var_x`) | yes | yes |
 | Horseshoe prior, Student-t random effects | – | yes |
 
 By default both engines use the same priors (see `prior_prec` of
@@ -461,6 +487,71 @@ For Gaussian models with a small area variance, the classic summary of
 that variance (`random_effect_var`) was biased downwards, while the area
 estimates were accurate. The validation scripts are in the package
 repository (`benchmarks/validation`).
+
+## Covariates measured with error
+
+A covariate that is itself an estimate, for instance from another
+survey, is observed as \\w\_{dk} = x\_{dk} + \eta\_{dk}\\, where
+\\x\_{dk}\\ is its true value and \\\eta\_{dk} \sim N(0, C\_{dk})\\ an
+error with known variance \\C\_{dk}\\ (`var_x`), independent of the
+sampling error of \\y_d\\, of the area effect and of the errors of the
+other covariates. Used as if it were the true value, \\w\_{dk}\\ gets an
+attenuated coefficient and every area is shrunk alike, however large its
+\\C\_{dk}\\, and the predictor can be worse than the direct estimate
+(Ybarra and Lohr, 2008). With `var_x` the true values replace the
+observed ones in the linear predictor:
+
+- `"structural"` (default): \\x\_{dk} \sim N(\mu_k, \sigma_k^2)\\
+  independently, the structural model of Bell et al. (2019) with a
+  common mean, with \\\mu_k \sim N(\bar w_k, (100 s_k)^2)\\ and a
+  half-normal(\\s_k\\) prior on \\\sigma_k\\, where \\\bar w_k\\ and
+  \\s_k\\ are the mean and SD of the observed values. The coefficient is
+  that of the true covariate.
+
+- `"functional"`: a flat prior on the true values (Arima, Datta and
+  Liseo, 2015), the Bayesian counterpart of the model of Ybarra and
+  Lohr. Integrating the true values out gives \\y_d \sim N(w_d'\beta,
+  \psi_d + \sigma_u^2 + \beta' C_d \beta)\\, the regression on the
+  observed values with a larger variance: the area estimates agree with
+  the Ybarra-Lohr EBLUP (`emdi::fh(method = "me")`), but the coefficient
+  keeps the attenuation that the moment estimator of Ybarra and Lohr
+  removes.
+
+The coefficients of these covariates get the prior of the other
+coefficients (with INLA `control.fixed`, \\N(0, 1000)\\ by default;
+`prior_beta` of
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)).
+A variance of 0 marks a value without error. Rows of the same domain
+with the same observed value and variance share one true value (an
+estimate used in several periods); every other row has its own. Not
+available with `spatial = "slm"`, whose latent effect contains the
+covariates.
+
+In a simulation with 60 areas (10 without a direct estimate) and 100
+replicates per scenario (moderate and heavy errors, skewed true values,
+and a mix of exact and very noisy covariates;
+`benchmarks/validation/me_area_coverage.R`), the 95% intervals of the
+structural model covered 94-97% of the true area means in every scenario
+and its RMSE was the smallest, also against the Ybarra-Lohr EBLUP; the
+naive model covered 88.7% of the areas with noisy covariates in the
+mixed scenario (96.5% of those without error). For a true coefficient of
+0.8, the structural estimates averaged 0.80-0.86 (their intervals
+covered 85-97%), the naive and functional ones 0.36-0.67 and those of
+Ybarra-Lohr 0.79-0.95.
+
+With INLA, each covariate is a classical measurement error term
+(`"mec"`; Muff et al., 2015) whose coefficient is a hyperparameter, and
+the model is fitted in INLA's classic mode (compact moved the posterior
+means of binomial models by up to 0.08 posterior SD against Stan,
+classic 0.02). For the structural model, \\\mu_k\\ and \\\sigma_k\\ are
+fixed at their posterior mode given the observed values, which \\y\\
+hardly informs: against Stan, which integrates them out, the posterior
+means of the areas were within 0.03 posterior SD and the SDs within
+0.97-1.02 times with one such covariate (Gaussian and binomial models,
+30-100 areas); with two, the means were within 0.11 SD and the posterior
+SDs of the coefficients 0.87-0.98 times those of Stan. As two more
+hyperparameters, \\\mu_k\\ and \\\sigma_k\\ moved the means by up to
+0.22 SD. The JAX engine samples them.
 
 ## References
 
@@ -535,6 +626,23 @@ repository (`benchmarks/validation`).
     new avenue for Bayesian inference with INLA. *Computational
     Statistics & Data Analysis*, 181, 107692.
 
+18. Ybarra, L. M. R., and Lohr, S. L. (2008). Small area estimation when
+    auxiliary information is measured with error. *Biometrika*, 95(4),
+    919-931.
+
+19. Arima, S., Datta, G. S., and Liseo, B. (2015). Bayesian estimators
+    for small area models when auxiliary information is measured with
+    error. *Scandinavian Journal of Statistics*, 42(2), 518-529.
+
+20. Bell, W. R., Chung, H. C., Datta, G. S., and Franco, C. (2019).
+    Measurement error in small area estimation: Functional versus
+    structural versus naive models. *Survey Methodology*, 45(1), 61-80.
+
+21. Muff, S., Riebler, A., Held, L., Rue, H., and Saner, P. (2015).
+    Bayesian analysis of measurement error models using integrated
+    nested Laplace approximations. *Journal of the Royal Statistical
+    Society: Series C (Applied Statistics)*, 64(2), 231-252.
+
 ## Examples
 
 ``` r
@@ -582,11 +690,11 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 2.880434 
+#> Random effect variance (sigma2_u): 2.880427 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7086e-05  1.5557e+00
+#> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7084e-05  1.5557e+00
 #> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02
 #> x2           5.5695e-02  6.3488e-02  8.7724e-01  3.8035e-01 -6.8341e-02
 #> x3           3.3458e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02
@@ -598,19 +706,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.608038    7.608038 0.7646551 0.5846974 10.05062 6.123798
-#> 2      2 7.599650 6.779537    6.779537 0.8360711 0.6990149 12.33228 5.161202
-#> 3      3 5.514137 5.183061    5.183061 0.8343362 0.6961169 16.09736 3.557406
-#> 4      4 3.869326 4.201224    4.201224 0.7385940 0.5455210 17.58045 2.744927
-#> 5      5 6.305063 6.322898    6.322898 0.9421056 0.8875630 14.89990 4.473096
-#> 6      6 3.926807 4.048398    4.048398 0.5872605 0.3448749 14.50600 2.894942
+#> 1      1 8.359527 7.608038    7.608038 0.7646542 0.5846960 10.05061 6.123799
+#> 2      2 7.599650 6.779536    6.779536 0.8360702 0.6990134 12.33226 5.161203
+#> 3      3 5.514137 5.183061    5.183061 0.8343359 0.6961165 16.09736 3.557406
+#> 4      4 3.869326 4.201224    4.201224 0.7385938 0.5455208 17.58044 2.744928
+#> 5      5 6.305063 6.322898    6.322898 0.9421055 0.8875627 14.89990 4.473097
+#> 6      6 3.926807 4.048398    4.048398 0.5872604 0.3448748 14.50600 2.894942
 #>   ci_upper random_effect    vardir
-#> 1 9.121609    2.93893883 0.6618838
-#> 2 8.439313    2.54245298 0.8374691
-#> 3 6.830950    0.96059568 0.8822257
-#> 4 5.642492   -1.31947900 0.6581716
-#> 5 8.172685   -0.03983708 1.2788021
-#> 6 5.198417   -0.82111158 0.3878004
+#> 1 9.121606     2.9389384 0.6618838
+#> 2 8.439310     2.5424526 0.8374691
+#> 3 6.830949     0.9605958 0.8822257
+#> 4 5.642492    -1.3194786 0.6581716
+#> 5 8.172684    -0.0398370 1.2788021
+#> 6 5.198417    -0.8211113 0.3878004
 #> ... and 36 more rows.
 #> 
 #> 
@@ -623,14 +731,14 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> Model: HB-GAUSSIAN (Non-spatial)
 #> Engine: inla
 #> Self-Benchmarking: Active (benchmarked posterior draws)
-#> Random effect variance (sigma2_u): 2.88042 
+#> Random effect variance (sigma2_u): 2.88043 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.1102e+00  7.9793e-01  3.8978e+00  9.7081e-05  1.5557e+00
+#> (Intercept)  3.1102e+00  7.9794e-01  3.8978e+00  9.7084e-05  1.5557e+00
 #> x1          -1.9836e-03  1.0289e-02 -1.9279e-01  8.4712e-01 -2.2596e-02
-#> x2           5.5695e-02  6.3488e-02  8.7725e-01  3.8035e-01 -6.8341e-02
-#> x3           3.3459e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02
+#> x2           5.5695e-02  6.3488e-02  8.7724e-01  3.8035e-01 -6.8341e-02
+#> x3           3.3458e-02  5.9934e-02  5.5825e-01  5.7667e-01 -8.5903e-02
 #>             ci_upper
 #> (Intercept)   4.7053
 #> x1            0.0181
@@ -639,19 +747,19 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.548249    7.608034 0.8089715 0.6544349 10.71734 5.918177
-#> 2      2 7.599650 6.730943    6.779532 0.8608393 0.7410443 12.78928 5.021747
-#> 3      3 5.514137 5.135817    5.183059 0.8615770 0.7423148 16.77585 3.486798
-#> 4      4 3.869326 4.133501    4.201226 0.7679702 0.5897782 18.57917 2.654743
-#> 5      5 6.305063 6.333042    6.322898 0.9166739 0.8402910 14.47446 4.515313
-#> 6      6 3.926807 4.018387    4.048399 0.6820395 0.4651779 16.97297 2.718343
+#> 1      1 8.359527 7.549761    7.608040 0.8082664 0.6532946 10.70585 5.951396
+#> 2      2 7.599650 6.732247    6.779538 0.8590779 0.7380148 12.76064 5.021879
+#> 3      3 5.514137 5.137559    5.183062 0.8642473 0.7469234 16.82214 3.486832
+#> 4      4 3.869326 4.132869    4.201224 0.7690848 0.5914914 18.60898 2.654658
+#> 5      5 6.305063 6.332665    6.322898 0.9177923 0.8423427 14.49299 4.515273
+#> 6      6 3.926807 4.020022    4.048398 0.6805457 0.4631424 16.92890 2.718330
 #>   ci_upper random_effect    vardir hb_unbenchmarked
-#> 1 9.125875    2.93893466 0.6618838         7.608034
-#> 2 8.337922    2.54244906 0.8374691         6.779532
-#> 3 6.890422    0.96059487 0.8822257         5.183059
-#> 4 5.626291   -1.31947645 0.6581716         4.201226
-#> 5 8.100615   -0.03983685 1.2788021         6.322898
-#> 6 5.352782   -0.82110996 0.3878004         4.048399
+#> 1 9.153156    2.93893997 0.6618838         7.608040
+#> 2 8.338095    2.54245403 0.8374691         6.779538
+#> 3 6.890517    0.96059616 0.8822257         5.183062
+#> 4 5.626265   -1.31947946 0.6581716         4.201224
+#> 5 8.100661   -0.03983705 1.2788021         6.322898
+#> 6 5.352789   -0.82111186 0.3878004         4.048398
 #> ... and 36 more rows.
 #> 
 #> 
@@ -664,37 +772,37 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ✔ Convergence: Yes (INLA mode status 0)
 #> Model: HB-GAUSSIAN (BYM2)
 #> Engine: inla
-#> Random effect variance (sigma2_u): 3.010387 
-#> Spatial autocorrelation (rho): 0.1571 
-#> Spatial mixing fraction (phi): 0.1571 
+#> Random effect variance (sigma2_u): 3.010629 
+#> Spatial autocorrelation (rho): 0.1575 
+#> Spatial mixing fraction (phi): 0.1575 
 #> 
 #> Fixed Effects Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
-#> (Intercept)  3.08481499  0.79893962  3.86113657  0.00011286  1.52686793
-#> x1          -0.00112399  0.01042793 -0.10778609  0.91416538 -0.02194369
-#> x2           0.05043448  0.06428356  0.78456266  0.43271003 -0.07549996
-#> x3           0.03819114  0.06061832  0.63002641  0.52867730 -0.08229474
+#> (Intercept)  3.08439701  0.79828816  3.86376396  0.00011165  1.52767840
+#> x1          -0.00111530  0.01042069 -0.10702792  0.91476683 -0.02191738
+#> x2           0.05038359  0.06424577  0.78423200  0.43290399 -0.07548008
+#> x3           0.03824033  0.06058285  0.63120722  0.52790504 -0.08216187
 #>             ci_upper
-#> (Intercept)   4.6802
+#> (Intercept)   4.6783
 #> x1            0.0193
-#> x2            0.1781
+#> x2            0.1780
 #> x3            0.1568
 #> 
 #> HB Estimates (First 6 domains):
 #>   domain        y       hb linear_pred        sd       mse      rse ci_lower
-#> 1      1 8.359527 7.578617    7.578617 0.7695133 0.5921507 10.15374 6.083612
-#> 2      2 7.599650 6.776917    6.776917 0.8383007 0.7027481 12.36994 5.153120
-#> 3      3 5.514137 5.158410    5.158410 0.8351582 0.6974892 16.19022 3.531701
-#> 4      4 3.869326 4.202079    4.202079 0.7375788 0.5440225 17.55271 2.747792
-#> 5      5 6.305063 6.287041    6.287041 0.9469206 0.8966587 15.06147 4.428847
-#> 6      6 3.926807 4.070619    4.070619 0.5896392 0.3476743 14.48525 2.912521
+#> 1      1 8.359527 7.577917    7.577917 0.7693246 0.5918603 10.15219 6.083137
+#> 2      2 7.599650 6.776312    6.776312 0.8380426 0.7023153 12.36724 5.152850
+#> 3      3 5.514137 5.157808    5.157808 0.8350899 0.6973751 16.19079 3.531204
+#> 4      4 3.869326 4.202365    4.202365 0.7374892 0.5438904 17.54939 2.748301
+#> 5      5 6.305063 6.286759    6.286759 0.9468196 0.8964673 15.06054 4.428799
+#> 6      6 3.926807 4.070923    4.070923 0.5896402 0.3476756 14.48419 2.912835
 #>   ci_upper random_effect    vardir
-#> 1 9.100476    2.88828691 0.6618838
-#> 2 8.439992    2.54077519 0.8374691
-#> 3 6.808345    0.98857699 0.8822257
-#> 4 5.641379   -1.27473789 0.6581716
-#> 5 8.147049   -0.06681433 1.2788021
-#> 6 5.225282   -0.75085120 0.3878004
+#> 1 9.099238    2.88745981 0.6618838
+#> 2 8.438686    2.54028718 0.8374691
+#> 3 6.807561    0.98861922 0.8822257
+#> 4 5.641528   -1.27395010 0.6581716
+#> 5 8.146576   -0.06698827 1.2788021
+#> 6 5.225598   -0.74997802 0.3878004
 #> ... and 36 more rows.
 #> 
 
