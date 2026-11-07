@@ -1,23 +1,6 @@
-# hb_area(var_x = ): covariates measured with error (structural and functional models)
-
-sim_me_df <- function(D = 50, beta = 0.8, seed = 1, n_unsampled = 0) {
-  set.seed(seed)
-  x <- rnorm(D, 5, 2)
-  vx <- runif(D, 0.2, 1.5)
-  vardir <- runif(D, 0.5, 1.5)
-  theta <- 1 + beta * x + rnorm(D, 0, 0.7)
-  d <- data.frame(
-    area = paste0("a", seq_len(D)),
-    w = x + rnorm(D, 0, sqrt(vx)),
-    vx = vx,
-    z = rnorm(D),
-    vardir = vardir,
-    theta = theta
-  )
-  d$y <- theta + rnorm(D, 0, sqrt(vardir))
-  if (n_unsampled > 0) d$y[seq_len(n_unsampled)] <- NA
-  d
-}
+# hb_area(var_x = ): covariates measured with error (structural and functional models).
+# The data come from sim_me_df() (helper-measurement-error.R); the JAX fits end to end
+# are in test_hb_area_engine.R, which the JAX job of the CI runs.
 
 fit_me <- function(formula, data, ...) {
   hb_area(formula, data = data, domain = "area", vardir = "vardir", print_result = FALSE, ...)
@@ -28,12 +11,6 @@ printed_me <- function(x) {
   out <- NULL
   msgs <- capture_messages(out <- utils::capture.output(print(x)))
   paste(c(msgs, out), collapse = "\n")
-}
-
-skip_if_no_numpyro_me <- function() {
-  skip_on_cran()
-  skip_if_not_installed("reticulate")
-  if (!suppressMessages(check_numpyro_available())) skip("NumPyro / JAX not available")
 }
 
 # Stand-in for hb_area_numpyro.fit_numpyro_hb() that records its arguments
@@ -152,7 +129,9 @@ test_that("measurement error helpers handle every family and form of prior", {
   for (lk in c("logit", "probit", "cloglog", "loglog")) {
     expect_equal(.inla_link(.inla_inv_link(eta, "binomial", lk), "binomial", lk), eta)
   }
-  expect_equal(.inla_link(.inla_inv_link(eta, "poisson"), "poisson"), eta)
+  for (fam in c("gaussian", "poisson")) {
+    expect_equal(.inla_link(.inla_inv_link(eta, fam), fam), eta)
+  }
 })
 
 test_that(".me_rename_mcmc() names the true-value parameters after the covariates", {
@@ -399,25 +378,6 @@ test_that("engine = 'jax' passes the covariates measured with error to the backe
   expect_equal(env$args$me_model, "functional")
   expect_equal(env$args$me_group[[1]], 0:11)
   expect_null(fit_f$measurement_error$mu_x)
-})
-
-test_that("engine = 'jax' measurement error models agree with INLA", {
-  skip_if_no_numpyro_me()
-  skip_if_not_installed("INLA")
-  d <- sim_me_df(D = 40, n_unsampled = 4)
-  eng <- jax_engine(warmup = 500, samples = 500, chains = 2, device = "cpu", progress = FALSE)
-  for (model in c("structural", "functional")) {
-    fit_jax <- quiet_mcmc(fit_me(y ~ w, d, var_x = c(w = "vx"), me_model = model, engine = eng))
-    fit_inla <- fit_me(y ~ w, d, var_x = c(w = "vx"), me_model = model)
-    expect_identical(names(fit_jax$df_hb), names(fit_inla$df_hb))
-    expect_lt(max(abs(fit_jax$df_hb$hb - fit_inla$df_hb$hb) / fit_inla$df_hb$sd), 0.25)
-    expect_lt(max(abs(fit_jax$df_hb$sd / fit_inla$df_hb$sd - 1)), 0.15)
-    expect_lt(
-      abs(fit_jax$estcoef["w", "beta"] - fit_inla$estcoef["w", "beta"]) / fit_inla$estcoef["w", "std.error"],
-      0.25
-    )
-    expect_true(fit_jax$convergence)
-  }
 })
 
 test_that("step_sae() can drop a covariate measured with error", {
