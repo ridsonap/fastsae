@@ -20,6 +20,17 @@
 # Helper operator for default value
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+#' Covariates measured with error of an hb_area() fit, one line
+#' @noRd
+.print_measurement_error <- function(me) {
+  if (is.null(me)) {
+    return(invisible(NULL))
+  }
+  me_cov <- me$covariates
+  cli::cli_text("{.strong Measurement error} ({me$model}): {me_cov}")
+  invisible(NULL)
+}
+
 #' Label of the self-benchmarking method used
 #' @noRd
 .bench_label <- function(method) {
@@ -103,6 +114,7 @@ print.fastsae <- function(x, ...) {
     bm_label <- .bench_label(x$benchmark_method)
     cli::cli_text("{.strong Self-Benchmarking}: Active ({bm_label})")
   }
+  .print_measurement_error(x$measurement_error)
 
   if (!is.null(x$random_effect_var)) {
     rev <- x$random_effect_var
@@ -192,6 +204,7 @@ summary.fastsae <- function(object, ...) {
     rho = object$rho,
     rho_time = object$rho_time,
     phi = object$phi,
+    measurement_error = object$measurement_error,
     goodness = object$goodness,
     df_eblup = object$df_eblup,
     df_hb = object$df_hb,
@@ -270,6 +283,7 @@ print.summary.fastsae <- function(x, ...) {
       print(x$benchmark_summary, row.names = FALSE)
     }
   }
+  .print_measurement_error(x$measurement_error)
 
   if (!is.null(x$estvarcomp)) {
     cat("\nVariance & Correlation Components:\n")

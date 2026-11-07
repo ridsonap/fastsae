@@ -243,6 +243,7 @@
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
+  me = NULL,
   engine = jax_engine(),
   sb_info = NULL,
   benchmark_weight = NULL,
@@ -322,6 +323,7 @@
     W_sar = if (spatial == "sar") W_obj$W_mat else NULL,
     benchmark = FALSE
   )
+  run_args <- c(run_args, .me_jax_args(me, colnames(X_mat)))
   if (family == "nbinomial" && !is.null(vardir_num)) {
     # Two stages, as the INLA engine: the size of each area from the posterior mean of
     # a first fit that estimates one size (see .nb_size_from_vardir)
@@ -335,6 +337,7 @@
     run_args$beta_phi <- .beta_phi_from_vardir(as.numeric(stage1$fit$hb_mean), vardir_num)
   }
   run <- do.call(.run_numpyro, run_args)
+  if (!is.null(me)) run$mcmc <- .me_rename_mcmc(run$mcmc, me$cov)
   fit_py <- run$fit
   draws <- run$draws
   estcoef <- run$estcoef
@@ -356,13 +359,23 @@
   df_hb <- .hb_aux_columns(df_hb, family, y, vardir, trials, exposure, beta_phi = run_args$beta_phi)
 
   hyper <- fit_py$hyperparameters
+  if (!is.null(me)) names(hyper) <- .me_rename(names(hyper), me$cov)
   hyperpar <- if (length(hyper) > 0) {
     data.frame(Parameter = names(hyper), Estimate = as.numeric(unlist(hyper)), row.names = NULL)
   } else {
     data.frame(Parameter = character(0), Estimate = numeric(0))
   }
+  measurement_error <- NULL
+  if (!is.null(me)) {
+    me_hyper <- function(key) {
+      if (me$model == "structural") {
+        vapply(me$cov, function(v) as.numeric(hyper[[paste0(key, "[", v, "]")]] %||% NA_real_), numeric(1))
+      }
+    }
+    measurement_error <- list(model = me$model, covariates = me$cov, mu_x = me_hyper("mu_x"), sigma2_x = me_hyper("sigma2_x"))
+  }
 
-  model_label <- .hb_model_label(family, spatial, temporal, st_interaction)
+  model_label <- .hb_model_label(family, spatial, temporal, st_interaction, me_cov = me$cov)
   extras <- c(if (prior_beta == "horseshoe") "Horseshoe", if (isTRUE(robust)) "Student-t")
   if (length(extras) > 0) model_label <- paste0(model_label, " [", paste(extras, collapse = " + "), "]")
 
@@ -379,6 +392,7 @@
     phi = hyper$phi,
     rho = hyper$rho_spatial,
     rho_time = hyper$rho_t,
+    measurement_error = measurement_error,
     goodness = c(
       DIC = as.numeric(fit_py$dic), pD = as.numeric(fit_py$p_dic),
       WAIC = as.numeric(fit_py$waic), pWAIC = as.numeric(fit_py$p_waic)
@@ -444,4 +458,44 @@
 
   class(out) <- c("fastsae_hb_area", "fastsae_hb", "fastsae")
   out
+}
+
+#' Arguments of the NumPyro backend for the covariates measured with error
+#'
+#' Per covariate (lists in the order of `me$cov`): its column of X (0-based), the
+#' true value of each row (0-based, see .me_spec()), and the observed value and
+#' error variance of each true value, floored at 1e-8 var(w) as for INLA
+#' (.me_inla_terms()).
+#' @noRd
+.me_jax_args <- function(me, x_names) {
+  if (is.null(me)) {
+    return(list())
+  }
+  ks <- seq_along(me$cov)
+  first <- lapply(ks, function(k) !duplicated(me$group[, k]))
+  list(
+    me_cols = as.list(match(me$cov, x_names) - 1L),
+    me_group = lapply(ks, function(k) unname(me$group[, k]) - 1L),
+    me_w = lapply(ks, function(k) unname(me$w[first[[k]], k])),
+    me_var = lapply(ks, function(k) pmax(unname(me$var[first[[k]], k]), 1e-8 * stats::var(me$w[, k]))),
+    me_model = me$model
+  )
+}
+
+#' Name the backend's mu_x[k] and sigma2_x[k] after the covariates
+#' @noRd
+.me_rename <- function(p, cov) {
+  pattern <- "^(mu_x|sigma2_x)\\[([0-9]+)\\]$"
+  k <- suppressWarnings(as.integer(sub(pattern, "\\2", p)))
+  hit <- grepl(pattern, p) & !is.na(k) & k <= length(cov)
+  p[hit] <- paste0(sub("\\[.*$", "", p[hit]), "[", cov[k[hit]], "]")
+  p
+}
+
+#' .me_rename() in the convergence table and trace of a NumPyro fit
+#' @noRd
+.me_rename_mcmc <- function(mcmc, cov) {
+  if (!is.null(mcmc$table)) mcmc$table$parameter <- .me_rename(mcmc$table$parameter, cov)
+  if (!is.null(mcmc$trace)) dimnames(mcmc$trace)$parameter <- .me_rename(dimnames(mcmc$trace)$parameter, cov)
+  mcmc
 }

@@ -41,14 +41,15 @@
 #' "type4": the area effect (iid without a spatial effect, one precision for
 #' besag, two for bym, bym2, Leroux and SLM), the temporal main effect (a
 #' precision, plus the correlation of ar1) and the interaction (a precision,
-#' plus the correlation of ar1 in type II and IV), and the residual precision
-#' when the sampling variances are not given.
+#' plus the correlation of ar1 in type II and IV), the residual precision
+#' when the sampling variances are not given, and `n_me` of the covariates
+#' measured with error (.me_n_hyper()).
 #' @noRd
-.n_hyper_st <- function(spatial, temporal, st_interaction, vardir_known) {
+.n_hyper_st <- function(spatial, temporal, st_interaction, vardir_known, n_me = 0L) {
   n_space <- if (spatial %in% c("none", "besag")) 1L else 2L
   n_time <- if (temporal == "ar1") 2L else 1L
   n_int <- if (temporal == "ar1" && st_interaction %in% c("type2", "type4")) 2L else 1L
-  n_space + n_time + n_int + if (vardir_known) 0L else 1L
+  n_space + n_time + n_int + (if (vardir_known) 0L else 1L) + n_me
 }
 
 #' Knorr-Held space-time interaction with all identifiability constraints
@@ -346,7 +347,8 @@
   unique_domains = NULL,
   unique_times = NULL,
   call = NULL,
-  beta_phi = NULL
+  beta_phi = NULL,
+  me = NULL
 ) {
   n_obs <- length(y)
   n_domains <- if (!is.null(unique_domains)) length(unique_domains) else length(unique(domain))
@@ -378,6 +380,14 @@
       ci_upper = fixed_summary[["0.975quant"]],
       row.names = rownames(fixed_summary)
     )
+  }
+  # Coefficients of covariates measured with error are hyperparameters of their
+  # 'mec' terms; all coefficients in the order of the design matrix
+  me_res <- if (!is.null(me)) .me_inla_summary(fit, me) else NULL
+  if (!is.null(me_res)) {
+    estcoef <- rbind(estcoef, me_res$estcoef)
+    ord <- c(intersect(me$coef_order, rownames(estcoef)), setdiff(rownames(estcoef), me$coef_order))
+    estcoef <- estcoef[ord, , drop = FALSE]
   }
 
   # 2. Hyperparameters
@@ -578,7 +588,8 @@
     Marginal_LogLik = if (!is.null(fit$mlik)) fit$mlik[1, 1] else NA_real_
   )
 
-  model_label <- .hb_model_label(family, spatial, temporal, st_interaction)
+  model_label <- .hb_model_label(family, spatial, temporal, st_interaction, me_cov = me$cov)
+  if (!is.null(me_res)) hyper_summary <- me_res$hyperpar
 
   out <- list(
     df_hb = df_hb,
@@ -591,6 +602,7 @@
     phi = phi,
     rho = rho,
     rho_time = rho_time,
+    measurement_error = me_res$measurement_error,
     goodness = goodness,
     family = family,
     spatial = spatial,
@@ -651,18 +663,22 @@
 }
 
 #' Model description shared by the hb_area() engines
+#'
+#' `me_cov`: covariates measured with error, listed after the structure.
 #' @noRd
-.hb_model_label <- function(family, spatial, temporal, st_interaction) {
+.hb_model_label <- function(family, spatial, temporal, st_interaction, me_cov = NULL) {
   model_label <- paste0("HB-", toupper(family))
   if (temporal != "none" || spatial != "none") {
     comps <- c()
     if (spatial != "none") comps <- c(comps, toupper(spatial))
     if (temporal != "none") comps <- c(comps, toupper(temporal))
     if (st_interaction != "none") comps <- c(comps, paste0("ST:", toupper(st_interaction)))
-    paste0(model_label, " (", paste(comps, collapse = " + "), ")")
+    model_label <- paste0(model_label, " (", paste(comps, collapse = " + "), ")")
   } else {
-    paste0(model_label, " (Non-spatial)")
+    model_label <- paste0(model_label, " (Non-spatial)")
   }
+  if (length(me_cov) > 0) model_label <- paste0(model_label, " [ME: ", paste(me_cov, collapse = ", "), "]")
+  model_label
 }
 
 #' Auxiliary df_hb columns shared by the hb_area() engines
@@ -835,6 +851,20 @@
   )
 }
 
+#' Link: mean scale to the linear predictor (inverse of .inla_inv_link())
+#' @noRd
+.inla_link <- function(mu, family, link = NULL) {
+  link <- link %||% .inla_links(family)[1]
+  switch(link,
+    identity = mu,
+    logit = stats::qlogis(mu),
+    probit = stats::qnorm(mu),
+    cloglog = log(-log(1 - mu)),
+    loglog = -log(-log(mu)),
+    log = log(mu)
+  )
+}
+
 #' Convergence of an INLA fit
 #'
 #' INLA returns a fit, not an error, when the search for the posterior mode of
@@ -851,4 +881,185 @@
     ))
   }
   ok
+}
+
+# ---- Covariates measured with error (hb_area(var_x = )) ------------------------
+
+#' INLA terms of the covariates measured with error
+#'
+#' One classical measurement error term per covariate (INLA's "mec"; Muff et al.,
+#' 2015): with w = x + e, e ~ N(0, C) and x ~ N(mu, sigma^2), the term is beta x,
+#' where x | w is Gaussian with precision 1 / sigma^2 + 1 / C, and beta is a
+#' hyperparameter with the prior of the other coefficients (control.fixed). The
+#' functional model fixes 1 / sigma^2 at 1e-8 / var(w), a flat prior on x. The
+#' structural model fixes mu and sigma at their posterior mode given w
+#' (.me_x_mode()): y adds little information on them, and as two more
+#' hyperparameters they moved the posterior means of the area parameters by up to
+#' 0.22 posterior SD against Stan, which integrates them out (INLA's CCD over four
+#' hyperparameters; a grid matched Stan, but the system killed INLA on a binomial
+#' model with 500 areas), while at their mode the means were within 0.03 SD
+#' (benchmarks/validation/me_area.R). INLA's defaults do not fit these models:
+#' beta ~ N(1, 1000), and a log-gamma(1, 1e4) prior that pulls 1 / sigma^2 towards 0
+#' (sigma^2 about 250 for a true 4 in a test).
+#'
+#' Inside the term the covariate is divided by s = sd(w), so that beta s, mu / s and
+#' sigma / s are of order one in any unit (the intercept is unchanged), and the
+#' initial value of beta comes from least squares on the link scale (INLA starts at
+#' 1, and beta = 0 is a singular point of the term). A variance of 0 (a value
+#' without error) is floored at 1e-8 var(w): the fit then matched the one with the
+#' covariate as a fixed effect to 7.5e-4 in the posterior means and 0.5% in the
+#' SDs. INLA maps equal values of w to one true value, so rows that do not share
+#' one (see .me_spec()) get values a few ulps apart.
+#' @return A list with `terms` (per covariate: the `index` column, its per-row
+#'   values `x`, the `values`, `scale` and `hyper` of the term, the scale factor
+#'   `s`, and for the structural model `mu_x` and `sigma2_x` in the unit of the
+#'   covariate), `cov`, `model`, and `coef_order` (the columns of `X`).
+#' @noRd
+.me_inla_terms <- function(me, y, X, family, trials = NULL, exposure = NULL, link = NULL,
+                           control_fixed = NULL) {
+  b_ls <- .me_initial_beta(X, y, family, trials, exposure, link)
+  terms <- lapply(seq_along(me$cov), function(k) {
+    s <- stats::sd(me$w[, k])
+    if (!is.finite(s) || s <= 0) s <- 1
+    first <- !duplicated(me$group[, k])
+    wg <- me$w[first, k] / s
+    cg <- me$var[first, k] / s^2
+    values <- .me_jitter_ties(wg)
+    prior <- .me_beta_prior(control_fixed, me$cov[k])
+    b_init <- b_ls[[me$cov[k]]] * s
+    floor_b <- 0.01 * attr(b_ls, "scale")
+    if (!is.finite(b_init) || abs(b_init) < floor_b) b_init <- if (isTRUE(b_init < 0)) -floor_b else floor_b
+    hyper <- list(
+      beta = list(prior = "gaussian", param = c(prior[["mean"]] * s, max(prior[["prec"]], 1e-10) / s^2), initial = b_init, fixed = FALSE),
+      prec.u = list(initial = 0, fixed = TRUE)
+    )
+    xm <- if (me$model == "structural") .me_x_mode(wg, cg) else c(mu = mean(wg), sigma2 = 1e8)
+    hyper$mean.x <- list(initial = xm[["mu"]], fixed = TRUE)
+    hyper$prec.x <- list(initial = -log(xm[["sigma2"]]), fixed = TRUE)
+    list(
+      index = paste0("..me_", k, ".."), x = values[me$group[, k]], values = values,
+      scale = 1 / pmax(cg, 1e-8), hyper = hyper, s = s,
+      mu_x = if (me$model == "structural") xm[["mu"]] * s,
+      sigma2_x = if (me$model == "structural") xm[["sigma2"]] * s^2
+    )
+  })
+  list(terms = terms, cov = me$cov, model = me$model, coef_order = colnames(X))
+}
+
+#' Prior mean and precision of a coefficient from INLA's control.fixed
+#'
+#' `mean` and `prec` are numbers or lists by covariate name with a "default"
+#' (INLA's defaults: 0 and 0.001).
+#' @noRd
+.me_beta_prior <- function(control_fixed, cov) {
+  pick <- function(x, default) {
+    if (is.null(x)) {
+      return(default)
+    }
+    if (is.list(x)) {
+      return(as.numeric(x[[cov]] %||% x[["default"]] %||% default))
+    }
+    as.numeric(x)[1]
+  }
+  c(mean = pick(control_fixed$mean, 0), prec = pick(control_fixed$prec, 0.001))
+}
+
+#' Make repeated values distinct by a few ulps (64 eps relative), in order of appearance
+#' @noRd
+.me_jitter_ties <- function(x) {
+  repeat {
+    id <- match(x, unique(x))
+    k <- stats::ave(id, id, FUN = seq_along) - 1L
+    if (all(k == 0L)) {
+      return(x)
+    }
+    x <- x + k * 64 * .Machine$double.eps * pmax(1, abs(x))
+  }
+}
+
+#' Least-squares coefficients on the link scale, as initial values
+#'
+#' The direct estimates of the sampled rows on the link scale (proportions kept
+#' inside (0, 1), counts + 0.5 per unit exposure) regressed on X; attribute
+#' `scale` is the SD of that response.
+#' @noRd
+.me_initial_beta <- function(X, y, family, trials = NULL, exposure = NULL, link = NULL) {
+  z <- switch(family,
+    gaussian = y,
+    binomial = {
+      n <- pmax(trials, 1)
+      .inla_link(pmin(pmax(y / n, 0.5 / n), 1 - 0.5 / n), family, link)
+    },
+    beta = .inla_link(pmin(pmax(y, 1e-4), 1 - 1e-4), family, link),
+    gamma = log(y),
+    log((y + 0.5) / (if (is.null(exposure)) 1 else exposure))
+  )
+  ok <- !is.na(y) & is.finite(z)
+  b <- stats::lm.fit(X[ok, , drop = FALSE], z[ok])$coefficients
+  b[!is.finite(b)] <- 0
+  names(b) <- colnames(X)
+  sz <- stats::sd(z[ok])
+  structure(b, scale = if (is.finite(sz) && sz > 0) sz else 1)
+}
+
+#' Coefficients and hyperparameters of the measurement error terms of an INLA fit
+#'
+#' The rows "MEC beta for ..me_k.." are put back in the unit of the covariate
+#' (beta / s; the quantiles are monotone in it) and named after it. The mean and
+#' variance of the true values of the structural model are the fixed values of
+#' .me_inla_terms().
+#' @return A list with the `estcoef` rows, the `hyperpar` table and the
+#'   `measurement_error` element of the fit.
+#' @noRd
+.me_inla_summary <- function(fit, me) {
+  hs <- as.data.frame(fit$summary.hyperpar)
+  num <- vapply(hs, is.numeric, logical(1))
+  coef_rows <- vector("list", length(me$terms))
+  for (k in seq_along(me$terms)) {
+    tm <- me$terms[[k]]
+    rn <- paste("MEC beta for", tm$index)
+    hs[rn, num] <- hs[rn, num] / tm$s
+    b <- hs[rn, , drop = FALSE]
+    z <- b$mean / ifelse(b$sd > 0, b$sd, NA_real_)
+    coef_rows[[k]] <- data.frame(
+      beta = b$mean,
+      std.error = b$sd,
+      zvalue = z,
+      pvalue = 2 * stats::pnorm(abs(z), lower.tail = FALSE),
+      ci_lower = b[["0.025quant"]],
+      ci_upper = b[["0.975quant"]],
+      row.names = me$cov[k]
+    )
+    rownames(hs)[rownames(hs) == rn] <- paste("MEC beta for", me$cov[k])
+  }
+  structural <- me$model == "structural"
+  term_value <- function(name) stats::setNames(vapply(me$terms, `[[`, numeric(1), name), me$cov)
+  list(
+    estcoef = do.call(rbind, coef_rows),
+    hyperpar = hs,
+    measurement_error = list(
+      model = me$model,
+      covariates = me$cov,
+      mu_x = if (structural) term_value("mu_x"),
+      sigma2_x = if (structural) term_value("sigma2_x")
+    )
+  )
+}
+
+#' Posterior mode of the mean and variance of the true values given the observed ones
+#'
+#' w_g ~ N(mu, sigma^2 + C_g) for the (scaled) observed values of the true values g,
+#' with the priors of the structural model on the scaled covariate: mu ~ N(mean w,
+#' 100^2) and sigma ~ half-normal(1); the mode of (mu, log sigma).
+#' @noRd
+.me_x_mode <- function(w, C) {
+  lp <- function(p) {
+    sig <- exp(p[2])
+    sum(stats::dnorm(w, p[1], sqrt(sig^2 + C), log = TRUE)) +
+      stats::dnorm(p[1], mean(w), 100, log = TRUE) + stats::dnorm(sig, 0, 1, log = TRUE) + p[2]
+  }
+  vw <- stats::var(w)
+  init <- c(mean(w), 0.5 * log(max(vw - mean(C), 0.05 * vw)))
+  opt <- stats::optim(init, function(p) -lp(p), method = "BFGS")
+  c(mu = opt$par[1], sigma2 = exp(2 * opt$par[2]))
 }

@@ -18,6 +18,8 @@ hb_area(
   vardir = NULL,
   trials = NULL,
   exposure = NULL,
+  var_x = NULL,
+  me_model = c("structural", "functional"),
   engine = "inla",
   self_benchmark = FALSE,
   benchmark_weight = NULL,
@@ -174,6 +176,18 @@ the design effect) need not be whole numbers.}
 \item{exposure}{Vector, column name, or formula specifying expected counts or population
 exposure offsets (for \code{family = "poisson"} or \code{"nbinomial"}).}
 
+\item{var_x}{Optional variances of the errors of covariates measured with error, for
+instance the squared standard errors of covariates that are themselves survey estimates:
+a vector or list named by the covariates, each element a column name, one-sided formula
+or numeric vector (one value per row of \code{data}), e.g. \code{var_x = c(x1 = "var_x1")}.
+The covariates must enter \code{formula} as main effects, not transformed or in
+interactions. A variance of 0 marks a value without error. See the section Covariates
+measured with error.}
+
+\item{me_model}{Model of the true values of the covariates in \code{var_x}:
+\code{"structural"} (default) or \code{"functional"}; see the section Covariates measured
+with error.}
+
 \item{engine}{Estimation engine: \code{\link{inla_engine}()} or \code{\link{jax_engine}()},
 or the strings \code{"inla"} (default) and \code{"jax"} for their default settings.
 See the Engines section.}
@@ -236,6 +250,10 @@ An object of class \code{c("fastsae_hb_area", "fastsae_hb", "fastsae")} containi
   \item \code{random_effect_var_time}: Estimated temporal random effect variance (if temporal).
   \item \code{phi}: Estimated spatial variance proportion (for BYM2) or spatial autocorrelation.
   \item \code{rho_time}: Estimated temporal autocorrelation parameter (for AR1).
+  \item \code{measurement_error}: With \code{var_x}, a list with the \code{model}, the
+    \code{covariates} measured with error and, for the structural model, the mean
+    \code{mu_x} and variance \code{sigma2_x} of their true values; \code{NULL} otherwise.
+    The coefficients of these covariates are in \code{estcoef} with the others.
   \item \code{goodness}: Model fit metrics (DIC, WAIC, Marginal Log-Likelihood).
   \item \code{family}: Response family used.
   \item \code{spatial}: Spatial model type used.
@@ -284,6 +302,7 @@ with either. Feature support:
   \code{temporal} \tab all \tab all but \code{"rw2"} \cr
   \code{st_interaction} \tab all \tab all \cr
   Self-benchmarking \tab posterior, wfq \tab posterior; wfq (gaussian) \cr
+  Covariates measured with error (\code{var_x}) \tab yes \tab yes \cr
   Horseshoe prior, Student-t random effects \tab -- \tab yes \cr
 }
 By default both engines use the same priors (see \code{prior_prec} of
@@ -320,6 +339,58 @@ Besag, BYM2, Leroux and SLM effects; RW1 in time and the four Knorr-Held interac
 with a small area variance, the classic summary of that variance (\code{random_effect_var}) was
 biased downwards, while the area estimates were accurate. The validation scripts are in the
 package repository (\code{benchmarks/validation}).
+}
+
+\section{Covariates measured with error}{
+
+A covariate that is itself an estimate, for instance from another survey, is observed as
+\eqn{w_{dk} = x_{dk} + \eta_{dk}}, where \eqn{x_{dk}} is its true value and
+\eqn{\eta_{dk} \sim N(0, C_{dk})} an error with known variance \eqn{C_{dk}} (\code{var_x}),
+independent of the sampling error of \eqn{y_d}, of the area effect and of the errors of the
+other covariates. Used as if it were the true value, \eqn{w_{dk}} gets an attenuated
+coefficient and every area is shrunk alike, however large its \eqn{C_{dk}}, and the
+predictor can be worse than the direct estimate (Ybarra and Lohr, 2008). With \code{var_x}
+the true values replace the observed ones in the linear predictor:
+\itemize{
+  \item \code{"structural"} (default): \eqn{x_{dk} \sim N(\mu_k, \sigma_k^2)} independently,
+    the structural model of Bell et al. (2019) with a common mean, with
+    \eqn{\mu_k \sim N(\bar w_k, (100 s_k)^2)} and a half-normal(\eqn{s_k}) prior on
+    \eqn{\sigma_k}, where \eqn{\bar w_k} and \eqn{s_k} are the mean and SD of the observed
+    values. The coefficient is that of the true covariate.
+  \item \code{"functional"}: a flat prior on the true values (Arima, Datta and Liseo, 2015),
+    the Bayesian counterpart of the model of Ybarra and Lohr. Integrating the true values out
+    gives \eqn{y_d \sim N(w_d'\beta, \psi_d + \sigma_u^2 + \beta' C_d \beta)}, the regression
+    on the observed values with a larger variance: the area estimates agree with the
+    Ybarra-Lohr EBLUP (\code{emdi::fh(method = "me")}), but the coefficient keeps the
+    attenuation that the moment estimator of Ybarra and Lohr removes.
+}
+The coefficients of these covariates get the prior of the other coefficients (with INLA
+\code{control.fixed}, \eqn{N(0, 1000)} by default; \code{prior_beta} of
+\code{jax_engine()}). A variance of 0 marks a value without error. Rows of the same domain
+with the same observed value and variance share one true value (an estimate used in several
+periods); every other row has its own. Not available with \code{spatial = "slm"}, whose
+latent effect contains the covariates.
+
+In a simulation with 60 areas (10 without a direct estimate) and 100 replicates per scenario
+(moderate and heavy errors, skewed true values, and a mix of exact and very noisy
+covariates; \code{benchmarks/validation/me_area_coverage.R}), the 95\% intervals of the
+structural model covered 94-97\% of the true area means in every scenario and its RMSE was
+the smallest, also against the Ybarra-Lohr EBLUP; the naive model covered 88.7\% of the
+areas with noisy covariates in the mixed scenario (96.5\% of those without error). For a
+true coefficient of 0.8, the structural estimates averaged 0.80-0.86 (their intervals
+covered 85-97\%), the naive and functional ones 0.36-0.67 and those of Ybarra-Lohr
+0.79-0.95.
+
+With INLA, each covariate is a classical measurement error term (\code{"mec"}; Muff et al.,
+2015) whose coefficient is a hyperparameter, and the model is fitted in INLA's classic mode
+(compact moved the posterior means of binomial models by up to 0.08 posterior SD against
+Stan, classic 0.02). For the structural model, \eqn{\mu_k} and \eqn{\sigma_k} are fixed at
+their posterior mode given the observed values, which \eqn{y} hardly informs: against Stan,
+which integrates them out, the posterior means of the areas were within 0.03 posterior SD
+and the SDs within 0.97-1.02 times with one such covariate (Gaussian and binomial models,
+30-100 areas); with two, the means were within 0.11 SD and the posterior SDs of the
+coefficients 0.87-0.98 times those of Stan. As two more hyperparameters, \eqn{\mu_k} and
+\eqn{\sigma_k} moved the means by up to 0.22 SD. The JAX engine samples them.
 }
 
 \examples{
@@ -411,5 +482,16 @@ if (setup_numpyro_env(check_only = TRUE)) {
     risk. \emph{Statistics in Medicine}, 19(17-18), 2555-2567.
   \item van Niekerk, J., Krainski, E., Rustand, D., and Rue, H. (2023). A new avenue for Bayesian
     inference with INLA. \emph{Computational Statistics & Data Analysis}, 181, 107692.
+  \item Ybarra, L. M. R., and Lohr, S. L. (2008). Small area estimation when auxiliary
+    information is measured with error. \emph{Biometrika}, 95(4), 919-931.
+  \item Arima, S., Datta, G. S., and Liseo, B. (2015). Bayesian estimators for small area
+    models when auxiliary information is measured with error. \emph{Scandinavian Journal of
+    Statistics}, 42(2), 518-529.
+  \item Bell, W. R., Chung, H. C., Datta, G. S., and Franco, C. (2019). Measurement error in
+    small area estimation: Functional versus structural versus naive models. \emph{Survey
+    Methodology}, 45(1), 61-80.
+  \item Muff, S., Riebler, A., Held, L., Rue, H., and Saner, P. (2015). Bayesian analysis of
+    measurement error models using integrated nested Laplace approximations. \emph{Journal of
+    the Royal Statistical Society: Series C (Applied Statistics)}, 64(2), 231-252.
 }
 }

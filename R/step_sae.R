@@ -129,10 +129,20 @@ step_sae <- function(object, scope = NULL, direction = c("both", "backward", "fo
   if (!is_hb && "method" %in% fun_formals) search_call$method <- "ML"
   search_call$print_result <- FALSE
 
-  fit_formula <- function(fml) {
-    cl <- search_call
+  # hb_area(var_x = ) may only name covariates of the formula: each candidate keeps
+  # the measurement error variances of its own covariates
+  var_x <- if (!is.null(call$var_x)) eval(call$var_x, env)
+  with_formula <- function(cl, fml) {
     cl$formula <- fml
-    suppressWarnings(suppressMessages(eval(cl, env)))
+    if (!is.null(var_x)) {
+      keep <- var_x[names(var_x) %in% terms_of(fml)]
+      cl$var_x <- if (length(keep) > 0) keep
+      if (length(keep) == 0) cl$me_model <- NULL
+    }
+    cl
+  }
+  fit_formula <- function(fml) {
+    suppressWarnings(suppressMessages(eval(with_formula(search_call, fml), env)))
   }
   score <- function(fit) .sae_criterion(fit, criterion)
 
@@ -190,8 +200,7 @@ step_sae <- function(object, scope = NULL, direction = c("both", "backward", "fo
   }
 
   final_formula <- build(current)
-  final_call <- call
-  final_call$formula <- final_formula
+  final_call <- with_formula(call, final_formula)
   final_call$print_result <- FALSE
   final <- if (identical(search_call, call)) current_fit else suppressMessages(eval(final_call, env))
   names(path)[2] <- criterion

@@ -12,6 +12,19 @@
 
 ## New features
 
+* `hb_area()` gains `var_x` and `me_model` for covariates measured with error, such as
+  survey estimates with known sampling variances (Ybarra and Lohr, 2008). The true values of
+  these covariates replace the observed ones in the linear predictor: `me_model =
+  "structural"` (default) gives them a normal distribution (Bell et al., 2019), so their
+  coefficient is that of the true covariate; `"functional"` a flat prior (Arima, Datta and
+  Liseo, 2015), whose area estimates agree with the Ybarra-Lohr EBLUP of
+  `emdi::fh(method = "me")` but whose coefficient stays close to the naive one. A variance of
+  0 marks a value without error. Both engines; with INLA through its `mec` latent model (Muff
+  et al., 2015) in classic mode, with the mean and variance of the true values of the
+  structural model at their posterior mode given the observed values (against Stan, which
+  integrates them out, the area means were within 0.03 posterior SD with one such covariate;
+  `benchmarks/validation/me_area.R`). Fits report `measurement_error`. `step_sae()` keeps
+  `var_x` to the covariates of each candidate model.
 * `effective_trials()`: effective sample sizes $n_d / \mathrm{deff}_d$ for binomial models
   (`trials` of `hb_area()` and `hb_twofold()`) from direct proportions, design variances and
   sample sizes. Design effects are pooled per group (the method validated in
