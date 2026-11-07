@@ -920,7 +920,6 @@
   b_ls <- .me_initial_beta(X, y, family, trials, exposure, link)
   terms <- lapply(seq_along(me$cov), function(k) {
     s <- stats::sd(me$w[, k])
-    if (!is.finite(s) || s <= 0) s <- 1
     first <- !duplicated(me$group[, k])
     wg <- me$w[first, k] / s
     cg <- me$var[first, k] / s^2

@@ -181,8 +181,8 @@ instance the squared standard errors of covariates that are themselves survey es
 a vector or list named by the covariates, each element a column name, one-sided formula
 or numeric vector (one value per row of \code{data}), e.g. \code{var_x = c(x1 = "var_x1")}.
 The covariates must enter \code{formula} as main effects, not transformed or in
-interactions. A variance of 0 marks a value without error. See the section Covariates
-measured with error.}
+interactions, and must not be constant. A variance of 0 marks a value without error.
+See the section Covariates measured with error.}
 
 \item{me_model}{Model of the true values of the covariates in \code{var_x}:
 \code{"structural"} (default) or \code{"functional"}; see the section Covariates measured

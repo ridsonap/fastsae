@@ -78,6 +78,11 @@ test_that("var_x is checked before fitting", {
   expect_error(fit_me(y ~ w, d, var_x = c(w = "vbad")), "non-negative")
   expect_error(fit_me(y ~ w, d, var_x = c(w = "vx"), me_model = "berkson"), "should be one of")
   expect_error(fit_me(y ~ w, d, var_x = c(w = "vx"), spatial = "slm", W = diag(nrow(d))), "slm")
+  # without an intercept a constant covariate passes the design check
+  d0 <- transform(d, w = 2)
+  for (m in c("structural", "functional")) {
+    expect_error(fit_me(y ~ 0 + w, d0, var_x = c(w = "vx"), me_model = m), "same value in every row")
+  }
   # me_model alone does nothing; the input error below stops before fitting
   expect_warning(
     expect_error(hb_area(y ~ w, data = "not a data frame", me_model = "functional"), "data frame"),

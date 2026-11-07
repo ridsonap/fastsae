@@ -207,8 +207,8 @@
 #'   a vector or list named by the covariates, each element a column name, one-sided formula
 #'   or numeric vector (one value per row of \code{data}), e.g. \code{var_x = c(x1 = "var_x1")}.
 #'   The covariates must enter \code{formula} as main effects, not transformed or in
-#'   interactions. A variance of 0 marks a value without error. See the section Covariates
-#'   measured with error.
+#'   interactions, and must not be constant. A variance of 0 marks a value without error.
+#'   See the section Covariates measured with error.
 #' @param me_model Model of the true values of the covariates in \code{var_x}:
 #'   \code{"structural"} (default) or \code{"functional"}; see the section Covariates measured
 #'   with error.
@@ -1424,6 +1424,14 @@ hb_area <- function(
     }
     if (!v %in% colnames(X)) {
       cli::cli_abort("The covariate {.val {v}} in {.arg var_x} must be numeric, not a factor or logical.")
+    }
+    # only possible without an intercept (.check_design()); the priors of the true
+    # values, the floor of a variance of 0 and the INLA term all scale with sd(w)
+    if (!isTRUE(stats::sd(X[, v]) > 0)) {
+      cli::cli_abort(c(
+        "The covariate {.val {v}} in {.arg var_x} has the same value in every row.",
+        "i" = "A covariate measured with error has to vary; a constant one plays the part of an intercept."
+      ))
     }
   }
 
