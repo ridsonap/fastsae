@@ -82,6 +82,8 @@
     prior_beta = engine$prior_beta,
     priors = engine$priors,
     robust = engine$robust,
+    # engine objects created before target_accept existed: the former fixed value
+    target_accept_prob = engine$target_accept %||% 0.85,
     return_draws = TRUE,
     progress_bar = engine$progress
   )
@@ -389,6 +391,7 @@
     hyperpar = hyperpar,
     random_effect_var = hyper$sigma2_u,
     random_effect_var_time = hyper$sigma2_t,
+    random_effect_var_st = hyper$sigma2_st,
     phi = hyper$phi,
     rho = hyper$rho_spatial,
     rho_time = hyper$rho_t,

@@ -309,6 +309,12 @@
 #'   \item \code{random_effect_var}: Posterior mean of the area random effect variance (see
 #'     the Engines section on its accuracy when the variance is small).
 #'   \item \code{random_effect_var_time}: Estimated temporal random effect variance (if temporal).
+#'   \item \code{random_effect_var_st}: Posterior mean of the variance of the
+#'     \code{"type1"} to \code{"type4"} space-time interaction (the inverse precision of its
+#'     INLA term, \eqn{\sigma^2_{st}} of the JAX engine), \code{NULL} without one. With
+#'     the JAX engine it is also reported for \code{"domain-specific"} and
+#'     \code{"separable"}, which that engine fits as an interaction added to the main
+#'     effects; with INLA these two have no separate interaction term.
 #'   \item \code{phi}: Estimated spatial variance proportion (for BYM2) or spatial autocorrelation.
 #'   \item \code{rho_time}: Estimated temporal autocorrelation parameter (for AR1).
 #'   \item \code{measurement_error}: With \code{var_x}, a list with the \code{model}, the
