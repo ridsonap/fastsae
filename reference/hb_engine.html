@@ -117,7 +117,8 @@ their defaults.</p>
 <span>  priors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"inla"</span>, <span class="st">"weakly_informative"</span><span class="op">)</span>,</span>
 <span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  keep_draws <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  progress <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  progress <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  target_accept <span class="op">=</span> <span class="fl">0.85</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fastsae_engine'</span></span>
@@ -280,6 +281,17 @@ the posterior covariance). Default <code>TRUE</code>.</p></dd>
 <code><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive()</a></code>.</p></dd>
 
 
+<dt id="arg-target-accept">target_accept<a class="anchor" aria-label="anchor" href="#arg-target-accept"></a></dt>
+<dd><p>Target acceptance probability of the NUTS step-size
+adaptation (NumPyro's <code>target_accept_prob</code>), strictly between 0 and 1.
+Default 0.85 (the value used before this argument existed). Larger values
+(0.95, 0.99) give smaller steps, which reduce divergent transitions caused by
+funnel-shaped posteriors (for example a variance estimated from a few
+periods) at the cost of longer sampling (Betancourt, 2017, A conceptual
+introduction to Hamiltonian Monte Carlo, arXiv:1701.02434). The value used is
+returned in <code>fit$fit$target_accept_prob</code>.</p></dd>
+
+
 <dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A <code>"fastsae_engine"</code> object.</p></dd>
 
@@ -357,6 +369,7 @@ regularization in the horseshoe and other shrinkage priors.
 <span class="r-in"><span><span class="fu">jax_engine</span><span class="op">(</span>samples <span class="op">=</span> <span class="fl">2000</span>, chains <span class="op">=</span> <span class="fl">4</span>, device <span class="op">=</span> <span class="st">"cuda"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">JAX engine</span> (NumPyro NUTS)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> 4 chains x 2000 draws, 500 warmup, seed 42</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> NUTS target acceptance: 0.85</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Device: cuda</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Prior on coefficients: normal</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Priors: inla</span>

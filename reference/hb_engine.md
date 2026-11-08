@@ -37,7 +37,8 @@ jax_engine(
   priors = c("inla", "weakly_informative"),
   robust = FALSE,
   keep_draws = TRUE,
-  progress = interactive()
+  progress = interactive(),
+  target_accept = 0.85
 )
 
 # S3 method for class 'fastsae_engine'
@@ -215,6 +216,18 @@ print(x, ...)
   Logical; show NumPyro's progress bar. Default
   [`interactive()`](https://rdrr.io/r/base/interactive.html).
 
+- target_accept:
+
+  Target acceptance probability of the NUTS step-size adaptation
+  (NumPyro's `target_accept_prob`), strictly between 0 and 1. Default
+  0.85 (the value used before this argument existed). Larger values
+  (0.95, 0.99) give smaller steps, which reduce divergent transitions
+  caused by funnel-shaped posteriors (for example a variance estimated
+  from a few periods) at the cost of longer sampling (Betancourt, 2017,
+  A conceptual introduction to Hamiltonian Monte Carlo,
+  arXiv:1701.02434). The value used is returned in
+  `fit$fit$target_accept_prob`.
+
 - x:
 
   A `"fastsae_engine"` object.
@@ -298,6 +311,7 @@ inla_engine(strategy = "simplified.laplace")
 jax_engine(samples = 2000, chains = 4, device = "cuda")
 #> JAX engine (NumPyro NUTS)
 #> • 4 chains x 2000 draws, 500 warmup, seed 42
+#> • NUTS target acceptance: 0.85
 #> • Device: cuda
 #> • Prior on coefficients: normal
 #> • Priors: inla

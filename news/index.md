@@ -19,6 +19,28 @@
 
 ### New features
 
+- [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  gains `target_accept`, the target acceptance probability of the NUTS
+  step-size adaptation (NumPyro’s `target_accept_prob`; default 0.85,
+  the value that was fixed before). Raising it (e.g. to 0.95) removes
+  divergent transitions from funnel-shaped posteriors, such as a
+  time-effect variance estimated from three periods. Applies to
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
+  and
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md);
+  fits store it in `fit$target_accept_prob`.
+
+- [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+  reports the variance of a space-time interaction as
+  `random_effect_var_st`, printed by
+  [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html), for both engines
+  (`"type1"` to `"type4"`; NULL without an interaction). With the JAX
+  engine, `sigma2_st` is now also in `hyperpar`, `mcmc_diagnostics` and
+  `trace`, so its convergence can be checked; before, the interaction SD
+  was sampled but never reported.
+
 - [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   gains `var_x` and `me_model` for covariates measured with error, such
   as survey estimates with known sampling variances (Ybarra and Lohr,
@@ -37,6 +59,7 @@
   `benchmarks/validation/me_area.R`). Fits report `measurement_error`.
   [`step_sae()`](https://ridsonap.is-a.dev/fastsae/reference/step_sae.md)
   keeps `var_x` to the covariates of each candidate model.
+
 - [`effective_trials()`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md):
   effective sample sizes $`n_d / \mathrm{deff}_d`$ for binomial models
   (`trials` of
@@ -49,6 +72,7 @@
   defined; areas with a direct proportion of 0 or 1, whose design effect
   is undefined, take a supplied fallback (such as the design effect of a
   related indicator) or the pooled one.
+
 - [`add_reliability_flags()`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)
   gains `classes` and `draws`: the class of each estimate (`est_class`)
   and the probability that the true value lies in it (`p_class`, from
