@@ -22,7 +22,7 @@ chain_W <- function(D) {
 }
 
 # Stand-in for hb_area_numpyro.fit_numpyro_hb(): draws centred on 1 + 0.5 * x
-fake_backend <- function(env) {
+fake_backend <- function(env, hyper = list(sigma2_u = 0.2, phi = 0.4)) {
   list(fit_numpyro_hb = function(y, X, domain_idx, ...) {
     args <- list(...)
     env$args <- c(list(y = y, X = X, domain_idx = domain_idx), args)
@@ -38,7 +38,7 @@ fake_backend <- function(env) {
       hb_ci_lower = apply(draws, 2, stats::quantile, 0.025, names = FALSE),
       hb_ci_upper = apply(draws, 2, stats::quantile, 0.975, names = FALSE),
       linpred_mean = colMeans(draws), rand_eff_mean = rep(0, n),
-      hyperparameters = list(sigma2_u = 0.2, phi = 0.4),
+      hyperparameters = hyper,
       dic = 10, p_dic = 3, waic = 11, p_waic = 3.5,
       device_used = "cpu", rhat_max = 1.01, shrinkage_weights = NULL,
       hb_draws = draws
@@ -46,8 +46,8 @@ fake_backend <- function(env) {
   })
 }
 
-local_fake_backend <- function(env, frame = parent.frame()) {
-  local_mocked_bindings(.get_numpyro_backend = function(...) fake_backend(env), .env = frame)
+local_fake_backend <- function(env, frame = parent.frame(), hyper = list(sigma2_u = 0.2, phi = 0.4)) {
+  local_mocked_bindings(.get_numpyro_backend = function(...) fake_backend(env, hyper), .env = frame)
 }
 
 # print() writes through cli (messages) and cat (stdout)
@@ -75,6 +75,12 @@ test_that("engine constructors validate their settings", {
   expect_error(jax_engine(robust = NA), "TRUE")
   expect_error(jax_engine(device = "tpu"))
   expect_error(jax_engine(prior_beta = "lasso"))
+  for (bad in list(0, 1, 1.2, NA_real_, "0.9", c(0.8, 0.9))) {
+    expect_error(jax_engine(target_accept = bad), "between 0 and 1")
+  }
+  expect_identical(jax_engine()$target_accept, 0.85)
+  expect_identical(jax_engine(target_accept = 0.95)$target_accept, 0.95)
+  expect_match(printed(jax_engine(target_accept = 0.95)), "0.95")
   eng <- jax_engine(samples = 10, device = "CPU", prior_beta = "horseshoe")
   expect_s3_class(eng, c("fastsae_engine_jax", "fastsae_engine"))
   expect_identical(eng$samples, 10L)
@@ -386,6 +392,55 @@ test_that("engine = 'jax' validates sampling variances and counts", {
 # ---------------------------------------------------------------------------
 # End-to-end fits (need Python with jax and numpyro)
 # ---------------------------------------------------------------------------
+
+test_that("engine = 'jax' passes target_accept to NUTS and reports the interaction variance", {
+  data("sim_panel", package = "fastsae")
+  env <- new.env()
+  local_fake_backend(env, hyper = list(sigma2_u = 0.2, sigma2_t = 0.1, sigma2_st = 0.3))
+  fit <- suppressMessages(hb_area(y_gaussian ~ x1,
+    data = sim_panel, domain = "area", time = "year", vardir = "vardir",
+    temporal = "iid", st_interaction = "type1",
+    engine = jax_engine(target_accept = 0.95), print_result = FALSE
+  ))
+  expect_identical(env$args$target_accept_prob, 0.95)
+  expect_identical(fit$random_effect_var_st, 0.3)
+  expect_match(printed(fit), "sigma2_st")
+  expect_match(paste(utils::capture.output(summary(fit)), collapse = "\n"), "sigma2_st")
+
+  # engine objects saved before target_accept existed keep the old fixed value
+  old <- jax_engine()
+  old$target_accept <- NULL
+  suppressMessages(hb_area(y_gaussian ~ x1,
+    data = sim_panel, domain = "area", time = "year", vardir = "vardir",
+    temporal = "iid", engine = old, print_result = FALSE
+  ))
+  expect_identical(env$args$target_accept_prob, 0.85)
+})
+
+test_that("INLA reports the variance of each Knorr-Held interaction", {
+  skip_if_not_installed("INLA")
+  data("sim_panel", package = "fastsae")
+  W <- chain_W(length(unique(sim_panel$area)))
+  rows <- c(type1 = "..obs_id..", type2 = "..time_id2..", type3 = "..domain_id2..")
+  for (st in names(rows)) {
+    fit <- suppressWarnings(hb_area(y_gaussian ~ x1,
+      data = sim_panel, domain = "area", time = "year", vardir = "vardir",
+      spatial = if (st == "type3") "besag" else "none", W = if (st == "type3") W,
+      temporal = "ar1", st_interaction = st, print_result = FALSE
+    ))
+    marg <- fit$fit$marginals.hyperpar[[paste("Precision for", rows[[st]])]]
+    expect_false(is.null(marg), label = st)
+    expect_equal(fit$random_effect_var_st, INLA::inla.emarginal(function(x) 1 / x, marg),
+      label = st
+    )
+  }
+  fit <- suppressWarnings(hb_area(y_gaussian ~ x1,
+    data = sim_panel, domain = "area", time = "year", vardir = "vardir",
+    temporal = "ar1", print_result = FALSE
+  ))
+  expect_true("random_effect_var_st" %in% names(fit))
+  expect_null(fit$random_effect_var_st)
+})
 
 jax_eng <- jax_engine(warmup = 300, samples = 300, chains = 2, device = "cpu", progress = FALSE)
 
@@ -734,4 +789,20 @@ test_that("engine = 'jax' measurement error models agree with INLA", {
     )
     expect_true(fit_jax$convergence)
   }
+})
+
+test_that("engine = 'jax' reports sigma2_st with its diagnostics and uses target_accept", {
+  skip_if_no_numpyro()
+  data("sim_panel", package = "fastsae")
+  eng <- jax_engine(warmup = 300, samples = 300, chains = 2, device = "cpu", progress = FALSE,
+                    target_accept = 0.95)
+  fit <- quiet_mcmc(hb_area(y_gaussian ~ x1,
+    data = sim_panel, domain = "area", time = "year", vardir = "vardir",
+    temporal = "iid", st_interaction = "type1", engine = eng, print_result = FALSE
+  ))
+  expect_equal(fit$fit$target_accept_prob, 0.95)
+  expect_true(is.numeric(fit$random_effect_var_st) && fit$random_effect_var_st > 0)
+  expect_true("sigma2_st" %in% fit$hyperpar$Parameter)
+  expect_true("sigma2_st" %in% fit$mcmc_diagnostics$parameter)
+  expect_true("sigma2_st" %in% dimnames(fit$trace)$parameter)
 })

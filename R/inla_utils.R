@@ -396,6 +396,7 @@
   # Extract variance component(s) and spatial/temporal correlation parameters
   random_effect_var <- NULL
   random_effect_var_time <- NULL
+  random_effect_var_st <- NULL
   phi <- NULL
   rho <- NULL
   rho_time <- NULL
@@ -431,6 +432,19 @@
       prec_time_est <- hyper_summary[prec_time_rows[1], "mean"]
       if (!is.na(prec_time_est) && prec_time_est > 0) {
         random_effect_var_time <- .post_mean_variance(fit, prec_time_rows[1], prec_time_est)
+      }
+    }
+
+    # Knorr-Held interaction (type1 to type4): the term on the observation index or on
+    # the copied indices of hb_area(); "domain-specific" and "separable" have no
+    # separate interaction term (their variance is the temporal or the area one)
+    if (st_interaction %in% c("type1", "type2", "type3", "type4")) {
+      st_rows <- grep("^Precision for \\.\\.(obs_id|time_id2|domain_id2|st_id2)\\.\\.$", hyper_names, value = TRUE)
+      if (length(st_rows) > 0) {
+        prec_st_est <- hyper_summary[st_rows[1], "mean"]
+        if (!is.na(prec_st_est) && prec_st_est > 0) {
+          random_effect_var_st <- .post_mean_variance(fit, st_rows[1], prec_st_est)
+        }
       }
     }
 
@@ -599,6 +613,7 @@
     hyperpar = hyper_summary,
     random_effect_var = random_effect_var,
     random_effect_var_time = random_effect_var_time,
+    random_effect_var_st = random_effect_var_st,
     phi = phi,
     rho = rho,
     rho_time = rho_time,

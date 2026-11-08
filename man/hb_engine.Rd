@@ -32,7 +32,8 @@ jax_engine(
   priors = c("inla", "weakly_informative"),
   robust = FALSE,
   keep_draws = TRUE,
-  progress = interactive()
+  progress = interactive(),
+  target_accept = 0.85
 )
 
 \method{print}{fastsae_engine}(x, ...)
@@ -147,6 +148,15 @@ the posterior covariance). Default \code{TRUE}.}
 
 \item{progress}{Logical; show NumPyro's progress bar. Default
 \code{interactive()}.}
+
+\item{target_accept}{Target acceptance probability of the NUTS step-size
+adaptation (NumPyro's \code{target_accept_prob}), strictly between 0 and 1.
+Default 0.85 (the value used before this argument existed). Larger values
+(0.95, 0.99) give smaller steps, which reduce divergent transitions caused by
+funnel-shaped posteriors (for example a variance estimated from a few
+periods) at the cost of longer sampling (Betancourt, 2017, A conceptual
+introduction to Hamiltonian Monte Carlo, arXiv:1701.02434). The value used is
+returned in \code{fit$fit$target_accept_prob}.}
 
 \item{x}{A \code{"fastsae_engine"} object.}
 }

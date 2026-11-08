@@ -12,6 +12,17 @@
 
 ## New features
 
+* `jax_engine()` gains `target_accept`, the target acceptance probability of the NUTS
+  step-size adaptation (NumPyro's `target_accept_prob`; default 0.85, the value that was fixed
+  before). Raising it (e.g. to 0.95) removes divergent transitions from funnel-shaped
+  posteriors, such as a time-effect variance estimated from three periods. Applies to
+  `hb_area()`, `hb_unit()` and `hb_twofold()`; fits store it in `fit$target_accept_prob`.
+* `hb_area()` reports the variance of a space-time interaction as `random_effect_var_st`,
+  printed by `print()` and `summary()`, for both engines (`"type1"` to `"type4"`; NULL
+  without an interaction). With the JAX engine, `sigma2_st` is now also in `hyperpar`,
+  `mcmc_diagnostics` and `trace`, so its convergence can be checked; before, the
+  interaction SD was sampled but never reported.
+
 * `hb_area()` gains `var_x` and `me_model` for covariates measured with error, such as
   survey estimates with known sampling variances (Ybarra and Lohr, 2008). The true values of
   these covariates replace the observed ones in the linear predictor: `me_model =

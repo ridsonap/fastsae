@@ -207,6 +207,14 @@ inla_engine <- function(
 #'   the posterior covariance). Default \code{TRUE}.
 #' @param progress Logical; show NumPyro's progress bar. Default
 #'   \code{interactive()}.
+#' @param target_accept Target acceptance probability of the NUTS step-size
+#'   adaptation (NumPyro's \code{target_accept_prob}), strictly between 0 and 1.
+#'   Default 0.85 (the value used before this argument existed). Larger values
+#'   (0.95, 0.99) give smaller steps, which reduce divergent transitions caused by
+#'   funnel-shaped posteriors (for example a variance estimated from a few
+#'   periods) at the cost of longer sampling (Betancourt, 2017, A conceptual
+#'   introduction to Hamiltonian Monte Carlo, arXiv:1701.02434). The value used is
+#'   returned in \code{fit$fit$target_accept_prob}.
 #' @export
 jax_engine <- function(
   warmup = 500,
@@ -218,9 +226,14 @@ jax_engine <- function(
   priors = c("inla", "weakly_informative"),
   robust = FALSE,
   keep_draws = TRUE,
-  progress = interactive()
+  progress = interactive(),
+  target_accept = 0.85
 ) {
   .check_flag(robust, "robust")
+  if (!is.numeric(target_accept) || length(target_accept) != 1 || !is.finite(target_accept) ||
+    target_accept <= 0 || target_accept >= 1) {
+    cli::cli_abort("{.arg target_accept} must be a single number strictly between 0 and 1.")
+  }
   .check_flag(keep_draws, "keep_draws")
   .check_flag(progress, "progress")
   structure(
@@ -235,7 +248,8 @@ jax_engine <- function(
       priors = match.arg(tolower(priors), choices = c("inla", "weakly_informative")),
       robust = robust,
       keep_draws = keep_draws,
-      progress = progress
+      progress = progress,
+      target_accept = as.numeric(target_accept)
     ),
     class = c("fastsae_engine_jax", "fastsae_engine")
   )
@@ -249,6 +263,7 @@ print.fastsae_engine <- function(x, ...) {
     cli::cli_text("{.strong JAX engine} (NumPyro NUTS)")
     cli::cli_bullets(c(
       "*" = "{x$chains} chain{?s} x {x$samples} draws, {x$warmup} warmup, seed {x$seed}",
+      "*" = "NUTS target acceptance: {x$target_accept %||% 0.85}",
       "*" = "Device: {x$device}",
       "*" = "Prior on coefficients: {x$prior_beta}{if (x$robust) ', Student-t random effects' else ''}",
       "*" = "Priors: {x$priors}"

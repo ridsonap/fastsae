@@ -299,7 +299,7 @@ def ess_tail(x):
 # Scalar parameters reported with their diagnostics (backend name -> reported name)
 _DIAG_SCALARS = (
     ("sigma2_u", "sigma2_u"), ("sigma2_spatial", "sigma2_spatial"), ("sigma2_iid", "sigma2_iid"),
-    ("sigma2_t", "sigma2_t"), ("sigma2_subarea", "sigma2_subarea"), ("sigma2_e", "sigma2_e"),
+    ("sigma2_t", "sigma2_t"), ("sigma2_st", "sigma2_st"), ("sigma2_subarea", "sigma2_subarea"), ("sigma2_e", "sigma2_e"),
     ("phi_est", "phi"), ("rho_spatial", "rho_spatial"), ("rho_t", "rho_t"), ("nu_u", "nu"),
     ("tau_horseshoe", "tau_horseshoe"), ("alpha_dispersion", "alpha_dispersion"),
     ("shape_param", "shape_param"), ("phi_beta", "phi_beta"),
@@ -394,7 +394,8 @@ def fit_numpyro_hb(
     return_draws=False,
     draw_rows=None,
     progress_bar=True,
-    max_tree_depth=10
+    max_tree_depth=10,
+    target_accept_prob=0.85
 ):
     jax, jnp, numpyro, dist, MCMC, NUTS, init_to_median, dev_str = init_jax_environment(device)
 
@@ -697,6 +698,7 @@ def fit_numpyro_hb(
         u_st = jnp.zeros(N)
         if st_interaction != "none" and temporal != "none" and T > 1:
             sigma_st = sample_sd("sigma_st")
+            numpyro.deterministic("sigma2_st", sigma_st ** 2)
             C_T = build_temporal_operator(T, temporal, rho_t, jnp)
 
             if st_interaction == "type1":
@@ -826,7 +828,7 @@ def fit_numpyro_hb(
     rng_key = jax.random.PRNGKey(seed)
     kernel = NUTS(model, init_strategy=partial(init_coefficients_at_zero, init_to_median=init_to_median,
                                                values=me_init or None),
-                  target_accept_prob=0.85, max_tree_depth=max_tree_depth)
+                  target_accept_prob=float(target_accept_prob), max_tree_depth=max_tree_depth)
     # divergent transitions and the number of leapfrog steps of each iteration (tree depth)
     extra_fields = ("diverging", "num_steps")
 
@@ -1034,6 +1036,8 @@ def fit_numpyro_hb(
         hyperparams["rho_spatial"] = float(np.mean(samples["rho_spatial"]))
     if "sigma2_t" in samples:
         hyperparams["sigma2_t"] = float(np.mean(samples["sigma2_t"]))
+    if "sigma2_st" in samples:
+        hyperparams["sigma2_st"] = float(np.mean(samples["sigma2_st"]))
     if "phi_est" in samples:
         hyperparams["phi"] = float(np.mean(samples["phi_est"]))
     if "rho_t" in samples:
@@ -1199,6 +1203,7 @@ def fit_numpyro_hb(
         "num_divergent": num_divergent,
         "treedepth_hits": treedepth_hits,
         "max_tree_depth": max_tree_depth,
+        "target_accept_prob": float(target_accept_prob),
         "hb_draws": _draw_columns(hb_samples, draw_rows) if return_draws else None,
         "sigma2_e_draws": np.asarray(samples["sigma2_e"], dtype=np.float64) if return_draws and "sigma2_e" in samples else None
     }

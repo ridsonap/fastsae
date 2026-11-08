@@ -128,6 +128,9 @@ print.fastsae <- function(x, ...) {
   if (!is.null(x$random_effect_var_time)) {
     cat("Temporal effect variance (sigma2_t):", round(x$random_effect_var_time, 6), "\n")
   }
+  if (!is.null(x$random_effect_var_st)) {
+    cat("Space-time interaction variance (sigma2_st):", round(x$random_effect_var_st, 6), "\n")
+  }
   if (!is.null(x$rho)) {
     cat("Spatial autocorrelation (rho):", round(x$rho, 4), "\n")
   }
@@ -201,6 +204,7 @@ summary.fastsae <- function(object, ...) {
     hyperpar = object$hyperpar,
     random_effect_var = object$random_effect_var,
     random_effect_var_time = object$random_effect_var_time,
+    random_effect_var_st = object$random_effect_var_st,
     rho = object$rho,
     rho_time = object$rho_time,
     phi = object$phi,
@@ -300,6 +304,9 @@ print.summary.fastsae <- function(x, ...) {
   }
   if (!is.null(x$random_effect_var_time)) {
     cat("sigma2_t (temporal):", round(x$random_effect_var_time, 6), "\n")
+  }
+  if (!is.null(x$random_effect_var_st)) {
+    cat("sigma2_st (space-time interaction):", round(x$random_effect_var_st, 6), "\n")
   }
   if (!is.null(x$rho)) {
     cat("rho (spatial):", round(x$rho, 4), "\n")
