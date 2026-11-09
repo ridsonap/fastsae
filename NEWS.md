@@ -12,6 +12,12 @@
 
 ## New features
 
+* `jax_engine()` fits report the E-BFMI of each chain (Betancourt, 2016) in `fit$ebfmi`,
+  computed as rstan and cmdstanr do. `print()` and `summary()` show the smallest value, and a
+  chain below 0.3 (the threshold of cmdstanr) gives a `fastsae_mcmc_warning`. `convergence`
+  still depends on R-hat only. Applies to `hb_area()`, `hb_unit()` and `hb_twofold()`; INLA
+  fits have no E-BFMI. On the same models, the values agreed with those of CmdStan within
+  Monte Carlo error for the fits that converged (`benchmarks/validation/ebfmi_stan.R`).
 * `jax_engine()` gains `target_accept`, the target acceptance probability of the NUTS
   step-size adaptation (NumPyro's `target_accept_prob`; default 0.85, the value that was fixed
   before). Raising it (e.g. to 0.95) removes divergent transitions from funnel-shaped

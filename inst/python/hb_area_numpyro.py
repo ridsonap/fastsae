@@ -305,6 +305,17 @@ _DIAG_SCALARS = (
     ("shape_param", "shape_param"), ("phi_beta", "phi_beta"),
 )
 
+def ebfmi(energy):
+    """Energy Bayesian fraction of missing information (Betancourt, 2016, arXiv:1604.00695)
+    of each chain of an array chains x draws, computed as rstan::get_bfmi() and cmdstanr do.
+    None below three draws (undefined); NaN for a chain with constant or non-finite energy."""
+    energy = np.asarray(energy, dtype=np.float64)
+    if energy.shape[1] < 3:
+        return None
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.sum(np.diff(energy, axis=1) ** 2, axis=1) / energy.shape[1] / np.var(energy, axis=1, ddof=1)
+
+
 def mcmc_diagnostics(samples, num_chains, hb_rows=None, max_trace_beta=8):
     """R-hat, bulk and tail ESS of the hyperparameters, coefficients and area parameters
     (rows hb_rows of hb_est, or all), and the per-chain draws of the hyperparameters,
@@ -829,8 +840,9 @@ def fit_numpyro_hb(
     kernel = NUTS(model, init_strategy=partial(init_coefficients_at_zero, init_to_median=init_to_median,
                                                values=me_init or None),
                   target_accept_prob=float(target_accept_prob), max_tree_depth=max_tree_depth)
-    # divergent transitions and the number of leapfrog steps of each iteration (tree depth)
-    extra_fields = ("diverging", "num_steps")
+    # divergent transitions, the number of leapfrog steps of each iteration (tree depth)
+    # and the Hamiltonian energy (E-BFMI)
+    extra_fields = ("diverging", "num_steps", "energy")
 
     # On Metal, NumPyro must step the chain from Python (its progress-bar loop):
     # the alternative fuses the whole chain into one kernel, which jax-metal
@@ -892,6 +904,8 @@ def fit_numpyro_hb(
     num_divergent = int(np.sum(np.asarray(extra["diverging"]))) if "diverging" in extra else None
     treedepth_hits = (int(np.sum(np.asarray(extra["num_steps"]) >= 2 ** max_tree_depth - 1))
                       if "num_steps" in extra else None)
+    # flattened chain-major, like get_samples(): the differences must stay within a chain
+    energy_bfmi = ebfmi(np.asarray(extra["energy"]).reshape(num_chains, -1)) if "energy" in extra else None
 
     if y_c != 0.0 or y_s != 1.0:
         samples = {k: np.asarray(v) for k, v in samples.items()}
@@ -1202,6 +1216,7 @@ def fit_numpyro_hb(
         "trace": diag_trace,
         "num_divergent": num_divergent,
         "treedepth_hits": treedepth_hits,
+        "ebfmi": energy_bfmi,
         "max_tree_depth": max_tree_depth,
         "target_accept_prob": float(target_accept_prob),
         "hb_draws": _draw_columns(hb_samples, draw_rows) if return_draws else None,

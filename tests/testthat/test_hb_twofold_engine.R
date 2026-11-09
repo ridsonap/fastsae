@@ -235,6 +235,7 @@ test_that("hb_twofold(engine = 'jax') agrees with INLA", {
     expect_named(fit_jax$df_hb, names(fit_inla$df_hb))
     expect_named(fit_jax$df_area, names(fit_inla$df_area))
     expect_true(fit_jax$convergence)
+    expect_length(fit_jax$ebfmi, 2)
     expect_gt(cor(fit_jax$df_hb$hb, fit_inla$df_hb$hb), 0.99)
     expect_gt(cor(fit_jax$df_area$hb_area, fit_inla$df_area$hb_area), 0.99)
     expect_lt(median(abs(fit_jax$df_area$hb_area - fit_inla$df_area$hb_area) / fit_inla$df_area$sd_area), 0.25)

@@ -44,7 +44,8 @@
     paste0(
       sprintf("max R-hat = %.3f", x$rhat_max),
       if (!is.null(x$ess_min) && is.finite(x$ess_min)) sprintf(", min ESS = %.0f", x$ess_min),
-      if (!is.null(x$divergences)) sprintf(", %d divergent", as.integer(x$divergences))
+      if (!is.null(x$divergences)) sprintf(", %d divergent", as.integer(x$divergences)),
+      if (any(is.finite(x$ebfmi))) sprintf(", min E-BFMI = %.2f", min(x$ebfmi, na.rm = TRUE))
     )
   } else if (!is.null(x$inla_mode_status)) {
     paste("INLA mode status", x$inla_mode_status)
@@ -192,6 +193,7 @@ summary.fastsae <- function(object, ...) {
     rhat_max = object$rhat_max,
     ess_min = object$ess_min,
     divergences = object$divergences,
+    ebfmi = object$ebfmi,
     mcmc_diagnostics = object$mcmc_diagnostics,
     family = object$family,
     spatial = object$spatial,
