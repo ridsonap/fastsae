@@ -270,16 +270,26 @@ sizes (ESS) of every hyperparameter (variances, `phi`, `rho`, ...),
 coefficient and area or domain parameter (`hb[j]`, row `j` of `df_hb`);
 `rhat_max` and `ess_min`, their extremes; `divergences`, the number of
 divergent transitions after warmup; `treedepth_hits`, the iterations
-that reached the maximum tree depth; and `trace`, the per-chain draws
-(iterations x chains x parameters) of the hyperparameters, up to eight
-coefficients and the area with the largest R-hat. `convergence` is
-`rhat_max < 1.05`, as before. A fit warns when R-hat is at least 1.05,
-when the bulk or tail ESS is below 100 per chain or when there are
-divergent transitions (warning class `fastsae_mcmc_warning`), and
-informs when R-hat is between 1.01 and 1.05; Vehtari et al. recommend
-R-hat \< 1.01 and ESS \> 100 per chain. `autoplot(fit, type = "trace")`
+that reached the maximum tree depth; `ebfmi`, the energy Bayesian
+fraction of missing information of each chain (E-BFMI; Betancourt,
+2016), computed as rstan and cmdstanr do; and `trace`, the per-chain
+draws (iterations x chains x parameters) of the hyperparameters, up to
+eight coefficients and the area with the largest R-hat. `convergence` is
+`rhat_max < 1.05`, as before, and does not depend on the E-BFMI. A fit
+warns when R-hat is at least 1.05, when the bulk or tail ESS is below
+100 per chain, when there are divergent transitions or when the E-BFMI
+of a chain is below 0.3, the threshold of cmdstanr, or undefined
+(warning class `fastsae_mcmc_warning`), and informs when R-hat is
+between 1.01 and 1.05; Vehtari et al. recommend R-hat \< 1.01 and ESS \>
+100 per chain. A low E-BFMI means that the energy changes little from
+one iteration to the next compared with its marginal spread, so the
+sampler may not reach the tails of the posterior. INLA is not a sampler,
+so an `inla_engine()` fit has no E-BFMI. `autoplot(fit, type = "trace")`
 and `type = "rank"` plot the chains; see
 [`autoplot.fastsae`](https://ridsonap.is-a.dev/fastsae/reference/autoplot.fastsae.md).
+
+Betancourt, M. (2016). Diagnosing suboptimal cotangent disintegrations
+in Hamiltonian Monte Carlo. arXiv:1604.00695.
 
 Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C.
 (2021). Rank-normalization, folding, and localization: An improved R-hat

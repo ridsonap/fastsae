@@ -20,6 +20,22 @@
 ### New features
 
 - [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  fits report the E-BFMI of each chain (Betancourt, 2016) in
+  `fit$ebfmi`, computed as rstan and cmdstanr do.
+  [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) show the smallest
+  value, and a chain below 0.3 (the threshold of cmdstanr) gives a
+  `fastsae_mcmc_warning`. `convergence` still depends on R-hat only.
+  Applies to
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
+  and
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md);
+  INLA fits have no E-BFMI. On the same models, the values agreed with
+  those of CmdStan within Monte Carlo error for the fits that converged
+  (`benchmarks/validation/ebfmi_stan.R`).
+
+- [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   gains `target_accept`, the target acceptance probability of the NUTS
   step-size adaptation (NumPyro’s `target_accept_prob`; default 0.85,
   the value that was fixed before). Raising it (e.g. to 0.95) removes
