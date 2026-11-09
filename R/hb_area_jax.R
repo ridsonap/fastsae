@@ -126,15 +126,17 @@
 #' (Vehtari et al., 2021) per hyperparameter, coefficient (named after the
 #' columns of X) and area parameter (`hb[j]`, row j of df_hb), the per-chain
 #' draws of the key parameters as an iterations x chains x parameters array,
-#' and the numbers of divergent transitions and of iterations at the maximum
-#' tree depth. NULL entries when the backend gives none.
+#' the numbers of divergent transitions and of iterations at the maximum tree
+#' depth, and the E-BFMI of each chain (Betancourt, 2016). NULL entries when the
+#' backend gives none.
 #' @noRd
 .mcmc_summary <- function(fit_py, coef_names, chains) {
   tab <- fit_py$diagnostics
+  ebfmi <- if (!is.null(fit_py$ebfmi)) as.numeric(fit_py$ebfmi) else NULL
   if (is.null(tab)) {
     return(list(
       table = NULL, trace = NULL, ess_min = NULL, divergences = fit_py$num_divergent,
-      treedepth_hits = fit_py$treedepth_hits
+      treedepth_hits = fit_py$treedepth_hits, ebfmi = ebfmi
     ))
   }
   rename <- function(p) {
@@ -165,7 +167,8 @@
     trace = trace,
     ess_min = if (any(is.finite(ess))) min(ess, na.rm = TRUE) else NA_real_,
     divergences = fit_py$num_divergent,
-    treedepth_hits = fit_py$treedepth_hits
+    treedepth_hits = fit_py$treedepth_hits,
+    ebfmi = ebfmi
   )
 }
 
@@ -174,6 +177,7 @@
 #' R-hat >= 1.05 marks the fit as not converged (as before); 1.01 <= R-hat < 1.05
 #' only informs. Bulk or tail ESS below 100 per chain and divergent transitions
 #' warn; iterations at the maximum tree depth (an efficiency issue) inform.
+#' A chain with an E-BFMI below 0.3 (the threshold of cmdstanr) or undefined warns.
 #' The warnings have class `fastsae_mcmc_warning`.
 #' @noRd
 .warn_mcmc <- function(rhat_max, mcmc, chains) {
@@ -206,6 +210,15 @@
       "i" = "Increase {.arg warmup}, or simplify the model (e.g. a weakly identified variance)."
     ), class = "fastsae_mcmc_warning")
   }
+  bfmi <- mcmc$ebfmi %||% numeric()
+  low_bfmi <- which(is.na(bfmi) | bfmi < 0.3)
+  if (length(low_bfmi) > 0) {
+    chain_bfmi <- sprintf("chain %d: %.3f", low_bfmi, bfmi[low_bfmi])
+    cli::cli_warn(c(
+      "{length(low_bfmi)} chain{?s} with an E-BFMI below 0.3 or undefined ({chain_bfmi}): the sampler may not explore the tails of the posterior.",
+      "i" = "Increase {.arg warmup}, or simplify the model (e.g. a weakly identified variance)."
+    ), class = "fastsae_mcmc_warning")
+  }
   if (!is.null(mcmc$treedepth_hits) && mcmc$treedepth_hits > 0) {
     cli::cli_alert_warning("{mcmc$treedepth_hits} iteration{?s} reached the maximum tree depth (slow sampling, not a validity problem).")
   }
@@ -220,6 +233,7 @@
     ess_min = run$mcmc$ess_min,
     divergences = run$mcmc$divergences,
     treedepth_hits = run$mcmc$treedepth_hits,
+    ebfmi = run$mcmc$ebfmi,
     trace = run$mcmc$trace
   )
 }

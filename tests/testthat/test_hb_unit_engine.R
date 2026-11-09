@@ -248,6 +248,7 @@ test_that("hb_unit(engine = 'jax') agrees with hbsae and INLA", {
     unit_data = s, Xpop = d$pop, domain_var = "dom",
     popsize_var = "N", engine = eng, print_result = FALSE
   ))
+  expect_length(fit$ebfmi, 2)
   ref_sd <- sqrt(as.numeric(h$mse[rownames(Xp)]))
   z <- abs(fit$df_hb$hb - as.numeric(h$est[rownames(Xp)])) / ref_sd
   expect_lt(median(z), 0.1)
