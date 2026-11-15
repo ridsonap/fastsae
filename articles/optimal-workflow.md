@@ -143,7 +143,7 @@ sel$path
 #> 3 - x3 141.0402
 formula(sel$model)
 #> y ~ x2
-#> <environment: 0x5705b6329108>
+#> <environment: 0x586a208b0b00>
 ```
 
 Select with the model you intend to use. With a spatial model, a
@@ -305,7 +305,7 @@ to a spreadsheet:
 
 out <- tempfile(fileext = ".xlsx")
 invisible(export_sae(fit_fh, file = out, benchmark = bm))
-#> ✔ Successfully exported SAE results to Excel: /tmp/Rtmp68lmKE/file40b71d9d4b1e.xlsx
+#> ✔ Successfully exported SAE results to Excel: /tmp/RtmpfzMbMq/file404e5dbefecb.xlsx
 file.exists(out)
 #> [1] TRUE
 ```
