@@ -665,8 +665,10 @@ autoplot.fastsae_diagnose <- function(object,
 #'
 #' The stored trace of the key parameters, plus rows of `draws` (chain-major,
 #' as NumPyro concatenates the chains) for parameters `hb[j]` not in it.
+#' The chains of an hb_ratio() fit are those of its sub-proportion model.
 #' @noRd
 .mcmc_trace <- function(object, pars) {
+  if (inherits(object, "fastsae_hb_ratio")) object <- object$ratio_fit
   trace <- object$trace
   if (is.null(trace)) {
     cli::cli_abort(c(

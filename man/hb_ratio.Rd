@@ -11,6 +11,7 @@ hb_ratio(
   parent,
   parent_se = NULL,
   domain = NULL,
+  engine = "inla",
   benchmark_target = NULL,
   benchmark_weight = NULL,
   benchmark_group = NULL,
@@ -39,6 +40,10 @@ the parent (treated as independent of \eqn{s_d}); without them they are conditio
 
 \item{domain}{Optional column name or formula of area identifiers.}
 
+\item{engine}{Estimation engine of the sub-proportion model, as in \code{\link{hb_area}}:
+\code{\link{inla_engine}()} (default, or \code{"inla"}) or \code{\link{jax_engine}()}
+(or \code{"jax"}, MCMC with NumPyro). See Details for the posterior draws of each engine.}
+
 \item{benchmark_target}{Optional benchmark target for the weighted mean of
 \eqn{\theta_d} (scalar, or named by \code{benchmark_group}).}
 
@@ -47,15 +52,18 @@ the parent (treated as independent of \eqn{s_d}); without them they are conditio
 
 \item{benchmark_group}{Optional vector, column name, or formula: groups with their own target.}
 
-\item{n_draws}{Number of posterior draws (default 2000).}
+\item{n_draws}{Number of posterior draws from the INLA fit (default 2000). Not used with
+\code{jax_engine()}, whose MCMC draws (\code{chains} x \code{samples}) are taken as they
+are.}
 
-\item{seed}{Integer seed of the posterior draws and of the parent draws (default 1);
-\code{NULL} uses the session's random number stream.}
+\item{seed}{Integer seed of the posterior draws from the INLA fit and of the parent draws
+(default 1); \code{NULL} uses the session's random number stream. The seed of the MCMC
+sampler is \code{jax_engine(seed = )}.}
 
 \item{print_result}{Logical. If \code{TRUE} (default), prints a summary.}
 
 \item{...}{Further arguments to \code{\link{hb_area}} (e.g. \code{spatial}, \code{W},
-\code{engine = inla_engine(...)}); \code{family} is \code{"binomial"}.}
+\code{var_x}); \code{family} is \code{"binomial"}.}
 }
 \value{
 An object of class \code{c("fastsae_hb_ratio", "fastsae_hb", "fastsae")} with
@@ -73,7 +81,8 @@ An object of class \code{c("fastsae_hb_ratio", "fastsae_hb", "fastsae")} with
       of the benchmarked estimates.}
   }
   and \code{estcoef}, \code{random_effect_var}, \code{goodness}, \code{convergence},
-  \code{inla_mode_status}, \code{formula}, \code{model} and \code{call}.
+  \code{inla_mode_status} (INLA) or the MCMC diagnostics (JAX, see Details), \code{engine},
+  \code{formula}, \code{model} and \code{call}.
 }
 \description{
 Estimates an indicator that is a subset of a parent indicator (for instance
@@ -99,7 +108,19 @@ extreme poverty within poverty for 514 Indonesian districts, the ratio model gav
 standard error of at most 50\% in 124 districts against 77 for a binomial HB model of the
 extreme poverty rate itself, and no district estimate above its poverty rate (against 7).
 
-Only the INLA engine is supported.
+Both engines of \code{\link{hb_area}} fit the sub-proportion model, with the same default
+priors. They differ in where the posterior draws of \eqn{s_d} come from. With
+\code{inla_engine()}, \code{n_draws} draws are sampled from the fitted approximation
+(\code{INLA::inla.posterior.sample()}, which needs the package \pkg{sn}), so \code{ratio}
+agrees with \code{ratio_fit$df_hb$hb} up to Monte Carlo error. With \code{jax_engine()},
+the draws are those of the sampler, so the two are equal without a benchmark, and the
+object carries the convergence diagnostics of the sub-proportion model (\code{rhat_max},
+\code{ess_min}, \code{divergences}, \code{treedepth_hits}, \code{ebfmi},
+\code{mcmc_diagnostics}; see \code{\link{jax_engine}}). \code{autoplot(fit, type = "trace")}
+and \code{type = "rank"} plot the chains of that model, where \code{hb[j]} is
+\eqn{s_d} of row \code{j}. \code{hb_ratio()} always returns \code{draws};
+\code{jax_engine(keep_draws = FALSE)} only drops the draws of \eqn{s_d} from
+\code{ratio_fit}. The logit link is the only one of the JAX engine.
 }
 \examples{
 \donttest{
@@ -119,7 +140,16 @@ if (requireNamespace("INLA", quietly = TRUE)) {
   all(fit$df_hb$hb <= d$p0)
 }
 }
+\dontrun{
+# MCMC (needs Python with jax and numpyro, see setup_numpyro_env())
+fit_jax <- hb_ratio(s_dir ~ x,
+  data = d, trials = "n_poor", parent = "p0", domain = "area",
+  engine = jax_engine(chains = 4)
+)
+fit_jax$rhat_max
+}
 }
 \seealso{
-\code{\link{hb_area}}, \code{\link{effective_trials}}, \code{\link{benchmark_sae}}.
+\code{\link{hb_area}}, \code{\link{inla_engine}}, \code{\link{jax_engine}},
+  \code{\link{effective_trials}}, \code{\link{benchmark_sae}}.
 }

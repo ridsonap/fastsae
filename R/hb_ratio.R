@@ -22,17 +22,23 @@
 #'   the parent (treated as independent of \eqn{s_d}); without them they are conditional on
 #'   \code{parent}.
 #' @param domain Optional column name or formula of area identifiers.
+#' @param engine Estimation engine of the sub-proportion model, as in \code{\link{hb_area}}:
+#'   \code{\link{inla_engine}()} (default, or \code{"inla"}) or \code{\link{jax_engine}()}
+#'   (or \code{"jax"}, MCMC with NumPyro). See Details for the posterior draws of each engine.
 #' @param benchmark_target Optional benchmark target for the weighted mean of
 #'   \eqn{\theta_d} (scalar, or named by \code{benchmark_group}).
 #' @param benchmark_weight Vector, column name, or formula of area weights for the benchmark
 #'   (e.g. population sizes); needed with \code{benchmark_target}.
 #' @param benchmark_group Optional vector, column name, or formula: groups with their own target.
-#' @param n_draws Number of posterior draws (default 2000).
-#' @param seed Integer seed of the posterior draws and of the parent draws (default 1);
-#'   \code{NULL} uses the session's random number stream.
+#' @param n_draws Number of posterior draws from the INLA fit (default 2000). Not used with
+#'   \code{jax_engine()}, whose MCMC draws (\code{chains} x \code{samples}) are taken as they
+#'   are.
+#' @param seed Integer seed of the posterior draws from the INLA fit and of the parent draws
+#'   (default 1); \code{NULL} uses the session's random number stream. The seed of the MCMC
+#'   sampler is \code{jax_engine(seed = )}.
 #' @param print_result Logical. If \code{TRUE} (default), prints a summary.
 #' @param ... Further arguments to \code{\link{hb_area}} (e.g. \code{spatial}, \code{W},
-#'   \code{engine = inla_engine(...)}); \code{family} is \code{"binomial"}.
+#'   \code{var_x}); \code{family} is \code{"binomial"}.
 #'
 #' @details The benchmark solves, for each posterior draw, for one shift \eqn{a_g} per group on
 #' the logit scale such that \eqn{\sum_{d \in g} w_d P_d\, \mathrm{logit}^{-1}(\mathrm{logit}(s_d) +
@@ -46,7 +52,19 @@
 #' standard error of at most 50\% in 124 districts against 77 for a binomial HB model of the
 #' extreme poverty rate itself, and no district estimate above its poverty rate (against 7).
 #'
-#' Only the INLA engine is supported.
+#' Both engines of \code{\link{hb_area}} fit the sub-proportion model, with the same default
+#' priors. They differ in where the posterior draws of \eqn{s_d} come from. With
+#' \code{inla_engine()}, \code{n_draws} draws are sampled from the fitted approximation
+#' (\code{INLA::inla.posterior.sample()}, which needs the package \pkg{sn}), so \code{ratio}
+#' agrees with \code{ratio_fit$df_hb$hb} up to Monte Carlo error. With \code{jax_engine()},
+#' the draws are those of the sampler, so the two are equal without a benchmark, and the
+#' object carries the convergence diagnostics of the sub-proportion model (\code{rhat_max},
+#' \code{ess_min}, \code{divergences}, \code{treedepth_hits}, \code{ebfmi},
+#' \code{mcmc_diagnostics}; see \code{\link{jax_engine}}). \code{autoplot(fit, type = "trace")}
+#' and \code{type = "rank"} plot the chains of that model, where \code{hb[j]} is
+#' \eqn{s_d} of row \code{j}. \code{hb_ratio()} always returns \code{draws};
+#' \code{jax_engine(keep_draws = FALSE)} only drops the draws of \eqn{s_d} from
+#' \code{ratio_fit}. The logit link is the only one of the JAX engine.
 #'
 #' @return An object of class \code{c("fastsae_hb_ratio", "fastsae_hb", "fastsae")} with
 #'   \describe{
@@ -63,9 +81,11 @@
 #'       of the benchmarked estimates.}
 #'   }
 #'   and \code{estcoef}, \code{random_effect_var}, \code{goodness}, \code{convergence},
-#'   \code{inla_mode_status}, \code{formula}, \code{model} and \code{call}.
+#'   \code{inla_mode_status} (INLA) or the MCMC diagnostics (JAX, see Details), \code{engine},
+#'   \code{formula}, \code{model} and \code{call}.
 #'
-#' @seealso \code{\link{hb_area}}, \code{\link{effective_trials}}, \code{\link{benchmark_sae}}.
+#' @seealso \code{\link{hb_area}}, \code{\link{inla_engine}}, \code{\link{jax_engine}},
+#'   \code{\link{effective_trials}}, \code{\link{benchmark_sae}}.
 #'
 #' @examples
 #' \donttest{
@@ -85,6 +105,14 @@
 #'   all(fit$df_hb$hb <= d$p0)
 #' }
 #' }
+#' \dontrun{
+#' # MCMC (needs Python with jax and numpyro, see setup_numpyro_env())
+#' fit_jax <- hb_ratio(s_dir ~ x,
+#'   data = d, trials = "n_poor", parent = "p0", domain = "area",
+#'   engine = jax_engine(chains = 4)
+#' )
+#' fit_jax$rhat_max
+#' }
 #' @export
 hb_ratio <- function(formula,
                      data,
@@ -92,6 +120,7 @@ hb_ratio <- function(formula,
                      parent,
                      parent_se = NULL,
                      domain = NULL,
+                     engine = "inla",
                      benchmark_target = NULL,
                      benchmark_weight = NULL,
                      benchmark_group = NULL,
@@ -108,9 +137,19 @@ hb_ratio <- function(formula,
   if (!is.null(dots$self_benchmark) && isTRUE(dots$self_benchmark)) {
     cli::cli_abort("Use {.arg benchmark_target} of {.fn hb_ratio}, not {.arg self_benchmark}: it benchmarks the product with the parent.")
   }
-  engine <- dots$engine %||% "inla"
-  if (identical(engine, "jax") || inherits(engine, "fastsae_engine") && !identical(engine$name, "inla")) {
-    cli::cli_abort("{.fn hb_ratio} supports the INLA engine only.")
+  # hb_area() resolves the engine (and the deprecated INLA arguments in `...`); here it is
+  # only read, and the MCMC draws of s_d are requested
+  engine_spec <- .as_hb_engine(engine)
+  if (!missing(engine)) dots$engine <- engine_spec
+  is_jax <- engine_spec$name == "jax"
+  if (is_jax) {
+    if (!missing(n_draws)) {
+      cli::cli_warn(c(
+        "{.arg n_draws} is not used with {.fn jax_engine} and ignored.",
+        "i" = "The number of draws is {.code chains * samples} of {.fn jax_engine}."
+      ))
+    }
+    dots$engine$keep_draws <- TRUE
   }
   if (!is.numeric(n_draws) || length(n_draws) != 1 || is.na(n_draws) || n_draws < 10) {
     cli::cli_abort("{.arg n_draws} must be a number of at least 10.")
@@ -166,14 +205,22 @@ hb_ratio <- function(formula,
     cli::cli_abort("{.fn hb_ratio} needs one row of {.arg data} per area.")
   }
 
-  draw_seed <- if (is.null(seed)) 0L else as.integer(seed)
-  s_draws <- .with_seed(seed, {
-    smp <- .inla_draws(fit_s$fit, n_draws, draw_seed)
-    rn <- rownames(smp[[1]]$latent)
-    pred_rows <- grep("^Predictor:", rn)[seq_len(D)]
-    eta <- vapply(smp, function(s) s$latent[pred_rows, 1], numeric(D))
-    .inla_inv_link(eta, "binomial", fit_s$link)
-  })
+  if (is_jax) {
+    # The MCMC draws of s_d (areas x draws) behind fit_s$df_hb
+    s_draws <- fit_s$draws
+    n_draws <- ncol(s_draws)
+    fit_s$engine_spec <- engine_spec
+    if (!isTRUE(engine_spec$keep_draws)) fit_s$draws <- NULL
+  } else {
+    draw_seed <- if (is.null(seed)) 0L else as.integer(seed)
+    s_draws <- .with_seed(seed, {
+      smp <- .inla_draws(fit_s$fit, n_draws, draw_seed)
+      rn <- rownames(smp[[1]]$latent)
+      pred_rows <- grep("^Predictor:", rn)[seq_len(D)]
+      eta <- vapply(smp, function(s) s$latent[pred_rows, 1], numeric(D))
+      .inla_inv_link(eta, "binomial", fit_s$link)
+    })
+  }
   if (!is.null(sb_info)) s_draws <- .benchmark_adjust(s_draws, sb_info, "logit")
   level_cond <- s_draws * parent_vec
   level <- if (!is.null(parent_se_vec)) {
@@ -239,6 +286,12 @@ hb_ratio <- function(formula,
     model = paste0("Ratio model: parent x ", fit_s$model, " sub-proportion"),
     call = call_matched
   )
+  # Convergence of the sub-proportion model (jax_engine() fits only)
+  mcmc <- intersect(
+    c("rhat_max", "ess_min", "divergences", "treedepth_hits", "ebfmi", "mcmc_diagnostics", "method"),
+    names(fit_s)
+  )
+  out[mcmc] <- fit_s[mcmc]
   class(out) <- c("fastsae_hb_ratio", "fastsae_hb", "fastsae")
   if (print_result) print(out)
   out
