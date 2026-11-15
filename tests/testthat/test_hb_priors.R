@@ -105,6 +105,13 @@ skip_if_no_numpyro_backend <- function() {
   if (!suppressMessages(check_numpyro_available())) skip("NumPyro / JAX not available")
 }
 
+# Evaluate code with parallel::mclapply() on one core
+serial_mclapply <- function(code) {
+  op <- options(mc.cores = 1L)
+  on.exit(options(op))
+  code
+}
+
 test_that("the JAX PC prior of the BYM2 phi has the shape of INLA's", {
   skip_if_no_numpyro_backend()
   skip_if_not_installed("INLA")
@@ -117,7 +124,9 @@ test_that("the JAX PC prior of the BYM2 phi has the shape of INLA's", {
   st <- mod$pc_bym2_phi_setup(sp$eig_values, sp$scale_factor, 0.5, 0.5)
   phi <- c(0.01, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99)
   ours <- vapply(phi, function(p) mod$pc_bym2_phi_logdens(p, st[[1]], st[[2]]), numeric(1))
-  ref <- INLA:::inla.pc.bym.phi(graph = INLA::inla.read.graph(W), u = 0.5, alpha = 0.5)(phi)
+  # inla.pc.bym.phi() computes the prior with INLA's mclapply on all physical cores
+  # unless mc.cores is set; R CMD check allows at most 2 (_R_CHECK_LIMIT_CORES_)
+  ref <- serial_mclapply(INLA:::inla.pc.bym.phi(graph = INLA::inla.read.graph(W), u = 0.5, alpha = 0.5)(phi))
   # equal up to INLA's normalisation over its truncated support
   expect_lt(diff(range(ours - ref)), 0.01)
 })
