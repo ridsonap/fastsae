@@ -12,7 +12,7 @@ ggplot2.
 autoplot(
   object,
   type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map", "trace",
-    "rank"),
+    "rank", "divergence"),
   ...
 )
 
@@ -33,8 +33,8 @@ autoplot(object, type = c("comparison", "mse", "scatter", "map"), ...)
   - For a single `fastsae` object: `"comparison"`, `"ribbon"`, `"mse"`,
     `"estimates"`, `"scatter"`, `"rse"`, or `"map"`; for a fit with
     [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
-    also `"trace"` and `"rank"`, the MCMC convergence plots (see
-    Details).
+    also `"trace"`, `"rank"` and `"divergence"`, the MCMC convergence
+    plots (see Details).
 
   - For a list of `fastsae` objects: `"comparison"`, `"mse"`,
     `"scatter"`, or `"map"`.
@@ -45,7 +45,10 @@ autoplot(object, type = c("comparison", "mse", "scatter", "map"), ...)
   `title`) or to ggplot2 layers. For `"trace"` and `"rank"`: `pars`, the
   parameters to show (names in `fit$mcmc_diagnostics$parameter`, such as
   `"sigma2_u"`, a coefficient name or `"hb[5]"` for row 5 of `df_hb`),
-  and for `"rank"` `bins` (default 20).
+  and for `"rank"` `bins` (default 20). For `"divergence"`: `pars`, two
+  parameters (x axis, y axis), and `log`, `NULL` (default: the log scale
+  for variances and other positive scale parameters) or a logical of
+  length 1 or 2 (x, y).
 
 ## Value
 
@@ -65,7 +68,23 @@ area or domain with the largest R-hat; all R-hats and ESSs are in
 `fit$mcmc_diagnostics`. The numbers, not the plots, are the check (R-hat
 \< 1.01 and ESS \> 100 per chain); the plots show why a check fails.
 
+`"divergence"` shows where the divergent transitions are (Gabry et al.,
+2019): a scatter plot of the draws of two parameters with the divergent
+draws on top, in red, and their number in the subtitle
+(`fit$divergent_draws` flags them, iterations x chains). Divergences
+that gather in one region, typically the narrow neck of a funnel where a
+random-effect variance is small, show where the sampler cannot follow
+the posterior; divergences spread over the posterior are more likely
+false positives. By default it plots the area or domain with the largest
+R-hat (x) against the first variance (y, on the log scale), the usual
+funnel of a hierarchical model. Raising `jax_engine(target_accept = )`
+or a different parametrisation of the model are the usual remedies.
+
 ## References
+
+Gabry, J., Simpson, D., Vehtari, A., Betancourt, M., & Gelman, A.
+(2019). Visualization in Bayesian workflow. *Journal of the Royal
+Statistical Society: Series A*, 182(2), 389-402.
 
 Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C.
 (2021). Rank-normalization, folding, and localization: An improved R-hat

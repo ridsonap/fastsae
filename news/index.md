@@ -16,8 +16,32 @@
   [`add_reliability_flags()`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)-style
   summaries and the sub-proportion fit for
   [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md).
+  It takes `engine` as
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+  does:
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  (default), where `n_draws` draws are sampled from the fit, or
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+  where the MCMC draws of the sub-proportion are used as they are and
+  the fit reports their convergence (R-hat, ESS, divergences, E-BFMI;
+  `autoplot(type = "trace")`). On simulated data the two engines agreed
+  within 0.25 posterior SD (`tests/testthat/test_hb_ratio_engine.R`).
 
 ### New features
+
+- `autoplot(type = "divergence")` shows where the divergent transitions
+  of a
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  fit are (Gabry et al., 2019): the draws of two parameters with the
+  divergent ones in red. By default the area with the largest R-hat
+  against the log of the first variance, the funnel of a hierarchical
+  model; `pars` and `log` choose others. Fits keep which draws were
+  divergent in `fit$divergent_draws` (iterations x chains, as
+  `fit$trace`); before, only their number was returned. Applies to
+  [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+  [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
+  and
+  [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
 
 - [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   fits report the E-BFMI of each chain (Betancourt, 2016) in

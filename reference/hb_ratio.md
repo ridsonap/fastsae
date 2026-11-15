@@ -23,6 +23,7 @@ hb_ratio(
   parent,
   parent_se = NULL,
   domain = NULL,
+  engine = "inla",
   benchmark_target = NULL,
   benchmark_weight = NULL,
   benchmark_group = NULL,
@@ -69,6 +70,16 @@ hb_ratio(
 
   Optional column name or formula of area identifiers.
 
+- engine:
+
+  Estimation engine of the sub-proportion model, as in
+  [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md):
+  [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  (default, or `"inla"`) or
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  (or `"jax"`, MCMC with NumPyro). See Details for the posterior draws
+  of each engine.
+
 - benchmark_target:
 
   Optional benchmark target for the weighted mean of \\\theta_d\\
@@ -86,12 +97,16 @@ hb_ratio(
 
 - n_draws:
 
-  Number of posterior draws (default 2000).
+  Number of posterior draws from the INLA fit (default 2000). Not used
+  with
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+  whose MCMC draws (`chains` x `samples`) are taken as they are.
 
 - seed:
 
-  Integer seed of the posterior draws and of the parent draws (default
-  1); `NULL` uses the session's random number stream.
+  Integer seed of the posterior draws from the INLA fit and of the
+  parent draws (default 1); `NULL` uses the session's random number
+  stream. The seed of the MCMC sampler is `jax_engine(seed = )`.
 
 - print_result:
 
@@ -101,8 +116,7 @@ hb_ratio(
 
   Further arguments to
   [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
-  (e.g. `spatial`, `W`, `engine = inla_engine(...)`); `family` is
-  `"binomial"`.
+  (e.g. `spatial`, `W`, `var_x`); `family` is `"binomial"`.
 
 ## Value
 
@@ -135,7 +149,8 @@ An object of class `c("fastsae_hb_ratio", "fastsae_hb", "fastsae")` with
   the benchmarked estimates.
 
 and `estcoef`, `random_effect_var`, `goodness`, `convergence`,
-`inla_mode_status`, `formula`, `model` and `call`.
+`inla_mode_status` (INLA) or the MCMC diagnostics (JAX, see Details),
+`engine`, `formula`, `model` and `call`.
 
 ## Details
 
@@ -155,11 +170,32 @@ error of at most 50% in 124 districts against 77 for a binomial HB model
 of the extreme poverty rate itself, and no district estimate above its
 poverty rate (against 7).
 
-Only the INLA engine is supported.
+Both engines of
+[`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) fit
+the sub-proportion model, with the same default priors. They differ in
+where the posterior draws of \\s_d\\ come from. With
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+`n_draws` draws are sampled from the fitted approximation
+([`INLA::inla.posterior.sample()`](https://rdrr.io/pkg/INLA/man/posterior.sample.html),
+which needs the package sn), so `ratio` agrees with `ratio_fit$df_hb$hb`
+up to Monte Carlo error. With
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+the draws are those of the sampler, so the two are equal without a
+benchmark, and the object carries the convergence diagnostics of the
+sub-proportion model (`rhat_max`, `ess_min`, `divergences`,
+`treedepth_hits`, `ebfmi`, `mcmc_diagnostics`; see
+[`jax_engine`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)).
+`autoplot(fit, type = "trace")` and `type = "rank"` plot the chains of
+that model, where `hb[j]` is \\s_d\\ of row `j`. `hb_ratio()` always
+returns `draws`; `jax_engine(keep_draws = FALSE)` only drops the draws
+of \\s_d\\ from `ratio_fit`. The logit link is the only one of the JAX
+engine.
 
 ## See also
 
 [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`inla_engine`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+[`jax_engine`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
 [`effective_trials`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md),
 [`benchmark_sae`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md).
 
@@ -185,4 +221,12 @@ if (requireNamespace("INLA", quietly = TRUE)) {
 #> ℹ Response `y` appears to be proportions; using `y * trials` as the number of cases (not rounded).
 #> [1] TRUE
 # }
+if (FALSE) { # \dontrun{
+# MCMC (needs Python with jax and numpyro, see setup_numpyro_env())
+fit_jax <- hb_ratio(s_dir ~ x,
+  data = d, trials = "n_poor", parent = "p0", domain = "area",
+  engine = jax_engine(chains = 4)
+)
+fit_jax$rhat_max
+} # }
 ```

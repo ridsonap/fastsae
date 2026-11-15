@@ -2,8 +2,10 @@
 
 Constructors for the `engine` argument of
 [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
-[`hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) and
-[`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
+[`hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
+[`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
+and
+[`hb_ratio`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md).
 Each collects the settings of one estimation engine, so that the model
 functions themselves only describe the model. Passing the string
 `"inla"` or `"jax"` is the same as passing `inla_engine()` or
@@ -257,9 +259,13 @@ regularized horseshoe prior (Piironen and Vehtari 2017); see `priors`
 for the other priors. `spatial = "slm"` and `temporal = "rw2"` are not
 available. `jax_engine()` is available for
 [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
-[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
 and
-[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).
+[`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
+(the
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+model of its sub-proportion).
 
 ## MCMC convergence
 
@@ -272,20 +278,22 @@ coefficient and area or domain parameter (`hb[j]`, row `j` of `df_hb`);
 divergent transitions after warmup; `treedepth_hits`, the iterations
 that reached the maximum tree depth; `ebfmi`, the energy Bayesian
 fraction of missing information of each chain (E-BFMI; Betancourt,
-2016), computed as rstan and cmdstanr do; and `trace`, the per-chain
-draws (iterations x chains x parameters) of the hyperparameters, up to
-eight coefficients and the area with the largest R-hat. `convergence` is
-`rhat_max < 1.05`, as before, and does not depend on the E-BFMI. A fit
-warns when R-hat is at least 1.05, when the bulk or tail ESS is below
-100 per chain, when there are divergent transitions or when the E-BFMI
-of a chain is below 0.3, the threshold of cmdstanr, or undefined
+2016), computed as rstan and cmdstanr do; `trace`, the per-chain draws
+(iterations x chains x parameters) of the hyperparameters, up to eight
+coefficients and the area with the largest R-hat; and `divergent_draws`,
+which of those draws were divergent (iterations x chains). `convergence`
+is `rhat_max < 1.05`, as before, and does not depend on the E-BFMI. A
+fit warns when R-hat is at least 1.05, when the bulk or tail ESS is
+below 100 per chain, when there are divergent transitions or when the
+E-BFMI of a chain is below 0.3, the threshold of cmdstanr, or undefined
 (warning class `fastsae_mcmc_warning`), and informs when R-hat is
 between 1.01 and 1.05; Vehtari et al. recommend R-hat \< 1.01 and ESS \>
 100 per chain. A low E-BFMI means that the energy changes little from
 one iteration to the next compared with its marginal spread, so the
 sampler may not reach the tails of the posterior. INLA is not a sampler,
 so an `inla_engine()` fit has no E-BFMI. `autoplot(fit, type = "trace")`
-and `type = "rank"` plot the chains; see
+and `type = "rank"` plot the chains, and `type = "divergence"` where the
+divergent transitions are; see
 [`autoplot.fastsae`](https://ridsonap.is-a.dev/fastsae/reference/autoplot.fastsae.md).
 
 Betancourt, M. (2016). Diagnosing suboptimal cotangent disintegrations
@@ -309,7 +317,8 @@ Journal of Statistics*, 11(2), 5018–5051.
 
 [`hb_area`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
 [`hb_unit`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
-[`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
+[`hb_twofold`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md),
+[`hb_ratio`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
 
 ## Examples
 
