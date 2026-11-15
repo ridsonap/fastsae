@@ -65,7 +65,8 @@ test_that("hb_ratio checks its input", {
   run <- function(...) do.call(hb_ratio, utils::modifyList(args, list(...)))
   expect_error(run(family = "poisson"), "binomial")
   expect_error(run(self_benchmark = TRUE), "benchmark_target")
-  expect_error(run(engine = "jax"), "INLA engine")
+  expect_error(run(engine = "stan"), "inla_engine")
+  expect_error(run(engine = "laplace"), "removed")
   expect_error(run(n_draws = 5), "n_draws")
   d_bad <- d
   d_bad$p0[1] <- -0.1

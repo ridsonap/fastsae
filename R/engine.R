@@ -1,7 +1,7 @@
 #' Estimation engines for the Hierarchical Bayes models
 #'
 #' Constructors for the \code{engine} argument of \code{\link{hb_area}},
-#' \code{\link{hb_unit}} and \code{\link{hb_twofold}}. Each collects the
+#' \code{\link{hb_unit}}, \code{\link{hb_twofold}} and \code{\link{hb_ratio}}. Each collects the
 #' settings of one estimation engine, so that the model functions themselves
 #' only describe the model. Passing the string \code{"inla"} or \code{"jax"}
 #' is the same as passing \code{inla_engine()} or \code{jax_engine()} with
@@ -22,7 +22,8 @@
 #' The fixed effects get a normal or a regularized horseshoe prior (Piironen
 #' and Vehtari 2017); see \code{priors} for the other priors.
 #' \code{spatial = "slm"} and \code{temporal = "rw2"} are not available.
-#' \code{jax_engine()} is available for \code{hb_area()}, \code{hb_unit()} and \code{hb_twofold()}.
+#' \code{jax_engine()} is available for \code{hb_area()}, \code{hb_unit()},
+#' \code{hb_twofold()} and \code{hb_ratio()} (the \code{hb_area()} model of its sub-proportion).
 #'
 #' @section MCMC convergence:
 #' A \code{jax_engine()} fit carries the diagnostics of Vehtari et al. (2021), computed as
@@ -118,7 +119,8 @@
 #' regularization in the horseshoe and other shrinkage priors.
 #' \emph{Electronic Journal of Statistics}, 11(2), 5018--5051.
 #'
-#' @seealso \code{\link{hb_area}}, \code{\link{hb_unit}}, \code{\link{hb_twofold}}
+#' @seealso \code{\link{hb_area}}, \code{\link{hb_unit}}, \code{\link{hb_twofold}},
+#'   \code{\link{hb_ratio}}
 #' @examples
 #' inla_engine(strategy = "simplified.laplace")
 #' jax_engine(samples = 2000, chains = 4, device = "cuda")

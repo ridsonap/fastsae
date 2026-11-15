@@ -8,7 +8,11 @@
   benchmarking on the logit scale of the sub-proportion (per posterior draw, per group) keeps
   that property, and `parent_se` adds the uncertainty of the parent. Returns the posterior
   draws for `add_reliability_flags()`-style summaries and the sub-proportion fit for
-  `diagnose()`.
+  `diagnose()`. It takes `engine` as `hb_area()` does: `inla_engine()` (default), where
+  `n_draws` draws are sampled from the fit, or `jax_engine()`, where the MCMC draws of the
+  sub-proportion are used as they are and the fit reports their convergence (R-hat, ESS,
+  divergences, E-BFMI; `autoplot(type = "trace")`). On simulated data the two engines agreed
+  within 0.25 posterior SD (`tests/testthat/test_hb_ratio_engine.R`).
 
 ## New features
 
