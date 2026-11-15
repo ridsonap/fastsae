@@ -21,8 +21,8 @@ ggplot2::autoplot
 #'   \itemize{
 #'     \item For a single \code{fastsae} object: \code{"comparison"}, \code{"ribbon"},
 #'       \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"};
-#'       for a fit with \code{\link{jax_engine}()} also \code{"trace"} and \code{"rank"},
-#'       the MCMC convergence plots (see Details).
+#'       for a fit with \code{\link{jax_engine}()} also \code{"trace"}, \code{"rank"} and
+#'       \code{"divergence"}, the MCMC convergence plots (see Details).
 #'     \item For a list of \code{fastsae} objects: \code{"comparison"},
 #'       \code{"mse"}, \code{"scatter"}, or \code{"map"}.
 #'   }
@@ -30,7 +30,10 @@ ggplot2::autoplot
 #'   (e.g. \code{title}) or to \pkg{ggplot2} layers. For \code{"trace"} and \code{"rank"}:
 #'   \code{pars}, the parameters to show (names in \code{fit$mcmc_diagnostics$parameter},
 #'   such as \code{"sigma2_u"}, a coefficient name or \code{"hb[5]"} for row 5 of
-#'   \code{df_hb}), and for \code{"rank"} \code{bins} (default 20).
+#'   \code{df_hb}), and for \code{"rank"} \code{bins} (default 20). For \code{"divergence"}:
+#'   \code{pars}, two parameters (x axis, y axis), and \code{log}, \code{NULL} (default: the
+#'   log scale for variances and other positive scale parameters) or a logical of length 1
+#'   or 2 (x, y).
 #'
 #' @details
 #' \strong{MCMC convergence plots.} \code{"trace"} draws each chain's sampled values against
@@ -43,7 +46,22 @@ ggplot2::autoplot
 #' all R-hats and ESSs are in \code{fit$mcmc_diagnostics}. The numbers, not the plots, are the
 #' check (R-hat < 1.01 and ESS > 100 per chain); the plots show why a check fails.
 #'
-#' @references Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & B\enc{ü}{u}rkner, P.-C.
+#' \code{"divergence"} shows where the divergent transitions are (Gabry et al., 2019): a
+#' scatter plot of the draws of two parameters with the divergent draws on top, in red, and
+#' their number in the subtitle (\code{fit$divergent_draws} flags them, iterations x
+#' chains). Divergences that gather in one region, typically the narrow neck of a funnel
+#' where a random-effect variance is small, show where the sampler cannot follow the
+#' posterior; divergences spread over the posterior are more likely false positives. By
+#' default it plots the area or domain with the largest R-hat (x) against the first
+#' variance (y, on the log scale), the usual funnel of a hierarchical model. Raising
+#' \code{jax_engine(target_accept = )} or a different parametrisation of the model are the
+#' usual remedies.
+#'
+#' @references Gabry, J., Simpson, D., Vehtari, A., Betancourt, M., & Gelman, A. (2019).
+#'   Visualization in Bayesian workflow. \emph{Journal of the Royal Statistical Society:
+#'   Series A}, 182(2), 389-402.
+#'
+#' Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & B\enc{ü}{u}rkner, P.-C.
 #'   (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing
 #'   convergence of MCMC. \emph{Bayesian Analysis}, 16(2), 667-718.
 #'
@@ -65,7 +83,7 @@ ggplot2::autoplot
 #' @export
 autoplot.fastsae <- function(
   object,
-  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map", "trace", "rank"),
+  type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map", "trace", "rank", "divergence"),
   ...
 ) {
   type <- match.arg(type)
@@ -74,6 +92,9 @@ autoplot.fastsae <- function(
   }
   if (type %in% c("trace", "rank")) {
     return(.autoplot_mcmc(object, type, ...))
+  }
+  if (type == "divergence") {
+    return(.autoplot_divergence(object, ...))
   }
   switch(type,
     comparison = .autoplot_single_comparison(object, ...),
@@ -769,4 +790,75 @@ autoplot.fastsae_diagnose <- function(object,
       )
   }
   p + theme_minimal(base_size = 11) + theme(legend.position = "bottom")
+}
+
+#' Positive scale parameters of a jax_engine() fit, plotted on the log scale
+#' @noRd
+.mcmc_scale_par <- function(par) {
+  grepl("^(sigma2_|tau_horseshoe$|alpha_dispersion$|shape_param$|phi_beta$|nu$)", par)
+}
+
+#' Divergence plot of a jax_engine() fit: draws of two parameters, divergent draws on top
+#' @noRd
+.autoplot_divergence <- function(object, pars = NULL, log = NULL, title = NULL, ...) {
+  src <- if (inherits(object, "fastsae_hb_ratio")) object$ratio_fit else object
+  if (is.null(src$trace)) {
+    # the message of .mcmc_trace(): not a jax_engine() fit
+    .mcmc_trace(object, NULL)
+  }
+  div <- src$divergent_draws
+  if (is.null(div)) {
+    cli::cli_abort(c(
+      "This fit has no record of which draws were divergent.",
+      "i" = "Refit it with this version of fastsae."
+    ))
+  }
+  if (is.null(pars)) {
+    avail <- dimnames(src$trace)$parameter
+    scale_pars <- avail[.mcmc_scale_par(avail)]
+    y_par <- if (length(scale_pars) > 0) scale_pars[1] else avail[1]
+    hb_pars <- grep("^hb\\[", avail, value = TRUE)
+    x_par <- if (length(hb_pars) > 0) hb_pars[length(hb_pars)] else setdiff(avail, y_par)[1]
+    pars <- c(x_par, y_par)
+  }
+  if (!is.character(pars) || length(pars) != 2 || anyNA(pars)) {
+    cli::cli_abort("{.arg pars} of a divergence plot must be two parameter names (x axis, y axis).")
+  }
+  if (is.null(log)) {
+    log <- .mcmc_scale_par(pars)
+  } else if (!is.logical(log) || !length(log) %in% 1:2 || anyNA(log)) {
+    cli::cli_abort("{.arg log} must be {.code NULL} or {.code TRUE}/{.code FALSE} for each axis.")
+  }
+  log <- rep_len(log, 2)
+  trace <- .mcmc_trace(object, pars)
+  if (!identical(dim(div), dim(trace)[1:2])) {
+    cli::cli_abort("The divergence flags do not match the draws of the fit.")
+  }
+  value <- function(k) {
+    v <- as.vector(trace[, , k])
+    if (log[k]) {
+      if (any(v <= 0)) {
+        cli::cli_abort("{.val {pars[k]}} is not positive in every draw; use {.code log = FALSE} for it.")
+      }
+      v <- base::log(v)
+    }
+    v
+  }
+  df <- data.frame(x = value(1), y = value(2), divergent = as.vector(div))
+  df <- df[order(df$divergent), ] # divergent draws on top
+  axis_lab <- ifelse(log, paste0("log(", pars, ")"), pars)
+  n_div <- sum(df$divergent)
+  p <- ggplot(df, aes(x = .data$x, y = .data$y)) +
+    geom_point(data = df[!df$divergent, ], colour = "grey55", alpha = 0.35, size = 0.8) +
+    geom_point(data = df[df$divergent, ], colour = "#C0392B", alpha = 0.9, size = 1.6) +
+    labs(
+      x = axis_lab[1], y = axis_lab[2],
+      title = title %||% "MCMC divergent transitions",
+      subtitle = if (n_div == 0) {
+        sprintf("No divergent transitions in %d draws", nrow(df))
+      } else {
+        sprintf("%d divergent transition%s (red) in %d draws", n_div, if (n_div == 1) "" else "s", nrow(df))
+      }
+    )
+  p + theme_minimal(base_size = 11)
 }

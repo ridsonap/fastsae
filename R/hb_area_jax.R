@@ -115,6 +115,7 @@
   mcmc <- .mcmc_summary(fit_py, colnames(X), engine$chains)
   fit_py$diagnostics <- NULL
   fit_py$trace <- NULL
+  fit_py$divergent <- NULL
   .warn_mcmc(rhat_max, mcmc, engine$chains)
 
   list(fit = fit_py, draws = draws, estcoef = estcoef, rhat_max = rhat_max, mcmc = mcmc, elapsed = elapsed)
@@ -127,16 +128,24 @@
 #' columns of X) and area parameter (`hb[j]`, row j of df_hb), the per-chain
 #' draws of the key parameters as an iterations x chains x parameters array,
 #' the numbers of divergent transitions and of iterations at the maximum tree
-#' depth, and the E-BFMI of each chain (Betancourt, 2016). NULL entries when the
+#' depth, the E-BFMI of each chain (Betancourt, 2016), and which draws were
+#' divergent (`divergent`, iterations x chains, as the trace). NULL entries when the
 #' backend gives none.
 #' @noRd
 .mcmc_summary <- function(fit_py, coef_names, chains) {
   tab <- fit_py$diagnostics
   ebfmi <- if (!is.null(fit_py$ebfmi)) as.numeric(fit_py$ebfmi) else NULL
+  divergent <- NULL
+  if (!is.null(fit_py$divergent)) {
+    # the backend gives chains x draws
+    flags <- as.logical(as.matrix(fit_py$divergent))
+    divergent <- t(matrix(flags, nrow = chains))
+    dimnames(divergent) <- list(iteration = NULL, chain = seq_len(chains))
+  }
   if (is.null(tab)) {
     return(list(
       table = NULL, trace = NULL, ess_min = NULL, divergences = fit_py$num_divergent,
-      treedepth_hits = fit_py$treedepth_hits, ebfmi = ebfmi
+      treedepth_hits = fit_py$treedepth_hits, ebfmi = ebfmi, divergent = divergent
     ))
   }
   rename <- function(p) {
@@ -168,7 +177,8 @@
     ess_min = if (any(is.finite(ess))) min(ess, na.rm = TRUE) else NA_real_,
     divergences = fit_py$num_divergent,
     treedepth_hits = fit_py$treedepth_hits,
-    ebfmi = ebfmi
+    ebfmi = ebfmi,
+    divergent = divergent
   )
 }
 
@@ -234,7 +244,8 @@
     divergences = run$mcmc$divergences,
     treedepth_hits = run$mcmc$treedepth_hits,
     ebfmi = run$mcmc$ebfmi,
-    trace = run$mcmc$trace
+    trace = run$mcmc$trace,
+    divergent_draws = run$mcmc$divergent
   )
 }
 

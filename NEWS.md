@@ -16,6 +16,12 @@
 
 ## New features
 
+* `autoplot(type = "divergence")` shows where the divergent transitions of a `jax_engine()`
+  fit are (Gabry et al., 2019): the draws of two parameters with the divergent ones in red.
+  By default the area with the largest R-hat against the log of the first variance, the
+  funnel of a hierarchical model; `pars` and `log` choose others. Fits keep which draws were
+  divergent in `fit$divergent_draws` (iterations x chains, as `fit$trace`); before, only
+  their number was returned. Applies to `hb_area()`, `hb_unit()` and `hb_twofold()`.
 * `jax_engine()` fits report the E-BFMI of each chain (Betancourt, 2016) in `fit$ebfmi`,
   computed as rstan and cmdstanr do. `print()` and `summary()` show the smallest value, and a
   chain below 0.3 (the threshold of cmdstanr) gives a `fastsae_mcmc_warning`. `convergence`
