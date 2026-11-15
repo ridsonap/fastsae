@@ -21,7 +21,9 @@ fake_diag_fit <- function(rhat = c(1.002, 1.001, 1.003), ess = c(400, 450, 500),
     trace = list(names = list("sigma2_u", "beta[2]", "hb[1]"), draws = array(rnorm(2 * 50 * 3), c(2, 50, 3))),
     num_divergent = divergent,
     treedepth_hits = 0L,
-    ebfmi = ebfmi
+    ebfmi = ebfmi,
+    # chains x draws, as the backend gives them: the first `divergent` draws of chain 2
+    divergent = rbind(rep(FALSE, 50), seq_len(50) <= divergent)
   )
 }
 
@@ -140,6 +142,52 @@ test_that("autoplot() draws trace and rank plots of a jax fit", {
   expect_error(autoplot(inla_fit, type = "rank"), "jax_engine")
 })
 
+test_that("autoplot() shows where the divergent transitions of a jax fit are", {
+  mc <- .mcmc_summary(fake_diag_fit(divergent = 3L), c("(Intercept)", "x1"), 2)
+  # the backend's chains x draws become iterations x chains, as the trace
+  expect_equal(dim(mc$divergent), c(50L, 2L))
+  expect_equal(which(mc$divergent[, 2]), 1:3)
+  expect_false(any(mc$divergent[, 1]))
+  fit <- structure(c(list(engine = "jax", draws = matrix(rexp(4 * 100), 4, 100)), .mcmc_fields(list(mcmc = mc))),
+    class = c("fastsae_hb_area", "fastsae_hb", "fastsae")
+  )
+  fit$trace[, , "sigma2_u"] <- exp(fit$trace[, , "sigma2_u"])
+  expect_identical(fit$divergent_draws, mc$divergent)
+
+  # default: the area with the largest R-hat against the log of the first variance
+  p <- autoplot(fit, type = "divergence")
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$labels$x, "hb[1]")
+  expect_equal(p$labels$y, "log(sigma2_u)")
+  expect_match(p$labels$subtitle, "3 divergent transitions (red) in 100 draws", fixed = TRUE)
+  expect_equal(nrow(p$data), 100)
+  # divergent draws are drawn last, on top; their values are those of chain 2
+  expect_equal(tail(p$data$divergent, 3), rep(TRUE, 3))
+  dv <- p$data[p$data$divergent, ]
+  expect_equal(sort(dv$y), sort(log(fit$trace[1:3, 2, "sigma2_u"])))
+
+  # chosen parameters, hb[j] from the draws, and log scale on request
+  p <- autoplot(fit, type = "divergence", pars = c("hb[4]", "x1"), log = c(TRUE, FALSE))
+  expect_equal(p$labels$x, "log(hb[4])")
+  expect_equal(sort(p$data$x), sort(log(fit$draws[4, ])))
+  mc0 <- .mcmc_summary(fake_diag_fit(), c("(Intercept)", "x1"), 2)
+  fit0 <- structure(c(list(engine = "jax"), .mcmc_fields(list(mcmc = mc0))),
+    class = c("fastsae_hb_area", "fastsae_hb", "fastsae")
+  )
+  p0 <- autoplot(fit0, type = "divergence", pars = c("x1", "hb[1]"))
+  expect_match(p0$labels$subtitle, "No divergent transitions in 100 draws")
+
+  expect_error(autoplot(fit, type = "divergence", pars = "x1"), "two parameter names")
+  expect_error(autoplot(fit, type = "divergence", pars = c("x1", "nope")), "Unknown parameter")
+  expect_error(autoplot(fit, type = "divergence", pars = c("x1", "hb[1]"), log = NA), "for each axis")
+  expect_error(autoplot(fit, type = "divergence", pars = c("x1", "hb[1]"), log = TRUE), "not positive")
+  old_fit <- fit
+  old_fit$divergent_draws <- NULL
+  expect_error(autoplot(old_fit, type = "divergence"), "no record")
+  inla_fit <- structure(list(engine = "inla"), class = c("fastsae_hb_area", "fastsae_hb", "fastsae"))
+  expect_error(autoplot(inla_fit, type = "divergence"), "jax_engine")
+})
+
 test_that("print() reports the ESS and divergent transitions of a jax fit", {
   mc <- .mcmc_summary(fake_diag_fit(divergent = 2L), c("(Intercept)", "x1"), 2)
   fit <- c(list(convergence = TRUE, rhat_max = 1.003, engine = "jax"), .mcmc_fields(list(mcmc = mc)))
@@ -173,4 +221,8 @@ test_that("jax fits diagnose every parameter, the variances included", {
   expect_true(all(is.finite(fit$ebfmi) & fit$ebfmi > 0))
   expect_equal(dim(fit$trace)[1:2], c(300, 2))
   expect_true(all(c("sigma2_u", "sigma2_e") %in% dimnames(fit$trace)$parameter))
+  # the per-draw divergence flags add up to the count and fit the trace
+  expect_equal(dim(fit$divergent_draws), c(300L, 2L))
+  expect_equal(sum(fit$divergent_draws), fit$divergences)
+  expect_s3_class(autoplot(fit, type = "divergence"), "ggplot")
 })

@@ -8,7 +8,7 @@
 \method{autoplot}{fastsae}(
   object,
   type = c("comparison", "ribbon", "mse", "estimates", "scatter", "rse", "map", "trace",
-    "rank"),
+    "rank", "divergence"),
   ...
 )
 
@@ -22,8 +22,8 @@
 \itemize{
   \item For a single \code{fastsae} object: \code{"comparison"}, \code{"ribbon"},
     \code{"mse"}, \code{"estimates"}, \code{"scatter"}, \code{"rse"}, or \code{"map"};
-    for a fit with \code{\link{jax_engine}()} also \code{"trace"} and \code{"rank"},
-    the MCMC convergence plots (see Details).
+    for a fit with \code{\link{jax_engine}()} also \code{"trace"}, \code{"rank"} and
+    \code{"divergence"}, the MCMC convergence plots (see Details).
   \item For a list of \code{fastsae} objects: \code{"comparison"},
     \code{"mse"}, \code{"scatter"}, or \code{"map"}.
 }}
@@ -32,7 +32,10 @@
 (e.g. \code{title}) or to \pkg{ggplot2} layers. For \code{"trace"} and \code{"rank"}:
 \code{pars}, the parameters to show (names in \code{fit$mcmc_diagnostics$parameter},
 such as \code{"sigma2_u"}, a coefficient name or \code{"hb[5]"} for row 5 of
-\code{df_hb}), and for \code{"rank"} \code{bins} (default 20).}
+\code{df_hb}), and for \code{"rank"} \code{bins} (default 20). For \code{"divergence"}:
+\code{pars}, two parameters (x axis, y axis), and \code{log}, \code{NULL} (default: the
+log scale for variances and other positive scale parameters) or a logical of length 1
+or 2 (x, y).}
 }
 \value{
 A \code{ggplot} object.
@@ -52,6 +55,17 @@ rank-normalized R-hat and bulk ESS. By default the plots show the variance and o
 hyperparameters, up to eight coefficients and the area or domain with the largest R-hat;
 all R-hats and ESSs are in \code{fit$mcmc_diagnostics}. The numbers, not the plots, are the
 check (R-hat < 1.01 and ESS > 100 per chain); the plots show why a check fails.
+
+\code{"divergence"} shows where the divergent transitions are (Gabry et al., 2019): a
+scatter plot of the draws of two parameters with the divergent draws on top, in red, and
+their number in the subtitle (\code{fit$divergent_draws} flags them, iterations x
+chains). Divergences that gather in one region, typically the narrow neck of a funnel
+where a random-effect variance is small, show where the sampler cannot follow the
+posterior; divergences spread over the posterior are more likely false positives. By
+default it plots the area or domain with the largest R-hat (x) against the first
+variance (y, on the log scale), the usual funnel of a hierarchical model. Raising
+\code{jax_engine(target_accept = )} or a different parametrisation of the model are the
+usual remedies.
 }
 \examples{
 library(fastsae)
@@ -67,6 +81,10 @@ autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "compariso
 
 }
 \references{
+Gabry, J., Simpson, D., Vehtari, A., Betancourt, M., & Gelman, A. (2019).
+  Visualization in Bayesian workflow. \emph{Journal of the Royal Statistical Society:
+  Series A}, 182(2), 389-402.
+
 Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & B\enc{ü}{u}rkner, P.-C.
   (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing
   convergence of MCMC. \emph{Bayesian Analysis}, 16(2), 667-718.

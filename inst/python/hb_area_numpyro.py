@@ -902,6 +902,9 @@ def fit_numpyro_hb(
     # Divergent transitions and iterations that reached the maximum tree depth
     extra = mcmc.get_extra_fields()
     num_divergent = int(np.sum(np.asarray(extra["diverging"]))) if "diverging" in extra else None
+    # chains x draws, flattened chain-major like get_samples(): which draws were divergent
+    divergent = (np.asarray(extra["diverging"], dtype=bool).reshape(num_chains, -1)
+                 if "diverging" in extra else None)
     treedepth_hits = (int(np.sum(np.asarray(extra["num_steps"]) >= 2 ** max_tree_depth - 1))
                       if "num_steps" in extra else None)
     # flattened chain-major, like get_samples(): the differences must stay within a chain
@@ -1215,6 +1218,7 @@ def fit_numpyro_hb(
         "diagnostics": diag_table,
         "trace": diag_trace,
         "num_divergent": num_divergent,
+        "divergent": divergent,
         "treedepth_hits": treedepth_hits,
         "ebfmi": energy_bfmi,
         "max_tree_depth": max_tree_depth,

@@ -33,9 +33,10 @@
 #' \code{ess_min}, their extremes; \code{divergences}, the number of divergent transitions
 #' after warmup; \code{treedepth_hits}, the iterations that reached the maximum tree depth;
 #' \code{ebfmi}, the energy Bayesian fraction of missing information of each chain
-#' (E-BFMI; Betancourt, 2016), computed as \pkg{rstan} and \pkg{cmdstanr} do; and
+#' (E-BFMI; Betancourt, 2016), computed as \pkg{rstan} and \pkg{cmdstanr} do;
 #' \code{trace}, the per-chain draws (iterations x chains x parameters) of the
-#' hyperparameters, up to eight coefficients and the area with the largest R-hat.
+#' hyperparameters, up to eight coefficients and the area with the largest R-hat; and
+#' \code{divergent_draws}, which of those draws were divergent (iterations x chains).
 #' \code{convergence} is \code{rhat_max < 1.05}, as before, and does not depend on the
 #' E-BFMI. A fit warns when R-hat is at least 1.05, when the bulk or tail ESS is below 100
 #' per chain, when there are divergent transitions or when the E-BFMI of a chain is below
@@ -45,7 +46,8 @@
 #' energy changes little from one iteration to the next compared with its marginal
 #' spread, so the sampler may not reach the tails of the posterior. INLA is not a
 #' sampler, so an \code{inla_engine()} fit has no E-BFMI.
-#' \code{autoplot(fit, type = "trace")} and \code{type = "rank"} plot the chains; see
+#' \code{autoplot(fit, type = "trace")} and \code{type = "rank"} plot the chains, and
+#' \code{type = "divergence"} where the divergent transitions are; see
 #' \code{\link{autoplot.fastsae}}.
 #'
 #' Betancourt, M. (2016). Diagnosing suboptimal cotangent disintegrations in Hamiltonian
