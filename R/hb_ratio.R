@@ -217,7 +217,8 @@ hb_ratio <- function(formula,
       smp <- .inla_draws(fit_s$fit, n_draws, draw_seed)
       rn <- rownames(smp[[1]]$latent)
       pred_rows <- grep("^Predictor:", rn)[seq_len(D)]
-      eta <- vapply(smp, function(s) s$latent[pred_rows, 1], numeric(D))
+      # unname: the latent rows are named "Predictor:<i>", which would become row names
+      eta <- vapply(smp, function(s) unname(s$latent[pred_rows, 1]), numeric(D))
       .inla_inv_link(eta, "binomial", fit_s$link)
     })
   }

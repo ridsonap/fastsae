@@ -194,6 +194,8 @@ test_that("hb_ratio(engine = 'jax') agrees with the INLA engine", {
   fj <- fit_ratio(eng)
   fi <- fit_ratio("inla", n_draws = 4000)
   expect_identical(names(fj$df_hb), names(fi$df_hb))
+  expect_identical(rownames(fj$df_hb), rownames(fi$df_hb))
+  expect_null(rownames(fj$draws))
   expect_equal(dim(fj$draws), c(nrow(d), 4000L))
   expect_lt(fj$rhat_max, 1.05)
   expect_true(fj$convergence)

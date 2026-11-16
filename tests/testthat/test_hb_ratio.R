@@ -30,6 +30,9 @@ test_that("hb_ratio estimates stay below the parent and match the sub-proportion
   # the posterior mean of s agrees with the hb_area fit up to Monte Carlo error
   expect_lt(max(abs(df$ratio - fit$ratio_fit$df_hb$hb) / fit$ratio_fit$df_hb$sd), 0.25)
   expect_equal(dim(fit$draws), c(nrow(d), 500L))
+  # no INLA latent-field names ("Predictor:1", ...) leak into the outputs
+  expect_identical(rownames(df), as.character(seq_len(nrow(d))))
+  expect_null(rownames(fit$draws))
   # reproducible up to the run-to-run noise of INLA (~1e-8)
   fit2 <- hb_ratio(s_dir ~ x, data = d, trials = "n_poor", parent = "p0", domain = "area",
                    n_draws = 500, print_result = FALSE)
