@@ -191,6 +191,14 @@ fit_sfh_clean <- eblup_sfh(y ~ x1 + x2 + x3, vardir = ~vardir, data = na.omit(my
 autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "comparison")
 ```
 
+`type = "scatter"` plots the estimates of the models against each other, and `type = "mse"` their MSEs by domain:
+
+```{r compare_scatter_mse}
+fits <- list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean)
+autoplot(fits, type = "scatter")
+autoplot(fits, type = "mse")
+```
+
 ---
 
 ## 4. Bayesian Spatio-Temporal Modeling (`hb_area`)
@@ -202,6 +210,30 @@ In addition to frequentist C++ EBLUP implementations (`eblup_sfh` and `eblup_stf
 - Flexible space-time structures including domain-specific random walks, separable dynamic fields, and Knorr-Held Types I–IV.
 
 For full details and a case study on Italian poverty data, see the vignette [Bayesian Area-Level Small Area Estimation with INLA](hb-area-inla.html).
+
+### Simulated Panels with `sim_series_data()`
+
+`sim_series_data()` generates a spatio-temporal panel with known parameters: a spatial SAR area effect, AR(1) dynamics within each domain, a temporal trend, domains that are never sampled and intermittently missing periods, with Gaussian, Poisson, binomial, beta, negative binomial and gamma responses. It returns the data in the domain-major order that `eblup_stfh()` expects, the binary weights `W` and their row-standardized version `W_std`, and the true random effects:
+
+```{r sim_series}
+sim_st <- sim_series_data(D = 30, T = 4, time_start = 2021, seed = 123)
+sim_st
+fit_sim_stfh <- eblup_stfh(y_gaussian ~ x1 + x2,
+  data = sim_st$data, domain = ~area, time = ~year, vardir = ~vardir, W = sim_st$W_std
+)
+```
+
+The same panel can be fitted with `hb_area()`. With a Knorr-Held interaction (`st_interaction = "type1"` to `"type4"`), the variance of the interaction is reported as `random_effect_var_st`, next to the variance of the area effect:
+
+```{r sim_series_hb, message = FALSE, warning = FALSE, eval = requireNamespace("INLA", quietly = TRUE)}
+fit_sim_hb <- hb_area(y_gaussian ~ x1 + x2,
+  data = sim_st$data, domain = "area", time = "year", vardir = "vardir",
+  spatial = "bym2", temporal = "rw1", st_interaction = "type1", W = sim_st$W,
+  print_result = FALSE
+)
+fit_sim_hb$random_effect_var # area effect
+fit_sim_hb$random_effect_var_st # space-time interaction
+```
 
 ---
 

@@ -117,6 +117,27 @@ Inspect domain-level uncertainty with MSE plots:
 autoplot(fit_fh, type = "mse")
 ```
 
+#### Direct Estimates and EBLUP by Domain
+
+`type = "comparison"` (or its alias `"ribbon"`) shows the direct estimate and the EBLUP of each domain with their uncertainty:
+
+```{r plot_ribbon}
+autoplot(fit_fh, type = "ribbon")
+```
+
+`type = "rse"` plots the relative standard errors, `type = "map"` passes the fit to `map_sae()` for a choropleth map (it needs an `sf` object), and a named list of fits gives `"comparison"`, `"mse"`, `"scatter"` and `"map"` plots across models (see [spatial-temporal.html](spatial-temporal.html)).
+
+### 5. Log-Fay-Herriot Model (`transform = "log"`)
+
+For a positive, right-skewed indicator (income, expenditure), the Fay-Herriot model can be fitted on the log scale. `vardir` stays on the original scale: it is converted to the log scale with the delta method, $\psi_d / y_d^2$. The estimate is back-transformed with the conditional-mean correction $\exp(\tilde\mu_d + \hat g_{1d}/2)$ of the log-normal model (cf. Slud & Maiti, 2006, without their $O(1/m)$ terms), and its MSE is the delta-method approximation $\hat\theta_d^2 \cdot \mathrm{mse}_{\log, d}$. The log-scale EBLUP and MSE are kept in `eblup_log` and `mse_log`:
+
+```{r fit_log}
+fit_log <- eblup_fh(y ~ x1 + x2 + x3,
+  vardir = ~vardir, data = mys, transform = "log", print_result = FALSE
+)
+head(fit_log$df_eblup[, c("domain", "y", "eblup", "rse", "eblup_log", "mse_log")])
+```
+
 ## Agreement with `sae`
 
 On the same data, `fastsae` reproduces `sae::mseFH()`, which returns the EBLUPs and their analytical MSE.
@@ -146,7 +167,7 @@ Each comparison returns `TRUE`: the two packages agree to the tolerance of `all.
 
 Explore advanced modeling capabilities in **fastsae**:
 - **Spatial & Spatio-Temporal Models (EBLUP)**: [spatial-temporal.html](spatial-temporal.html) (SAR and AR(1) dynamics).
-- **Bayesian Area-Level SAE with INLA (`hb_area`)**: [hb-area-inla.html](hb-area-inla.html) (Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma, Binomial, and spatio-temporal interactions).
+- **Bayesian Area-Level SAE with INLA (`hb_area`)**: [hb-area-inla.html](hb-area-inla.html) (Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma, Binomial, and spatio-temporal interactions, MCMC convergence checks, and `hb_ratio()` for a sub-indicator of a parent indicator).
 - **Model Diagnostics and Residual Analysis (`diagnose`)**: [model-diagnostics.html](model-diagnostics.html) (Calibration tests, RSE reduction, and Moran's I).
 - **Unit-Level Estimation**: [unit-level-bhf.html](unit-level-bhf.html) (Battese-Harter-Fuller model and its HB counterpart).
 - **Sub-Area Level Two-Fold Models**: [twofold-subarea.html](twofold-subarea.html) (`eblup_twofold()`, `hb_twofold()`).
@@ -158,3 +179,4 @@ Explore advanced modeling capabilities in **fastsae**:
 - Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. *Journal of the American Statistical Association*, 74(366), 269–277.
 - Prasad, N. G. N., & Rao, J. N. K. (1990). The estimation of the mean squared error of small-area estimators. *Journal of the American Statistical Association*, 85(409), 163–171.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.
+- Slud, E. V., & Maiti, T. (2006). Mean-squared error estimation in transformed Fay-Herriot models. *Journal of the Royal Statistical Society: Series B*, 68(2), 239–257.
