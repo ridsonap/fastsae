@@ -116,9 +116,10 @@ further `INLA::inla()` arguments:
 The same models can be fitted by MCMC on CPU or GPU with `engine = jax_engine()`
 (NumPyro NUTS on JAX; see `?jax_engine`). An MCMC fit is only usable when its chains have
 converged. The fit reports the rank-normalized R-hat and the effective sample size (ESS) of
-every parameter (Vehtari et al., 2021) and warns when R-hat is at least 1.05, the ESS is below
-100 per chain, or there are divergent transitions; the trace and rank plots show which parameter
-is the problem:
+every parameter (Vehtari et al., 2021) and the E-BFMI of each chain (Betancourt, 2016), and
+warns when R-hat is at least 1.05, the ESS is below 100 per chain, there are divergent
+transitions, or the E-BFMI of a chain is below 0.3; the trace and rank plots show which
+parameter is the problem:
 
 ```{r jax_convergence, eval = FALSE}
 fit_jax <- hb_area(y ~ x1 + x2 + x3,
@@ -127,9 +128,32 @@ fit_jax <- hb_area(y ~ x1 + x2 + x3,
 )
 fit_jax$rhat_max # below 1.01 is recommended
 fit_jax$ess_min # above 100 per chain
+fit_jax$ebfmi # one value per chain; below 0.3 is a warning
 head(fit_jax$mcmc_diagnostics) # R-hat and ESS of each parameter
 autoplot(fit_jax, type = "rank") # chains near the dashed line: mixed
 autoplot(fit_jax, type = "trace", pars = c("sigma2_u", "hb[5]"))
+```
+
+Divergent transitions are counted in `fit_jax$divergences`, and `fit_jax$divergent_draws`
+flags which draws they were (iterations x chains). `type = "divergence"` plots the draws of
+two parameters with the divergent ones in red (Gabry et al., 2019). By default it shows the
+area with the largest R-hat against the log of the area variance, the funnel of a
+hierarchical model; `pars` and `log` choose other parameters. Divergences that gather in one
+corner, typically where the variance is small, show where the sampler cannot follow the
+posterior. A larger `target_accept` gives smaller steps, which usually removes them at the cost
+of longer sampling:
+
+```{r jax_divergence, eval = FALSE}
+fit_jax$divergences
+autoplot(fit_jax, type = "divergence")
+autoplot(fit_jax, type = "divergence", pars = c("x1", "sigma2_u"))
+
+# default 0.85; the value used is in fit_jax2$fit$target_accept_prob
+fit_jax2 <- hb_area(y ~ x1 + x2 + x3,
+  data = mys, vardir = "vardir",
+  engine = jax_engine(chains = 4, target_accept = 0.95)
+)
+fit_jax2$divergences
 ```
 
 ---
@@ -607,11 +631,68 @@ The naive interval for the coefficient misses its true value, and the naive mode
 
 ---
 
+## A Sub-Indicator of a Parent Indicator: `hb_ratio()`
+
+Some indicators are a subset of another one: extreme poverty within poverty, severe stunting within stunting. When the parent $P_d$ is already estimated (for instance an officially released poverty rate), modelling the sub-indicator on its own can give estimates above their parent. `hb_ratio()` models the share $s_d$ of the parent population with the sub-characteristic instead, with a binomial `hb_area()` model whose trials are the sampled parent cases, and estimates $\theta_d = s_d P_d$. Since $0 \le s_d \le 1$, no estimate exceeds its parent.
+
+The binomial model needs the *effective* number of trials, $n_d / \mathrm{deff}_d$, so that the binomial variance matches the design variance. `effective_trials()` computes them from the direct proportions, their design variances and the sample sizes. Single-area design effects are noisy, and undefined when the direct proportion is 0 or 1, so by default the design effects are pooled within groups (here provinces):
+
+```{r ratio_data}
+set.seed(1)
+D <- 60
+d_r <- data.frame(area = 1:D, prov = rep(1:6, each = 10), x = rnorm(D), pop = rpois(D, 5e4))
+d_r$p0 <- plogis(-2 + 0.3 * rnorm(D)) # released parent (poverty) rates
+d_r$p0_se <- 0.15 * d_r$p0 # and their standard errors
+d_r$n_poor <- rpois(D, 40) # sampled poor households
+s_true <- plogis(-1.5 + 0.5 * d_r$x + rnorm(D, 0, 0.3))
+d_r$s_dir <- rbinom(D, d_r$n_poor, s_true) / d_r$n_poor # direct share of the extreme poor
+d_r$v_s <- 1.5 * d_r$s_dir * (1 - d_r$s_dir) / d_r$n_poor # its design variance (deff 1.5)
+
+eff <- effective_trials(~s_dir, vardir = ~v_s, n = ~n_poor, group = ~prov, data = d_r)
+head(eff)
+d_r$n_eff <- eff$trials
+```
+
+`parent_se` adds the uncertainty of the parent to `sd`, `mse` and `rse` (`rse_cond` is the RSE given the parent). The benchmark on the logit scale of $s_d$ makes the population-weighted mean equal a target (here a national rate of 2.5%) and keeps the estimates below their parents:
+
+```{r ratio_fit, message = FALSE, warning = FALSE}
+fit_ratio <- hb_ratio(s_dir ~ x,
+  data = d_r, trials = "n_eff", parent = "p0", parent_se = "p0_se", domain = "area",
+  benchmark_target = 0.025, benchmark_weight = "pop", print_result = FALSE
+)
+head(fit_ratio$df_hb[, c("domain", "hb", "rse", "rse_cond", "ratio", "parent")])
+all(fit_ratio$df_hb$hb <= d_r$p0) # never above the parent
+fit_ratio$benchmark$achieved # the weighted mean after benchmarking
+```
+
+`fit_ratio$ratio_fit` is the `hb_area()` fit of the share, for `diagnose()`. `fit_ratio$draws` holds the posterior draws of $\theta_d$ (areas x draws). With them, `add_reliability_flags()` gives the class of each estimate and the posterior probability that the true value lies in it. For a rare indicator, estimates near 0 have a large RSE even when their absolute error is small, and a class with its probability can be published instead:
+
+```{r ratio_classes}
+flags <- add_reliability_flags(fit_ratio, classes = c(0.01, 0.02, 0.03), draws = fit_ratio$draws)
+head(flags[, c("domain", "hb", "rse", "est_class", "p_class")])
+```
+
+The share model can also be fitted by MCMC. The fit then carries the convergence diagnostics of that model, and the trace, rank and divergence plots show its chains, where `hb[j]` is $s_d$ of row `j`:
+
+```{r ratio_jax, eval = FALSE}
+fit_ratio_jax <- hb_ratio(s_dir ~ x,
+  data = d_r, trials = "n_eff", parent = "p0", domain = "area",
+  engine = jax_engine(chains = 4)
+)
+fit_ratio_jax$rhat_max
+fit_ratio_jax$ebfmi
+autoplot(fit_ratio_jax, type = "trace")
+```
+
+---
+
 ## References
 
 - Arima, S., Datta, G. S., & Liseo, B. (2015). Bayesian estimators for small area models when auxiliary information is measured with error. *Scandinavian Journal of Statistics*, 42(2), 518–529.
 - Bell, W. R., Chung, H. C., Datta, G. S., & Franco, C. (2019). Measurement error in small area estimation: Functional versus structural versus naive models. *Survey Methodology*, 45(1), 61–80.
+- Betancourt, M. (2016). Diagnosing suboptimal cotangent disintegrations in Hamiltonian Monte Carlo. *arXiv:1604.00695*.
 - De Nicolò, S., & Gardini, A. (2024). The R package tipsae: Tools for mapping proportions and indicators on the unit interval. *Journal of Statistical Software*, 108(1), 1–36.
+- Gabry, J., Simpson, D., Vehtari, A., Betancourt, M., & Gelman, A. (2019). Visualization in Bayesian workflow. *Journal of the Royal Statistical Society: Series A*, 182(2), 389–402.
 - Janicki, R. (2020). Properties of the beta regression model for small area estimation of proportions and application to estimation of poverty rates. *Communications in Statistics - Theory and Methods*, 49(9), 2264–2284.
 - Knorr-Held, L. (2000). Bayesian modelling of inhomogeneous spatial and temporal variation in rates. *Statistics in Medicine*, 19(17-18), 2555–2567.
 - Riebler, A., Sørbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive Bayesian spatial model for disease mapping that accounts for scaling. *Statistical Methods in Medical Research*, 25(4), 1145–1165.

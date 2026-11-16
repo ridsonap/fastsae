@@ -150,10 +150,27 @@ diag_hb$precision
 diag_hb$status
 ```
 
+### Predictive Calibration: PIT and CPO (`type = "pit"` & `type = "cpo"`)
+
+For Bayesian fits, `diagnose()` also computes the probability integral transform (PIT) $u_d = F_d(y_d)$ of each direct estimate under its predictive distribution, which is uniform for a calibrated model, and the conditional predictive ordinate (CPO). For counts, $F_d$ is a step function, so the PIT is randomized (Czado, Gneiting and Held, 2009). INLA's leave-one-out CPO can be far from refitting without the area for binomial and Poisson models, so for area-level fits with independent area effects and a binomial or Poisson likelihood `pit_method = "auto"` uses the mixed predictive of Marshall and Spiegelhalter (2003) instead; the details are in `?diagnose`. `bayesian_metrics$pit_test` reports a Kolmogorov-Smirnov test and the share of PIT values in $[0.05, 0.95]$, which is 0.90 for a calibrated model:
+
+```{r diag_pit, message = FALSE, warning = FALSE, eval = requireNamespace("INLA", quietly = TRUE)}
+fit_bin <- hb_area(y_binomial ~ x1 + x2,
+  data = sim_area, family = "binomial", trials = "trials", print_result = FALSE
+)
+diag_bin <- diagnose(fit_bin)
+diag_bin$bayesian_metrics$pit_test[c("method", "p_value", "central90", "central90_range")]
+
+autoplot(diag_bin, type = "pit") # flat histogram: calibrated
+autoplot(diag_bin, type = "cpo") # small values: poorly predicted domains
+```
+
 ---
 
 ## References
 
 - Brown, G., Chambers, R., Heady, P., & Heasman, D. (2001). Evaluation of small area estimation methods: An application to unemployment estimates from the UK LFS. *Proceedings of Statistics Canada Symposium 2001: Achieving Data Quality in a Statistical Agency*.
+- Czado, C., Gneiting, T., & Held, L. (2009). Predictive model assessment for count data. *Biometrics*, 65(4), 1254–1261.
 - Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. *Journal of the American Statistical Association*, 74(366), 269–277.
+- Marshall, E. C., & Spiegelhalter, D. J. (2003). Approximate cross-validatory predictive checks in disease mapping models. *Statistics in Medicine*, 22(10), 1649–1660.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.

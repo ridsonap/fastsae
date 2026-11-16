@@ -74,10 +74,25 @@ ggplot2::autoplot
 #' fit_fh <- eblup_fh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
 #' autoplot(fit_fh, type = "estimates")
 #' autoplot(fit_fh, type = "rse")
+#' autoplot(fit_fh, type = "ribbon")
 #'
 #' # Compare two models
 #' fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
-#' autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
+#' fits <- list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh)
+#' autoplot(fits, type = "comparison")
+#' autoplot(fits, type = "scatter")
+#'
+#' \dontrun{
+#' # MCMC convergence plots (need Python with jax and numpyro, see setup_numpyro_env())
+#' fit_jax <- hb_area(y ~ x1 + x2 + x3,
+#'   data = mys, vardir = "vardir",
+#'   engine = jax_engine(chains = 4)
+#' )
+#' autoplot(fit_jax, type = "trace")
+#' autoplot(fit_jax, type = "rank", pars = c("sigma2_u", "hb[5]"))
+#' autoplot(fit_jax, type = "divergence")
+#' autoplot(fit_jax, type = "divergence", pars = c("x1", "sigma2_u"), log = c(FALSE, TRUE))
+#' }
 #'
 #' @importFrom ggplot2 autoplot
 #' @export

@@ -32,7 +32,7 @@
   step-size adaptation (NumPyro's `target_accept_prob`; default 0.85, the value that was fixed
   before). Raising it (e.g. to 0.95) removes divergent transitions from funnel-shaped
   posteriors, such as a time-effect variance estimated from three periods. Applies to
-  `hb_area()`, `hb_unit()` and `hb_twofold()`; fits store it in `fit$target_accept_prob`.
+  `hb_area()`, `hb_unit()` and `hb_twofold()`; fits store it in `fit$fit$target_accept_prob`.
 * `hb_area()` reports the variance of a space-time interaction as `random_effect_var_st`,
   printed by `print()` and `summary()`, for both engines (`"type1"` to `"type4"`; NULL
   without an interaction). With the JAX engine, `sigma2_st` is now also in `hyperpar`,
@@ -63,6 +63,16 @@
   bootstrap draws, or a normal approximation). For rare characteristics the RSE of estimates
   near 0 is large even when their absolute error is small; a class with its probability can
   then be published instead of the point estimate.
+
+## Documentation
+
+* The vignettes now show every exported function and plot type: `hb_ratio()` with
+  `effective_trials()` and `add_reliability_flags(classes =, draws =)`, the E-BFMI,
+  `type = "divergence"` and `target_accept` of `jax_engine()` fits (`hb-area-inla`);
+  `transform = "log"` and `type = "ribbon"` (`getting-started`); `sim_series_data()`,
+  `random_effect_var_st` and the `"scatter"`/`"mse"` plots of several fits
+  (`spatial-temporal`); the PIT and CPO plots of `diagnose()` (`model-diagnostics`). The
+  examples of `autoplot.fastsae()` include the MCMC convergence plots.
 
 ## Bug fixes
 
