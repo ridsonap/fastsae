@@ -322,6 +322,24 @@ autoplot(list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean), type = "com
 
 ![](spatial-temporal_files/figure-html/compare_models-1.png)
 
+`type = "scatter"` plots the estimates of the models against each other,
+and `type = "mse"` their MSEs by domain:
+
+``` r
+
+fits <- list("Standard FH" = fit_fh, "Spatial FH" = fit_sfh_clean)
+autoplot(fits, type = "scatter")
+```
+
+![](spatial-temporal_files/figure-html/compare_scatter_mse-1.png)
+
+``` r
+
+autoplot(fits, type = "mse")
+```
+
+![](spatial-temporal_files/figure-html/compare_scatter_mse-2.png)
+
 ------------------------------------------------------------------------
 
 ## 4. Bayesian Spatio-Temporal Modeling (`hb_area`)
@@ -339,6 +357,99 @@ dynamic fields, and Knorr-Held Types I–IV.
 For full details and a case study on Italian poverty data, see the
 vignette [Bayesian Area-Level Small Area Estimation with
 INLA](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md).
+
+### Simulated Panels with `sim_series_data()`
+
+[`sim_series_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_series_data.md)
+generates a spatio-temporal panel with known parameters: a spatial SAR
+area effect, AR(1) dynamics within each domain, a temporal trend,
+domains that are never sampled and intermittently missing periods, with
+Gaussian, Poisson, binomial, beta, negative binomial and gamma
+responses. It returns the data in the domain-major order that
+[`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md)
+expects, the binary weights `W` and their row-standardized version
+`W_std`, and the true random effects:
+
+``` r
+
+sim_st <- sim_series_data(D = 30, T = 4, time_start = 2021, seed = 123)
+sim_st
+#> =================================================================
+#>   fastsae Simulated Spatio-Temporal Multi-Distribution Panel
+#> =================================================================
+#> Domains (D): 30 | Time periods (T): 4 | Total observations: 120
+#> Observations: 99 observed, 21 missing/unsampled (17.5%)
+#> Spatio-temporal parameters:
+#>   - Spatial correlation (rho_s / rho1):  0.50 (sigma_s = 0.40)
+#>   - Temporal AR(1)     (rho_t / rho2):  0.60 (sigma_t = 0.30)
+#>   - Temporal trend:                     linear (slope = 0.050)
+#>   - Row sort order:                     domain-major
+#> Responses generated:
+#>   - Gaussian (FH):     y_gaussian (vardir)
+#>   - Poisson:           y_poisson (exposure)
+#>   - Binomial:          y_binomial (trials)
+#>   - Beta:              y_beta
+#>   - Negative Binomial: y_nbinomial
+#>   - Gamma:             y_gamma
+#> Spatial proximity:     30 x 30 (W binary, W_std row-standardized)
+#> =================================================================
+fit_sim_stfh <- eblup_stfh(y_gaussian ~ x1 + x2,
+  data = sim_st$data, domain = ~area, time = ~year, vardir = ~vardir, W = sim_st$W_std
+)
+#> ℹ Predicting 21 cells without a direct estimate: 4 unsampled domains (spatial borrowing) and 5 missing periods of sampled domains.
+#> 
+#> ── Fast Small Area Estimation (fastsae) ────────────────────────────────────────
+#> Call:
+#> eblup_stfh(formula = y_gaussian ~ x1 + x2, vardir = ~vardir, data =
+#> sim_st$data, domain = ~area, time = ~year, W = sim_st$W_std)
+#> 
+#> ✔ Convergence: Yes (in 54 iterations)
+#> Model: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)
+#> Method: REML
+#> Cells without a direct estimate: 21 of 120 (predicted from the model)
+#> 
+#> Fixed Effects Coefficients:
+#>                  beta std.error    zvalue pvalue
+#> (Intercept)  1.269492  0.337142  3.765448  2e-04
+#> x1           0.732842  0.095006  7.713648  0e+00
+#> x2          -0.514087  0.093151 -5.518876  0e+00
+#> 
+#> EBLUP Estimates (First 6 domains):
+#>   domain time      y     eblup  vardir        mse       rse mse_pb
+#> 1      1 2021 1.4259 1.3231777 0.04593 0.02553239 12.076124     NA
+#> 2      1 2022 0.9198 0.9296162 0.12341 0.02302511 16.322894     NA
+#> 3      1 2023 1.1845 0.9588192 0.08359 0.02673284 17.052412     NA
+#> 4      1 2024 1.0411 1.3837820 0.14610 0.03535159 13.587413     NA
+#> 5      2 2021 1.7132 1.7990165 0.13304 0.03122553  9.822449     NA
+#> 6      2 2022 2.4992 2.2251026 0.05670 0.02387886  6.944752     NA
+#>   random_effect_u1 random_effect_u2 sampled
+#> 1       0.03508106       0.33449464    TRUE
+#> 2       0.03508106       0.32568488    TRUE
+#> 3       0.03508106       0.31805952    TRUE
+#> 4       0.03508106       0.28526816    TRUE
+#> 5      -0.03653546      -0.03536499    TRUE
+#> 6      -0.03653546      -0.03056140    TRUE
+#> ... and 114 more rows.
+```
+
+The same panel can be fitted with
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md).
+With a Knorr-Held interaction (`st_interaction = "type1"` to `"type4"`),
+the variance of the interaction is reported as `random_effect_var_st`,
+next to the variance of the area effect:
+
+``` r
+
+fit_sim_hb <- hb_area(y_gaussian ~ x1 + x2,
+  data = sim_st$data, domain = "area", time = "year", vardir = "vardir",
+  spatial = "bym2", temporal = "rw1", st_interaction = "type1", W = sim_st$W,
+  print_result = FALSE
+)
+fit_sim_hb$random_effect_var # area effect
+#> [1] 0.2358136
+fit_sim_hb$random_effect_var_st # space-time interaction
+#> [1] 0.010964
+```
 
 ------------------------------------------------------------------------
 

@@ -200,6 +200,53 @@ autoplot(fit_fh, type = "mse")
 
 ![](getting-started_files/figure-html/plot_mse-1.png)
 
+#### Direct Estimates and EBLUP by Domain
+
+`type = "comparison"` (or its alias `"ribbon"`) shows the direct
+estimate and the EBLUP of each domain with their uncertainty:
+
+``` r
+
+autoplot(fit_fh, type = "ribbon")
+```
+
+![](getting-started_files/figure-html/plot_ribbon-1.png)
+
+`type = "rse"` plots the relative standard errors, `type = "map"` passes
+the fit to
+[`map_sae()`](https://ridsonap.is-a.dev/fastsae/reference/map_sae.md)
+for a choropleth map (it needs an `sf` object), and a named list of fits
+gives `"comparison"`, `"mse"`, `"scatter"` and `"map"` plots across
+models (see
+[spatial-temporal.html](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.md)).
+
+### 5. Log-Fay-Herriot Model (`transform = "log"`)
+
+For a positive, right-skewed indicator (income, expenditure), the
+Fay-Herriot model can be fitted on the log scale. `vardir` stays on the
+original scale: it is converted to the log scale with the delta method,
+$`\psi_d / y_d^2`$. The estimate is back-transformed with the
+conditional-mean correction $`\exp(\tilde\mu_d + \hat g_{1d}/2)`$ of the
+log-normal model (cf. Slud & Maiti, 2006, without their $`O(1/m)`$
+terms), and its MSE is the delta-method approximation
+$`\hat\theta_d^2 \cdot \mathrm{mse}_{\log, d}`$. The log-scale EBLUP and
+MSE are kept in `eblup_log` and `mse_log`:
+
+``` r
+
+fit_log <- eblup_fh(y ~ x1 + x2 + x3,
+  vardir = ~vardir, data = mys, transform = "log", print_result = FALSE
+)
+head(fit_log$df_eblup[, c("domain", "y", "eblup", "rse", "eblup_log", "mse_log")])
+#>   domain        y    eblup       rse eblup_log     mse_log
+#> 1      1 8.359527 7.774951  9.263592  2.046928 0.008581414
+#> 2      2 7.599650 6.938675 11.136102  1.931495 0.012401277
+#> 3      3 5.514137 5.337390 14.730097  1.665568 0.021697575
+#> 4      4 3.869326 4.715172 16.585887  1.539108 0.027509165
+#> 5      5 6.305063 6.373069 14.935181  1.842308 0.022305964
+#> 6      6 3.926807 4.362456 13.945458  1.464679 0.019447580
+```
+
 ## Agreement with `sae`
 
 On the same data, `fastsae` reproduces
@@ -241,7 +288,9 @@ Spatio-Temporal Models (EBLUP)**:
 (`hb_area`)**:
 [hb-area-inla.html](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md)
 (Non-Gaussian families: Beta, Poisson, Negative Binomial, Gamma,
-Binomial, and spatio-temporal interactions). - **Model Diagnostics and
+Binomial, and spatio-temporal interactions, MCMC convergence checks, and
+[`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
+for a sub-indicator of a parent indicator). - **Model Diagnostics and
 Residual Analysis (`diagnose`)**:
 [model-diagnostics.html](https://ridsonap.is-a.dev/fastsae/articles/model-diagnostics.md)
 (Calibration tests, RSE reduction, and Moran’s I). - **Unit-Level
@@ -268,3 +317,6 @@ Two-Fold Models**:
   Statistical Association*, 85(409), 163–171.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
   John Wiley & Sons.
+- Slud, E. V., & Maiti, T. (2006). Mean-squared error estimation in
+  transformed Fay-Herriot models. *Journal of the Royal Statistical
+  Society: Series B*, 68(2), 239–257.

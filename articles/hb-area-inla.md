@@ -137,9 +137,10 @@ The same models can be fitted by MCMC on CPU or GPU with
 [`?jax_engine`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)).
 An MCMC fit is only usable when its chains have converged. The fit
 reports the rank-normalized R-hat and the effective sample size (ESS) of
-every parameter (Vehtari et al., 2021) and warns when R-hat is at least
-1.05, the ESS is below 100 per chain, or there are divergent
-transitions; the trace and rank plots show which parameter is the
+every parameter (Vehtari et al., 2021) and the E-BFMI of each chain
+(Betancourt, 2016), and warns when R-hat is at least 1.05, the ESS is
+below 100 per chain, there are divergent transitions, or the E-BFMI of a
+chain is below 0.3; the trace and rank plots show which parameter is the
 problem:
 
 ``` r
@@ -150,9 +151,35 @@ fit_jax <- hb_area(y ~ x1 + x2 + x3,
 )
 fit_jax$rhat_max # below 1.01 is recommended
 fit_jax$ess_min # above 100 per chain
+fit_jax$ebfmi # one value per chain; below 0.3 is a warning
 head(fit_jax$mcmc_diagnostics) # R-hat and ESS of each parameter
 autoplot(fit_jax, type = "rank") # chains near the dashed line: mixed
 autoplot(fit_jax, type = "trace", pars = c("sigma2_u", "hb[5]"))
+```
+
+Divergent transitions are counted in `fit_jax$divergences`, and
+`fit_jax$divergent_draws` flags which draws they were (iterations x
+chains). `type = "divergence"` plots the draws of two parameters with
+the divergent ones in red (Gabry et al., 2019). By default it shows the
+area with the largest R-hat against the log of the area variance, the
+funnel of a hierarchical model; `pars` and `log` choose other
+parameters. Divergences that gather in one corner, typically where the
+variance is small, show where the sampler cannot follow the posterior. A
+larger `target_accept` gives smaller steps, which usually removes them
+at the cost of longer sampling:
+
+``` r
+
+fit_jax$divergences
+autoplot(fit_jax, type = "divergence")
+autoplot(fit_jax, type = "divergence", pars = c("x1", "sigma2_u"))
+
+# default 0.85; the value used is in fit_jax2$fit$target_accept_prob
+fit_jax2 <- hb_area(y ~ x1 + x2 + x3,
+  data = mys, vardir = "vardir",
+  engine = jax_engine(chains = 4, target_accept = 0.95)
+)
+fit_jax2$divergences
 ```
 
 ------------------------------------------------------------------------
@@ -283,34 +310,34 @@ fit_beta_st <- hb_area(
 summary(fit_beta_st)
 #> 
 #> Variance Components:
-#> sigma2_u: 0.074072 
+#> sigma2_u: 0.074071 
 #> sigma2_t (temporal): 0.008529 
 #> 
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept) -2.2696e+00  1.5370e-02 -1.4766e+02  0.0000e+00 -2.2998e+00
-#> x            4.1691e-01  6.6161e-02  6.3015e+00  2.9474e-10  2.8685e-01
+#> x            4.1691e-01  6.6161e-02  6.3015e+00  2.9477e-10  2.8685e-01
 #>             ci_upper
 #> (Intercept)  -2.2395
 #> x             0.5465
 #> 
 #> Hyperparameters:
-#>                                  mean        sd 0.025quant 0.5quant 0.975quant
-#> Precision for ..domain_id..  15.25251  5.508512   7.224291  14.3381   28.60597
-#> Precision for ..time_id..   136.59037 57.252866  60.482808 125.0411  281.19246
+#>                                  mean       sd 0.025quant  0.5quant 0.975quant
+#> Precision for ..domain_id..  15.25278  5.50865    7.22455  14.33829   28.60675
+#> Precision for ..time_id..   136.59514 57.25641   60.48548 125.04455  281.20808
 #>                                  mode
-#> Precision for ..domain_id..  12.67079
-#> Precision for ..time_id..   104.92078
+#> Precision for ..domain_id..  12.67084
+#> Precision for ..time_id..   104.92199
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -971.94496 
+#>                                            -971.94527 
 #>                                                    pD 
-#>                                              60.69171 
+#>                                              60.69162 
 #>                                                  WAIC 
-#>                                            -979.78120 
+#>                                            -979.78135 
 #>                                                 pWAIC 
-#>                                              42.46184 
+#>                                              42.46188 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
 #>                                             432.98607 
 #> 
@@ -340,19 +367,19 @@ standard errors, and 95% Credible Intervals:
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 #>                domain time      y         hb          sd       rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102824 0.005596843 10.968130 0.04062432
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182493 0.006281352  7.676575 0.07003560
-#> 3               IMOLA 2014 0.1033 0.09310385 0.010890463 11.697114 0.07366718
-#> 4         PIANURA EST 2014 0.0633 0.06365559 0.006408113 10.066850 0.05185445
-#> 5       PIANURA OVEST 2014 0.0625 0.06937250 0.007927321 11.427181 0.05493782
-#> 6      PORRETTA TERME 2014 0.1276 0.09446576 0.014070676 14.895000 0.06968676
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102822 0.005596859 10.968164 0.04062427
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182495 0.006281356  7.676577 0.07003560
+#> 3               IMOLA 2014 0.1033 0.09310383 0.010890480 11.697135 0.07366717
+#> 4         PIANURA EST 2014 0.0633 0.06365559 0.006408115 10.066854 0.05185443
+#> 5       PIANURA OVEST 2014 0.0625 0.06937248 0.007927324 11.427188 0.05493780
+#> 6      PORRETTA TERME 2014 0.1276 0.09446587 0.014070652 14.894959 0.06968690
 #>     ci_upper
-#> 1 0.06256395
-#> 2 0.09467500
-#> 3 0.11635699
-#> 4 0.07701000
-#> 5 0.08602895
-#> 6 0.12479134
+#> 1 0.06256394
+#> 2 0.09467501
+#> 3 0.11635704
+#> 4 0.07700999
+#> 5 0.08602894
+#> 6 0.12479145
 ```
 
 ------------------------------------------------------------------------
@@ -468,19 +495,19 @@ summary(fit_pois)
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01
 #> x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01
-#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0476e-19 -3.6547e-01
+#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0479e-19 -3.6547e-01
 #>             ci_upper
 #> (Intercept)   0.4149
 #> x1            0.4853
 #> x2           -0.2327
 #> 
 #> Hyperparameters:
-#>                                   mean        sd 0.025quant   0.5quant
-#> Precision for ..domain_id.. 15.6289851 4.4994228 8.48861677 15.0603842
-#> Phi for ..domain_id..        0.1595244 0.1562718 0.00722018  0.1055166
+#>                                   mean        sd  0.025quant   0.5quant
+#> Precision for ..domain_id.. 15.6289815 4.4993991 8.488649511 15.0603840
+#> Phi for ..domain_id..        0.1595214 0.1562623 0.007221983  0.1055193
 #>                             0.975quant        mode
-#> Precision for ..domain_id.. 26.0449953 14.01276774
-#> Phi for ..domain_id..        0.5934149  0.01699938
+#> Precision for ..domain_id.. 26.0449372 14.01277220
+#> Phi for ..domain_id..        0.5933831  0.01700567
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
@@ -488,20 +515,20 @@ summary(fit_pois)
 #>                                                    pD 
 #>                                              31.88700 
 #>                                                  WAIC 
-#>                                             309.67485 
+#>                                             309.67484 
 #>                                                 pWAIC 
 #>                                              17.15907 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                            -185.87987 
+#>                                            -185.87988 
 #> 
 #> HB Summary Statistics:
 #>        hb          linear_pred            sd               mse           
 #>  Min.   :0.3061   Min.   :-1.1959   Min.   :0.02962   Min.   :0.0008776  
 #>  1st Qu.:0.7648   1st Qu.:-0.2791   1st Qu.:0.05813   1st Qu.:0.0033800  
 #>  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  
-#>  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690515  
+#>  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690516  
 #>  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  
-#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76548   Max.   :0.5859671  
+#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859678  
 #>       rse        
 #>  Min.   : 2.791  
 #>  1st Qu.: 5.164  
@@ -554,16 +581,16 @@ rbind(
   structural = fit_me$estcoef["x1", c("beta", "ci_lower", "ci_upper")]
 )
 #>                 beta  ci_lower  ci_upper
-#> naive      0.5855003 0.4338812 0.7374280
-#> structural 0.7276826 0.5813063 0.8782258
+#> naive      0.5855003 0.4338812 0.7374279
+#> structural 0.7276425 0.5812917 0.8781552
 
 # Mean posterior SD of the areas by the error variance of their covariate
 sds <- data.frame(var_x1 = d_me$var_x1, naive = fit_naive$df_hb$sd, structural = fit_me$df_hb$sd)
 aggregate(cbind(naive, structural) ~ var_x1, data = sds, FUN = mean)
 #>   var_x1     naive structural
-#> 1   0.05 0.8049357  0.6125240
-#> 2   0.50 0.7694048  0.6626711
-#> 3   4.00 0.7674870  0.7991468
+#> 1   0.05 0.8049357  0.6125150
+#> 2   0.50 0.7694047  0.6626615
+#> 3   4.00 0.7674869  0.7991370
 ```
 
 The naive interval for the coefficient misses its true value, and the
@@ -580,6 +607,122 @@ measured with error* of
 
 ------------------------------------------------------------------------
 
+## A Sub-Indicator of a Parent Indicator: `hb_ratio()`
+
+Some indicators are a subset of another one: extreme poverty within
+poverty, severe stunting within stunting. When the parent $`P_d`$ is
+already estimated (for instance an officially released poverty rate),
+modelling the sub-indicator on its own can give estimates above their
+parent.
+[`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
+models the share $`s_d`$ of the parent population with the
+sub-characteristic instead, with a binomial
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+model whose trials are the sampled parent cases, and estimates
+$`\theta_d = s_d P_d`$. Since $`0 \le s_d \le 1`$, no estimate exceeds
+its parent.
+
+The binomial model needs the *effective* number of trials,
+$`n_d / \mathrm{deff}_d`$, so that the binomial variance matches the
+design variance.
+[`effective_trials()`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md)
+computes them from the direct proportions, their design variances and
+the sample sizes. Single-area design effects are noisy, and undefined
+when the direct proportion is 0 or 1, so by default the design effects
+are pooled within groups (here provinces):
+
+``` r
+
+set.seed(1)
+D <- 60
+d_r <- data.frame(area = 1:D, prov = rep(1:6, each = 10), x = rnorm(D), pop = rpois(D, 5e4))
+d_r$p0 <- plogis(-2 + 0.3 * rnorm(D)) # released parent (poverty) rates
+d_r$p0_se <- 0.15 * d_r$p0 # and their standard errors
+d_r$n_poor <- rpois(D, 40) # sampled poor households
+s_true <- plogis(-1.5 + 0.5 * d_r$x + rnorm(D, 0, 0.3))
+d_r$s_dir <- rbinom(D, d_r$n_poor, s_true) / d_r$n_poor # direct share of the extreme poor
+d_r$v_s <- 1.5 * d_r$s_dir * (1 - d_r$s_dir) / d_r$n_poor # its design variance (deff 1.5)
+
+eff <- effective_trials(~s_dir, vardir = ~v_s, n = ~n_poor, group = ~prov, data = d_r)
+head(eff)
+#>    n deff deff_source   trials
+#> 1 45  1.5       group 30.00000
+#> 2 32  1.5       group 21.33333
+#> 3 33  1.5       group 22.00000
+#> 4 33  1.5       group 22.00000
+#> 5 36  1.5       group 24.00000
+#> 6 42  1.5       group 28.00000
+d_r$n_eff <- eff$trials
+```
+
+`parent_se` adds the uncertainty of the parent to `sd`, `mse` and `rse`
+(`rse_cond` is the RSE given the parent). The benchmark on the logit
+scale of $`s_d`$ makes the population-weighted mean equal a target (here
+a national rate of 2.5%) and keeps the estimates below their parents:
+
+``` r
+
+fit_ratio <- hb_ratio(s_dir ~ x,
+  data = d_r, trials = "n_eff", parent = "p0", parent_se = "p0_se", domain = "area",
+  benchmark_target = 0.025, benchmark_weight = "pop", print_result = FALSE
+)
+head(fit_ratio$df_hb[, c("domain", "hb", "rse", "rse_cond", "ratio", "parent")])
+#>   domain         hb      rse  rse_cond     ratio     parent
+#> 1      1 0.01082261 19.87842 12.837745 0.1369327 0.07903595
+#> 2      2 0.02623410 18.05617 10.474275 0.2030471 0.12920204
+#> 3      3 0.01018307 20.10047 13.716324 0.1294855 0.07864257
+#> 4      4 0.04154266 18.28154 10.153225 0.3775099 0.11004389
+#> 5      5 0.02305273 17.98399  9.478648 0.2226433 0.10354109
+#> 6      6 0.01270608 20.53944 13.435432 0.1268785 0.10014374
+all(fit_ratio$df_hb$hb <= d_r$p0) # never above the parent
+#> [1] TRUE
+fit_ratio$benchmark$achieved # the weighted mean after benchmarking
+#>   all 
+#> 0.025
+```
+
+`fit_ratio$ratio_fit` is the
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+fit of the share, for
+[`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md).
+`fit_ratio$draws` holds the posterior draws of $`\theta_d`$ (areas x
+draws). With them,
+[`add_reliability_flags()`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md)
+gives the class of each estimate and the posterior probability that the
+true value lies in it. For a rare indicator, estimates near 0 have a
+large RSE even when their absolute error is small, and a class with its
+probability can be published instead:
+
+``` r
+
+flags <- add_reliability_flags(fit_ratio, classes = c(0.01, 0.02, 0.03), draws = fit_ratio$draws)
+head(flags[, c("domain", "hb", "rse", "est_class", "p_class")])
+#>   domain         hb      rse    est_class p_class
+#> 1      1 0.01082261 19.87842 0.01 - <0.02  0.6590
+#> 2      2 0.02623410 18.05617 0.02 - <0.03  0.7020
+#> 3      3 0.01018307 20.10047 0.01 - <0.02  0.5055
+#> 4      4 0.04154266 18.28154      >= 0.03  0.9450
+#> 5      5 0.02305273 17.98399 0.02 - <0.03  0.7135
+#> 6      6 0.01270608 20.53944 0.01 - <0.02  0.8420
+```
+
+The share model can also be fitted by MCMC. The fit then carries the
+convergence diagnostics of that model, and the trace, rank and
+divergence plots show its chains, where `hb[j]` is $`s_d`$ of row `j`:
+
+``` r
+
+fit_ratio_jax <- hb_ratio(s_dir ~ x,
+  data = d_r, trials = "n_eff", parent = "p0", domain = "area",
+  engine = jax_engine(chains = 4)
+)
+fit_ratio_jax$rhat_max
+fit_ratio_jax$ebfmi
+autoplot(fit_ratio_jax, type = "trace")
+```
+
+------------------------------------------------------------------------
+
 ## References
 
 - Arima, S., Datta, G. S., & Liseo, B. (2015). Bayesian estimators for
@@ -588,9 +731,14 @@ measured with error* of
 - Bell, W. R., Chung, H. C., Datta, G. S., & Franco, C. (2019).
   Measurement error in small area estimation: Functional versus
   structural versus naive models. *Survey Methodology*, 45(1), 61–80.
+- Betancourt, M. (2016). Diagnosing suboptimal cotangent disintegrations
+  in Hamiltonian Monte Carlo. *arXiv:1604.00695*.
 - De Nicolò, S., & Gardini, A. (2024). The R package tipsae: Tools for
   mapping proportions and indicators on the unit interval. *Journal of
   Statistical Software*, 108(1), 1–36.
+- Gabry, J., Simpson, D., Vehtari, A., Betancourt, M., & Gelman, A.
+  (2019). Visualization in Bayesian workflow. *Journal of the Royal
+  Statistical Society: Series A*, 182(2), 389–402.
 - Janicki, R. (2020). Properties of the beta regression model for small
   area estimation of proportions and application to estimation of
   poverty rates. *Communications in Statistics - Theory and Methods*,

@@ -130,6 +130,8 @@ autoplot(fit_fh, type = "rse")
 #> Warning: Removed 10 rows containing missing values or values outside the scale range
 #> (`geom_point()`).
 
+autoplot(fit_fh, type = "ribbon")
+
 
 # Compare two models
 fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_proxmat)
@@ -162,6 +164,21 @@ fit_sfh <- eblup_sfh(y ~ x1 + x2 + x3, data = mys, vardir = "vardir", W = mys_pr
 #> 6      6 3.926807 0.3878004 4.016701    -0.9459807 0.3398919 14.514460
 #> ... and 36 more rows.
 #> 
-autoplot(list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh), type = "comparison")
+fits <- list("Fay-Herriot" = fit_fh, "Spatial FH" = fit_sfh)
+autoplot(fits, type = "comparison")
 
+autoplot(fits, type = "scatter")
+
+
+if (FALSE) { # \dontrun{
+# MCMC convergence plots (need Python with jax and numpyro, see setup_numpyro_env())
+fit_jax <- hb_area(y ~ x1 + x2 + x3,
+  data = mys, vardir = "vardir",
+  engine = jax_engine(chains = 4)
+)
+autoplot(fit_jax, type = "trace")
+autoplot(fit_jax, type = "rank", pars = c("sigma2_u", "hb[5]"))
+autoplot(fit_jax, type = "divergence")
+autoplot(fit_jax, type = "divergence", pars = c("x1", "sigma2_u"), log = c(FALSE, TRUE))
+} # }
 ```

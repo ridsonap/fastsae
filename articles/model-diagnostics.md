@@ -287,13 +287,63 @@ diag_hb$precision
 #> 
 #> $eff_ratio_summary
 #>      Min   Q1.25%   Median     Mean   Q3.75%      Max 
-#> 1.109210 1.238711 1.281725 1.288101 1.357725 1.458810 
+#> 1.109209 1.238711 1.281725 1.288101 1.357725 1.458811 
 #> 
 #> $prop_gain
 #> [1] 100
 diag_hb$status
 #> [1] "WARNING: High proportions of domains with RSE >= threshold."
 ```
+
+### Predictive Calibration: PIT and CPO (`type = "pit"` & `type = "cpo"`)
+
+For Bayesian fits,
+[`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md)
+also computes the probability integral transform (PIT)
+$`u_d = F_d(y_d)`$ of each direct estimate under its predictive
+distribution, which is uniform for a calibrated model, and the
+conditional predictive ordinate (CPO). For counts, $`F_d`$ is a step
+function, so the PIT is randomized (Czado, Gneiting and Held, 2009).
+INLA’s leave-one-out CPO can be far from refitting without the area for
+binomial and Poisson models, so for area-level fits with independent
+area effects and a binomial or Poisson likelihood `pit_method = "auto"`
+uses the mixed predictive of Marshall and Spiegelhalter (2003) instead;
+the details are in
+[`?diagnose`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md).
+`bayesian_metrics$pit_test` reports a Kolmogorov-Smirnov test and the
+share of PIT values in $`[0.05, 0.95]`$, which is 0.90 for a calibrated
+model:
+
+``` r
+
+fit_bin <- hb_area(y_binomial ~ x1 + x2,
+  data = sim_area, family = "binomial", trials = "trials", print_result = FALSE
+)
+diag_bin <- diagnose(fit_bin)
+diag_bin$bayesian_metrics$pit_test[c("method", "p_value", "central90", "central90_range")]
+#> $method
+#> [1] "mixed"
+#> 
+#> $p_value
+#> [1] 0.3466181
+#> 
+#> $central90
+#> [1] 0.9411765
+#> 
+#> $central90_range
+#> [1] 0.7991607 1.0008393
+
+autoplot(diag_bin, type = "pit") # flat histogram: calibrated
+```
+
+![](model-diagnostics_files/figure-html/diag_pit-1.png)
+
+``` r
+
+autoplot(diag_bin, type = "cpo") # small values: poorly predicted domains
+```
+
+![](model-diagnostics_files/figure-html/diag_pit-2.png)
 
 ------------------------------------------------------------------------
 
@@ -303,8 +353,13 @@ diag_hb$status
   of small area estimation methods: An application to unemployment
   estimates from the UK LFS. *Proceedings of Statistics Canada Symposium
   2001: Achieving Data Quality in a Statistical Agency*.
+- Czado, C., Gneiting, T., & Held, L. (2009). Predictive model
+  assessment for count data. *Biometrics*, 65(4), 1254–1261.
 - Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small
   places: An application of James-Stein procedures to Census data.
   *Journal of the American Statistical Association*, 74(366), 269–277.
+- Marshall, E. C., & Spiegelhalter, D. J. (2003). Approximate
+  cross-validatory predictive checks in disease mapping models.
+  *Statistics in Medicine*, 22(10), 1649–1660.
 - Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.).
   John Wiley & Sons.

@@ -304,6 +304,51 @@ towards the regression synthetic line:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_fh</span>, type <span class="op">=</span> <span class="st">"mse"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="getting-started_files/figure-html/plot_mse-1.png" class="r-plt" alt="" width="672"></p>
 </div>
+<div class="section level4">
+<h4 id="direct-estimates-and-eblup-by-domain">Direct Estimates and EBLUP by Domain<a class="anchor" aria-label="anchor" href="#direct-estimates-and-eblup-by-domain"></a>
+</h4>
+<p><code>type = "comparison"</code> (or its alias <code>"ribbon"</code>)
+shows the direct estimate and the EBLUP of each domain with their
+uncertainty:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_fh</span>, type <span class="op">=</span> <span class="st">"ribbon"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="getting-started_files/figure-html/plot_ribbon-1.png" class="r-plt" alt="" width="672"></p>
+<p><code>type = "rse"</code> plots the relative standard errors,
+<code>type = "map"</code> passes the fit to <code><a href="../reference/map_sae.html">map_sae()</a></code> for a
+choropleth map (it needs an <code>sf</code> object), and a named list of
+fits gives <code>"comparison"</code>, <code>"mse"</code>,
+<code>"scatter"</code> and <code>"map"</code> plots across models (see
+<a href="spatial-temporal.html">spatial-temporal.html</a>).</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="log-fay-herriot-model-transform-log">5. Log-Fay-Herriot Model (<code>transform = "log"</code>)<a class="anchor" aria-label="anchor" href="#log-fay-herriot-model-transform-log"></a>
+</h3>
+<p>For a positive, right-skewed indicator (income, expenditure), the
+Fay-Herriot model can be fitted on the log scale. <code>vardir</code>
+stays on the original scale: it is converted to the log scale with the
+delta method,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ψ</mi><mi>d</mi></msub><mi>/</mi><msubsup><mi>y</mi><mi>d</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">\psi_d / y_d^2</annotation></semantics></math>.
+The estimate is back-transformed with the conditional-mean correction
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>μ</mi><mo accent="true">̃</mo></mover><mi>d</mi></msub><mo>+</mo><msub><mover><mi>g</mi><mo accent="true">̂</mo></mover><mrow><mn>1</mn><mi>d</mi></mrow></msub><mi>/</mi><mn>2</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\exp(\tilde\mu_d + \hat g_{1d}/2)</annotation></semantics></math>
+of the log-normal model (cf. Slud &amp; Maiti, 2006, without their
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mi>/</mi><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">O(1/m)</annotation></semantics></math>
+terms), and its MSE is the delta-method approximation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mover><mi>θ</mi><mo accent="true">̂</mo></mover><mi>d</mi><mn>2</mn></msubsup><mo>⋅</mo><msub><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi></mrow><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo>,</mo><mi>d</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\hat\theta_d^2 \cdot \mathrm{mse}_{\log, d}</annotation></semantics></math>.
+The log-scale EBLUP and MSE are kept in <code>eblup_log</code> and
+<code>mse_log</code>:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_log</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
+<span>  vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys</span>, transform <span class="op">=</span> <span class="st">"log"</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_log</span><span class="op">$</span><span class="va">df_eblup</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"y"</span>, <span class="st">"eblup"</span>, <span class="st">"rse"</span>, <span class="st">"eblup_log"</span>, <span class="st">"mse_log"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   domain        y    eblup       rse eblup_log     mse_log</span></span>
+<span><span class="co">#&gt; 1      1 8.359527 7.774951  9.263592  2.046928 0.008581414</span></span>
+<span><span class="co">#&gt; 2      2 7.599650 6.938675 11.136102  1.931495 0.012401277</span></span>
+<span><span class="co">#&gt; 3      3 5.514137 5.337390 14.730097  1.665568 0.021697575</span></span>
+<span><span class="co">#&gt; 4      4 3.869326 4.715172 16.585887  1.539108 0.027509165</span></span>
+<span><span class="co">#&gt; 5      5 6.305063 6.373069 14.935181  1.842308 0.022305964</span></span>
+<span><span class="co">#&gt; 6      6 3.926807 4.362456 13.945458  1.464679 0.019447580</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -314,7 +359,7 @@ towards the regression synthetic line:</p>
 MSE.</p>
 <p><code><a href="https://rdrr.io/pkg/sae/man/mseFH.html" class="external-link">sae::mseFH()</a></code> needs complete data, so we compare the fits
 on the 32 sampled areas:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"sae"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">mys_sampled</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">mys</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mys</span><span class="op">$</span><span class="va">y</span><span class="op">)</span>, <span class="op">]</span><span class="op">)</span></span>
 <span>  <span class="va">fit_fast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_fh.html">eblup_fh</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, data <span class="op">=</span> <span class="va">mys_sampled</span>,</span>
@@ -342,8 +387,9 @@ the tolerance of <code><a href="https://rdrr.io/r/base/all.equal.html" class="ex
 dynamics). - <strong>Bayesian Area-Level SAE with INLA
 (<code>hb_area</code>)</strong>: <a href="hb-area-inla.html">hb-area-inla.html</a> (Non-Gaussian families:
 Beta, Poisson, Negative Binomial, Gamma, Binomial, and spatio-temporal
-interactions). - <strong>Model Diagnostics and Residual Analysis
-(<code>diagnose</code>)</strong>: <a href="model-diagnostics.html">model-diagnostics.html</a> (Calibration
+interactions, MCMC convergence checks, and <code><a href="../reference/hb_ratio.html">hb_ratio()</a></code> for a
+sub-indicator of a parent indicator). - <strong>Model Diagnostics and
+Residual Analysis (<code>diagnose</code>)</strong>: <a href="model-diagnostics.html">model-diagnostics.html</a> (Calibration
 tests, RSE reduction, and Moran’s I). - <strong>Unit-Level
 Estimation</strong>: <a href="unit-level-bhf.html">unit-level-bhf.html</a>
 (Battese-Harter-Fuller model and its HB counterpart). - <strong>Sub-Area
@@ -367,6 +413,9 @@ mean squared error of small-area estimators. <em>Journal of the American
 Statistical Association</em>, 85(409), 163–171.</li>
 <li>Rao, J. N. K., &amp; Molina, I. (2015). <em>Small Area
 Estimation</em> (2nd ed.). John Wiley &amp; Sons.</li>
+<li>Slud, E. V., &amp; Maiti, T. (2006). Mean-squared error estimation
+in transformed Fay-Herriot models. <em>Journal of the Royal Statistical
+Society: Series B</em>, 68(2), 239–257.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

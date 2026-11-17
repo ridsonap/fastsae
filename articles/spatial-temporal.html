@@ -451,6 +451,16 @@ different models using <code><a href="https://ggplot2.tidyverse.org/reference/au
 <span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Standard FH"</span> <span class="op">=</span> <span class="va">fit_fh</span>, <span class="st">"Spatial FH"</span> <span class="op">=</span> <span class="va">fit_sfh_clean</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"comparison"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="spatial-temporal_files/figure-html/compare_models-1.png" class="r-plt" alt="" width="672"></p>
+<p><code>type = "scatter"</code> plots the estimates of the models
+against each other, and <code>type = "mse"</code> their MSEs by
+domain:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Standard FH"</span> <span class="op">=</span> <span class="va">fit_fh</span>, <span class="st">"Spatial FH"</span> <span class="op">=</span> <span class="va">fit_sfh_clean</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fits</span>, type <span class="op">=</span> <span class="st">"scatter"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="spatial-temporal_files/figure-html/compare_scatter_mse-1.png" class="r-plt" alt="" width="672"></p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fits</span>, type <span class="op">=</span> <span class="st">"mse"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="spatial-temporal_files/figure-html/compare_scatter_mse-2.png" class="r-plt" alt="" width="672"></p>
 <hr>
 </div>
 <div class="section level2">
@@ -468,7 +478,93 @@ dynamic fields, and Knorr-Held Types I–IV.</p>
 <p>For full details and a case study on Italian poverty data, see the
 vignette <a href="hb-area-inla.html">Bayesian Area-Level Small Area
 Estimation with INLA</a>.</p>
+<div class="section level3">
+<h3 id="simulated-panels-with-sim_series_data">Simulated Panels with <code>sim_series_data()</code><a class="anchor" aria-label="anchor" href="#simulated-panels-with-sim_series_data"></a>
+</h3>
+<p><code><a href="../reference/sim_series_data.html">sim_series_data()</a></code> generates a spatio-temporal panel with
+known parameters: a spatial SAR area effect, AR(1) dynamics within each
+domain, a temporal trend, domains that are never sampled and
+intermittently missing periods, with Gaussian, Poisson, binomial, beta,
+negative binomial and gamma responses. It returns the data in the
+domain-major order that <code><a href="../reference/eblup_stfh.html">eblup_stfh()</a></code> expects, the binary
+weights <code>W</code> and their row-standardized version
+<code>W_std</code>, and the true random effects:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sim_st</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sim_series_data.html">sim_series_data</a></span><span class="op">(</span>D <span class="op">=</span> <span class="fl">30</span>, T <span class="op">=</span> <span class="fl">4</span>, time_start <span class="op">=</span> <span class="fl">2021</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
+<span><span class="va">sim_st</span></span>
+<span><span class="co">#&gt; =================================================================</span></span>
+<span><span class="co">#&gt;   fastsae Simulated Spatio-Temporal Multi-Distribution Panel</span></span>
+<span><span class="co">#&gt; =================================================================</span></span>
+<span><span class="co">#&gt; Domains (D): 30 | Time periods (T): 4 | Total observations: 120</span></span>
+<span><span class="co">#&gt; Observations: 99 observed, 21 missing/unsampled (17.5%)</span></span>
+<span><span class="co">#&gt; Spatio-temporal parameters:</span></span>
+<span><span class="co">#&gt;   - Spatial correlation (rho_s / rho1):  0.50 (sigma_s = 0.40)</span></span>
+<span><span class="co">#&gt;   - Temporal AR(1)     (rho_t / rho2):  0.60 (sigma_t = 0.30)</span></span>
+<span><span class="co">#&gt;   - Temporal trend:                     linear (slope = 0.050)</span></span>
+<span><span class="co">#&gt;   - Row sort order:                     domain-major</span></span>
+<span><span class="co">#&gt; Responses generated:</span></span>
+<span><span class="co">#&gt;   - Gaussian (FH):     y_gaussian (vardir)</span></span>
+<span><span class="co">#&gt;   - Poisson:           y_poisson (exposure)</span></span>
+<span><span class="co">#&gt;   - Binomial:          y_binomial (trials)</span></span>
+<span><span class="co">#&gt;   - Beta:              y_beta</span></span>
+<span><span class="co">#&gt;   - Negative Binomial: y_nbinomial</span></span>
+<span><span class="co">#&gt;   - Gamma:             y_gamma</span></span>
+<span><span class="co">#&gt; Spatial proximity:     30 x 30 (W binary, W_std row-standardized)</span></span>
+<span><span class="co">#&gt; =================================================================</span></span>
+<span><span class="va">fit_sim_stfh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eblup_stfh.html">eblup_stfh</a></span><span class="op">(</span><span class="va">y_gaussian</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">sim_st</span><span class="op">$</span><span class="va">data</span>, domain <span class="op">=</span> <span class="op">~</span><span class="va">area</span>, time <span class="op">=</span> <span class="op">~</span><span class="va">year</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">vardir</span>, W <span class="op">=</span> <span class="va">sim_st</span><span class="op">$</span><span class="va">W_std</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Predicting 21 cells without a direct estimate: 4 unsampled domains (spatial borrowing) and 5 missing periods of sampled domains.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Fast Small Area Estimation (fastsae)</span> <span style="color: #00BBBB;">────────────────────────────────────────</span></span></span>
+<span><span class="co">#&gt; <span style="font-weight: bold;">Call</span>:</span></span>
+<span><span class="co">#&gt; eblup_stfh(formula = y_gaussian ~ x1 + x2, vardir = ~vardir, data =</span></span>
+<span><span class="co">#&gt; sim_st$data, domain = ~area, time = ~year, W = sim_st$W_std)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Convergence: Yes (in 54 iterations)</span></span>
+<span><span class="co">#&gt; <span style="font-weight: bold;">Model</span>: Spatio-Temporal Fay-Herriot (SAR + AR(1) time effects)</span></span>
+<span><span class="co">#&gt; <span style="font-weight: bold;">Method</span>: REML</span></span>
+<span><span class="co">#&gt; <span style="font-weight: bold;">Cells without a direct estimate</span>: 21 of 120 (predicted from the model)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Fixed Effects Coefficients:</span></span>
+<span><span class="co">#&gt;                  beta std.error    zvalue pvalue</span></span>
+<span><span class="co">#&gt; (Intercept)  1.269492  0.337142  3.765448  2e-04</span></span>
+<span><span class="co">#&gt; x1           0.732842  0.095006  7.713648  0e+00</span></span>
+<span><span class="co">#&gt; x2          -0.514087  0.093151 -5.518876  0e+00</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; EBLUP Estimates (First 6 domains):</span></span>
+<span><span class="co">#&gt;   domain time      y     eblup  vardir        mse       rse mse_pb</span></span>
+<span><span class="co">#&gt; 1      1 2021 1.4259 1.3231777 0.04593 0.02553239 12.076124     NA</span></span>
+<span><span class="co">#&gt; 2      1 2022 0.9198 0.9296162 0.12341 0.02302511 16.322894     NA</span></span>
+<span><span class="co">#&gt; 3      1 2023 1.1845 0.9588192 0.08359 0.02673284 17.052412     NA</span></span>
+<span><span class="co">#&gt; 4      1 2024 1.0411 1.3837820 0.14610 0.03535159 13.587413     NA</span></span>
+<span><span class="co">#&gt; 5      2 2021 1.7132 1.7990165 0.13304 0.03122553  9.822449     NA</span></span>
+<span><span class="co">#&gt; 6      2 2022 2.4992 2.2251026 0.05670 0.02387886  6.944752     NA</span></span>
+<span><span class="co">#&gt;   random_effect_u1 random_effect_u2 sampled</span></span>
+<span><span class="co">#&gt; 1       0.03508106       0.33449464    TRUE</span></span>
+<span><span class="co">#&gt; 2       0.03508106       0.32568488    TRUE</span></span>
+<span><span class="co">#&gt; 3       0.03508106       0.31805952    TRUE</span></span>
+<span><span class="co">#&gt; 4       0.03508106       0.28526816    TRUE</span></span>
+<span><span class="co">#&gt; 5      -0.03653546      -0.03536499    TRUE</span></span>
+<span><span class="co">#&gt; 6      -0.03653546      -0.03056140    TRUE</span></span>
+<span><span class="co">#&gt; ... and 114 more rows.</span></span></code></pre></div>
+<p>The same panel can be fitted with <code><a href="../reference/hb_area.html">hb_area()</a></code>. With a
+Knorr-Held interaction (<code>st_interaction = "type1"</code> to
+<code>"type4"</code>), the variance of the interaction is reported as
+<code>random_effect_var_st</code>, next to the variance of the area
+effect:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_sim_hb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y_gaussian</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">sim_st</span><span class="op">$</span><span class="va">data</span>, domain <span class="op">=</span> <span class="st">"area"</span>, time <span class="op">=</span> <span class="st">"year"</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>
+<span>  spatial <span class="op">=</span> <span class="st">"bym2"</span>, temporal <span class="op">=</span> <span class="st">"rw1"</span>, st_interaction <span class="op">=</span> <span class="st">"type1"</span>, W <span class="op">=</span> <span class="va">sim_st</span><span class="op">$</span><span class="va">W</span>,</span>
+<span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">fit_sim_hb</span><span class="op">$</span><span class="va">random_effect_var</span> <span class="co"># area effect</span></span>
+<span><span class="co">#&gt; [1] 0.2358136</span></span>
+<span><span class="va">fit_sim_hb</span><span class="op">$</span><span class="va">random_effect_var_st</span> <span class="co"># space-time interaction</span></span>
+<span><span class="co">#&gt; [1] 0.010964</span></span></code></pre></div>
 <hr>
+</div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

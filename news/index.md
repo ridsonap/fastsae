@@ -69,7 +69,7 @@
   [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
   and
   [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md);
-  fits store it in `fit$target_accept_prob`.
+  fits store it in `fit$fit$target_accept_prob`.
 
 - [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   reports the variance of a space-time interaction as
@@ -120,6 +120,25 @@
   characteristics the RSE of estimates near 0 is large even when their
   absolute error is small; a class with its probability can then be
   published instead of the point estimate.
+
+### Documentation
+
+- The vignettes now show every exported function and plot type:
+  [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
+  with
+  [`effective_trials()`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md)
+  and `add_reliability_flags(classes =, draws =)`, the E-BFMI,
+  `type = "divergence"` and `target_accept` of
+  [`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+  fits (`hb-area-inla`); `transform = "log"` and `type = "ribbon"`
+  (`getting-started`);
+  [`sim_series_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_series_data.md),
+  `random_effect_var_st` and the `"scatter"`/`"mse"` plots of several
+  fits (`spatial-temporal`); the PIT and CPO plots of
+  [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md)
+  (`model-diagnostics`). The examples of
+  [`autoplot.fastsae()`](https://ridsonap.is-a.dev/fastsae/reference/autoplot.fastsae.md)
+  include the MCMC convergence plots.
 
 ### Bug fixes
 

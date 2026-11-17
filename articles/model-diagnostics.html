@@ -390,13 +390,58 @@ Bayesian models fitted with <code><a href="../reference/hb_area.html">hb_area()<
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $eff_ratio_summary</span></span>
 <span><span class="co">#&gt;      Min   Q1.25%   Median     Mean   Q3.75%      Max </span></span>
-<span><span class="co">#&gt; 1.109210 1.238711 1.281725 1.288101 1.357725 1.458810 </span></span>
+<span><span class="co">#&gt; 1.109209 1.238711 1.281725 1.288101 1.357725 1.458811 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $prop_gain</span></span>
 <span><span class="co">#&gt; [1] 100</span></span>
 <span><span class="va">diag_hb</span><span class="op">$</span><span class="va">status</span></span>
 <span><span class="co">#&gt; [1] "WARNING: High proportions of domains with RSE &gt;= threshold."</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="predictive-calibration-pit-and-cpo-type-pit-type-cpo">Predictive Calibration: PIT and CPO (<code>type = "pit"</code> &amp;
+<code>type = "cpo"</code>)<a class="anchor" aria-label="anchor" href="#predictive-calibration-pit-and-cpo-type-pit-type-cpo"></a>
+</h3>
+<p>For Bayesian fits, <code><a href="../reference/diagnose.html">diagnose()</a></code> also computes the
+probability integral transform (PIT)
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mi>d</mi></msub><mo>=</mo><msub><mi>F</mi><mi>d</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>y</mi><mi>d</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">u_d = F_d(y_d)</annotation></semantics></math>
+of each direct estimate under its predictive distribution, which is
+uniform for a calibrated model, and the conditional predictive ordinate
+(CPO). For counts,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>F</mi><mi>d</mi></msub><annotation encoding="application/x-tex">F_d</annotation></semantics></math>
+is a step function, so the PIT is randomized (Czado, Gneiting and Held,
+2009). INLA’s leave-one-out CPO can be far from refitting without the
+area for binomial and Poisson models, so for area-level fits with
+independent area effects and a binomial or Poisson likelihood
+<code>pit_method = "auto"</code> uses the mixed predictive of Marshall
+and Spiegelhalter (2003) instead; the details are in
+<code><a href="../reference/diagnose.html">?diagnose</a></code>. <code>bayesian_metrics$pit_test</code> reports a
+Kolmogorov-Smirnov test and the share of PIT values in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mn>0.05</mn><mo>,</mo><mn>0.95</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[0.05, 0.95]</annotation></semantics></math>,
+which is 0.90 for a calibrated model:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_bin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y_binomial</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">sim_area</span>, family <span class="op">=</span> <span class="st">"binomial"</span>, trials <span class="op">=</span> <span class="st">"trials"</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">diag_bin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diagnose.html">diagnose</a></span><span class="op">(</span><span class="va">fit_bin</span><span class="op">)</span></span>
+<span><span class="va">diag_bin</span><span class="op">$</span><span class="va">bayesian_metrics</span><span class="op">$</span><span class="va">pit_test</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"p_value"</span>, <span class="st">"central90"</span>, <span class="st">"central90_range"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $method</span></span>
+<span><span class="co">#&gt; [1] "mixed"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $p_value</span></span>
+<span><span class="co">#&gt; [1] 0.3466181</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $central90</span></span>
+<span><span class="co">#&gt; [1] 0.9411765</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $central90_range</span></span>
+<span><span class="co">#&gt; [1] 0.7991607 1.0008393</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">diag_bin</span>, type <span class="op">=</span> <span class="st">"pit"</span><span class="op">)</span> <span class="co"># flat histogram: calibrated</span></span></code></pre></div>
+<p><img src="model-diagnostics_files/figure-html/diag_pit-1.png" class="r-plt" alt="" width="672"></p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">diag_bin</span>, type <span class="op">=</span> <span class="st">"cpo"</span><span class="op">)</span> <span class="co"># small values: poorly predicted domains</span></span></code></pre></div>
+<p><img src="model-diagnostics_files/figure-html/diag_pit-2.png" class="r-plt" alt="" width="672"></p>
 <hr>
+</div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
@@ -407,10 +452,15 @@ Evaluation of small area estimation methods: An application to
 unemployment estimates from the UK LFS. <em>Proceedings of Statistics
 Canada Symposium 2001: Achieving Data Quality in a Statistical
 Agency</em>.</li>
+<li>Czado, C., Gneiting, T., &amp; Held, L. (2009). Predictive model
+assessment for count data. <em>Biometrics</em>, 65(4), 1254–1261.</li>
 <li>Fay, R. E., &amp; Herriot, R. A. (1979). Estimates of income for
 small places: An application of James-Stein procedures to Census data.
 <em>Journal of the American Statistical Association</em>, 74(366),
 269–277.</li>
+<li>Marshall, E. C., &amp; Spiegelhalter, D. J. (2003). Approximate
+cross-validatory predictive checks in disease mapping models.
+<em>Statistics in Medicine</em>, 22(10), 1649–1660.</li>
 <li>Rao, J. N. K., &amp; Molina, I. (2015). <em>Small Area
 Estimation</em> (2nd ed.). John Wiley &amp; Sons.</li>
 </ul>

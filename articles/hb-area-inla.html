@@ -375,9 +375,10 @@ Slightly faster Laplace, good for large models</li>
 <code><a href="../reference/hb_engine.html">?jax_engine</a></code>). An MCMC fit is only usable when its chains
 have converged. The fit reports the rank-normalized R-hat and the
 effective sample size (ESS) of every parameter (Vehtari et al., 2021)
-and warns when R-hat is at least 1.05, the ESS is below 100 per chain,
-or there are divergent transitions; the trace and rank plots show which
-parameter is the problem:</p>
+and the E-BFMI of each chain (Betancourt, 2016), and warns when R-hat is
+at least 1.05, the ESS is below 100 per chain, there are divergent
+transitions, or the E-BFMI of a chain is below 0.3; the trace and rank
+plots show which parameter is the problem:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_jax</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>
@@ -385,9 +386,33 @@ parameter is the problem:</p>
 <span><span class="op">)</span></span>
 <span><span class="va">fit_jax</span><span class="op">$</span><span class="va">rhat_max</span> <span class="co"># below 1.01 is recommended</span></span>
 <span><span class="va">fit_jax</span><span class="op">$</span><span class="va">ess_min</span> <span class="co"># above 100 per chain</span></span>
+<span><span class="va">fit_jax</span><span class="op">$</span><span class="va">ebfmi</span> <span class="co"># one value per chain; below 0.3 is a warning</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_jax</span><span class="op">$</span><span class="va">mcmc_diagnostics</span><span class="op">)</span> <span class="co"># R-hat and ESS of each parameter</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_jax</span>, type <span class="op">=</span> <span class="st">"rank"</span><span class="op">)</span> <span class="co"># chains near the dashed line: mixed</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_jax</span>, type <span class="op">=</span> <span class="st">"trace"</span>, pars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sigma2_u"</span>, <span class="st">"hb[5]"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Divergent transitions are counted in
+<code>fit_jax$divergences</code>, and
+<code>fit_jax$divergent_draws</code> flags which draws they were
+(iterations x chains). <code>type = "divergence"</code> plots the draws
+of two parameters with the divergent ones in red (Gabry et al., 2019).
+By default it shows the area with the largest R-hat against the log of
+the area variance, the funnel of a hierarchical model; <code>pars</code>
+and <code>log</code> choose other parameters. Divergences that gather in
+one corner, typically where the variance is small, show where the
+sampler cannot follow the posterior. A larger <code>target_accept</code>
+gives smaller steps, which usually removes them at the cost of longer
+sampling:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_jax</span><span class="op">$</span><span class="va">divergences</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_jax</span>, type <span class="op">=</span> <span class="st">"divergence"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_jax</span>, type <span class="op">=</span> <span class="st">"divergence"</span>, pars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x1"</span>, <span class="st">"sigma2_u"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># default 0.85; the value used is in fit_jax2$fit$target_accept_prob</span></span>
+<span><span class="va">fit_jax2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">mys</span>, vardir <span class="op">=</span> <span class="st">"vardir"</span>,</span>
+<span>  engine <span class="op">=</span> <span class="fu"><a href="../reference/hb_engine.html">jax_engine</a></span><span class="op">(</span>chains <span class="op">=</span> <span class="fl">4</span>, target_accept <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">fit_jax2</span><span class="op">$</span><span class="va">divergences</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -508,7 +533,7 @@ represents the proportion of households below the poverty line.</p>
 <div class="section level3">
 <h3 id="load-data-and-construct-spatial-adjacency-matrix">1. Load Data and Construct Spatial Adjacency Matrix<a class="anchor" aria-label="anchor" href="#load-data-and-construct-spatial-adjacency-matrix"></a>
 </h3>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ridsonap.is-a.dev/fastsae/">fastsae</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">tipsae</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/r-spatial/spdep/" class="external-link">spdep</a></span><span class="op">)</span></span>
@@ -536,7 +561,7 @@ represents the proportion of households below the poverty line.</p>
 <p>We model the poverty proportion using a Beta likelihood with a Besag
 ICAR spatial random effect, a domain-specific RW(1) temporal dynamic,
 and known sampling variances <code>vars</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_beta_st</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_area.html">hb_area</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">hcr</span> <span class="op">~</span> <span class="va">x</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">emilia</span>,</span>
@@ -554,34 +579,34 @@ and known sampling variances <code>vars</code>:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
-<span><span class="co">#&gt; sigma2_u: 0.074072 </span></span>
+<span><span class="co">#&gt; sigma2_u: 0.074071 </span></span>
 <span><span class="co">#&gt; sigma2_t (temporal): 0.008529 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept) -2.2696e+00  1.5370e-02 -1.4766e+02  0.0000e+00 -2.2998e+00</span></span>
-<span><span class="co">#&gt; x            4.1691e-01  6.6161e-02  6.3015e+00  2.9474e-10  2.8685e-01</span></span>
+<span><span class="co">#&gt; x            4.1691e-01  6.6161e-02  6.3015e+00  2.9477e-10  2.8685e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)  -2.2395</span></span>
 <span><span class="co">#&gt; x             0.5465</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                  mean        sd 0.025quant 0.5quant 0.975quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  15.25251  5.508512   7.224291  14.3381   28.60597</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   136.59037 57.252866  60.482808 125.0411  281.19246</span></span>
+<span><span class="co">#&gt;                                  mean       sd 0.025quant  0.5quant 0.975quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  15.25278  5.50865    7.22455  14.33829   28.60675</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   136.59514 57.25641   60.48548 125.04455  281.20808</span></span>
 <span><span class="co">#&gt;                                  mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id..  12.67079</span></span>
-<span><span class="co">#&gt; Precision for ..time_id..   104.92078</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id..  12.67084</span></span>
+<span><span class="co">#&gt; Precision for ..time_id..   104.92199</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
-<span><span class="co">#&gt;                                            -971.94496 </span></span>
+<span><span class="co">#&gt;                                            -971.94527 </span></span>
 <span><span class="co">#&gt;                                                    pD </span></span>
-<span><span class="co">#&gt;                                              60.69171 </span></span>
+<span><span class="co">#&gt;                                              60.69162 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                            -979.78120 </span></span>
+<span><span class="co">#&gt;                                            -979.78135 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
-<span><span class="co">#&gt;                                              42.46184 </span></span>
+<span><span class="co">#&gt;                                              42.46188 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
 <span><span class="co">#&gt;                                             432.98607 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -606,22 +631,22 @@ and known sampling variances <code>vars</code>:</p>
 </h3>
 <p>The output object contains full domain-period predictions, posterior
 standard errors, and 95% Credible Intervals:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_beta_st</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"time"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"rse"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                domain time      y         hb          sd       rse   ci_lower</span></span>
-<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102824 0.005596843 10.968130 0.04062432</span></span>
-<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182493 0.006281352  7.676575 0.07003560</span></span>
-<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310385 0.010890463 11.697114 0.07366718</span></span>
-<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365559 0.006408113 10.066850 0.05185445</span></span>
-<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937250 0.007927321 11.427181 0.05493782</span></span>
-<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446576 0.014070676 14.895000 0.06968676</span></span>
+<span><span class="co">#&gt; 1 CASALECCHIO DI RENO 2014 0.0404 0.05102822 0.005596859 10.968164 0.04062427</span></span>
+<span><span class="co">#&gt; 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182495 0.006281356  7.676577 0.07003560</span></span>
+<span><span class="co">#&gt; 3               IMOLA 2014 0.1033 0.09310383 0.010890480 11.697135 0.07366717</span></span>
+<span><span class="co">#&gt; 4         PIANURA EST 2014 0.0633 0.06365559 0.006408115 10.066854 0.05185443</span></span>
+<span><span class="co">#&gt; 5       PIANURA OVEST 2014 0.0625 0.06937248 0.007927324 11.427188 0.05493780</span></span>
+<span><span class="co">#&gt; 6      PORRETTA TERME 2014 0.1276 0.09446587 0.014070652 14.894959 0.06968690</span></span>
 <span><span class="co">#&gt;     ci_upper</span></span>
-<span><span class="co">#&gt; 1 0.06256395</span></span>
-<span><span class="co">#&gt; 2 0.09467500</span></span>
-<span><span class="co">#&gt; 3 0.11635699</span></span>
-<span><span class="co">#&gt; 4 0.07701000</span></span>
-<span><span class="co">#&gt; 5 0.08602895</span></span>
-<span><span class="co">#&gt; 6 0.12479134</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 0.06256394</span></span>
+<span><span class="co">#&gt; 2 0.09467501</span></span>
+<span><span class="co">#&gt; 3 0.11635704</span></span>
+<span><span class="co">#&gt; 4 0.07700999</span></span>
+<span><span class="co">#&gt; 5 0.08602894</span></span>
+<span><span class="co">#&gt; 6 0.12479145</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -1037,7 +1062,7 @@ of the tipsae fit was 1.008.</p>
 <p>For count data such as disease incidence or crime events,
 <code><a href="../reference/hb_area.html">hb_area()</a></code> seamlessly supports Poisson and Negative Binomial
 distributions with population offsets:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Simulate 42-domain count data with known spatial structure</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"sim_area"</span>, package <span class="op">=</span> <span class="st">"fastsae"</span><span class="op">)</span></span>
 <span></span>
@@ -1066,19 +1091,19 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;                    beta   std.error      zvalue      pvalue    ci_lower</span></span>
 <span><span class="co">#&gt; (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01</span></span>
 <span><span class="co">#&gt; x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01</span></span>
-<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0476e-19 -3.6547e-01</span></span>
+<span><span class="co">#&gt; x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0479e-19 -3.6547e-01</span></span>
 <span><span class="co">#&gt;             ci_upper</span></span>
 <span><span class="co">#&gt; (Intercept)   0.4149</span></span>
 <span><span class="co">#&gt; x1            0.4853</span></span>
 <span><span class="co">#&gt; x2           -0.2327</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Hyperparameters:</span></span>
-<span><span class="co">#&gt;                                   mean        sd 0.025quant   0.5quant</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 15.6289851 4.4994228 8.48861677 15.0603842</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.1595244 0.1562718 0.00722018  0.1055166</span></span>
+<span><span class="co">#&gt;                                   mean        sd  0.025quant   0.5quant</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 15.6289815 4.4993991 8.488649511 15.0603840</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.1595214 0.1562623 0.007221983  0.1055193</span></span>
 <span><span class="co">#&gt;                             0.975quant        mode</span></span>
-<span><span class="co">#&gt; Precision for ..domain_id.. 26.0449953 14.01276774</span></span>
-<span><span class="co">#&gt; Phi for ..domain_id..        0.5934149  0.01699938</span></span>
+<span><span class="co">#&gt; Precision for ..domain_id.. 26.0449372 14.01277220</span></span>
+<span><span class="co">#&gt; Phi for ..domain_id..        0.5933831  0.01700567</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Goodness of Fit:</span></span>
 <span><span class="co">#&gt;                                                   DIC </span></span>
@@ -1086,20 +1111,20 @@ distributions with population offsets:</p>
 <span><span class="co">#&gt;                                                    pD </span></span>
 <span><span class="co">#&gt;                                              31.88700 </span></span>
 <span><span class="co">#&gt;                                                  WAIC </span></span>
-<span><span class="co">#&gt;                                             309.67485 </span></span>
+<span><span class="co">#&gt;                                             309.67484 </span></span>
 <span><span class="co">#&gt;                                                 pWAIC </span></span>
 <span><span class="co">#&gt;                                              17.15907 </span></span>
 <span><span class="co">#&gt; Marginal_LogLik.log marginal-likelihood (integration) </span></span>
-<span><span class="co">#&gt;                                            -185.87987 </span></span>
+<span><span class="co">#&gt;                                            -185.87988 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; HB Summary Statistics:</span></span>
 <span><span class="co">#&gt;        hb          linear_pred            sd               mse           </span></span>
 <span><span class="co">#&gt;  Min.   :0.3061   Min.   :-1.1959   Min.   :0.02962   Min.   :0.0008776  </span></span>
 <span><span class="co">#&gt;  1st Qu.:0.7648   1st Qu.:-0.2791   1st Qu.:0.05813   1st Qu.:0.0033800  </span></span>
 <span><span class="co">#&gt;  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  </span></span>
-<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690515  </span></span>
+<span><span class="co">#&gt;  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690516  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  </span></span>
-<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76548   Max.   :0.5859671  </span></span>
+<span><span class="co">#&gt;  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859678  </span></span>
 <span><span class="co">#&gt;       rse        </span></span>
 <span><span class="co">#&gt;  Min.   : 2.791  </span></span>
 <span><span class="co">#&gt;  1st Qu.: 5.164  </span></span>
@@ -1124,7 +1149,7 @@ Bell et al., 2019) or a flat prior
 (<code>me_model = "functional"</code>, the Bayesian counterpart of the
 Ybarra–Lohr model; Arima, Datta and Liseo, 2015). A variance of 0 marks
 a value without error.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">D</span> <span class="op">&lt;-</span> <span class="fl">60</span></span>
 <span><span class="va">x_true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">D</span>, <span class="fl">5</span>, <span class="fl">2</span><span class="op">)</span>                              <span class="co"># the covariate, not observed</span></span>
@@ -1150,16 +1175,16 @@ a value without error.</p>
 <span>  structural <span class="op">=</span> <span class="va">fit_me</span><span class="op">$</span><span class="va">estcoef</span><span class="op">[</span><span class="st">"x1"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"beta"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;                 beta  ci_lower  ci_upper</span></span>
-<span><span class="co">#&gt; naive      0.5855003 0.4338812 0.7374280</span></span>
-<span><span class="co">#&gt; structural 0.7276826 0.5813063 0.8782258</span></span>
+<span><span class="co">#&gt; naive      0.5855003 0.4338812 0.7374279</span></span>
+<span><span class="co">#&gt; structural 0.7276425 0.5812917 0.8781552</span></span>
 <span></span>
 <span><span class="co"># Mean posterior SD of the areas by the error variance of their covariate</span></span>
 <span><span class="va">sds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>var_x1 <span class="op">=</span> <span class="va">d_me</span><span class="op">$</span><span class="va">var_x1</span>, naive <span class="op">=</span> <span class="va">fit_naive</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">sd</span>, structural <span class="op">=</span> <span class="va">fit_me</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">sd</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">naive</span>, <span class="va">structural</span><span class="op">)</span> <span class="op">~</span> <span class="va">var_x1</span>, data <span class="op">=</span> <span class="va">sds</span>, FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   var_x1     naive structural</span></span>
-<span><span class="co">#&gt; 1   0.05 0.8049357  0.6125240</span></span>
-<span><span class="co">#&gt; 2   0.50 0.7694048  0.6626711</span></span>
-<span><span class="co">#&gt; 3   4.00 0.7674870  0.7991468</span></span></code></pre></div>
+<span><span class="co">#&gt; 1   0.05 0.8049357  0.6125150</span></span>
+<span><span class="co">#&gt; 2   0.50 0.7694047  0.6626615</span></span>
+<span><span class="co">#&gt; 3   4.00 0.7674869  0.7991370</span></span></code></pre></div>
 <p>The naive interval for the coefficient misses its true value, and the
 naive model gives areas with precise and with noisy covariates about the
 same posterior SD. The measurement error model narrows the intervals of
@@ -1174,6 +1199,111 @@ the section <em>Covariates measured with error</em> of
 <hr>
 </div>
 <div class="section level2">
+<h2 id="a-sub-indicator-of-a-parent-indicator-hb_ratio">A Sub-Indicator of a Parent Indicator: <code>hb_ratio()</code><a class="anchor" aria-label="anchor" href="#a-sub-indicator-of-a-parent-indicator-hb_ratio"></a>
+</h2>
+<p>Some indicators are a subset of another one: extreme poverty within
+poverty, severe stunting within stunting. When the parent
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>P</mi><mi>d</mi></msub><annotation encoding="application/x-tex">P_d</annotation></semantics></math>
+is already estimated (for instance an officially released poverty rate),
+modelling the sub-indicator on its own can give estimates above their
+parent. <code><a href="../reference/hb_ratio.html">hb_ratio()</a></code> models the share
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>s</mi><mi>d</mi></msub><annotation encoding="application/x-tex">s_d</annotation></semantics></math>
+of the parent population with the sub-characteristic instead, with a
+binomial <code><a href="../reference/hb_area.html">hb_area()</a></code> model whose trials are the sampled
+parent cases, and estimates
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>θ</mi><mi>d</mi></msub><mo>=</mo><msub><mi>s</mi><mi>d</mi></msub><msub><mi>P</mi><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">\theta_d = s_d P_d</annotation></semantics></math>.
+Since
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>≤</mo><msub><mi>s</mi><mi>d</mi></msub><mo>≤</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">0 \le s_d \le 1</annotation></semantics></math>,
+no estimate exceeds its parent.</p>
+<p>The binomial model needs the <em>effective</em> number of trials,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi>d</mi></msub><mi>/</mi><msub><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">f</mi></mrow><mi>d</mi></msub></mrow><annotation encoding="application/x-tex">n_d / \mathrm{deff}_d</annotation></semantics></math>,
+so that the binomial variance matches the design variance.
+<code><a href="../reference/effective_trials.html">effective_trials()</a></code> computes them from the direct
+proportions, their design variances and the sample sizes. Single-area
+design effects are noisy, and undefined when the direct proportion is 0
+or 1, so by default the design effects are pooled within groups (here
+provinces):</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">D</span> <span class="op">&lt;-</span> <span class="fl">60</span></span>
+<span><span class="va">d_r</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>area <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="va">D</span>, prov <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, each <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>, x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">D</span><span class="op">)</span>, pop <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">D</span>, <span class="fl">5e4</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">d_r</span><span class="op">$</span><span class="va">p0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">2</span> <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">D</span><span class="op">)</span><span class="op">)</span> <span class="co"># released parent (poverty) rates</span></span>
+<span><span class="va">d_r</span><span class="op">$</span><span class="va">p0_se</span> <span class="op">&lt;-</span> <span class="fl">0.15</span> <span class="op">*</span> <span class="va">d_r</span><span class="op">$</span><span class="va">p0</span> <span class="co"># and their standard errors</span></span>
+<span><span class="va">d_r</span><span class="op">$</span><span class="va">n_poor</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">D</span>, <span class="fl">40</span><span class="op">)</span> <span class="co"># sampled poor households</span></span>
+<span><span class="va">s_true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1.5</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">d_r</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">D</span>, <span class="fl">0</span>, <span class="fl">0.3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">d_r</span><span class="op">$</span><span class="va">s_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">D</span>, <span class="va">d_r</span><span class="op">$</span><span class="va">n_poor</span>, <span class="va">s_true</span><span class="op">)</span> <span class="op">/</span> <span class="va">d_r</span><span class="op">$</span><span class="va">n_poor</span> <span class="co"># direct share of the extreme poor</span></span>
+<span><span class="va">d_r</span><span class="op">$</span><span class="va">v_s</span> <span class="op">&lt;-</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">d_r</span><span class="op">$</span><span class="va">s_dir</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">d_r</span><span class="op">$</span><span class="va">s_dir</span><span class="op">)</span> <span class="op">/</span> <span class="va">d_r</span><span class="op">$</span><span class="va">n_poor</span> <span class="co"># its design variance (deff 1.5)</span></span>
+<span></span>
+<span><span class="va">eff</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/effective_trials.html">effective_trials</a></span><span class="op">(</span><span class="op">~</span><span class="va">s_dir</span>, vardir <span class="op">=</span> <span class="op">~</span><span class="va">v_s</span>, n <span class="op">=</span> <span class="op">~</span><span class="va">n_poor</span>, group <span class="op">=</span> <span class="op">~</span><span class="va">prov</span>, data <span class="op">=</span> <span class="va">d_r</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">eff</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    n deff deff_source   trials</span></span>
+<span><span class="co">#&gt; 1 45  1.5       group 30.00000</span></span>
+<span><span class="co">#&gt; 2 32  1.5       group 21.33333</span></span>
+<span><span class="co">#&gt; 3 33  1.5       group 22.00000</span></span>
+<span><span class="co">#&gt; 4 33  1.5       group 22.00000</span></span>
+<span><span class="co">#&gt; 5 36  1.5       group 24.00000</span></span>
+<span><span class="co">#&gt; 6 42  1.5       group 28.00000</span></span>
+<span><span class="va">d_r</span><span class="op">$</span><span class="va">n_eff</span> <span class="op">&lt;-</span> <span class="va">eff</span><span class="op">$</span><span class="va">trials</span></span></code></pre></div>
+<p><code>parent_se</code> adds the uncertainty of the parent to
+<code>sd</code>, <code>mse</code> and <code>rse</code>
+(<code>rse_cond</code> is the RSE given the parent). The benchmark on
+the logit scale of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>s</mi><mi>d</mi></msub><annotation encoding="application/x-tex">s_d</annotation></semantics></math>
+makes the population-weighted mean equal a target (here a national rate
+of 2.5%) and keeps the estimates below their parents:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_ratio</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_ratio.html">hb_ratio</a></span><span class="op">(</span><span class="va">s_dir</span> <span class="op">~</span> <span class="va">x</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">d_r</span>, trials <span class="op">=</span> <span class="st">"n_eff"</span>, parent <span class="op">=</span> <span class="st">"p0"</span>, parent_se <span class="op">=</span> <span class="st">"p0_se"</span>, domain <span class="op">=</span> <span class="st">"area"</span>,</span>
+<span>  benchmark_target <span class="op">=</span> <span class="fl">0.025</span>, benchmark_weight <span class="op">=</span> <span class="st">"pop"</span>, print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_ratio</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"hb"</span>, <span class="st">"rse"</span>, <span class="st">"rse_cond"</span>, <span class="st">"ratio"</span>, <span class="st">"parent"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   domain         hb      rse  rse_cond     ratio     parent</span></span>
+<span><span class="co">#&gt; 1      1 0.01082261 19.87842 12.837745 0.1369327 0.07903595</span></span>
+<span><span class="co">#&gt; 2      2 0.02623410 18.05617 10.474275 0.2030471 0.12920204</span></span>
+<span><span class="co">#&gt; 3      3 0.01018307 20.10047 13.716324 0.1294855 0.07864257</span></span>
+<span><span class="co">#&gt; 4      4 0.04154266 18.28154 10.153225 0.3775099 0.11004389</span></span>
+<span><span class="co">#&gt; 5      5 0.02305273 17.98399  9.478648 0.2226433 0.10354109</span></span>
+<span><span class="co">#&gt; 6      6 0.01270608 20.53944 13.435432 0.1268785 0.10014374</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">fit_ratio</span><span class="op">$</span><span class="va">df_hb</span><span class="op">$</span><span class="va">hb</span> <span class="op">&lt;=</span> <span class="va">d_r</span><span class="op">$</span><span class="va">p0</span><span class="op">)</span> <span class="co"># never above the parent</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="va">fit_ratio</span><span class="op">$</span><span class="va">benchmark</span><span class="op">$</span><span class="va">achieved</span> <span class="co"># the weighted mean after benchmarking</span></span>
+<span><span class="co">#&gt;   all </span></span>
+<span><span class="co">#&gt; 0.025</span></span></code></pre></div>
+<p><code>fit_ratio$ratio_fit</code> is the <code><a href="../reference/hb_area.html">hb_area()</a></code> fit of
+the share, for <code><a href="../reference/diagnose.html">diagnose()</a></code>. <code>fit_ratio$draws</code>
+holds the posterior draws of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>θ</mi><mi>d</mi></msub><annotation encoding="application/x-tex">\theta_d</annotation></semantics></math>
+(areas x draws). With them, <code><a href="../reference/add_reliability_flags.html">add_reliability_flags()</a></code> gives
+the class of each estimate and the posterior probability that the true
+value lies in it. For a rare indicator, estimates near 0 have a large
+RSE even when their absolute error is small, and a class with its
+probability can be published instead:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/add_reliability_flags.html">add_reliability_flags</a></span><span class="op">(</span><span class="va">fit_ratio</span>, classes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">0.02</span>, <span class="fl">0.03</span><span class="op">)</span>, draws <span class="op">=</span> <span class="va">fit_ratio</span><span class="op">$</span><span class="va">draws</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">flags</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"hb"</span>, <span class="st">"rse"</span>, <span class="st">"est_class"</span>, <span class="st">"p_class"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   domain         hb      rse    est_class p_class</span></span>
+<span><span class="co">#&gt; 1      1 0.01082261 19.87842 0.01 - &lt;0.02  0.6590</span></span>
+<span><span class="co">#&gt; 2      2 0.02623410 18.05617 0.02 - &lt;0.03  0.7020</span></span>
+<span><span class="co">#&gt; 3      3 0.01018307 20.10047 0.01 - &lt;0.02  0.5055</span></span>
+<span><span class="co">#&gt; 4      4 0.04154266 18.28154      &gt;= 0.03  0.9450</span></span>
+<span><span class="co">#&gt; 5      5 0.02305273 17.98399 0.02 - &lt;0.03  0.7135</span></span>
+<span><span class="co">#&gt; 6      6 0.01270608 20.53944 0.01 - &lt;0.02  0.8420</span></span></code></pre></div>
+<p>The share model can also be fitted by MCMC. The fit then carries the
+convergence diagnostics of that model, and the trace, rank and
+divergence plots show its chains, where <code>hb[j]</code> is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>s</mi><mi>d</mi></msub><annotation encoding="application/x-tex">s_d</annotation></semantics></math>
+of row <code>j</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_ratio_jax</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hb_ratio.html">hb_ratio</a></span><span class="op">(</span><span class="va">s_dir</span> <span class="op">~</span> <span class="va">x</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">d_r</span>, trials <span class="op">=</span> <span class="st">"n_eff"</span>, parent <span class="op">=</span> <span class="st">"p0"</span>, domain <span class="op">=</span> <span class="st">"area"</span>,</span>
+<span>  engine <span class="op">=</span> <span class="fu"><a href="../reference/hb_engine.html">jax_engine</a></span><span class="op">(</span>chains <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">fit_ratio_jax</span><span class="op">$</span><span class="va">rhat_max</span></span>
+<span><span class="va">fit_ratio_jax</span><span class="op">$</span><span class="va">ebfmi</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">fit_ratio_jax</span>, type <span class="op">=</span> <span class="st">"trace"</span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ul>
@@ -1183,9 +1313,15 @@ for small area models when auxiliary information is measured with error.
 <li>Bell, W. R., Chung, H. C., Datta, G. S., &amp; Franco, C. (2019).
 Measurement error in small area estimation: Functional versus structural
 versus naive models. <em>Survey Methodology</em>, 45(1), 61–80.</li>
+<li>Betancourt, M. (2016). Diagnosing suboptimal cotangent
+disintegrations in Hamiltonian Monte Carlo.
+<em>arXiv:1604.00695</em>.</li>
 <li>De Nicolò, S., &amp; Gardini, A. (2024). The R package tipsae: Tools
 for mapping proportions and indicators on the unit interval. <em>Journal
 of Statistical Software</em>, 108(1), 1–36.</li>
+<li>Gabry, J., Simpson, D., Vehtari, A., Betancourt, M., &amp; Gelman,
+A. (2019). Visualization in Bayesian workflow. <em>Journal of the Royal
+Statistical Society: Series A</em>, 182(2), 389–402.</li>
 <li>Janicki, R. (2020). Properties of the beta regression model for
 small area estimation of proportions and application to estimation of
 poverty rates. <em>Communications in Statistics - Theory and
