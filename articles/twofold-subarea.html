@@ -24,8 +24,12 @@
   }
   // Initialize language state before render to prevent FOUC
   (function() {
-    var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    var savedLang = 'en';
+    try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+    // the Indonesian pages (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -63,6 +67,8 @@
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
     <li><a class="dropdown-item" href="../articles/fastsae-evaluation.html">Is fastsae Better? Accuracy, Speed and Memory</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Glossary (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -626,37 +632,37 @@ sampling zero and enters the model as such.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Response `y` appears to be proportions; using `y * trials` as the number of cases (not rounded).</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_neff</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"domain"</span>, <span class="st">"subarea"</span>, <span class="st">"y"</span>, <span class="st">"hb"</span>, <span class="st">"sd"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain subarea          y         hb         sd   ci_lower  ci_upper</span></span>
-<span><span class="co">#&gt; 1      1       1 0.41836735 0.37409124 0.04307185 0.29453856 0.4627719</span></span>
-<span><span class="co">#&gt; 2      1       2 0.05128205 0.13068250 0.03276589 0.07144652 0.1984522</span></span>
-<span><span class="co">#&gt; 3      1       3 0.29310345 0.28807520 0.03512929 0.22249437 0.3603260</span></span>
-<span><span class="co">#&gt; 4      1       4 0.18181818 0.16933164 0.03333260 0.11035056 0.2415746</span></span>
-<span><span class="co">#&gt; 5      1       5 0.07692308 0.08946152 0.02336331 0.05011569 0.1413164</span></span>
-<span><span class="co">#&gt; 6      2       6 0.11009174 0.11499346 0.02219417 0.07583051 0.1629777</span></span>
+<span><span class="co">#&gt; 1      1       1 0.41836735 0.37409317 0.04307226 0.29453961 0.4627746</span></span>
+<span><span class="co">#&gt; 2      1       2 0.05128205 0.13068041 0.03276647 0.07144456 0.1984518</span></span>
+<span><span class="co">#&gt; 3      1       3 0.29310345 0.28807516 0.03512965 0.22249369 0.3603267</span></span>
+<span><span class="co">#&gt; 4      1       4 0.18181818 0.16933154 0.03333330 0.11034935 0.2415760</span></span>
+<span><span class="co">#&gt; 5      1       5 0.07692308 0.08946098 0.02336369 0.05011474 0.1413167</span></span>
+<span><span class="co">#&gt; 6      2       6 0.11009174 0.11499318 0.02219454 0.07582966 0.1629782</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fit_neff</span><span class="op">$</span><span class="va">df_area</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   domain    hb_area    sd_area     mse_area  rse_area ci_lower_area</span></span>
-<span><span class="co">#&gt; 1      1 0.21368597 0.02103822 0.0004426067  9.845392    0.17544742</span></span>
-<span><span class="co">#&gt; 2      2 0.17879559 0.01825746 0.0003333348 10.211359    0.14510525</span></span>
-<span><span class="co">#&gt; 3      3 0.09158890 0.01079273 0.0001164830 11.783884    0.07158034</span></span>
-<span><span class="co">#&gt; 4      4 0.05061379 0.01077729 0.0001161499 21.293182    0.03198538</span></span>
-<span><span class="co">#&gt; 5      5 0.12943233 0.01794524 0.0003220315 13.864571    0.09691829</span></span>
-<span><span class="co">#&gt; 6      6 0.10547236 0.02022183 0.0004089224 19.172635    0.07001050</span></span>
+<span><span class="co">#&gt; 1      1 0.21368583 0.02102666 0.0004421204  9.839988    0.17544735</span></span>
+<span><span class="co">#&gt; 2      2 0.17879558 0.01825183 0.0003331294 10.208212    0.14510619</span></span>
+<span><span class="co">#&gt; 3      3 0.09158903 0.01079894 0.0001166170 11.790643    0.07157940</span></span>
+<span><span class="co">#&gt; 4      4 0.05061367 0.01078469 0.0001163094 21.307851    0.03198446</span></span>
+<span><span class="co">#&gt; 5      5 0.12943223 0.01795162 0.0003222607 13.869514    0.09692013</span></span>
+<span><span class="co">#&gt; 6      6 0.10547236 0.02022333 0.0004089829 19.174054    0.07000911</span></span>
 <span><span class="co">#&gt;   ci_upper_area n_subareas</span></span>
-<span><span class="co">#&gt; 1    0.25581099          5</span></span>
-<span><span class="co">#&gt; 2    0.21663759          6</span></span>
-<span><span class="co">#&gt; 3    0.11395613          7</span></span>
-<span><span class="co">#&gt; 4    0.07390111          5</span></span>
-<span><span class="co">#&gt; 5    0.16705780          5</span></span>
-<span><span class="co">#&gt; 6    0.15003384          6</span></span>
+<span><span class="co">#&gt; 1    0.25581409          5</span></span>
+<span><span class="co">#&gt; 2    0.21663522          6</span></span>
+<span><span class="co">#&gt; 3    0.11395550          7</span></span>
+<span><span class="co">#&gt; 4    0.07390456          5</span></span>
+<span><span class="co">#&gt; 5    0.16706099          5</span></span>
+<span><span class="co">#&gt; 6    0.15003146          6</span></span>
 <span><span class="co"># the districts with a direct estimate of 0</span></span>
 <span><span class="va">fit_neff</span><span class="op">$</span><span class="va">df_hb</span><span class="op">[</span><span class="va">svy</span><span class="op">$</span><span class="va">p_hat</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"subarea"</span>, <span class="st">"hb"</span>, <span class="st">"ci_lower"</span>, <span class="st">"ci_upper"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    subarea         hb   ci_lower   ci_upper</span></span>
-<span><span class="co">#&gt; 24      24 0.08050480 0.03983610 0.13449740</span></span>
-<span><span class="co">#&gt; 32      32 0.05450107 0.02616885 0.09442558</span></span>
-<span><span class="co">#&gt; 37      37 0.07686834 0.03966764 0.12537108</span></span>
-<span><span class="co">#&gt; 61      61 0.04219303 0.02001984 0.07549966</span></span>
-<span><span class="co">#&gt; 62      62 0.03536660 0.01692819 0.06207796</span></span>
-<span><span class="co">#&gt; 63      63 0.02568203 0.01187276 0.04668524</span></span>
-<span><span class="co">#&gt; 65      65 0.03351700 0.01613191 0.05817617</span></span></code></pre></div>
+<span><span class="co">#&gt; 24      24 0.08050407 0.03983491 0.13449809</span></span>
+<span><span class="co">#&gt; 32      32 0.05450059 0.02616815 0.09442595</span></span>
+<span><span class="co">#&gt; 37      37 0.07686753 0.03966652 0.12537138</span></span>
+<span><span class="co">#&gt; 61      61 0.04219279 0.02001934 0.07550035</span></span>
+<span><span class="co">#&gt; 62      62 0.03536621 0.01692774 0.06207808</span></span>
+<span><span class="co">#&gt; 63      63 0.02568182 0.01187245 0.04668550</span></span>
+<span><span class="co">#&gt; 65      65 0.03351652 0.01613145 0.05817602</span></span></code></pre></div>
 <p>The model is only as good as the design effects: they are not
 estimated by the model, so effective sample sizes that are too large
 give intervals that are too narrow. Design effects of small areas are

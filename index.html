@@ -16,8 +16,8 @@
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
 <script src="extra.js"></script><meta property="og:title" content="High-Performance Frequentist and Bayesian Small Area Estimation">
-<meta name="description" content="High-performance Small Area Estimation (SAE), implementing frequentist EBLUP models via compiled C++ and Bayesian hierarchical models via INLA (Integrated Nested Laplace Approximations) or, optionally, full MCMC with NumPyro (Phan et al., 2019) &lt;doi:10.48550/arXiv.1912.11554&gt; on JAX (CPU or NVIDIA GPU). Frequentist models include the area-level Fay-Herriot model (Fay and Herriot, 1979 &lt;doi:10.1080/01621459.1979.10482505&gt;), spatial Fay-Herriot (Pratesi and Salvati, 2008 &lt;doi:10.1007/s10260-007-0061-9&gt;), spatio-temporal Fay-Herriot (Marhuenda et al., 2013 &lt;doi:10.1016/j.csda.2012.09.002&gt;), unit-level Battese-Harter-Fuller (Battese et al., 1988 &lt;doi:10.1080/01621459.1988.10478561&gt;), and two-fold subarea models (Torabi and Rao, 2014 &lt;doi:10.1016/j.jmva.2014.02.001&gt;) for nested area-subarea hierarchies. Bayesian models use INLA (Rue et al., 2009 &lt;doi:10.1111/j.1467-9868.2008.00700.x&gt;), supporting 6 likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), spatial structures (BYM2, Besag ICAR), temporal dynamics (RW1, RW2, AR1), and spatio-temporal interactions. Key features include analytical and bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina, 2015 &lt;doi:10.1002/9781118735855&gt;), automatic handling of unsampled domains, and S3 methods for summaries, diagnostics and plots.">
-<meta property="og:description" content="High-performance Small Area Estimation (SAE), implementing frequentist EBLUP models via compiled C++ and Bayesian hierarchical models via INLA (Integrated Nested Laplace Approximations) or, optionally, full MCMC with NumPyro (Phan et al., 2019) &lt;doi:10.48550/arXiv.1912.11554&gt; on JAX (CPU or NVIDIA GPU). Frequentist models include the area-level Fay-Herriot model (Fay and Herriot, 1979 &lt;doi:10.1080/01621459.1979.10482505&gt;), spatial Fay-Herriot (Pratesi and Salvati, 2008 &lt;doi:10.1007/s10260-007-0061-9&gt;), spatio-temporal Fay-Herriot (Marhuenda et al., 2013 &lt;doi:10.1016/j.csda.2012.09.002&gt;), unit-level Battese-Harter-Fuller (Battese et al., 1988 &lt;doi:10.1080/01621459.1988.10478561&gt;), and two-fold subarea models (Torabi and Rao, 2014 &lt;doi:10.1016/j.jmva.2014.02.001&gt;) for nested area-subarea hierarchies. Bayesian models use INLA (Rue et al., 2009 &lt;doi:10.1111/j.1467-9868.2008.00700.x&gt;), supporting 6 likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), spatial structures (BYM2, Besag ICAR), temporal dynamics (RW1, RW2, AR1), and spatio-temporal interactions. Key features include analytical and bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina, 2015 &lt;doi:10.1002/9781118735855&gt;), automatic handling of unsampled domains, and S3 methods for summaries, diagnostics and plots.">
+<meta name="description" content="High-performance Small Area Estimation (SAE), implementing frequentist EBLUP models via compiled C++ and Bayesian hierarchical models via INLA (Integrated Nested Laplace Approximations) or, optionally, full MCMC with NumPyro (Phan et al., 2019) &lt;doi:10.48550/arXiv.1912.11554&gt; on JAX (CPU, NVIDIA GPU or Apple silicon GPU). Frequentist models include the area-level Fay-Herriot model (Fay and Herriot, 1979 &lt;doi:10.1080/01621459.1979.10482505&gt;), spatial Fay-Herriot (Pratesi and Salvati, 2008 &lt;doi:10.1007/s10260-007-0061-9&gt;), spatio-temporal Fay-Herriot (Marhuenda et al., 2013 &lt;doi:10.1016/j.csda.2012.09.002&gt;), unit-level Battese-Harter-Fuller (Battese et al., 1988 &lt;doi:10.1080/01621459.1988.10478561&gt;), and two-fold subarea models (Torabi and Rao, 2014 &lt;doi:10.1016/j.jmva.2014.02.001&gt;) for nested area-subarea hierarchies. Bayesian models use INLA (Rue et al., 2009 &lt;doi:10.1111/j.1467-9868.2008.00700.x&gt;), supporting 6 likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), spatial structures (Besag ICAR, BYM, BYM2, Leroux, SAR, spatial lag), temporal dynamics (RW1, RW2, AR1, iid), spatio-temporal interactions, covariates measured with error, and sub-indicators that never exceed a given parent indicator. Key features include analytical and bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina, 2015 &lt;doi:10.1002/9781118735855&gt;), automatic handling of unsampled domains, and S3 methods for summaries, diagnostics and plots.">
+<meta property="og:description" content="High-performance Small Area Estimation (SAE), implementing frequentist EBLUP models via compiled C++ and Bayesian hierarchical models via INLA (Integrated Nested Laplace Approximations) or, optionally, full MCMC with NumPyro (Phan et al., 2019) &lt;doi:10.48550/arXiv.1912.11554&gt; on JAX (CPU, NVIDIA GPU or Apple silicon GPU). Frequentist models include the area-level Fay-Herriot model (Fay and Herriot, 1979 &lt;doi:10.1080/01621459.1979.10482505&gt;), spatial Fay-Herriot (Pratesi and Salvati, 2008 &lt;doi:10.1007/s10260-007-0061-9&gt;), spatio-temporal Fay-Herriot (Marhuenda et al., 2013 &lt;doi:10.1016/j.csda.2012.09.002&gt;), unit-level Battese-Harter-Fuller (Battese et al., 1988 &lt;doi:10.1080/01621459.1988.10478561&gt;), and two-fold subarea models (Torabi and Rao, 2014 &lt;doi:10.1016/j.jmva.2014.02.001&gt;) for nested area-subarea hierarchies. Bayesian models use INLA (Rue et al., 2009 &lt;doi:10.1111/j.1467-9868.2008.00700.x&gt;), supporting 6 likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma), spatial structures (Besag ICAR, BYM, BYM2, Leroux, SAR, spatial lag), temporal dynamics (RW1, RW2, AR1, iid), spatio-temporal interactions, covariates measured with error, and sub-indicators that never exceed a given parent indicator. Key features include analytical and bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina, 2015 &lt;doi:10.1002/9781118735855&gt;), automatic handling of unsampled domains, and S3 methods for summaries, diagnostics and plots.">
 <meta property="og:image" content="https://ridsonap.is-a.dev/fastsae/logo.png">
 <script>
   // Force light mode as default for first-time visitors
@@ -27,8 +27,12 @@
   }
   // Initialize language state before render to prevent FOUC
   (function() {
-    var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    var savedLang = 'en';
+    try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+    // the Indonesian pages (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -66,6 +70,8 @@
     <li><a class="dropdown-item" href="articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="articles/finite-population-validation.html">Finite Population Validation</a></li>
     <li><a class="dropdown-item" href="articles/fastsae-evaluation.html">Is fastsae Better? Accuracy, Speed and Memory</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/id/glosarium.html">Glossary (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
@@ -105,7 +111,7 @@
 </div>
 <!-- badges: start -->
 
-<p><strong>fastsae</strong> implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled <strong>C++</strong> (<code>RcppArmadillo</code>) with <strong>OpenMP</strong> multi-threading, and Bayesian estimation uses <strong>INLA</strong> (Integrated Nested Laplace Approximations). With hundreds to thousands of domains it is much faster than existing R implementations (see <a href="#performance-at-a-glance">Performance at a Glance</a>; with a few dozen domains <code>sae</code> is about as fast), while agreeing numerically with reference packages such as <code>sae</code>.</p>
+<p><strong>fastsae</strong> implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled <strong>C++</strong> (<code>RcppArmadillo</code>) with <strong>OpenMP</strong> multi-threading. Bayesian estimation uses <strong>INLA</strong> (Integrated Nested Laplace Approximations) by default, and the same models (except the spatial lag and RW2 effects) can also be fitted by full MCMC with <strong>NumPyro on JAX</strong>, on the CPU or a GPU. With hundreds to thousands of domains it is much faster than existing R implementations (see <a href="#performance-at-a-glance">Performance at a Glance</a>; with a few dozen domains <code>sae</code> is about as fast), while agreeing numerically with reference packages such as <code>sae</code>.</p>
 <hr>
 <div class="section level2">
 <h2 id="why-fastsae">Why fastsae?<a class="anchor" aria-label="anchor" href="#why-fastsae"></a>
@@ -113,9 +119,9 @@
 <ul>
 <li>⚡ <strong>Speed</strong>: with 1,000 domains, the C++ Fisher-scoring fits with analytical MSE are 29 to 1,250 times faster than <code>sae</code> (spatio-temporal model: 40 s instead of 19 minutes); with a few dozen domains the differences are a fraction of a second.</li>
 <li>🎯 <strong>Numerical agreement</strong>: on the same data, coefficients, variance components, EBLUPs and analytical MSEs match <code>sae</code> (Molina &amp; Marhuenda) to about <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>14</mn></mrow></msup><annotation encoding="application/x-tex">10^{-14}</annotation></semantics></math>; the documented exceptions are a spatial correlation on the boundary and the ML MSE of the spatial model.</li>
-<li>🔀 <strong>Frequentist and Bayesian in one package</strong>: EBLUP models in C++ and hierarchical Bayesian models through INLA.</li>
+<li>🔀 <strong>Frequentist and Bayesian in one package</strong>: EBLUP models in C++, and hierarchical Bayesian models through INLA or, with <code>engine = jax_engine()</code>, by MCMC (NumPyro NUTS on JAX, CPU or GPU) with convergence diagnostics.</li>
 <li>🧵 <strong>Parallel bootstrap</strong>: multi-core OpenMP parametric and non-parametric bootstrap MSE estimation.</li>
-<li>🗺️ <strong>Unsampled areas</strong>: domains with missing observations (<code>y = NA</code>) are predicted automatically.</li>
+<li>🗺️ <strong>Unsampled areas</strong>: areas, sub-areas and periods without a direct estimate (<code>y = NA</code>) stay in the model and are predicted, with their MSE.</li>
 <li>💾 <strong>Low memory</strong>: avoids unnecessary <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>m</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">O(m^2)</annotation></semantics></math> / <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>m</mi><mn>3</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">O(m^3)</annotation></semantics></math> allocations.</li>
 <li>📊 <strong>Standard R interface</strong>: S3 methods (<code>summary</code>, <code>coef</code>, <code>fitted</code>, <code>residuals</code>) and publication-ready <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>.</li>
 </ul>
@@ -140,9 +146,9 @@
 <li>
 <strong>Spatial random effects</strong>: Besag ICAR, BYM, BYM2, Leroux, SAR, spatial lag</li>
 <li>
-<strong>Temporal random effects</strong>: RW1, RW2, AR(1)</li>
+<strong>Temporal random effects</strong>: RW1, RW2, AR(1), iid</li>
 <li>
-<strong>Spatio-temporal interactions</strong>: separable and non-separable structures</li>
+<strong>Spatio-temporal interactions</strong>: domain-specific trends, a separable space-time field, and Knorr-Held types I–IV</li>
 </ul>
 <p><strong>Compared with MCMC</strong>: no chains to run and monitor, deterministic results, and fits in seconds. INLA is an approximation: fastsae chose its settings by comparing them with exact posteriors and long Stan runs, and <code>engine = jax_engine()</code> fits the same models by MCMC when a check is needed.</p>
 <hr>
@@ -153,7 +159,7 @@
 <p>The two-fold subarea model (Torabi &amp; Rao, 2014) extends the standard Fay-Herriot model to hierarchical data where <strong>subareas are nested within areas</strong>:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><msubsup><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>v</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>+</mo><msub><mi>e</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">y_{ij} = x_{ij}^\top \beta + v_i + u_{ij} + e_{ij}</annotation></semantics></math></p>
 <p>where: - <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>v</mi><mi>i</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>σ</mi><mi>v</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">v_i \sim N(0, \sigma_v^2)</annotation></semantics></math>: <strong>Area-level random effect</strong> - <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msubsup><mi>σ</mi><mi>u</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">u_{ij} \sim N(0, \sigma_u^2)</annotation></semantics></math>: <strong>Subarea-level random effect</strong> - <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msub><mi>D</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">e_{ij} \sim N(0, D_{ij})</annotation></semantics></math>: Sampling error with known variance</p>
-<p><strong>Available implementations:</strong> - <code><a href="reference/eblup_twofold.html">eblup_twofold()</a></code>: Frequentist EBLUP via REML Fisher-scoring (C++) - <code><a href="reference/hb_twofold.html">hb_twofold()</a></code>: Bayesian hierarchical model via INLA with spatial support</p>
+<p><strong>Available implementations:</strong> - <code><a href="reference/eblup_twofold.html">eblup_twofold()</a></code>: frequentist EBLUP by REML or ML Fisher scoring (C++), with analytical or bootstrap MSE and area means - <code><a href="reference/hb_twofold.html">hb_twofold()</a></code>: hierarchical Bayesian model (INLA or MCMC) for Gaussian, binomial and Poisson responses, with an optional spatial area effect</p>
 <hr>
 </div>
 <div class="section level2">
@@ -242,20 +248,20 @@
 <td align="left">
 <strong>Fay-Herriot</strong> (Area-level)</td>
 <td align="left"><code><a href="reference/eblup_fh.html">eblup_fh()</a></code></td>
-<td align="left">Independent area effects</td>
-<td align="left">Analytical (Prasad-Rao)</td>
+<td align="left">Independent area effects (optional log transformation)</td>
+<td align="left">Analytical (Prasad-Rao / Datta-Lahiri)</td>
 </tr>
 <tr>
 <td align="left"><strong>Spatial Fay-Herriot</strong></td>
 <td align="left"><code><a href="reference/eblup_sfh.html">eblup_sfh()</a></code></td>
 <td align="left">SAR(1) spatial autocorrelation</td>
-<td align="left">Analytical, Bootstrap</td>
+<td align="left">Analytical, parametric and non-parametric bootstrap</td>
 </tr>
 <tr>
 <td align="left"><strong>Spatio-Temporal Fay-Herriot</strong></td>
 <td align="left"><code><a href="reference/eblup_stfh.html">eblup_stfh()</a></code></td>
 <td align="left">SAR(1) + Temporal AR(1)</td>
-<td align="left">Analytical, Bootstrap</td>
+<td align="left">Analytical, parametric bootstrap</td>
 </tr>
 <tr>
 <td align="left">
@@ -268,13 +274,13 @@
 <td align="left"><strong>Two-Fold Subarea</strong></td>
 <td align="left"><code><a href="reference/eblup_twofold.html">eblup_twofold()</a></code></td>
 <td align="left">Area + Subarea nested effects</td>
-<td align="left">Analytical, Bootstrap</td>
+<td align="left">Analytical, parametric bootstrap</td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section level3">
-<h3 id="bayesian-models-inla">Bayesian Models (INLA)<a class="anchor" aria-label="anchor" href="#bayesian-models-inla"></a>
+<h3 id="bayesian-models-inla-or-mcmc">Bayesian Models (INLA or MCMC)<a class="anchor" aria-label="anchor" href="#bayesian-models-inla-or-mcmc"></a>
 </h3>
 <table class="table">
 <colgroup>
@@ -308,11 +314,61 @@
 <td align="left">Gaussian, Binomial, Poisson</td>
 <td align="left">✓ BYM2/Besag</td>
 </tr>
+<tr>
+<td align="left"><strong>Sub-indicator of a parent indicator</strong></td>
+<td align="left"><code><a href="reference/hb_ratio.html">hb_ratio()</a></code></td>
+<td align="left">Binomial share of the parent, never above it</td>
+<td align="left">Through <code><a href="reference/hb_area.html">hb_area()</a></code>
+</td>
+</tr>
 </tbody>
 </table>
-<p>The Bayesian models are fitted with <code>engine = inla_engine()</code> (default). <code><a href="reference/hb_area.html">hb_area()</a></code>, <code><a href="reference/hb_unit.html">hb_unit()</a></code> and <code><a href="reference/hb_twofold.html">hb_twofold()</a></code> can also be fitted by MCMC in Python (JAX/NumPyro) with <code>engine = jax_engine()</code>.</p>
+<p>The Bayesian models are fitted with <code>engine = inla_engine()</code> (default). All four can also be fitted by MCMC in Python (NumPyro on JAX, CPU or GPU) with <code>engine = jax_engine()</code>; those fits report R-hat, effective sample sizes, divergences and E-BFMI. <code><a href="reference/hb_area.html">hb_area()</a></code> also accepts covariates measured with error (<code>var_x</code>). The default priors are the same for both engines and are documented in the <a href="articles/hb-priors.html">priors article</a>.</p>
 <hr>
 </div>
+</div>
+<div class="section level2">
+<h2 id="tools-around-the-models">Tools around the models<a class="anchor" aria-label="anchor" href="#tools-around-the-models"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th align="left">Step</th>
+<th align="left">Functions</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left">Before fitting</td>
+<td align="left">
+<code><a href="reference/create_weights.html">create_weights()</a></code> (spatial weights), <code><a href="reference/spatial_test.html">spatial_test()</a></code> (Moran’s I, LM tests), <code><a href="reference/gvf_smooth.html">gvf_smooth()</a></code> (smoothing of sampling variances), <code><a href="reference/effective_trials.html">effective_trials()</a></code> (effective sample sizes for binomial models), <code><a href="reference/step_sae.html">step_sae()</a></code> (covariate selection)</td>
+</tr>
+<tr>
+<td align="left">Checking a fit</td>
+<td align="left">
+<code><a href="reference/diagnose.html">diagnose()</a></code> (precision gain, goodness of fit, calibration, residual spatial autocorrelation, PIT and CPO), <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>, <code><a href="reference/compare_sae.html">compare_sae()</a></code> (agreement between two models)</td>
+</tr>
+<tr>
+<td align="left">Benchmarking</td>
+<td align="left">
+<code><a href="reference/benchmark_sae.html">benchmark_sae()</a></code> after the fit (ratio, difference, optimal, logit), or <code>self_benchmark = TRUE</code> inside the model functions</td>
+</tr>
+<tr>
+<td align="left">Reporting</td>
+<td align="left">
+<code><a href="reference/add_reliability_flags.html">add_reliability_flags()</a></code> (RSE tiers, or classes with their probability), <code><a href="reference/map_sae.html">map_sae()</a></code> (choropleth maps), <code><a href="reference/export_sae.html">export_sae()</a></code> (spreadsheets)</td>
+</tr>
+<tr>
+<td align="left">Simulation</td>
+<td align="left">
+<code><a href="reference/sim_area_data.html">sim_area_data()</a></code>, <code><a href="reference/sim_series_data.html">sim_series_data()</a></code>
+</td>
+</tr>
+</tbody>
+</table>
+<hr>
 </div>
 <div class="section level2">
 <h2 id="performance-at-a-glance">Performance at a Glance<a class="anchor" aria-label="anchor" href="#performance-at-a-glance"></a>
@@ -411,13 +467,18 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p>CRAN has fastsae 0.1.0, which predates the hierarchical Bayes models and most of the tools above. Version 1.0.0, described on this site, is installed from GitHub:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install from CRAN (once published)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"fastsae"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Or install the development version from GitHub</span></span>
-<span><span class="co"># install.packages("remotes")</span></span>
+<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"ridsonap/fastsae"</span><span class="op">)</span></span></code></pre></div>
+<p>The Bayesian models need <strong>INLA</strong>, which is not on CRAN:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span></span>
+<span>  <span class="st">"INLA"</span>,</span>
+<span>  repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"repos"</span><span class="op">)</span>, INLA <span class="op">=</span> <span class="st">"https://inla.r-inla-download.org/R/stable"</span><span class="op">)</span>,</span>
+<span>  dep <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The optional MCMC engine (<code><a href="reference/hb_engine.html">jax_engine()</a></code>) needs Python with JAX and NumPyro: <code><a href="reference/setup_numpyro_env.html">setup_numpyro_env()</a></code> installs them through <code>reticulate</code>, and <code>setup_numpyro_env(check_only = TRUE)</code> checks the installation.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -432,13 +493,23 @@
 <li>
 <a href="articles/spatial-temporal.html"><strong>Spatial &amp; Spatio-Temporal Models (EBLUP)</strong></a>: Working with spatial weights matrices, spatial kriging, and spatio-temporal panels.</li>
 <li>
-<a href="articles/hb-area-inla.html"><strong>Bayesian Area-Level Models (INLA)</strong></a>: Hierarchical Bayesian SAE using INLA with 6 distributions and spatial-temporal effects.</li>
+<a href="articles/hb-area-inla.html"><strong>Bayesian Area-Level Models (INLA)</strong></a>: Hierarchical Bayesian SAE with 6 distributions and spatial-temporal effects, MCMC convergence checks, covariates measured with error, and <code><a href="reference/hb_ratio.html">hb_ratio()</a></code>.</li>
+<li>
+<a href="articles/hb-priors.html"><strong>Default Priors of the HB Models</strong></a>: The default priors of both engines and the simulations behind them.</li>
 <li>
 <a href="articles/model-diagnostics.html"><strong>Model Diagnostics &amp; Calibration</strong></a>: Diagnostics and benchmarking to aggregate targets.</li>
 <li>
-<a href="articles/unit-level-bhf.html"><strong>Unit-Level Estimation (BHF)</strong></a>: Fitting the Battese-Harter-Fuller model with individual survey data.</li>
+<a href="articles/unit-level-bhf.html"><strong>Unit-Level Estimation (BHF and HB)</strong></a>: The Battese-Harter-Fuller model and its hierarchical Bayes counterpart with individual survey data.</li>
+<li>
+<a href="articles/twofold-subarea.html"><strong>Sub-Area Level Two-Fold Models</strong></a>: Sub-areas nested within areas, by EBLUP and hierarchical Bayes.</li>
 <li>
 <a href="articles/benchmarks.html"><strong>Performance Benchmarks</strong></a>: Interactive charts and speedup comparisons across sample sizes.</li>
+<li>
+<a href="articles/hb-area-engines.html"><strong>hb_area() Engines</strong></a>: INLA against MCMC with JAX on the CPU and GPU, and against tipsae.</li>
+<li>
+<a href="articles/finite-population-validation.html"><strong>Finite Population Validation</strong></a>: A design-based simulation against known population values.</li>
+<li>
+<a href="articles/fastsae-evaluation.html"><strong>Is fastsae Better?</strong></a>: Accuracy, speed and memory against sae, emdi and tipsae.</li>
 <li>
 <a href="reference/index.html"><strong>Function Reference</strong></a>: Comprehensive API reference and parameter documentation.</li>
 </ul>

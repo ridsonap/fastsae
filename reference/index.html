@@ -7,8 +7,12 @@
   }
   // Initialize language state before render to prevent FOUC
   (function() {
-    var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    var savedLang = 'en';
+    try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+    // the Indonesian pages (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -42,6 +46,8 @@
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
     <li><a class="dropdown-item" href="../articles/fastsae-evaluation.html">Is fastsae Better? Accuracy, Speed and Memory</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Glossary (Bahasa Indonesia)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
@@ -102,7 +108,7 @@
       </dl></div><div class="section level2">
       <h2 id="bayesian-area-level-models-inla-">Bayesian Area-Level Models (INLA)<a class="anchor" aria-label="anchor" href="#bayesian-area-level-models-inla-"></a></h2>
 
-      <div class="section-desc"><p>Hierarchical Bayesian SAE using Integrated Nested Laplace Approximations (INLA) across 6 distributions with spatial and spatio-temporal effects</p></div>
+      <div class="section-desc"><p>Hierarchical Bayesian SAE with INLA (or MCMC with NumPyro / JAX) across 6 distributions with spatial and spatio-temporal effects, and sub-indicators of a parent indicator</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -115,6 +121,13 @@
 
         </dt>
         <dd>Hierarchical Bayes for Area-Level Small Area Estimation</dd>
+
+        <dt>
+
+          <code><a href="hb_ratio.html">hb_ratio()</a></code>
+
+        </dt>
+        <dd>Hierarchical Bayes Ratio Model for a Sub-Proportion of a Parent Indicator</dd>
       </dl></div><div class="section level2">
       <h2 id="estimation-engines">Estimation Engines<a class="anchor" aria-label="anchor" href="#estimation-engines"></a></h2>
 
@@ -141,7 +154,7 @@
       </dl></div><div class="section level2">
       <h2 id="two-fold-subarea-models">Two-Fold Subarea Models<a class="anchor" aria-label="anchor" href="#two-fold-subarea-models"></a></h2>
 
-      <div class="section-desc"><p>Nested area-subarea level models (Torabi &amp; Rao, 2014) with both area and subarea random effects via REML EBLUP and Bayesian INLA</p></div>
+      <div class="section-desc"><p>Nested area-subarea level models (Torabi &amp; Rao, 2014) with both area and subarea random effects via REML/ML EBLUP and hierarchical Bayes (INLA or MCMC)</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -161,17 +174,10 @@
 
         </dt>
         <dd>Two-Fold Hierarchical Bayes for Sub-Area Level Small Area Estimation</dd>
-
-        <dt>
-
-          <code><a href="hb_ratio.html">hb_ratio()</a></code>
-
-        </dt>
-        <dd>Hierarchical Bayes Ratio Model for a Sub-Proportion of a Parent Indicator</dd>
       </dl></div><div class="section level2">
       <h2 id="unit-level-models">Unit-Level Models<a class="anchor" aria-label="anchor" href="#unit-level-models"></a></h2>
 
-      <div class="section-desc"><p>Battese-Harter-Fuller models for unit-level survey data via REML EBLUP and Bayesian INLA</p></div>
+      <div class="section-desc"><p>Battese-Harter-Fuller models for unit-level survey data via REML/ML EBLUP and hierarchical Bayes (INLA or MCMC)</p></div>
 
       <dl></dl></div><div class="section level2">
 

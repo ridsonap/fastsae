@@ -99,8 +99,9 @@ The results:
   1.4 s.
 - **tipsae.** At $`D = 2,500`$ on Apple M4, tipsae takes 620 s for the
   spatial Beta model, INLA takes 6.3 s (98x faster), and JAX on the CPU
-  takes 1,269 s. So the JAX engine on the CPU is 0x to 3x faster than
-  tipsae on the sizes both ran.
+  takes 1,269 s. So the JAX engine on the CPU is faster than tipsae up
+  to $`D = 500`$ (up to 2.8x), but slower at larger $`D`$ (at
+  $`D = 2,500`$ it takes 2.0x the time of tipsae).
 - **The JAX engine’s time grows quickly with $`D`$ for spatial models.**
   It represents the ICAR effect through the eigenvectors of the
   $`D \times D`$ graph Laplacian. Computing them costs $`O(D^3)`$ once,
@@ -197,5 +198,6 @@ tipsae and JAX with CUDA, then run the same benchmark:
   [`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
   is the fastest choice.
 - For full MCMC, the JAX engine on the CPU alone is faster than Stan via
-  tipsae: 0x to 3x here, with the gap narrowing as $`D`$ grows.
+  tipsae for small and medium $`D`$, but loses that lead as $`D`$ grows
+  (see the table above).
 - A GPU becomes worthwhile for the JAX engine on large spatial models.

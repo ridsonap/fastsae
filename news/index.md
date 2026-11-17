@@ -123,6 +123,13 @@
 
 ### Documentation
 
+- The site has an Indonesian version of the home page and of every
+  article (`articles/id/`), with a glossary of the terms used; the
+  language switcher opens the translation of the current page. The home
+  page and README now describe the MCMC engine,
+  [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md),
+  the tools around the models and the installation of INLA and of the
+  Python side, and say that CRAN still has version 0.1.0.
 - The vignettes now show every exported function and plot type:
   [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
   with

@@ -1,0 +1,406 @@
+# Prior Bawaan Model Bayesian Hierarkis
+
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md),
+dan
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
+mengestimasi modelnya dengan INLA
+([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+bawaan) atau dengan NUTS di NumPyro
+([`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)).
+Kedua *engine* memakai prior bawaan yang sama, sehingga sebuah model
+memberikan estimasi yang sama, *engine* mana pun yang dipakai. Artikel
+ini mendaftar prior-prior tersebut, menjelaskan alasan pemilihannya, dan
+merangkum simulasi yang mendasarinya.
+
+Bila jumlah areanya sedikit, atau bila setiap area hanya memiliki satu
+observasi, prior untuk parameter varians atau dispersi bukan sekadar
+urusan teknis: data hampir tidak memberi informasi tentang parameter
+tersebut, sehingga priornyalah yang menentukan seberapa kuat estimasi
+disusutkan dan seberapa lebar selangnya.
+
+## Sekilas tentang modelnya
+
+Ketiga fungsi tersebut mengestimasi model linear campuran terampat
+(*generalised linear mixed models*). Berikut bentuknya beserta prior
+bawaannya. Di sini $`s`$ adalah skala simpangan baku:
+$`s = \mathrm{sd}(y)`$ untuk model Gaussian (simpangan baku estimasi
+langsung, atau simpangan baku respons unit untuk
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)),
+dan $`s = 1`$ pada skala logit atau log untuk keluarga lainnya.
+
+**Tingkat area,
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md).**
+Untuk area $`d`$ (dan periode $`t`$ pada data panel),
+
+``` math
+y_d \mid \mu_d \sim f(\mu_d, \psi_d), \qquad g(\mu_d) = x_d^\top \beta + u_d \; [+\, \gamma_t + \delta_{dt}] \; [+\, \log E_d],
+```
+
+dengan likelihood $`f`$, dispersinya $`\psi_d`$, dan fungsi link $`g`$
+yang ditentukan oleh `family` (lihat [Prior untuk
+likelihood](#prior-untuk-likelihood)), serta
+
+| Suku | Argumen | Model | Prior bawaan |
+|----|----|----|----|
+| $`\beta`$ | `formula` | efek tetap | *intercept* datar; lainnya $`N(0, 1000)`$ |
+| $`u_d`$ | `spatial = "none"` | iid $`N(0, \sigma_u^2)`$ | $`\sigma_u \sim`$ half-normal$`(s)`$ |
+|  | `"besag"` | CAR intrinsik (ICAR) pada graf `W`, terskala | $`\sigma_u \sim`$ half-normal$`(s)`$ |
+|  | `"bym"` | iid + ICAR, masing-masing dengan simpangan bakunya sendiri | kedua simpangan baku half-normal$`(s)`$ |
+|  | `"bym2"` | $`\sigma_u(\sqrt{1 - \phi}\, v_d + \sqrt{\phi}\, u^*_d)`$, dengan $`u^*`$ ICAR terskala | $`\sigma_u \sim`$ half-normal$`(s)`$; prior PC $`P(\phi < 0{,}5) = 0{,}5`$ |
+|  | `"leroux"` | presisi $`\sigma_u^{-2}\{(1 - \lambda) I + \lambda R\}`$, dengan $`R`$ struktur ICAR | $`\sigma_u \sim`$ half-normal$`(s)`$; $`\lambda \sim`$ Uniform$`(0, 1)`$ |
+|  | `"sar"` | $`u = (I - \rho W)^{-1} \varepsilon`$, $`\varepsilon_d \sim N(0, \sigma_u^2)`$ | $`\sigma_u \sim`$ half-normal$`(s)`$; $`\rho \sim`$ Uniform$`(-0.999, 0.999)`$ |
+|  | `"slm"` | $`\eta = (I - \rho W)^{-1}(X\beta + \varepsilon)`$ | $`\sigma_u \sim`$ half-normal$`(s)`$; $`\rho`$ seragam pada rentang yang diizinkan oleh nilai eigen `W` |
+| $`\gamma_t`$ | `temporal` | `"rw1"`, `"rw2"`, `"ar1"`, atau `"iid"` | $`\sigma_\gamma \sim`$ half-normal$`(s)`$; AR(1): $`N(0, 1/0.15)`$ pada $`\log\{(1 + \rho)/(1 - \rho)\}`$ |
+| $`\delta_{dt}`$ | `st_interaction` | tren khusus per domain, medan terpisah (*separable*), atau Knorr-Held tipe I–IV | simpangan bakunya half-normal$`(s)`$; korelasi AR(1) seperti pada $`\gamma_t`$ |
+
+**Tingkat unit,
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md).**
+Untuk unit $`j`$ di domain $`d`$,
+
+``` math
+y_{dj} \mid \mu_{dj} \sim f(\mu_{dj}), \qquad g(\mu_{dj}) = x_{dj}^\top \beta + u_d,
+```
+
+dengan $`f`$ normal ($`e_{dj} \sim N(0, \sigma_e^2)`$, $`\sigma_e \sim`$
+half-normal$`(s)`$), Bernoulli, atau Poisson; $`u_d`$ iid, Besag, atau
+BYM2 dengan prior seperti di atas; dan targetnya adalah rata-rata
+populasi domain $`d`$, yang dihitung dari rata-rata populasi kovariat di
+`Xpop`.
+
+**Tingkat subarea,
+[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md).**
+Untuk subarea $`j`$ di area $`i`$,
+
+``` math
+y_{ij} \mid \mu_{ij} \sim f(\mu_{ij}), \qquad g(\mu_{ij}) = x_{ij}^\top \beta + v_i + u_{ij},
+```
+
+dengan $`f`$ normal dengan varians sampling $`V_{ij}`$ yang diketahui,
+binomial, atau Poisson; $`v_i`$ iid, Besag, atau BYM2; dan $`u_{ij}`$
+iid. Kedua simpangan bakunya memakai prior half-normal$`(s)`$, dengan
+$`s`$ dihitung dari estimasi langsung subarea. Target tingkat area
+mengagregasikan rata-rata subarea dengan bobot di `weight`.
+
+Semua model intrinsik (Besag, BYM, BYM2, dan *random walk*) diskalakan
+(`scale_model = TRUE`) sehingga $`\sigma`$ merupakan simpangan baku
+marginal yang tipikal, apa pun grafnya. Inilah yang membuat satu skala
+prior masuk akal untuk semuanya (Sørbye dan Rue, 2014).
+
+## Prior untuk parameter model
+
+| Parameter | Bawaan ([`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md), `jax_engine(priors = "inla")`) | `jax_engine(priors = "weakly_informative")` |
+|----|----|----|
+| Simpangan baku efek acak $`\sigma`$ (area, subarea, waktu, area menurut waktu) | Half-normal$`(s)`$: $`s = \mathrm{sd}(y)`$ untuk model Gaussian, $`s = 1`$ pada skala link untuk lainnya | Half-normal$`(1)`$ pada respons yang distandardisasi atau pada skala link |
+| Parameter pencampur BYM2 $`\phi`$ | Prior PC dengan $`P(\phi < 0{,}5) = 0{,}5`$ | Uniform$`(0, 1)`$ |
+| Korelasi AR(1) $`\rho`$ | $`N(0, 1/0.15)`$ pada $`\log\{(1 + \rho)/(1 - \rho)\}`$ | Uniform$`(-1, 1)`$ |
+| $`\lambda`$ Leroux, $`\rho`$ SAR | Seragam | Seragam |
+| Koefisien $`\beta`$ | $`N(0, 1000)`$; *intercept* datar (INLA) atau hampir datar (JAX) | $`N(0, 10^2)`$ pada skala yang distandardisasi ($`N(0, 2.5^2)`$ untuk link logit) |
+
+Di sini $`\mathrm{sd}(y)`$ adalah simpangan baku estimasi langsung yang
+teramati (simpangan baku respons unit untuk
+[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)).
+Dengan `benchmark_method = "wfq"`, koefisien justru memakai prior yang
+hampir datar ($`N(0, 10^6)`$, *intercept* $`N(0, 10^4)`$) agar kovariat
+benchmarking tidak ikut disusutkan.
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+menuliskan prior half-normal sebagai prior `expression:` pada logaritma
+presisi $`\theta = -2 \log \sigma`$, sehingga INLA dan NumPyro memakai
+fungsi kepadatan yang sama.
+
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+memiliki dua prior yang tidak ada di INLA. Dengan `robust = TRUE`, efek
+acak berdistribusi Student-$`t`$ dengan derajat bebas $`\nu \sim`$
+Uniform$`(2.5, 30)`$. Dengan `prior_beta = "horseshoe"`, koefisien
+memakai prior *horseshoe* teregularisasi (Piironen dan Vehtari, 2017):
+skala lokal $`\lambda_j \sim C^+(1)`$, skala global
+$`\tau \sim C^+(1)`$, dan *slab* $`c^2 \sim`$ Inv-Gamma$`(2, 8)`$.
+
+## Prior untuk likelihood
+
+| Parameter | Kapan | Prior |
+|----|----|----|
+| Varians sampling (Gaussian), presisi gamma | `vardir` diberikan | Tetap per area: $`1/V_d`$; $`y_d^2 / V_d`$ |
+| Presisi beta | `vardir` diberikan | Tetap per area pada $`\hat\mu_d(1 - \hat\mu_d)/V_d - 1`$, dengan $`\hat\mu_d`$ dari estimasi tahap pertama |
+| Presisi beta | `trials` diberikan (tanpa `vardir`) | Tetap per area pada $`n_d - 1`$ |
+| Ukuran (*size*) binomial negatif | `vardir` diberikan | Tetap per area pada $`\hat\mu_d^2 / (V_d - \hat\mu_d)`$, dengan $`\hat\mu_d`$ dari estimasi tahap pertama |
+| Presisi gamma | tanpa `vardir` | Half-normal$`(10)`$, kedua *engine* |
+| Ukuran binomial negatif | tanpa `vardir` | Half-normal$`(10)`$, kedua *engine* |
+| Simpangan baku residual Gaussian | tanpa `vardir` (dan galat unit pada [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)) | Half-normal$`(\mathrm{sd}(y))`$, kedua *engine* |
+| Presisi beta $`\phi`$ | tanpa `vardir` dan tanpa `trials` | Log-gamma$`(1, 0.1)`$ pada $`\log\phi`$, yaitu $`\phi \sim`$ Eksponensial$`(0.1)`$, kedua *engine* (half-normal$`(10)`$ dengan `jax_engine(priors = "weakly_informative")`) |
+
+## Mengapa simpangan baku berprior *half-normal*
+
+Prior *penalised complexity* (PC) dari INLA untuk simpangan baku,
+$`P(\sigma > U) = \alpha`$, adalah pilihan bawaan yang baik bila $`U`$
+dipilih sesuai masalahnya (Simpson dkk., 2017). Pilihan yang lazim,
+$`U = 1`$ dan $`\alpha = 0{,}01`$, tidak demikian, karena terikat pada
+satuan respons. Pada data `mys`, estimasi REML untuk simpangan baku area
+adalah 1,62 dan $`\mathrm{sd}(y) = 2{,}21`$, tetapi PC$`(1, 0.01)`$
+memberikan $`P(\sigma > 1{,}62) = 0{,}0006`$, sehingga prior tersebut
+menyusutkan efek area jauh lebih kuat daripada yang ditunjukkan data.
+Dalam simulasi Fay-Herriot (30 area), selang 95% di bawah
+PC$`(1, 0.01)`$ mencakup 94%, 85%, dan 38% rata-rata sebenarnya untuk
+data yang sama dalam tiga satuan (`y` dikalikan 0,1, 1, dan 10).
+
+Menskalakan prior terhadap respons menghilangkan ketergantungan pada
+satuan. Di antara prior yang sudah diskalakan, *half-normal* mencapai
+cakupan setara dengan selang EBLUP, sedangkan prior PC, yang menaruh
+banyak massa peluang di dekat $`\sigma = 0`$, masih menyusutkan
+simpangan baku area (`benchmarks/validation/default_sd_prior.R`; 150
+ulangan, `vardir` diketahui):
+
+| Jumlah area | Simpangan baku area | EBLUP | Half-normal$`(\mathrm{sd}\,y)`$ | PC, $`\alpha = 0{,}01`$ | PC, $`\alpha = 0{,}05`$ |
+|----|----|----|----|----|----|
+| 15 | 0,4 | 0,960 | 0,966 | 0,917 | 0,942 |
+| 30 | 0,4 | 0,940 | 0,958 | 0,905 | 0,929 |
+| 60 | 0,4 | 0,927 | 0,943 | 0,898 | 0,918 |
+| 15 | 0,8 | 0,930 | 0,932 | 0,853 | 0,890 |
+| 30 | 0,8 | 0,934 | 0,929 | 0,888 | 0,909 |
+| 60 | 0,8 | 0,942 | 0,939 | 0,919 | 0,928 |
+
+Pada model yang memakai fungsi link, efek acaknya berada pada skala
+logit atau log, dan di skala itu simpangan baku 1 sudah tergolong besar,
+sehingga skalanya ditetapkan 1. Dibandingkan dengan PC$`(1, 0.01)`$ dan
+half-normal$`(2.5)`$ (bawaan tipsae), half-normal$`(1)`$ mencapai
+cakupan yang paling tidak sama baiknya, dan mengestimasi simpangan baku
+area dengan bias yang lebih kecil (`default_sd_prior_glm.R`,
+`default_sd_prior_glm_more.R`; rata-rata cakupan di seluruh skenario,
+skenario terburuk dalam kurung):
+
+| Respons | Half-normal$`(1)`$ | Half-normal$`(2.5)`$ | PC$`(1, 0.01)`$ |
+|----|----|----|----|
+| Binomial, $`n_d`$ 20–200 | 0,927–0,950 | 0,927–0,952 | 0,918–0,944 |
+| Binomial, $`n_d`$ 5–20 | 0,950 (0,932) | 0,953 (0,938) | 0,919 (0,864) |
+| Beta, $`n_d`$ 5–20 | 0,938 (0,925) | 0,940 (0,929) | 0,908 (0,873) |
+| Poisson | 0,947 (0,944) | 0,948 (0,944) | 0,943 (0,934) |
+| Binomial BYM2 | 0,947 (0,941) | 0,947 (0,942) | 0,942 (0,934) |
+
+Prior *half-normal* juga merupakan pilihan yang informatif lemah
+(*weakly informative*) yang disarankan Gelman (2006) untuk simpangan
+baku dalam model hierarkis. Prior ini lebih cocok untuk NUTS daripada
+prior log-gamma samar (*vague*) bawaan INLA pada presisi, yang
+punggungannya mengarah ke $`\sigma = 0`$ dan memperlambat *sampler*.
+
+Prior BYM2 dan AR(1) adalah bawaan INLA (Riebler dkk., 2016) yang
+direproduksi di JAX:
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+menghitung kepadatan PC untuk $`\phi`$ dari nilai eigen presisi ICAR
+yang terskala, seperti yang dilakukan `INLA:::inla.pc.bym.phi()`. Dengan
+prior ini, kedua *engine* memberikan hasil yang sama pada `mys` hingga
+selisih 0,03 (iid) dan 0,05 (BYM2) simpangan baku posterior.
+
+## Dispersi dengan satu observasi per area
+
+Dalam model tingkat area, setiap area menyumbang satu estimasi langsung.
+Untuk likelihood gamma dan binomial negatif, varians estimasi itu
+bergantung pada parameter dispersi selain pada efek area:
+
+- gamma: $`\mathrm{CV}^2 \approx 1/\text{shape} + \sigma^2`$;
+- binomial negatif:
+  $`\mathrm{Var} \approx \mu + \mu^2/\text{size} + \mu^2(e^{\sigma^2} - 1)`$.
+
+Dengan satu observasi per area, data hanya dapat mengidentifikasi jumlah
+keduanya, sehingga dispersinya mengikuti prior. Bawaan INLA sendiri
+cenderung mengasumsikan galat sampling yang kecil:
+log-gamma$`(1, 0.01)`$ pada presisi gamma dan pc.mgamma$`(7)`$ pada
+ukuran binomial negatif, yang menyusut ke arah Poisson. Kedua prior itu
+menempatkan estimasinya di 76–84 (gamma) dan 110–180 (ukuran), berapa
+pun nilai sebenarnya, dan selangnya pun meleset dari rata-rata
+sebenarnya bila galat sampling memang besar. Karena itu, kedua *engine*
+memakai prior half-normal$`(10)`$ untuk presisi gamma dan untuk ukuran
+binomial negatif. Cakupan selang 95% untuk area tersampel, simpangan
+baku area 0,3 / 0,8 (`gamma_shape_prior.R`, `nb_size_prior.R`; 30 area,
+100 ulangan):
+
+| Likelihood       | Dispersi sebenarnya | Half-normal$`(10)`$ | Bawaan INLA   |
+|------------------|---------------------|---------------------|---------------|
+| Gamma            | *shape* 5           | 0,930 / 0,925       | 0,593 / 0,522 |
+| Gamma            | *shape* 20          | 0,959 / 0,986       | 0,862 / 0,826 |
+| Gamma            | *shape* 100         | 0,950 / 0,999       | 0,979 / 0,993 |
+| Binomial negatif | ukuran 3            | 0,928 / 0,896       | 0,816 / 0,756 |
+| Binomial negatif | ukuran 10           | 0,949 / 0,965       | 0,913 / 0,915 |
+| Binomial negatif | ukuran 100          | 0,939 / 0,990       | 0,965 / 0,980 |
+
+Prior half-normal$`(10)`$ ada harganya: bila galat samplingnya kecil
+(*shape* atau ukuran 100), selangnya terlalu lebar dan galatnya lebih
+besar. Karena itu,
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+memberi peringatan bila model gamma atau binomial negatif diestimasi
+tanpa `vardir`. Varians sampling menetapkan dispersi setiap area dan
+menghasilkan cakupan 92–94% (gamma) dan 91–95% (binomial negatif)
+(`dispersion_vardir.R`). Model Poisson bukan alternatif untuk cacahan
+yang overdispersi: model itu mengabaikan overdispersi dan cakupannya
+hanya 68–75%.
+
+Likelihood Gaussian dan beta mengalami masalah yang sama bila tanpa
+`vardir`. Untuk simpangan baku residual Gaussian, bawaan INLA sendiri,
+yaitu log-gamma$`(1, 5 \times 10^{-5})`$ pada presisi, berakibat fatal
+di sini: simpangan baku residual ditempatkan mendekati nol (presisi
+sekitar $`1{,}5 \times 10^4`$), rata-rata area runtuh ke estimasi
+langsungnya, dan selangnya hampir tidak mencakup rata-rata sebenarnya
+sama sekali. Prior *half-normal* dengan skala respons, yaitu prior yang
+sama dengan prior simpangan baku area, mencapai cakupan nominal pada
+satuan respons apa pun (`likelihood_priors.R`; 30 area, 60 ulangan,
+cakupan selang 95% untuk area tersampel, $`y`$ dalam satuan aslinya /
+dikalikan 10):
+
+| Simpangan baku area | Simpangan baku residual | Half-normal$`(\mathrm{sd}\,y)`$ | Bawaan INLA |
+|----|----|----|----|
+| 0,5 | 0,5 | 0,943 / 0,943 | 0,038 / 0,006 |
+| 0,5 | 1 | 0,949 / 0,947 | 0,024 / 0,001 |
+| 1 | 0,5 | 0,955 / 0,968 | 0,033 / 0,003 |
+| 1 | 1 | 0,953 / 0,938 | 0,019 / 0,002 |
+
+Untuk presisi beta, bawaan INLA log-gamma$`(1, 0.1)`$ mencapai cakupan
+yang setara dengan half-normal$`(10)`$ atau lebih baik (simpangan baku
+area 0,3 / 0,8):
+
+| $`\phi`$ sebenarnya | Log-gamma$`(1, 0.1)`$ | Half-normal$`(10)`$ |
+|---------------------|-----------------------|---------------------|
+| 10                  | 0,960 / 0,937         | 0,965 / 0,938       |
+| 50                  | 0,931 / 0,903         | 0,913 / 0,869       |
+| 200                 | 0,875 / 0,925         | 0,841 / 0,871       |
+
+sehingga kedua *engine* memakainya. Tidak satu pun dari kedua prior itu
+mencapai cakupan yang baik bila galat samplingnya kecil
+($`\phi = 200`$), dan area tanpa estimasi langsung saat itu hanya
+mencapai cakupan 73–80%. Berikan `vardir` atau `trials` bila nilainya
+diketahui.
+
+### Presisi beta dari `vardir`
+
+Varians beta adalah $`\mu_d(1 - \mu_d)/(\phi_d + 1)`$, sehingga varians
+sampling yang diketahui menetapkan $`\phi_d = \mu_d(1 - \mu_d)/V_d - 1`$
+pada proporsi sebenarnya yang tidak diketahui. Mengganti $`\mu_d`$
+dengan estimasi langsung $`y_d`$ (Janicki, 2020) membuat model memakai
+varians sampling $`V_d\,\mu_d(1 - \mu_d)/\{y_d(1 - y_d)\}`$, bukan
+$`V_d`$, yang terlalu kecil setiap kali $`y_d`$ kebetulan jatuh jauh
+dari $`\mu_d`$. Karena itu,
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+mengestimasi model dua kali dan mengambil $`\phi_d`$ pada rata-rata
+posterior estimasi pertama. Sebaliknya, tipsae (`type_disp = "var"`)
+membiarkan $`\phi_d`$ mengikuti rata-rata model di dalam MCMC. Cara ini
+menjaga variansnya tepat $`V_d`$, tetapi rata-rata yang rendah juga
+menurunkan presisinya, sehingga likelihood memiliki modus kedua di dekat
+0. Cakupan selang 95% untuk area tersampel, simpangan baku area 0,3 /
+0,8 (`beta_vardir_phi.R`; 30 area, 60 ulangan, $`V_d`$ adalah varians
+sampling yang sebenarnya):
+
+| Proporsi di sekitar | Estimasi langsung | Dua tahap | tipsae | $`\phi_d`$ sebenarnya |
+|----|----|----|----|----|
+| 0,08 | 0,844 / 0,812 | 0,938 / 0,896 | 0,938 / 0,931 | 0,953 / 0,918 |
+| 0,23 | 0,922 / 0,931 | 0,948 / 0,933 | 0,951 / 0,954 | 0,950 / 0,944 |
+
+Cakupan tipsae sama baiknya, tetapi 11 dari 240 estimasinya tidak
+konvergen (R-hat hingga 8,7).
+
+## Memeriksa prior pada hasil estimasi
+
+Prior yang benar-benar dipakai INLA, termasuk prior yang diberikan
+melalui
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md),
+ditampilkan oleh
+[`INLA::inla.priors.used()`](https://rdrr.io/pkg/INLA/man/priors.used.html).
+Prior *half-normal* muncul sebagai prior `expression:` pada logaritma
+presisi, lengkap dengan skala $`s`$-nya:
+
+``` r
+
+fit <- hb_area(y ~ x1 + x2 + x3, data = mys, vardir = "vardir")
+INLA::inla.priors.used(fit$fit)
+#> section=[random]
+#>   tag=[..domain_id..] component=[..domain_id..]
+#>     theta1:
+#>       parameter=[log precision]
+#>       prior=[expression: s = 2.20822220299071; sigma = exp(-theta/2); ...]
+```
+
+`print(fit$engine_spec)` menampilkan pengaturan *engine*, dan untuk
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+juga himpunan priornya (`"inla"` atau `"weakly_informative"`).
+
+## Kapan prior perlu diubah
+
+Nilai bawaan dirancang agar aman tanpa perlu disetel, bukan untuk
+mewakili pengetahuan tentang survei tertentu. Pertimbangkan untuk
+mengubahnya bila:
+
+- **Anda benar-benar memiliki pengetahuan awal tentang variasi
+  antararea.** Prior PC $`P(\sigma_u > U) = \alpha`$, dengan $`U`$
+  sebagai simpangan baku area terbesar yang masih masuk akal dalam
+  satuan respons (atau pada skala link), menyatakan pengetahuan itu
+  secara langsung; lihat contoh pertama di bawah.
+- **Area-areanya sangat berbeda pada skala link.** Half-normal$`(1)`$
+  memberikan $`P(\sigma_u > 2) = 0{,}046`$; bila efek area dengan
+  simpangan baku di atas 2 pada skala logit atau log masih masuk akal,
+  naikkan skalanya.
+- **Sebuah parameter dispersi hanya mengikuti priornya.** Tanpa `vardir`
+  (atau `trials`), dispersi likelihood gamma, binomial negatif, dan beta
+  teridentifikasi lemah, dan selangnya bergantung pada prior tersebut.
+  Memberikan varians sampling lebih baik daripada menyetel prior itu.
+
+Bila jumlah areanya sedikit, estimasi ulang dengan prior kedua dan
+bandingkan estimasi di `df_hb`. Bila estimasinya bergeser cukup besar
+relatif terhadap simpangan baku posteriornya, laporkan kepekaan
+tersebut.
+
+## Mengubah prior
+
+[`inla_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+menerima spesifikasi prior INLA untuk setiap hiperparameter. Prior yang
+diberikan di sana menggantikan prior bawaan.
+
+``` r
+
+library(fastsae)
+data("mys")
+
+# Prior PC untuk simpangan baku area sebagai pengganti half-normal bawaan
+fit <- hb_area(y ~ x1 + x2 + x3,
+  data = mys, vardir = "vardir",
+  engine = inla_engine(prior_prec = list(prior = "pc.prec", param = c(1, 0.01)))
+)
+
+# Prior bawaan INLA untuk ukuran binomial negatif (d: cacahan y, kovariat x, paparan E)
+fit_nb <- hb_area(y ~ x,
+  data = d, family = "nbinomial", exposure = "E",
+  engine = inla_engine(control.family = list(hyper = list(theta = list(prior = "pc.mgamma", param = 7))))
+)
+```
+
+Argumen lainnya adalah `prior_phi` (BYM2), `prior_rho` (Leroux, SAR,
+SLM), `prior_prec_time` dan `prior_rho_time` (efek temporal), serta
+`prior_prec_subarea`
+([`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)).
+[`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md)
+menyediakan dua himpunan prior seperti pada tabel pertama:
+
+``` r
+
+fit_jax <- hb_area(y ~ x1 + x2 + x3,
+  data = mys, vardir = "vardir",
+  engine = jax_engine(priors = "weakly_informative")
+)
+```
+
+## Daftar Pustaka
+
+- Gelman, A. (2006). Prior distributions for variance parameters in
+  hierarchical models. *Bayesian Analysis*, 1(3), 515-534.
+- Janicki, R. (2020). Properties of the beta regression model for small
+  area estimation of proportions and application to estimation of
+  poverty rates. *Communications in Statistics - Theory and Methods*,
+  49(9), 2264-2284.
+- Piironen, J. and Vehtari, A. (2017). Sparsity information and
+  regularization in the horseshoe and other shrinkage priors.
+  *Electronic Journal of Statistics*, 11(2), 5018-5051.
+- Riebler, A., Sørbye, S. H., Simpson, D. and Rue, H. (2016). An
+  intuitive Bayesian spatial model for disease mapping that accounts for
+  scaling. *Statistical Methods in Medical Research*, 25(4), 1145-1165.
+- Simpson, D., Rue, H., Riebler, A., Martins, T. G. and Sørbye, S. H.
+  (2017). Penalising model component complexity: a principled approach
+  to constructing priors. *Statistical Science*, 32(1), 1-28.
+- Sørbye, S. H. and Rue, H. (2014). Scaling intrinsic Gaussian Markov
+  random field priors in spatial modelling. *Spatial Statistics*, 8,
+  39-51.

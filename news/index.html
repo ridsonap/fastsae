@@ -7,8 +7,12 @@
   }
   // Initialize language state before render to prevent FOUC
   (function() {
-    var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    var savedLang = 'en';
+    try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+    // the Indonesian pages (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -42,6 +46,8 @@
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
     <li><a class="dropdown-item" href="../articles/fastsae-evaluation.html">Is fastsae Better? Accuracy, Speed and Memory</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Glossary (Bahasa Indonesia)</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
@@ -89,7 +95,8 @@
 </ul></div>
 <div class="section level3">
 <h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
-<ul><li>The vignettes now show every exported function and plot type: <code><a href="../reference/hb_ratio.html">hb_ratio()</a></code> with <code><a href="../reference/effective_trials.html">effective_trials()</a></code> and <code>add_reliability_flags(classes =, draws =)</code>, the E-BFMI, <code>type = "divergence"</code> and <code>target_accept</code> of <code><a href="../reference/hb_engine.html">jax_engine()</a></code> fits (<code>hb-area-inla</code>); <code>transform = "log"</code> and <code>type = "ribbon"</code> (<code>getting-started</code>); <code><a href="../reference/sim_series_data.html">sim_series_data()</a></code>, <code>random_effect_var_st</code> and the <code>"scatter"</code>/<code>"mse"</code> plots of several fits (<code>spatial-temporal</code>); the PIT and CPO plots of <code><a href="../reference/diagnose.html">diagnose()</a></code> (<code>model-diagnostics</code>). The examples of <code><a href="../reference/autoplot.fastsae.html">autoplot.fastsae()</a></code> include the MCMC convergence plots.</li>
+<ul><li>The site has an Indonesian version of the home page and of every article (<code>articles/id/</code>), with a glossary of the terms used; the language switcher opens the translation of the current page. The home page and README now describe the MCMC engine, <code><a href="../reference/hb_ratio.html">hb_ratio()</a></code>, the tools around the models and the installation of INLA and of the Python side, and say that CRAN still has version 0.1.0.</li>
+<li>The vignettes now show every exported function and plot type: <code><a href="../reference/hb_ratio.html">hb_ratio()</a></code> with <code><a href="../reference/effective_trials.html">effective_trials()</a></code> and <code>add_reliability_flags(classes =, draws =)</code>, the E-BFMI, <code>type = "divergence"</code> and <code>target_accept</code> of <code><a href="../reference/hb_engine.html">jax_engine()</a></code> fits (<code>hb-area-inla</code>); <code>transform = "log"</code> and <code>type = "ribbon"</code> (<code>getting-started</code>); <code><a href="../reference/sim_series_data.html">sim_series_data()</a></code>, <code>random_effect_var_st</code> and the <code>"scatter"</code>/<code>"mse"</code> plots of several fits (<code>spatial-temporal</code>); the PIT and CPO plots of <code><a href="../reference/diagnose.html">diagnose()</a></code> (<code>model-diagnostics</code>). The examples of <code><a href="../reference/autoplot.fastsae.html">autoplot.fastsae()</a></code> include the MCMC convergence plots.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>

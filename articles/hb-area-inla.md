@@ -199,11 +199,16 @@ fit_jax2$divergences
     prior $`P(\phi < 0.5) = 0.5`$ (Simpson et al., 2017).
 2.  **Besag ICAR (`spatial = "besag"`)**: Intrinsic Conditional
     Autoregressive spatial model.
-3.  **SAR area effect (`spatial = "sar"`)**:
+3.  **BYM (`spatial = "bym"`)**: the classic Besag-York-Mollié model, an
+    iid and a Besag effect, each with its own variance.
+4.  **Leroux (`spatial = "leroux"`, INLA’s `"generic1"`)**: precision
+    $`\sigma_u^{-2}\{(1 - \lambda) I + \lambda R\}`$, a mixture of iid
+    and ICAR structure.
+5.  **SAR area effect (`spatial = "sar"`)**:
     $`u = (I - \rho W)^{-1}\varepsilon`$, the random effect of the
     spatial Fay-Herriot model of
     [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md).
-4.  **Spatial Lag Model (`spatial = "slm"`)**:
+6.  **Spatial Lag Model (`spatial = "slm"`)**:
     $`\eta = (I - \rho W)^{-1}(X\beta + \varepsilon)`$; the covariates
     are filtered too, so this is not the model of
     [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md).
@@ -316,28 +321,28 @@ summary(fit_beta_st)
 #> Coefficients:
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept) -2.2696e+00  1.5370e-02 -1.4766e+02  0.0000e+00 -2.2998e+00
-#> x            4.1691e-01  6.6161e-02  6.3015e+00  2.9477e-10  2.8685e-01
+#> x            4.1691e-01  6.6161e-02  6.3015e+00  2.9476e-10  2.8685e-01
 #>             ci_upper
 #> (Intercept)  -2.2395
 #> x             0.5465
 #> 
 #> Hyperparameters:
-#>                                  mean       sd 0.025quant  0.5quant 0.975quant
-#> Precision for ..domain_id..  15.25278  5.50865    7.22455  14.33829   28.60675
-#> Precision for ..time_id..   136.59514 57.25641   60.48548 125.04455  281.20808
+#>                                  mean        sd 0.025quant  0.5quant 0.975quant
+#> Precision for ..domain_id..  15.25273  5.508641   7.224496  14.33825   28.60666
+#> Precision for ..time_id..   136.59520 57.257334  60.484170 125.04444  281.21031
 #>                                  mode
-#> Precision for ..domain_id..  12.67084
-#> Precision for ..time_id..   104.92199
+#> Precision for ..domain_id..  12.67082
+#> Precision for ..time_id..   104.92175
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
-#>                                            -971.94527 
+#>                                            -971.94526 
 #>                                                    pD 
-#>                                              60.69162 
+#>                                              60.69155 
 #>                                                  WAIC 
-#>                                            -979.78135 
+#>                                            -979.78130 
 #>                                                 pWAIC 
-#>                                              42.46188 
+#>                                              42.46186 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
 #>                                             432.98607 
 #> 
@@ -367,19 +372,19 @@ standard errors, and 95% Credible Intervals:
 
 head(fit_beta_st$df_hb[, c("domain", "time", "y", "hb", "sd", "rse", "ci_lower", "ci_upper")])
 #>                domain time      y         hb          sd       rse   ci_lower
-#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102822 0.005596859 10.968164 0.04062427
-#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182495 0.006281356  7.676577 0.07003560
-#> 3               IMOLA 2014 0.1033 0.09310383 0.010890480 11.697135 0.07366717
-#> 4         PIANURA EST 2014 0.0633 0.06365559 0.006408115 10.066854 0.05185443
-#> 5       PIANURA OVEST 2014 0.0625 0.06937248 0.007927324 11.427188 0.05493780
-#> 6      PORRETTA TERME 2014 0.1276 0.09446587 0.014070652 14.894959 0.06968690
+#> 1 CASALECCHIO DI RENO 2014 0.0404 0.05102823 0.005596854 10.968152 0.04062429
+#> 2   CITTA' DI BOLOGNA 2014 0.0825 0.08182496 0.006281352  7.676573 0.07003561
+#> 3               IMOLA 2014 0.1033 0.09310381 0.010890468 11.697124 0.07366716
+#> 4         PIANURA EST 2014 0.0633 0.06365559 0.006408110 10.066846 0.05185445
+#> 5       PIANURA OVEST 2014 0.0625 0.06937249 0.007927319 11.427180 0.05493781
+#> 6      PORRETTA TERME 2014 0.1276 0.09446585 0.014070647 14.894957 0.06968689
 #>     ci_upper
-#> 1 0.06256394
+#> 1 0.06256395
 #> 2 0.09467501
-#> 3 0.11635704
-#> 4 0.07700999
-#> 5 0.08602894
-#> 6 0.12479145
+#> 3 0.11635698
+#> 4 0.07700998
+#> 5 0.08602893
+#> 6 0.12479142
 ```
 
 ------------------------------------------------------------------------
@@ -495,7 +500,7 @@ summary(fit_pois)
 #>                    beta   std.error      zvalue      pvalue    ci_lower
 #> (Intercept)  1.4161e-01  1.3846e-01  1.0228e+00  3.0643e-01 -1.3129e-01
 #> x1           3.8646e-01  5.0100e-02  7.7137e+00  1.2220e-14  2.8774e-01
-#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0479e-19 -3.6547e-01
+#> x2          -2.9875e-01  3.3665e-02 -8.8741e+00  7.0481e-19 -3.6547e-01
 #>             ci_upper
 #> (Intercept)   0.4149
 #> x1            0.4853
@@ -503,11 +508,11 @@ summary(fit_pois)
 #> 
 #> Hyperparameters:
 #>                                   mean        sd  0.025quant   0.5quant
-#> Precision for ..domain_id.. 15.6289815 4.4993991 8.488649511 15.0603840
-#> Phi for ..domain_id..        0.1595214 0.1562623 0.007221983  0.1055193
+#> Precision for ..domain_id.. 15.6290000 4.4994416 8.488631556 15.0603875
+#> Phi for ..domain_id..        0.1595254 0.1562745 0.007219879  0.1055162
 #>                             0.975quant        mode
-#> Precision for ..domain_id.. 26.0449372 14.01277220
-#> Phi for ..domain_id..        0.5933831  0.01700567
+#> Precision for ..domain_id.. 26.0450830 14.01274364
+#> Phi for ..domain_id..        0.5934246  0.01699833
 #> 
 #> Goodness of Fit:
 #>                                                   DIC 
@@ -517,9 +522,9 @@ summary(fit_pois)
 #>                                                  WAIC 
 #>                                             309.67484 
 #>                                                 pWAIC 
-#>                                              17.15907 
+#>                                              17.15906 
 #> Marginal_LogLik.log marginal-likelihood (integration) 
-#>                                            -185.87988 
+#>                                            -185.87987 
 #> 
 #> HB Summary Statistics:
 #>        hb          linear_pred            sd               mse           
@@ -528,7 +533,7 @@ summary(fit_pois)
 #>  Median :1.3850   Median : 0.3240   Median :0.07685   Median :0.0059062  
 #>  Mean   :1.5294   Mean   : 0.2381   Mean   :0.16304   Mean   :0.0690516  
 #>  3rd Qu.:2.3016   3rd Qu.: 0.8023   3rd Qu.:0.12189   3rd Qu.:0.0148681  
-#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859678  
+#>  Max.   :3.6016   Max.   : 1.2810   Max.   :0.76549   Max.   :0.5859682  
 #>       rse        
 #>  Min.   : 2.791  
 #>  1st Qu.: 5.164  
@@ -582,15 +587,15 @@ rbind(
 )
 #>                 beta  ci_lower  ci_upper
 #> naive      0.5855003 0.4338812 0.7374279
-#> structural 0.7276425 0.5812917 0.8781552
+#> structural 0.7276675 0.5812736 0.8782557
 
 # Mean posterior SD of the areas by the error variance of their covariate
 sds <- data.frame(var_x1 = d_me$var_x1, naive = fit_naive$df_hb$sd, structural = fit_me$df_hb$sd)
 aggregate(cbind(naive, structural) ~ var_x1, data = sds, FUN = mean)
 #>   var_x1     naive structural
-#> 1   0.05 0.8049357  0.6125150
-#> 2   0.50 0.7694047  0.6626615
-#> 3   4.00 0.7674869  0.7991370
+#> 1   0.05 0.8049357  0.6125314
+#> 2   0.50 0.7694048  0.6626761
+#> 3   4.00 0.7674870  0.7991489
 ```
 
 The naive interval for the coefficient misses its true value, and the
@@ -668,12 +673,12 @@ fit_ratio <- hb_ratio(s_dir ~ x,
 )
 head(fit_ratio$df_hb[, c("domain", "hb", "rse", "rse_cond", "ratio", "parent")])
 #>   domain         hb      rse  rse_cond     ratio     parent
-#> 1      1 0.01082261 19.87842 12.837745 0.1369327 0.07903595
-#> 2      2 0.02623410 18.05617 10.474275 0.2030471 0.12920204
-#> 3      3 0.01018307 20.10047 13.716324 0.1294855 0.07864257
-#> 4      4 0.04154266 18.28154 10.153225 0.3775099 0.11004389
-#> 5      5 0.02305273 17.98399  9.478648 0.2226433 0.10354109
-#> 6      6 0.01270608 20.53944 13.435432 0.1268785 0.10014374
+#> 1      1 0.01082259 19.87854 12.837917 0.1369325 0.07903595
+#> 2      2 0.02623408 18.05627 10.474448 0.2030470 0.12920204
+#> 3      3 0.01018307 20.10059 13.716492 0.1294855 0.07864257
+#> 4      4 0.04154271 18.28159 10.153316 0.3775103 0.11004389
+#> 5      5 0.02305273 17.98408  9.478804 0.2226434 0.10354109
+#> 6      6 0.01270608 20.53955 13.435591 0.1268784 0.10014374
 all(fit_ratio$df_hb$hb <= d_r$p0) # never above the parent
 #> [1] TRUE
 fit_ratio$benchmark$achieved # the weighted mean after benchmarking
@@ -698,12 +703,12 @@ probability can be published instead:
 flags <- add_reliability_flags(fit_ratio, classes = c(0.01, 0.02, 0.03), draws = fit_ratio$draws)
 head(flags[, c("domain", "hb", "rse", "est_class", "p_class")])
 #>   domain         hb      rse    est_class p_class
-#> 1      1 0.01082261 19.87842 0.01 - <0.02  0.6590
-#> 2      2 0.02623410 18.05617 0.02 - <0.03  0.7020
-#> 3      3 0.01018307 20.10047 0.01 - <0.02  0.5055
-#> 4      4 0.04154266 18.28154      >= 0.03  0.9450
-#> 5      5 0.02305273 17.98399 0.02 - <0.03  0.7135
-#> 6      6 0.01270608 20.53944 0.01 - <0.02  0.8420
+#> 1      1 0.01082259 19.87854 0.01 - <0.02  0.6590
+#> 2      2 0.02623408 18.05627 0.02 - <0.03  0.7020
+#> 3      3 0.01018307 20.10059 0.01 - <0.02  0.5055
+#> 4      4 0.04154271 18.28159      >= 0.03  0.9450
+#> 5      5 0.02305273 17.98408 0.02 - <0.03  0.7135
+#> 6      6 0.01270608 20.53955 0.01 - <0.02  0.8420
 ```
 
 The share model can also be fitted by MCMC. The fit then carries the

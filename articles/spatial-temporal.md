@@ -446,9 +446,9 @@ fit_sim_hb <- hb_area(y_gaussian ~ x1 + x2,
   print_result = FALSE
 )
 fit_sim_hb$random_effect_var # area effect
-#> [1] 0.2358136
+#> [1] 0.2357859
 fit_sim_hb$random_effect_var_st # space-time interaction
-#> [1] 0.010964
+#> [1] 0.01097779
 ```
 
 ------------------------------------------------------------------------

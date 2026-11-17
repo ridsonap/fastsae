@@ -24,8 +24,12 @@
   }
   // Initialize language state before render to prevent FOUC
   (function() {
-    var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    var savedLang = 'en';
+    try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+    // the Indonesian pages (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -63,6 +67,8 @@
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
     <li><a class="dropdown-item" href="../articles/fastsae-evaluation.html">Is fastsae Better? Accuracy, Speed and Memory</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Glossary (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -475,7 +481,13 @@ takes 1.4 s.</li>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
 on Apple M4, tipsae takes 620 s for the spatial Beta model, INLA takes
 6.3 s (98x faster), and JAX on the CPU takes 1,269 s. So the JAX engine
-on the CPU is 0x to 3x faster than tipsae on the sizes both ran.</li>
+on the CPU is faster than tipsae up to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 500</annotation></semantics></math>
+(up to 2.8x), but slower at larger
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
+(at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>2</mn><mo>,</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">D = 2,500</annotation></semantics></math>
+it takes 2.0x the time of tipsae).</li>
 <li>
 <strong>The JAX engine’s time grows quickly with
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
@@ -769,9 +781,11 @@ until the run finishes.</li>
 <li>For most surveys (hundreds to a few thousand domains),
 <code><a href="../reference/hb_engine.html">inla_engine()</a></code> is the fastest choice.</li>
 <li>For full MCMC, the JAX engine on the CPU alone is faster than Stan
-via tipsae: 0x to 3x here, with the gap narrowing as
+via tipsae for small and medium
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>,
+but loses that lead as
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
-grows.</li>
+grows (see the table above).</li>
 <li>A GPU becomes worthwhile for the JAX engine on large spatial
 models.</li>
 </ul>

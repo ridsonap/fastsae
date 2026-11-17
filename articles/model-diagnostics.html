@@ -24,8 +24,12 @@
   }
   // Initialize language state before render to prevent FOUC
   (function() {
-    var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    var savedLang = 'en';
+    try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+    // the Indonesian pages (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -63,6 +67,8 @@
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
     <li><a class="dropdown-item" href="../articles/fastsae-evaluation.html">Is fastsae Better? Accuracy, Speed and Memory</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Glossary (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -383,7 +389,7 @@ Bayesian models fitted with <code><a href="../reference/hb_area.html">hb_area()<
 <span><span class="co">#&gt; [1] 17.64954</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $mean_sae_rse</span></span>
-<span><span class="co">#&gt; [1] 70.50121</span></span>
+<span><span class="co">#&gt; [1] 70.5012</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $median_sae_rse</span></span>
 <span><span class="co">#&gt; [1] 19.57358</span></span>
@@ -427,7 +433,7 @@ which is 0.90 for a calibrated model:</p>
 <span><span class="co">#&gt; [1] "mixed"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $p_value</span></span>
-<span><span class="co">#&gt; [1] 0.3466181</span></span>
+<span><span class="co">#&gt; [1] 0.3466186</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $central90</span></span>
 <span><span class="co">#&gt; [1] 0.9411765</span></span>

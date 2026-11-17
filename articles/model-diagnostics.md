@@ -280,7 +280,7 @@ diag_hb$precision
 #> [1] 17.64954
 #> 
 #> $mean_sae_rse
-#> [1] 70.50121
+#> [1] 70.5012
 #> 
 #> $median_sae_rse
 #> [1] 19.57358
@@ -325,7 +325,7 @@ diag_bin$bayesian_metrics$pit_test[c("method", "p_value", "central90", "central9
 #> [1] "mixed"
 #> 
 #> $p_value
-#> [1] 0.3466181
+#> [1] 0.3466186
 #> 
 #> $central90
 #> [1] 0.9411765

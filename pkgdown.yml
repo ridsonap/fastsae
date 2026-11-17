@@ -2,19 +2,33 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  articles/id/benchmarks: id/benchmarks.html
   benchmarks: benchmarks.html
+  articles/id/beranda: id/beranda.html
   articles/fastsae-evaluation: fastsae-evaluation.html
+  articles/id/fastsae-evaluation: id/fastsae-evaluation.html
+  articles/id/finite-population-validation: id/finite-population-validation.html
   finite-population-validation: finite-population-validation.html
+  articles/id/getting-started: id/getting-started.html
   getting-started: getting-started.html
+  articles/id/glosarium: id/glosarium.html
   articles/hb-area-engines: hb-area-engines.html
+  articles/id/hb-area-engines: id/hb-area-engines.html
+  articles/id/hb-area-inla: id/hb-area-inla.html
   hb-area-inla: hb-area-inla.html
+  articles/id/hb-priors: id/hb-priors.html
   hb-priors: hb-priors.html
+  articles/id/model-diagnostics: id/model-diagnostics.html
   model-diagnostics: model-diagnostics.html
+  articles/id/optimal-workflow: id/optimal-workflow.html
   articles/optimal-workflow: optimal-workflow.html
+  articles/id/spatial-temporal: id/spatial-temporal.html
   spatial-temporal: spatial-temporal.html
+  articles/id/twofold-subarea: id/twofold-subarea.html
   twofold-subarea: twofold-subarea.html
+  articles/id/unit-level-bhf: id/unit-level-bhf.html
   unit-level-bhf: unit-level-bhf.html
-last_built: 2026-11-17T00:02Z
+last_built: 2026-11-17T21:59Z
 urls:
   reference: https://ridsonap.is-a.dev/fastsae/reference
   article: https://ridsonap.is-a.dev/fastsae/articles

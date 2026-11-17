@@ -24,8 +24,12 @@
   }
   // Initialize language state before render to prevent FOUC
   (function() {
-    var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+    var savedLang = 'en';
+    try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+    // the Indonesian pages (articles/id/) are always shown in ID mode
+    if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
     document.documentElement.setAttribute('data-lang', savedLang);
+    document.documentElement.setAttribute('lang', savedLang);
   })();
 </script>
 </head>
@@ -63,6 +67,8 @@
     <li><a class="dropdown-item" href="../articles/hb-area-engines.html">hb_area() Engines: INLA vs JAX (CPU / Apple GPU / CUDA) vs tipsae</a></li>
     <li><a class="dropdown-item" href="../articles/finite-population-validation.html">Finite Population Validation</a></li>
     <li><a class="dropdown-item" href="../articles/fastsae-evaluation.html">Is fastsae Better? Accuracy, Speed and Memory</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/id/glosarium.html">Glossary (Bahasa Indonesia)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -560,9 +566,9 @@ effect:</p>
 <span>  print_result <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">fit_sim_hb</span><span class="op">$</span><span class="va">random_effect_var</span> <span class="co"># area effect</span></span>
-<span><span class="co">#&gt; [1] 0.2358136</span></span>
+<span><span class="co">#&gt; [1] 0.2357859</span></span>
 <span><span class="va">fit_sim_hb</span><span class="op">$</span><span class="va">random_effect_var_st</span> <span class="co"># space-time interaction</span></span>
-<span><span class="co">#&gt; [1] 0.010964</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.01097779</span></span></code></pre></div>
 <hr>
 </div>
 </div>

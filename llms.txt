@@ -2,9 +2,11 @@
 
 **fastsae** implements widely used Small Area Estimation (SAE) models
 for survey data. Frequentist estimation runs in compiled **C++**
-(`RcppArmadillo`) with **OpenMP** multi-threading, and Bayesian
-estimation uses **INLA** (Integrated Nested Laplace Approximations).
-With hundreds to thousands of domains it is much faster than existing R
+(`RcppArmadillo`) with **OpenMP** multi-threading. Bayesian estimation
+uses **INLA** (Integrated Nested Laplace Approximations) by default, and
+the same models (except the spatial lag and RW2 effects) can also be
+fitted by full MCMC with **NumPyro on JAX**, on the CPU or a GPU. With
+hundreds to thousands of domains it is much faster than existing R
 implementations (see [Performance at a
 Glance](#performance-at-a-glance); with a few dozen domains `sae` is
 about as fast), while agreeing numerically with reference packages such
@@ -23,12 +25,15 @@ as `sae`.
   Marhuenda) to about $`10^{-14}`$; the documented exceptions are a
   spatial correlation on the boundary and the ML MSE of the spatial
   model.
-- 🔀 **Frequentist and Bayesian in one package**: EBLUP models in C++
-  and hierarchical Bayesian models through INLA.
+- 🔀 **Frequentist and Bayesian in one package**: EBLUP models in C++,
+  and hierarchical Bayesian models through INLA or, with
+  `engine = jax_engine()`, by MCMC (NumPyro NUTS on JAX, CPU or GPU)
+  with convergence diagnostics.
 - 🧵 **Parallel bootstrap**: multi-core OpenMP parametric and
   non-parametric bootstrap MSE estimation.
-- 🗺️ **Unsampled areas**: domains with missing observations (`y = NA`)
-  are predicted automatically.
+- 🗺️ **Unsampled areas**: areas, sub-areas and periods without a direct
+  estimate (`y = NA`) stay in the model and are predicted, with their
+  MSE.
 - 💾 **Low memory**: avoids unnecessary $`O(m^2)`$ / $`O(m^3)`$
   allocations.
 - 📊 **Standard R interface**: S3 methods (`summary`, `coef`, `fitted`,
@@ -57,9 +62,9 @@ Bayesian small area models with:
   Binomial, Gamma
 - **Spatial random effects**: Besag ICAR, BYM, BYM2, Leroux, SAR,
   spatial lag
-- **Temporal random effects**: RW1, RW2, AR(1)
-- **Spatio-temporal interactions**: separable and non-separable
-  structures
+- **Temporal random effects**: RW1, RW2, AR(1), iid
+- **Spatio-temporal interactions**: domain-specific trends, a separable
+  space-time field, and Knorr-Held types I–IV
 
 **Compared with MCMC**: no chains to run and monitor, deterministic
 results, and fits in seconds. INLA is an approximation: fastsae chose
@@ -85,9 +90,11 @@ $`e_{ij} \sim N(0, D_{ij})`$: Sampling error with known variance
 
 **Available implementations:** -
 [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md):
-Frequentist EBLUP via REML Fisher-scoring (C++) -
+frequentist EBLUP by REML or ML Fisher scoring (C++), with analytical or
+bootstrap MSE and area means -
 [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md):
-Bayesian hierarchical model via INLA with spatial support
+hierarchical Bayesian model (INLA or MCMC) for Gaussian, binomial and
+Poisson responses, with an optional spatial area effect
 
 ------------------------------------------------------------------------
 
@@ -110,27 +117,41 @@ Bayesian hierarchical model via INLA with spatial support
 
 | Model | Function | Random Effect Structure | MSE Estimation |
 |:---|:---|:---|:---|
-| **Fay-Herriot** (Area-level) | [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md) | Independent area effects | Analytical (Prasad-Rao) |
-| **Spatial Fay-Herriot** | [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md) | SAR(1) spatial autocorrelation | Analytical, Bootstrap |
-| **Spatio-Temporal Fay-Herriot** | [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md) | SAR(1) + Temporal AR(1) | Analytical, Bootstrap |
+| **Fay-Herriot** (Area-level) | [`eblup_fh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.md) | Independent area effects (optional log transformation) | Analytical (Prasad-Rao / Datta-Lahiri) |
+| **Spatial Fay-Herriot** | [`eblup_sfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_sfh.md) | SAR(1) spatial autocorrelation | Analytical, parametric and non-parametric bootstrap |
+| **Spatio-Temporal Fay-Herriot** | [`eblup_stfh()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_stfh.md) | SAR(1) + Temporal AR(1) | Analytical, parametric bootstrap |
 | **Battese-Harter-Fuller** (Unit-level) | [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md) | Random intercept nested in domains | Bootstrap |
-| **Two-Fold Subarea** | [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md) | Area + Subarea nested effects | Analytical, Bootstrap |
+| **Two-Fold Subarea** | [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md) | Area + Subarea nested effects | Analytical, parametric bootstrap |
 
-### Bayesian Models (INLA)
+### Bayesian Models (INLA or MCMC)
 
 | Model | Function | Distributions | Spatial/Temporal |
 |:---|:---|:---|:---|
 | **Area-level HB** | [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Full support |
 | **Unit-level HB** | [`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
 | **Two-Fold HB** | [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md) | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
+| **Sub-indicator of a parent indicator** | [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md) | Binomial share of the parent, never above it | Through [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md) |
 
 The Bayesian models are fitted with `engine = inla_engine()` (default).
-[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md),
-[`hb_unit()`](https://ridsonap.is-a.dev/fastsae/reference/hb_unit.md)
-and
-[`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
-can also be fitted by MCMC in Python (JAX/NumPyro) with
-`engine = jax_engine()`.
+All four can also be fitted by MCMC in Python (NumPyro on JAX, CPU or
+GPU) with `engine = jax_engine()`; those fits report R-hat, effective
+sample sizes, divergences and E-BFMI.
+[`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
+also accepts covariates measured with error (`var_x`). The default
+priors are the same for both engines and are documented in the [priors
+article](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md).
+
+------------------------------------------------------------------------
+
+## Tools around the models
+
+| Step | Functions |
+|:---|:---|
+| Before fitting | [`create_weights()`](https://ridsonap.is-a.dev/fastsae/reference/create_weights.md) (spatial weights), [`spatial_test()`](https://ridsonap.is-a.dev/fastsae/reference/spatial_test.md) (Moran’s I, LM tests), [`gvf_smooth()`](https://ridsonap.is-a.dev/fastsae/reference/gvf_smooth.md) (smoothing of sampling variances), [`effective_trials()`](https://ridsonap.is-a.dev/fastsae/reference/effective_trials.md) (effective sample sizes for binomial models), [`step_sae()`](https://ridsonap.is-a.dev/fastsae/reference/step_sae.md) (covariate selection) |
+| Checking a fit | [`diagnose()`](https://ridsonap.is-a.dev/fastsae/reference/diagnose.md) (precision gain, goodness of fit, calibration, residual spatial autocorrelation, PIT and CPO), [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html), [`compare_sae()`](https://ridsonap.is-a.dev/fastsae/reference/compare_sae.md) (agreement between two models) |
+| Benchmarking | [`benchmark_sae()`](https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.md) after the fit (ratio, difference, optimal, logit), or `self_benchmark = TRUE` inside the model functions |
+| Reporting | [`add_reliability_flags()`](https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.md) (RSE tiers, or classes with their probability), [`map_sae()`](https://ridsonap.is-a.dev/fastsae/reference/map_sae.md) (choropleth maps), [`export_sae()`](https://ridsonap.is-a.dev/fastsae/reference/export_sae.md) (spreadsheets) |
+| Simulation | [`sim_area_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_area_data.md), [`sim_series_data()`](https://ridsonap.is-a.dev/fastsae/reference/sim_series_data.md) |
 
 ------------------------------------------------------------------------
 
@@ -172,15 +193,33 @@ all sizes.
 
 ## Installation
 
+CRAN has fastsae 0.1.0, which predates the hierarchical Bayes models and
+most of the tools above. Version 1.0.0, described on this site, is
+installed from GitHub:
+
 ``` r
 
-# Install from CRAN (once published)
-install.packages("fastsae")
-
-# Or install the development version from GitHub
 # install.packages("remotes")
 remotes::install_github("ridsonap/fastsae")
 ```
+
+The Bayesian models need **INLA**, which is not on CRAN:
+
+``` r
+
+install.packages(
+  "INLA",
+  repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"),
+  dep = TRUE
+)
+```
+
+The optional MCMC engine
+([`jax_engine()`](https://ridsonap.is-a.dev/fastsae/reference/hb_engine.md))
+needs Python with JAX and NumPyro:
+[`setup_numpyro_env()`](https://ridsonap.is-a.dev/fastsae/reference/setup_numpyro_env.md)
+installs them through `reticulate`, and
+`setup_numpyro_env(check_only = TRUE)` checks the installation.
 
 ------------------------------------------------------------------------
 
@@ -202,17 +241,34 @@ Explore detailed guides, worked examples, and performance analyses:
   spatio-temporal panels.
 - [**Bayesian Area-Level Models
   (INLA)**](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md):
-  Hierarchical Bayesian SAE using INLA with 6 distributions and
-  spatial-temporal effects.
+  Hierarchical Bayesian SAE with 6 distributions and spatial-temporal
+  effects, MCMC convergence checks, covariates measured with error, and
+  [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md).
+- [**Default Priors of the HB
+  Models**](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md):
+  The default priors of both engines and the simulations behind them.
 - [**Model Diagnostics &
   Calibration**](https://ridsonap.is-a.dev/fastsae/articles/model-diagnostics.md):
   Diagnostics and benchmarking to aggregate targets.
-- [**Unit-Level Estimation
-  (BHF)**](https://ridsonap.is-a.dev/fastsae/articles/unit-level-bhf.md):
-  Fitting the Battese-Harter-Fuller model with individual survey data.
+- [**Unit-Level Estimation (BHF and
+  HB)**](https://ridsonap.is-a.dev/fastsae/articles/unit-level-bhf.md):
+  The Battese-Harter-Fuller model and its hierarchical Bayes counterpart
+  with individual survey data.
+- [**Sub-Area Level Two-Fold
+  Models**](https://ridsonap.is-a.dev/fastsae/articles/twofold-subarea.md):
+  Sub-areas nested within areas, by EBLUP and hierarchical Bayes.
 - [**Performance
   Benchmarks**](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.md):
   Interactive charts and speedup comparisons across sample sizes.
+- [**hb_area()
+  Engines**](https://ridsonap.is-a.dev/fastsae/articles/hb-area-engines.md):
+  INLA against MCMC with JAX on the CPU and GPU, and against tipsae.
+- [**Finite Population
+  Validation**](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.md):
+  A design-based simulation against known population values.
+- [**Is fastsae
+  Better?**](https://ridsonap.is-a.dev/fastsae/articles/fastsae-evaluation.md):
+  Accuracy, speed and memory against sae, emdi and tipsae.
 - [**Function
   Reference**](https://ridsonap.is-a.dev/fastsae/reference/index.md):
   Comprehensive API reference and parameter documentation.
@@ -261,11 +317,15 @@ High-performance C++ implementation of Fay-Herriot models
 
 ## Bayesian Area-Level Models (INLA)
 
-Hierarchical Bayesian SAE using Integrated Nested Laplace Approximations
-(INLA) across 6 distributions with spatial and spatio-temporal effects
+Hierarchical Bayesian SAE with INLA (or MCMC with NumPyro / JAX) across
+6 distributions with spatial and spatio-temporal effects, and
+sub-indicators of a parent indicator
 
 - [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   : Hierarchical Bayes for Area-Level Small Area Estimation
+- [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
+  : Hierarchical Bayes Ratio Model for a Sub-Proportion of a Parent
+  Indicator
 
 ## Estimation Engines
 
@@ -283,21 +343,19 @@ with NumPyro / JAX (optional Python backend)
 ## Two-Fold Subarea Models
 
 Nested area-subarea level models (Torabi & Rao, 2014) with both area and
-subarea random effects via REML EBLUP and Bayesian INLA
+subarea random effects via REML/ML EBLUP and hierarchical Bayes (INLA or
+MCMC)
 
 - [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   : Empirical Best Linear Unbiased Prediction under a Two-fold
   Fay-Herriot Model.
 - [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   : Two-Fold Hierarchical Bayes for Sub-Area Level Small Area Estimation
-- [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
-  : Hierarchical Bayes Ratio Model for a Sub-Proportion of a Parent
-  Indicator
 
 ## Unit-Level Models
 
-Battese-Harter-Fuller models for unit-level survey data via REML EBLUP
-and Bayesian INLA
+Battese-Harter-Fuller models for unit-level survey data via REML/ML
+EBLUP and hierarchical Bayes (INLA or MCMC)
 
 - [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
   : Empirical Best Linear Unbiased Prediction (EBLUP) for the
@@ -411,29 +469,65 @@ Built-in empirical and synthetic survey datasets
 
 # Articles
 
-### All vignettes
+### English
 
-- [Performance & Scalability
-  Benchmarks](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.md):
-- [Is fastsae Better? Accuracy, Speed and Memory against sae, emdi and
-  tipsae](https://ridsonap.is-a.dev/fastsae/articles/fastsae-evaluation.md):
-- [Finite Population Simulation: Validating fastsae against Ground
-  Truth](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.md):
 - [Getting Started with
   fastsae](https://ridsonap.is-a.dev/fastsae/articles/getting-started.md):
-- [hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs
-  tipsae](https://ridsonap.is-a.dev/fastsae/articles/hb-area-engines.md):
+- [An Optimal Workflow for Small Area
+  Estimation](https://ridsonap.is-a.dev/fastsae/articles/optimal-workflow.md):
+- [Spatial and Spatio-Temporal
+  Models](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.md):
 - [Bayesian Area-Level Small Area Estimation with
   INLA](https://ridsonap.is-a.dev/fastsae/articles/hb-area-inla.md):
 - [Default Priors of the Hierarchical Bayes
   Models](https://ridsonap.is-a.dev/fastsae/articles/hb-priors.md):
 - [Model Diagnostics and Residual
   Analysis](https://ridsonap.is-a.dev/fastsae/articles/model-diagnostics.md):
-- [An Optimal Workflow for Small Area
-  Estimation](https://ridsonap.is-a.dev/fastsae/articles/optimal-workflow.md):
-- [Spatial and Spatio-Temporal
-  Models](https://ridsonap.is-a.dev/fastsae/articles/spatial-temporal.md):
-- [Sub-Area Level Estimation with Two-Fold
-  Models](https://ridsonap.is-a.dev/fastsae/articles/twofold-subarea.md):
 - [Unit-Level Estimation with
   Battese-Harter-Fuller](https://ridsonap.is-a.dev/fastsae/articles/unit-level-bhf.md):
+- [Sub-Area Level Estimation with Two-Fold
+  Models](https://ridsonap.is-a.dev/fastsae/articles/twofold-subarea.md):
+- [Performance & Scalability
+  Benchmarks](https://ridsonap.is-a.dev/fastsae/articles/benchmarks.md):
+- [hb_area() Engines: INLA vs JAX (CPU, Apple GPU, CUDA) vs
+  tipsae](https://ridsonap.is-a.dev/fastsae/articles/hb-area-engines.md):
+- [Finite Population Simulation: Validating fastsae against Ground
+  Truth](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.md):
+- [Is fastsae Better? Accuracy, Speed and Memory against sae, emdi and
+  tipsae](https://ridsonap.is-a.dev/fastsae/articles/fastsae-evaluation.md):
+
+### Bahasa Indonesia
+
+Terjemahan beranda dan semua artikel. Referensi fungsi tetap berbahasa
+Inggris.
+
+- [fastsae: Estimasi Area Kecil Frekuentis dan Bayesian Berkinerja
+  Tinggi di
+  R](https://ridsonap.is-a.dev/fastsae/articles/id/beranda.md):
+- [Daftar
+  Istilah](https://ridsonap.is-a.dev/fastsae/articles/id/glosarium.md):
+- [Memulai
+  fastsae](https://ridsonap.is-a.dev/fastsae/articles/id/getting-started.md):
+- [Alur Kerja yang Optimal untuk Estimasi Area
+  Kecil](https://ridsonap.is-a.dev/fastsae/articles/id/optimal-workflow.md):
+- [Model Spasial dan
+  Spatio-Temporal](https://ridsonap.is-a.dev/fastsae/articles/id/spatial-temporal.md):
+- [Estimasi Area Kecil Bayesian Tingkat Area dengan
+  INLA](https://ridsonap.is-a.dev/fastsae/articles/id/hb-area-inla.md):
+- [Prior Bawaan Model Bayesian
+  Hierarkis](https://ridsonap.is-a.dev/fastsae/articles/id/hb-priors.md):
+- [Diagnostik Model dan Analisis
+  Residual](https://ridsonap.is-a.dev/fastsae/articles/id/model-diagnostics.md):
+- [Estimasi Tingkat Unit dengan Model
+  Battese-Harter-Fuller](https://ridsonap.is-a.dev/fastsae/articles/id/unit-level-bhf.md):
+- [Estimasi Tingkat Subarea dengan Model Dua
+  Tingkat](https://ridsonap.is-a.dev/fastsae/articles/id/twofold-subarea.md):
+- [Tolok Ukur Kinerja dan
+  Skalabilitas](https://ridsonap.is-a.dev/fastsae/articles/id/benchmarks.md):
+- [Engine hb_area(): INLA vs JAX (CPU, GPU Apple, CUDA) vs
+  tipsae](https://ridsonap.is-a.dev/fastsae/articles/id/hb-area-engines.md):
+- [Simulasi Populasi Terhingga: Validasi fastsae terhadap Nilai
+  Sebenarnya](https://ridsonap.is-a.dev/fastsae/articles/id/finite-population-validation.md):
+- [Apakah fastsae Lebih Baik? Akurasi, Kecepatan, dan Memori
+  dibandingkan sae, emdi, dan
+  tipsae](https://ridsonap.is-a.dev/fastsae/articles/id/fastsae-evaluation.md):

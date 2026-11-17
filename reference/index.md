@@ -16,11 +16,15 @@ High-performance C++ implementation of Fay-Herriot models
 
 ## Bayesian Area-Level Models (INLA)
 
-Hierarchical Bayesian SAE using Integrated Nested Laplace Approximations
-(INLA) across 6 distributions with spatial and spatio-temporal effects
+Hierarchical Bayesian SAE with INLA (or MCMC with NumPyro / JAX) across
+6 distributions with spatial and spatio-temporal effects, and
+sub-indicators of a parent indicator
 
 - [`hb_area()`](https://ridsonap.is-a.dev/fastsae/reference/hb_area.md)
   : Hierarchical Bayes for Area-Level Small Area Estimation
+- [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
+  : Hierarchical Bayes Ratio Model for a Sub-Proportion of a Parent
+  Indicator
 
 ## Estimation Engines
 
@@ -38,21 +42,19 @@ with NumPyro / JAX (optional Python backend)
 ## Two-Fold Subarea Models
 
 Nested area-subarea level models (Torabi & Rao, 2014) with both area and
-subarea random effects via REML EBLUP and Bayesian INLA
+subarea random effects via REML/ML EBLUP and hierarchical Bayes (INLA or
+MCMC)
 
 - [`eblup_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_twofold.md)
   : Empirical Best Linear Unbiased Prediction under a Two-fold
   Fay-Herriot Model.
 - [`hb_twofold()`](https://ridsonap.is-a.dev/fastsae/reference/hb_twofold.md)
   : Two-Fold Hierarchical Bayes for Sub-Area Level Small Area Estimation
-- [`hb_ratio()`](https://ridsonap.is-a.dev/fastsae/reference/hb_ratio.md)
-  : Hierarchical Bayes Ratio Model for a Sub-Proportion of a Parent
-  Indicator
 
 ## Unit-Level Models
 
-Battese-Harter-Fuller models for unit-level survey data via REML EBLUP
-and Bayesian INLA
+Battese-Harter-Fuller models for unit-level survey data via REML/ML
+EBLUP and hierarchical Bayes (INLA or MCMC)
 
 - [`eblup_bhf()`](https://ridsonap.is-a.dev/fastsae/reference/eblup_bhf.md)
   : Empirical Best Linear Unbiased Prediction (EBLUP) for the
