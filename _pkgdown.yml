@@ -21,10 +21,47 @@ template:
         }
         // Initialize language state before render to prevent FOUC
         (function() {
-          var savedLang = localStorage.getItem('fastsae_lang') || 'en';
+          var savedLang = 'en';
+          try { savedLang = localStorage.getItem('fastsae_lang') || 'en'; } catch (e) {}
+          // the Indonesian pages (articles/id/) are always shown in ID mode
+          if (/\/articles\/id\//.test(window.location.pathname)) savedLang = 'id';
           document.documentElement.setAttribute('data-lang', savedLang);
+          document.documentElement.setAttribute('lang', savedLang);
         })();
       </script>
+
+articles:
+  - title: "English"
+    contents:
+      - "`getting-started`"
+      - "`articles/optimal-workflow`"
+      - "`spatial-temporal`"
+      - "`hb-area-inla`"
+      - "`hb-priors`"
+      - "`model-diagnostics`"
+      - "`unit-level-bhf`"
+      - "`twofold-subarea`"
+      - "`benchmarks`"
+      - "`articles/hb-area-engines`"
+      - "`finite-population-validation`"
+      - "`articles/fastsae-evaluation`"
+  - title: "Bahasa Indonesia"
+    desc: "Terjemahan beranda dan semua artikel. Referensi fungsi tetap berbahasa Inggris."
+    contents:
+      - "`articles/id/beranda`"
+      - "`articles/id/glosarium`"
+      - "`articles/id/getting-started`"
+      - "`articles/id/optimal-workflow`"
+      - "`articles/id/spatial-temporal`"
+      - "`articles/id/hb-area-inla`"
+      - "`articles/id/hb-priors`"
+      - "`articles/id/model-diagnostics`"
+      - "`articles/id/unit-level-bhf`"
+      - "`articles/id/twofold-subarea`"
+      - "`articles/id/benchmarks`"
+      - "`articles/id/hb-area-engines`"
+      - "`articles/id/finite-population-validation`"
+      - "`articles/id/fastsae-evaluation`"
 
 navbar:
   structure:
@@ -62,6 +99,9 @@ navbar:
           href: articles/finite-population-validation.html
         - text: "Is fastsae Better? Accuracy, Speed and Memory"
           href: articles/fastsae-evaluation.html
+        - text: "--------------------"
+        - text: "Glossary (Bahasa Indonesia)"
+          href: articles/id/glosarium.html
     benchmarks:
       text: Benchmarks
       menu:
@@ -87,22 +127,22 @@ reference:
       - eblup_sfh
       - eblup_stfh
   - title: "Bayesian Area-Level Models (INLA)"
-    desc: "Hierarchical Bayesian SAE using Integrated Nested Laplace Approximations (INLA) across 6 distributions with spatial and spatio-temporal effects"
+    desc: "Hierarchical Bayesian SAE with INLA (or MCMC with NumPyro / JAX) across 6 distributions with spatial and spatio-temporal effects, and sub-indicators of a parent indicator"
     contents:
       - hb_area
+      - hb_ratio
   - title: "Estimation Engines"
     desc: "Engine objects for the Hierarchical Bayes models: INLA (default) or MCMC with NumPyro / JAX (optional Python backend)"
     contents:
       - hb_engine
       - setup_numpyro_env
   - title: "Two-Fold Subarea Models"
-    desc: "Nested area-subarea level models (Torabi & Rao, 2014) with both area and subarea random effects via REML EBLUP and Bayesian INLA"
+    desc: "Nested area-subarea level models (Torabi & Rao, 2014) with both area and subarea random effects via REML/ML EBLUP and hierarchical Bayes (INLA or MCMC)"
     contents:
       - eblup_twofold
       - hb_twofold
-      - hb_ratio
   - title: "Unit-Level Models"
-    desc: "Battese-Harter-Fuller models for unit-level survey data via REML EBLUP and Bayesian INLA"
+    desc: "Battese-Harter-Fuller models for unit-level survey data via REML/ML EBLUP and hierarchical Bayes (INLA or MCMC)"
     contents:
       - eblup_bhf
       - hb_unit

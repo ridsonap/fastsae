@@ -7,6 +7,9 @@
 #   - vignettes/hb-area-inla.Rmd: the BETA_DATA array of its scalability chart
 #   - README.Rmd and pkgdown/index.md (the site home page): the tables between
 #     <!-- BENCH-README:START/END -->
+#   - their Indonesian translations in vignettes/articles/id/ (benchmarks.Rmd,
+#     hb-area-inla.Rmd, beranda.Rmd), with the same markers, Indonesian text and
+#     Indonesian number format (decimal comma, thousands point)
 # (inst/extdata is excluded from the package build, so the vignette cannot read
 # the files itself.) Run from the package root after updating the .rds files:
 #   Rscript benchmarks/update_benchmark_docs.R
@@ -47,16 +50,18 @@ fmt_x <- function(x) ifelse(is.na(x), "\\-", paste0(format(round(x), big.mark = 
 N <- 1000
 
 # ---- frequentist summary table (n = 1000) ------------------------------------
-freq_rows <- unlist(lapply(names(freq), function(a) {
-  df <- freq[[a]]
-  lab <- c(FH = "Fay-Herriot", SFH = "Spatial Fay-Herriot",
-           STFH = "Spatio-Temporal FH ($T = 5$), point estimates")[[a]]
-  f <- med(df, "fastsae", N); s <- med(df, "sae", N); e <- med(df, "emdi", N)
-  cell <- function(m, v) if (is.na(v)) "\\-" else
-    sprintf("%s (%s; %s slower)", fmt_s(v), fmt_mb(peak(df, m, N)), fmt_x(v / f))
-  sprintf("| **%s** | **%s** (%s) | %s | %s |",
-          lab, fmt_s(f), fmt_mb(peak(df, "fastsae", N)), cell("sae", s), cell("emdi", e))
-}))
+make_freq_rows <- function(labels, fs = fmt_s, fmb = fmt_mb, fx = fmt_x, slower = "slower") {
+  unlist(lapply(names(freq), function(a) {
+    df <- freq[[a]]
+    f <- med(df, "fastsae", N); s <- med(df, "sae", N); e <- med(df, "emdi", N)
+    cell <- function(m, v) if (is.na(v)) "\\-" else
+      sprintf("%s (%s; %s %s)", fs(v), fmb(peak(df, m, N)), fx(v / f), slower)
+    sprintf("| **%s** | **%s** (%s) | %s | %s |",
+            labels[[a]], fs(f), fmb(peak(df, "fastsae", N)), cell("sae", s), cell("emdi", e))
+  }))
+}
+freq_rows <- make_freq_rows(c(FH = "Fay-Herriot", SFH = "Spatial Fay-Herriot",
+                              STFH = "Spatio-Temporal FH ($T = 5$), point estimates"))
 freq_table <- c(
   "| Model ($n = 1,000$ domains, 5 covariates) | `fastsae` | `sae` | `emdi` |",
   "|:---|:--:|:--:|:--:|",
@@ -64,14 +69,17 @@ freq_table <- c(
 )
 # Times only: bench's mem_alloc counts neither the memory of the external inla program
 # nor that of the Stan sampler, so it cannot compare the two packages
-beta_rows <- unlist(lapply(names(beta), function(a) {
-  df <- beta[[a]]
-  n_use <- max(df$n)
-  lab <- c(STD = "Beta", SPATIAL = "Spatial Beta (Besag ICAR)", ST = "Spatio-Temporal Beta (Besag + RW1, $T = 5$)")[[a]]
-  f <- med(df, "fastsae", n_use); t <- med(df, "tipsae", n_use)
-  sprintf("| **%s** | %s | **%s** | %s | %s |", lab, format(n_use, big.mark = ","),
-          fmt_s(f), fmt_s(t), fmt_x(t / f))
-}))
+make_beta_rows <- function(labels, fs = fmt_s, fx = fmt_x, big = ",") {
+  unlist(lapply(names(beta), function(a) {
+    df <- beta[[a]]
+    n_use <- max(df$n)
+    f <- med(df, "fastsae", n_use); t <- med(df, "tipsae", n_use)
+    sprintf("| **%s** | %s | **%s** | %s | %s |", labels[[a]], format(n_use, big.mark = big, decimal.mark = if (big == ".") "," else "."),
+            fs(f), fs(t), fx(t / f))
+  }))
+}
+beta_rows <- make_beta_rows(c(STD = "Beta", SPATIAL = "Spatial Beta (Besag ICAR)",
+                              ST = "Spatio-Temporal Beta (Besag + RW1, $T = 5$)"))
 beta_table <- c(
   "| Model | $n$ | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) | Ratio of times |",
   "|:---|:--:|:--:|:--:|:--:|",
@@ -153,5 +161,88 @@ writeLines(rme, "README.Rmd")
 home <- readLines("pkgdown/index.md")
 home <- replace_block(home, "<!-- BENCH-README:START -->", "<!-- BENCH-README:END -->", readme_block)
 writeLines(home, "pkgdown/index.md")
-cat("Updated vignettes/benchmarks.Rmd, vignettes/hb-area-inla.Rmd, README.Rmd and pkgdown/index.md",
-    "(run devtools::build_readme() next)\n")
+# ---- Indonesian translations (vignettes/articles/id/) ---------------------------
+id_dec <- function(x) chartr(".", ",", x)
+id_s <- function(x) ifelse(is.na(x), "\\-", paste(id_dec(sig(x, 3)), "detik"))
+id_mb <- function(x) ifelse(is.na(x), "\\-", ifelse(x >= 1024, paste(id_dec(sig(x / 1024, 3)), "GB"),
+                                                    paste(id_dec(sig(x, 3)), "MB")))
+id_x <- function(x) ifelse(is.na(x), "\\-", paste0(format(round(x), big.mark = ".", decimal.mark = ","), "x"))
+freq_table_id <- c(
+  "| Model ($n = 1.000$ domain, 5 kovariat) | `fastsae` | `sae` | `emdi` |",
+  "|:---|:--:|:--:|:--:|",
+  make_freq_rows(c(FH = "Fay-Herriot", SFH = "Fay-Herriot Spasial",
+                   STFH = "FH Spatio-Temporal ($T = 5$), estimasi titik"),
+                 fs = id_s, fmb = id_mb, fx = id_x, slower = "lebih lambat")
+)
+beta_table_id <- c(
+  "| Model | $n$ | `fastsae::hb_area` (INLA) | `tipsae::fit_sae` (Stan) | Rasio waktu |",
+  "|:---|:--:|:--:|:--:|:--:|",
+  make_beta_rows(c(STD = "Beta", SPATIAL = "Beta Spasial (Besag ICAR)",
+                   ST = "Beta Spatio-Temporal (Besag + RW1, $T = 5$)"),
+                 fs = id_s, fx = id_x, big = ".")
+)
+mem_note_id <- paste0(
+  "Waktu yang dilaporkan adalah median dari `bench::mark()`. Baris frekuentis diukur pada ", fmeta$date,
+  " dengan fastsae ", fmeta$versions[["fastsae"]], ", sae ", fmeta$versions[["sae"]], ", dan emdi ",
+  fmeta$versions[["emdi"]], " pada himpunan data simulasi yang sama (", fmeta$cpu, ", ", fmeta$r,
+  "; `benchmarks/bench_frequentist.R`); setiap sel dijalankan dalam proses R tersendiri. Memori adalah ",
+  "kenaikan memori residen puncak proses tersebut selama estimasi, termasuk memori yang dialokasikan oleh ",
+  "kode terkompilasi (kenaikan beberapa puluh MB berubah-ubah antarproses sehingga tidak layak dibandingkan). ",
+  "`sae` tidak memiliki MSE analitik untuk model spatio-temporal, jadi baris itu membandingkan estimasi titik ",
+  "saja; dengan MSE analitiknya, fastsae memerlukan ", id_s(med(freq$STFH, "fastsae_mse", N)), "."
+)
+freq_note_id <- paste0(
+  "Baris `fastsae` Bayesian diukur ulang pada ", date_bayes, " (`benchmarks/bench_bayes_fastsae.R`), ",
+  "sedangkan baris `tipsae` (4 rantai, masing-masing 2.000 iterasi) berasal dari pengukuran sebelumnya ",
+  "pada data yang sama."
+)
+fx_id <- function(a, m) id_x(f1000(a, m))
+
+# benchmarks article
+vig_id <- readLines("vignettes/articles/id/benchmarks.Rmd")
+vig_id <- replace_block(vig_id, "const RAW_DATA = \\[", "^  \\];", raw)
+vig_id <- replace_block(vig_id, "const BETA_DATA = \\{", "^  \\};", bd)
+summary_block_id <- c(
+  "**fastsae** mengestimasi model frekuentis dalam C++ terkompilasi (`RcppArmadillo`; faktorisasi Cholesky",
+  "matriks jarang untuk model SAR) dan model Bayesian dengan INLA. Pada $n = 1.000$ domain:",
+  "",
+  sprintf("- **Fay-Herriot**: %s lebih cepat daripada `sae` dan %s lebih cepat daripada `emdi`.", fx_id("FH", "sae"), fx_id("FH", "emdi")),
+  sprintf("- **Fay-Herriot Spasial**: %s lebih cepat daripada `sae` dan %s lebih cepat daripada `emdi`.", fx_id("SFH", "sae"), fx_id("SFH", "emdi")),
+  sprintf("- **Fay-Herriot Spatio-Temporal** ($T = 5$, estimasi titik): %s lebih cepat daripada `sae`.", fx_id("STFH", "sae")),
+  "",
+  "---",
+  "",
+  "## Tabel Hasil Tolok Ukur",
+  "",
+  freq_table_id,
+  "",
+  paste(mem_note_id, freq_note_id),
+  ""
+)
+vig_id <- replace_block(vig_id, "<!-- BENCH-SUMMARY:START -->", "<!-- BENCH-SUMMARY:END -->", summary_block_id)
+writeLines(vig_id, "vignettes/articles/id/benchmarks.Rmd")
+
+# hb-area-inla article
+hb_id <- readLines("vignettes/articles/id/hb-area-inla.Rmd")
+hb_id <- replace_block(hb_id, "const BETA_DATA = \\{", "^  \\};", bd)
+writeLines(hb_id, "vignettes/articles/id/hb-area-inla.Rmd")
+
+# home page
+readme_block_id <- c(
+  "#### 1. EBLUP frekuentis dengan MSE analitik (waktu dan memori puncak)",
+  "",
+  freq_table_id,
+  "",
+  "#### 2. Model Beta Bayesian: INLA vs MCMC Stan ($n$ terbesar yang diuji)",
+  "",
+  beta_table_id,
+  "",
+  paste(mem_note_id, freq_note_id, "Hasil untuk semua ukuran ada di [artikel tolok ukur](benchmarks.html)."),
+  ""
+)
+beranda <- readLines("vignettes/articles/id/beranda.Rmd")
+beranda <- replace_block(beranda, "<!-- BENCH-README:START -->", "<!-- BENCH-README:END -->", readme_block_id)
+writeLines(beranda, "vignettes/articles/id/beranda.Rmd")
+
+cat("Updated vignettes/benchmarks.Rmd, vignettes/hb-area-inla.Rmd, README.Rmd, pkgdown/index.md",
+    "and their Indonesian copies in vignettes/articles/id/ (run devtools::build_readme() next)\n")
