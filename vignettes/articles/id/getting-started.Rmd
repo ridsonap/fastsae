@@ -1,0 +1,180 @@
+---
+title: "Memulai fastsae"
+lang: id
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Pendahuluan
+
+Estimasi Area Kecil (*Small Area Estimation*, SAE) adalah sekumpulan teknik statistik untuk menghasilkan estimasi yang andal bagi subpopulasi atau wilayah geografis yang ukuran sampelnya terlalu kecil, sehingga estimator survei langsung tidak dapat mencapai presisi yang memadai.
+
+Paket **fastsae** mengestimasi model EBLUP frekuentis dalam kode C++ terkompilasi (melalui `Rcpp`, `RcppArmadillo`, dan `RcppEigen`) serta model Bayesian hierarkis (*hierarchical Bayes*, HB) dengan INLA. Keunggulannya:
+
+- **Komputasi cepat**: *Fisher scoring* dan perhitungan MSE dikerjakan dalam C++ terkompilasi, dengan aljabar linear matriks jarang (*sparse*) untuk model spasial.
+- **Sesuai dengan `sae`**: bila kedua paket memakai metode yang sama, estimasi, komponen varians, dan MSE analitiknya sama dengan `sae` hingga galat pembulatan (ditunjukkan di bawah untuk model Fay-Herriot). Pengecualian yang terdokumentasi hanya menyangkut model spasial: korelasi spasial yang terestimasi tepat di batas ruang parameter, dan MSE untuk estimasi ML (lihat `?eblup_sfh`).
+- **Antarmuka S3 modern**: menyatu dengan metode R yang standar (`summary()`, `coef()`, `fitted()`, `residuals()`, `autoplot()`).
+
+## Model Fay-Herriot
+
+Model tingkat area yang diperkenalkan Fay dan Herriot (1979) menghubungkan estimasi survei langsung $y_d$ dari parameter area $\theta_d$ dengan variabel penyerta $x_d$:
+
+$$y_d = x_d^\top \beta + u_d + e_d, \quad d = 1, \dots, D$$
+
+dengan:
+
+- $u_d \sim \text{i.i.d. } N(0, \sigma_u^2)$ adalah efek acak khusus untuk setiap domain;
+- $e_d \sim \text{ind. } N(0, \psi_d)$ adalah galat sampling dengan varians sampling $\psi_d$ yang diketahui (`vardir`).
+
+*Empirical Best Linear Unbiased Predictor* (EBLUP) merupakan kombinasi terbobot antara estimator langsung dan estimator sintetis regresi:
+
+$$\hat{\theta}_d = \gamma_d y_d + (1 - \gamma_d) x_d^\top \hat{\beta}$$
+
+dengan $\gamma_d = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + \psi_d}$ sebagai faktor penyusutan (*shrinkage factor*, $0 \le \gamma_d \le 1$) dan $\hat\beta$ sebagai estimator kuadrat terkecil terampat (*generalized least squares*). Area yang tidak memiliki estimasi langsung ($y_d$ hilang) memperoleh estimasi sintetis $x_d^\top \hat{\beta}$.
+
+MSE dari EBLUP diestimasi dengan aproksimasi orde kedua $g_{1d} + g_{2d} + 2 g_{3d}$ (Prasad dan Rao, 1990; Datta dan Lahiri, 2000). Di sini $g_{1d} = \gamma_d \psi_d$ adalah MSE bila parameternya diketahui, $g_{2d}$ memperhitungkan estimasi $\beta$, dan $g_{3d}$ memperhitungkan estimasi $\sigma_u^2$. Untuk estimasi ML, suku biasnya dikurangkan. Galat baku relatif (*relative standard error*) dihitung sebagai $\mathrm{RSE}_d = 100 \sqrt{\mathrm{MSE}_d} / \hat{\theta}_d$.
+
+## Contoh Langkah demi Langkah
+
+### 1. Memuat Paket dan Data
+
+Contoh ini memakai data bawaan `mys`, yaitu rata-rata lama sekolah penyandang disabilitas di 42 area. Sepuluh di antaranya tidak tersampel.
+
+```{r load}
+library(fastsae)
+library(ggplot2)
+
+data("mys")
+head(mys)
+```
+
+### 2. Mengestimasi Model Fay-Herriot (`eblup_fh`)
+
+Model Fay-Herriot tingkat area diestimasi dengan *Restricted Maximum Likelihood* (REML) sebagai berikut:
+
+```{r fit_fh}
+# Estimasi model Fay-Herriot
+fit_fh <- eblup_fh(
+  formula = y ~ x1 + x2 + x3,
+  vardir = ~vardir,
+  data = mys,
+  method = "REML",
+  print_result = FALSE
+)
+```
+
+### 3. Ringkasan Model dan Koefisien
+
+Metode S3 `summary()` menampilkan diagnostik model, komponen varians, dan uji koefisien secara lengkap:
+
+```{r summary}
+summary(fit_fh)
+```
+
+Koefisien efek tetap diambil dengan `coef()`:
+
+```{r coef}
+coef(fit_fh)
+```
+
+Nilai EBLUP dan residualnya diambil dengan fungsi generik yang biasa:
+
+```{r fitted_res}
+# Nilai dugaan (EBLUP)
+head(fitted(fit_fh))
+
+# Residual (estimasi langsung - EBLUP)
+head(residuals(fit_fh))
+```
+
+### 4. Grafik Diagnostik (`autoplot`)
+
+`fastsae` memperluas `ggplot2::autoplot()` sehingga grafik diagnostik dan perbandingan dapat dibuat dengan mudah.
+
+#### Estimasi Langsung vs EBLUP
+
+Membandingkan estimasi langsung dengan EBLUP memperlihatkan penyusutan ke arah garis sintetis regresi:
+
+```{r plot_estimates}
+autoplot(fit_fh, type = "estimates")
+```
+
+#### *Mean Squared Error* (MSE) per Domain
+
+Ketidakpastian setiap domain dapat dilihat dari grafik MSE:
+
+```{r plot_mse}
+autoplot(fit_fh, type = "mse")
+```
+
+#### Estimasi Langsung dan EBLUP per Domain
+
+`type = "comparison"` (atau aliasnya, `"ribbon"`) menampilkan estimasi langsung dan EBLUP setiap domain beserta ketidakpastiannya:
+
+```{r plot_ribbon}
+autoplot(fit_fh, type = "ribbon")
+```
+
+`type = "rse"` menggambar galat baku relatif, sedangkan `type = "map"` meneruskan hasil estimasi ke `map_sae()` untuk membuat peta koroplet (memerlukan objek `sf`). Jika yang diberikan berupa *list* bernama berisi beberapa hasil estimasi, grafik `"comparison"`, `"mse"`, `"scatter"`, dan `"map"` akan membandingkan model-model tersebut (lihat [spatial-temporal.html](spatial-temporal.html)).
+
+### 5. Model Fay-Herriot Logaritmik (`transform = "log"`)
+
+Untuk indikator yang bernilai positif dan menceng ke kanan (pendapatan, pengeluaran), model Fay-Herriot dapat diestimasi pada skala logaritma. `vardir` tetap diberikan pada skala aslinya; fungsi ini mengubahnya ke skala log dengan metode delta, $\psi_d / y_d^2$. Estimasi dikembalikan ke skala asal dengan koreksi rata-rata bersyarat $\exp(\tilde\mu_d + \hat g_{1d}/2)$ dari model log-normal (bandingkan Slud & Maiti, 2006, tanpa suku $O(1/m)$ mereka), dan MSE-nya merupakan aproksimasi metode delta $\hat\theta_d^2 \cdot \mathrm{mse}_{\log, d}$. EBLUP dan MSE pada skala log disimpan di `eblup_log` dan `mse_log`:
+
+```{r fit_log}
+fit_log <- eblup_fh(y ~ x1 + x2 + x3,
+  vardir = ~vardir, data = mys, transform = "log", print_result = FALSE
+)
+head(fit_log$df_eblup[, c("domain", "y", "eblup", "rse", "eblup_log", "mse_log")])
+```
+
+## Kesesuaian dengan `sae`
+
+Pada data yang sama, `fastsae` menghasilkan ulang keluaran `sae::mseFH()`, yaitu EBLUP beserta MSE analitiknya.
+
+`sae::mseFH()` memerlukan data yang lengkap, jadi perbandingan dilakukan pada 32 area yang tersampel:
+
+```{r equivalence, message=FALSE, warning=FALSE}
+if (requireNamespace("sae", quietly = TRUE)) {
+  mys_sampled <- as.data.frame(mys[!is.na(mys$y), ])
+  fit_fast <- eblup_fh(y ~ x1 + x2 + x3, vardir = ~vardir, data = mys_sampled,
+                       print_result = FALSE)
+  fit_sae <- sae::mseFH(y ~ x1 + x2 + x3, vardir = vardir, data = mys_sampled)
+
+  # EBLUP, koefisien, komponen varians, dan MSE analitik
+  print(c(
+    eblup = all.equal(fit_fast$df_eblup$eblup, as.vector(fit_sae$est$eblup)),
+    beta = all.equal(as.vector(coef(fit_fast)), as.vector(fit_sae$est$fit$estcoef$beta)),
+    sigma2_u = all.equal(fit_fast$random_effect_var, fit_sae$est$fit$refvar),
+    mse = all.equal(fit_fast$df_eblup$mse, as.vector(fit_sae$mse))
+  ))
+}
+```
+
+Setiap perbandingan menghasilkan `TRUE`: kedua paket sama hingga batas toleransi `all.equal()`.
+
+## Langkah Berikutnya
+
+Kemampuan pemodelan lanjutan di **fastsae**:
+
+- **Model Spasial & Spatio-Temporal (EBLUP)**: [spatial-temporal.html](spatial-temporal.html) (dinamika SAR dan AR(1)).
+- **SAE Bayesian tingkat area dengan INLA (`hb_area`)**: [hb-area-inla.html](hb-area-inla.html) (keluarga non-Gaussian: Beta, Poisson, Binomial Negatif, Gamma, Binomial; interaksi spatio-temporal; pemeriksaan konvergensi MCMC; serta `hb_ratio()` untuk subindikator dari sebuah indikator induk).
+- **Diagnostik Model dan Analisis Residual (`diagnose`)**: [model-diagnostics.html](model-diagnostics.html) (uji kalibrasi, penurunan RSE, dan Moran's I).
+- **Estimasi tingkat unit**: [unit-level-bhf.html](unit-level-bhf.html) (model Battese-Harter-Fuller dan padanan HB-nya).
+- **Model subarea dua tingkat**: [twofold-subarea.html](twofold-subarea.html) (`eblup_twofold()`, `hb_twofold()`).
+- **Prior bawaan model HB**: [hb-priors.html](hb-priors.html).
+
+## Daftar Pustaka
+
+- Datta, G. S., & Lahiri, P. (2000). A unified measure of uncertainty of estimated best linear unbiased predictors in small area estimation problems. *Statistica Sinica*, 10(2), 613–627.
+- Fay, R. E., & Herriot, R. A. (1979). Estimates of income for small places: An application of James-Stein procedures to Census data. *Journal of the American Statistical Association*, 74(366), 269–277.
+- Prasad, N. G. N., & Rao, J. N. K. (1990). The estimation of the mean squared error of small-area estimators. *Journal of the American Statistical Association*, 85(409), 163–171.
+- Rao, J. N. K., & Molina, I. (2015). *Small Area Estimation* (2nd ed.). John Wiley & Sons.
+- Slud, E. V., & Maiti, T. (2006). Mean-squared error estimation in transformed Fay-Herriot models. *Journal of the Royal Statistical Society: Series B*, 68(2), 239–257.

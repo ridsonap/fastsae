@@ -1,0 +1,93 @@
+---
+title: "Daftar Istilah"
+lang: id
+---
+
+Halaman berbahasa Indonesia di situs ini memakai padanan Indonesia untuk sebagian besar istilah
+teknis. Referensi fungsi (`?eblup_fh`, `?hb_area`, dan seterusnya) serta keluaran R tetap berbahasa
+Inggris, jadi tabel berikut membantu mencocokkan keduanya. Singkatan yang sudah baku (EBLUP, MSE,
+RSE, REML, MCMC, INLA) dipakai apa adanya.
+
+## Konsep dasar
+
+| Bahasa Inggris | Bahasa Indonesia |
+|:--|:--|
+| small area estimation (SAE) | estimasi area kecil |
+| domain, area, sub-area | domain, area, subarea |
+| direct estimate / direct estimator | estimasi langsung / estimator langsung |
+| sampling variance (`vardir`) | varians sampling |
+| sampling error | galat sampling |
+| design effect (deff) | efek desain |
+| effective sample size | ukuran sampel efektif |
+| finite population | populasi terhingga |
+| unsampled area | area tak tersampel |
+| auxiliary variable, covariate | variabel penyerta, kovariat |
+| borrowing strength | meminjam kekuatan |
+| synthetic estimate | estimasi sintetis |
+| shrinkage | penyusutan |
+| benchmarking | benchmarking |
+| reliability tier | tingkat keandalan |
+| relative standard error (RSE) | galat baku relatif |
+| mean squared error (MSE) | *mean squared error* |
+
+## Model dan estimasi
+
+| Bahasa Inggris | Bahasa Indonesia |
+|:--|:--|
+| area-level / unit-level model | model tingkat area / tingkat unit |
+| two-fold (sub-area level) model | model subarea dua tingkat |
+| nested error regression | regresi galat tersarang |
+| fixed effect / random effect | efek tetap / efek acak |
+| variance component | komponen varians |
+| fit a model | mengestimasi model |
+| fitted value | nilai dugaan |
+| point estimate | estimasi titik |
+| analytical MSE | MSE analitik |
+| parametric / non-parametric bootstrap | bootstrap parametrik / nonparametrik |
+| boundary (of the parameter space) | batas (ruang parameter) |
+| goodness of fit | kecocokan model |
+| measurement error | galat pengukuran |
+| link function | fungsi link |
+| overdispersion | overdispersi |
+
+## Spasial dan temporal
+
+| Bahasa Inggris | Bahasa Indonesia |
+|:--|:--|
+| spatial weights / proximity matrix | matriks pembobot spasial / matriks kedekatan |
+| adjacency, contiguity | ketetanggaan, persinggungan |
+| row-standardised | distandardisasi per baris |
+| spatial autocorrelation | autokorelasi spasial |
+| spatial lag model | model *spatial lag* |
+| random walk | *random walk* |
+| space-time interaction | interaksi ruang-waktu |
+| panel data | data panel |
+
+## Bayesian
+
+| Bahasa Inggris | Bahasa Indonesia |
+|:--|:--|
+| hierarchical Bayes (HB) | Bayesian hierarkis |
+| prior / posterior | prior / posterior |
+| posterior mean, posterior SD | rata-rata posterior, simpangan baku posterior |
+| credible interval | selang kredibel |
+| coverage | cakupan |
+| hyperparameter | hiperparameter |
+| latent field | medan laten |
+| Gaussian Markov random field | medan acak Markov Gaussian |
+| chain, draw, warm-up | rantai, tarikan, *warm-up* |
+| effective sample size (ESS) | ukuran sampel efektif |
+| divergent transition | transisi divergen |
+| engine | *engine* (INLA atau JAX) |
+
+## Simulasi dan tolok ukur
+
+| Bahasa Inggris | Bahasa Indonesia |
+|:--|:--|
+| benchmark (speed) | tolok ukur |
+| replicate | ulangan |
+| scenario | skenario |
+| Monte Carlo standard error (MCSE) | galat baku Monte Carlo |
+| warm run | putaran hangat (setelah kompilasi) |
+| peak memory | memori puncak |
+| speedup | percepatan |
