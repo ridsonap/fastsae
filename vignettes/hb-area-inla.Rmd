@@ -166,8 +166,10 @@ fit_jax2$divergences
    $$u_d = \frac{1}{\sqrt{\tau_u}} \left( \sqrt{1 - \phi} \, v_d + \sqrt{\phi} \, u^*_d \right)$$
    where $\phi \in [0, 1]$ measures the proportion of variance explained by spatial structure and has the penalised complexity (PC) prior $P(\phi < 0.5) = 0.5$ (Simpson et al., 2017).
 2. **Besag ICAR (`spatial = "besag"`)**: Intrinsic Conditional Autoregressive spatial model.
-3. **SAR area effect (`spatial = "sar"`)**: $u = (I - \rho W)^{-1}\varepsilon$, the random effect of the spatial Fay-Herriot model of `eblup_sfh()`.
-4. **Spatial Lag Model (`spatial = "slm"`)**: $\eta = (I - \rho W)^{-1}(X\beta + \varepsilon)$; the covariates are filtered too, so this is not the model of `eblup_sfh()`.
+3. **BYM (`spatial = "bym"`)**: the classic Besag-York-Mollié model, an iid and a Besag effect, each with its own variance.
+4. **Leroux (`spatial = "leroux"`, INLA's `"generic1"`)**: precision $\sigma_u^{-2}\{(1 - \lambda) I + \lambda R\}$, a mixture of iid and ICAR structure.
+5. **SAR area effect (`spatial = "sar"`)**: $u = (I - \rho W)^{-1}\varepsilon$, the random effect of the spatial Fay-Herriot model of `eblup_sfh()`.
+6. **Spatial Lag Model (`spatial = "slm"`)**: $\eta = (I - \rho W)^{-1}(X\beta + \varepsilon)$; the covariates are filtered too, so this is not the model of `eblup_sfh()`.
 
 ### Temporal Models
 

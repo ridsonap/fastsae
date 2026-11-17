@@ -10,7 +10,7 @@ Description: High-performance Small Area Estimation (SAE), implementing
     frequentist EBLUP models via compiled C++ and Bayesian hierarchical models
     via 'INLA' (Integrated Nested Laplace Approximations) or, optionally, full
     MCMC with 'NumPyro' (Phan et al., 2019) <doi:10.48550/arXiv.1912.11554>
-    on 'JAX' (CPU or NVIDIA GPU). Frequentist models
+    on 'JAX' (CPU, NVIDIA GPU or Apple silicon GPU). Frequentist models
     include the area-level Fay-Herriot model (Fay and Herriot, 1979
     <doi:10.1080/01621459.1979.10482505>), spatial Fay-Herriot (Pratesi and
     Salvati, 2008 <doi:10.1007/s10260-007-0061-9>), spatio-temporal
@@ -21,8 +21,10 @@ Description: High-performance Small Area Estimation (SAE), implementing
     hierarchies. Bayesian models use 'INLA' (Rue et al., 2009
     <doi:10.1111/j.1467-9868.2008.00700.x>), supporting 6
     likelihood families (Gaussian, Beta, Binomial, Poisson, Negative Binomial,
-    Gamma), spatial structures (BYM2, Besag ICAR), temporal dynamics (RW1, RW2,
-    AR1), and spatio-temporal interactions. Key features include analytical and
+    Gamma), spatial structures (Besag ICAR, BYM, BYM2, Leroux, SAR, spatial
+    lag), temporal dynamics (RW1, RW2, AR1, iid), spatio-temporal interactions,
+    covariates measured with error, and sub-indicators that never exceed a
+    given parent indicator. Key features include analytical and
     bootstrap MSE estimation, benchmarking to aggregate targets (Rao and Molina,
     2015 <doi:10.1002/9781118735855>), automatic handling of unsampled domains,
     and S3 methods for summaries, diagnostics and plots.

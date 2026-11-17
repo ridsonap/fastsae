@@ -410,10 +410,15 @@ tip_txt <- if (nrow(tip) == 0) {
     fmt_n(round(time_of(m, "beta", "tipsae", n_tip) / time_of(m, "beta", "inla", n_tip))),
     fmt_s(time_of(m, "beta", "cpu", n_tip))
   )
-  sprintf(
-    "%s So the JAX engine on the CPU is %.0fx to %.0fx faster than tipsae on the sizes both ran.",
-    s, min(r), max(r)
-  )
+  # r = tipsae time / JAX CPU time; r < 1 means JAX is slower
+  if (all(r > 1)) {
+    jax_vs_tip <- sprintf("faster than tipsae at every size both ran (%.1fx to %.1fx)", min(r), max(r))
+  } else {
+    jax_vs_tip <- sprintf(
+      "faster than tipsae up to $D = %s$ (up to %.1fx), but slower at larger $D$ (at $D = %s$ it takes %.1fx the time of tipsae)",
+      fmt_n(max(both[r > 1])), max(r), fmt_n(max(both)), 1 / r[which.max(both)])
+  }
+  sprintf("%s So the JAX engine on the CPU is %s.", s, jax_vs_tip)
 }
 m1 <- machines[1]
 n_max <- max(tm$n[tm$machine == m1])
@@ -512,7 +517,5 @@ and JAX with CUDA, then run the same benchmark:
 
 - For most surveys (hundreds to a few thousand domains), `inla_engine()` is
   the fastest choice.
-- For full MCMC, the JAX engine on the CPU alone is faster than Stan via
-  tipsae: `r if (exists("r") && length(r) > 0) sprintf("%.0fx to %.0fx here", min(r), max(r)) else ""`,
-  with the gap narrowing as $D$ grows.
+- For full MCMC, `r if (exists("r") && length(r) > 0 && any(r < 1)) "the JAX engine on the CPU alone is faster than Stan via tipsae for small and medium $D$, but loses that lead as $D$ grows (see the table above)" else "the JAX engine on the CPU alone is faster than Stan via tipsae, with the gap narrowing as $D$ grows"`.
 - A GPU becomes worthwhile for the JAX engine on large spatial models.

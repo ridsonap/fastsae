@@ -81,6 +81,7 @@ reproduces the `sae` estimates where both use the same method.
 | `hb_area()` | Area | Gaussian, beta, binomial, Poisson, negative binomial, gamma | iid, Besag ICAR, BYM, BYM2, Leroux, SAR, spatial lag; RW1, RW2, AR(1); space-time interactions |
 | `hb_unit()` | Unit | Gaussian, binomial, Poisson | iid, Besag ICAR or BYM2 area effects |
 | `hb_twofold()` | Sub-area | Gaussian, binomial, Poisson | iid, Besag ICAR or BYM2 area effects + iid sub-area effects |
+| `hb_ratio()` | Area | Binomial share of a given parent indicator (never above the parent) | as `hb_area()` |
 
 The default priors of the HB models, and the simulations behind them,
 are documented in the [priors
@@ -130,13 +131,9 @@ all sizes.
 
 ## Installation
 
-Install from **CRAN**:
-
-``` r
-install.packages("fastsae")
-```
-
-Or install the development version from **GitHub**:
+CRAN has fastsae 0.1.0 (`install.packages("fastsae")`), which predates
+the hierarchical Bayes models and most of the tools above. Install
+version 1.0.0 from **GitHub**:
 
 ``` r
 # install.packages("remotes")
@@ -273,6 +270,10 @@ examples:
   tipsae](https://ridsonap.is-a.dev/fastsae/articles/hb-area-engines.html)
 - [Finite Population
   Validation](https://ridsonap.is-a.dev/fastsae/articles/finite-population-validation.html)
+- [Is fastsae Better? Accuracy, Speed and
+  Memory](https://ridsonap.is-a.dev/fastsae/articles/fastsae-evaluation.html)
+- 🇮🇩 Dokumentasi dalam Bahasa Indonesia:
+  [Beranda](https://ridsonap.is-a.dev/fastsae/articles/id/beranda.html)
 
 ------------------------------------------------------------------------
 

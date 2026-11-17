@@ -6,7 +6,7 @@
 [![License: GPL-3](https://img.shields.io/badge/License-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 <!-- badges: end -->
 
-**fastsae** implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled **C++** (`RcppArmadillo`) with **OpenMP** multi-threading, and Bayesian estimation uses **INLA** (Integrated Nested Laplace Approximations). With hundreds to thousands of domains it is much faster than existing R implementations (see [Performance at a Glance](#performance-at-a-glance); with a few dozen domains `sae` is about as fast), while agreeing numerically with reference packages such as `sae`.
+**fastsae** implements widely used Small Area Estimation (SAE) models for survey data. Frequentist estimation runs in compiled **C++** (`RcppArmadillo`) with **OpenMP** multi-threading. Bayesian estimation uses **INLA** (Integrated Nested Laplace Approximations) by default, and the same models (except the spatial lag and RW2 effects) can also be fitted by full MCMC with **NumPyro on JAX**, on the CPU or a GPU. With hundreds to thousands of domains it is much faster than existing R implementations (see [Performance at a Glance](#performance-at-a-glance); with a few dozen domains `sae` is about as fast), while agreeing numerically with reference packages such as `sae`.
 
 ---
 
@@ -14,9 +14,9 @@
 
 - ⚡ **Speed**: with 1,000 domains, the C++ Fisher-scoring fits with analytical MSE are 29 to 1,250 times faster than `sae` (spatio-temporal model: 40 s instead of 19 minutes); with a few dozen domains the differences are a fraction of a second.
 - 🎯 **Numerical agreement**: on the same data, coefficients, variance components, EBLUPs and analytical MSEs match `sae` (Molina & Marhuenda) to about $10^{-14}$; the documented exceptions are a spatial correlation on the boundary and the ML MSE of the spatial model.
-- 🔀 **Frequentist and Bayesian in one package**: EBLUP models in C++ and hierarchical Bayesian models through INLA.
+- 🔀 **Frequentist and Bayesian in one package**: EBLUP models in C++, and hierarchical Bayesian models through INLA or, with `engine = jax_engine()`, by MCMC (NumPyro NUTS on JAX, CPU or GPU) with convergence diagnostics.
 - 🧵 **Parallel bootstrap**: multi-core OpenMP parametric and non-parametric bootstrap MSE estimation.
-- 🗺️ **Unsampled areas**: domains with missing observations (`y = NA`) are predicted automatically.
+- 🗺️ **Unsampled areas**: areas, sub-areas and periods without a direct estimate (`y = NA`) stay in the model and are predicted, with their MSE.
 - 💾 **Low memory**: avoids unnecessary $O(m^2)$ / $O(m^3)$ allocations.
 - 📊 **Standard R interface**: S3 methods (`summary`, `coef`, `fitted`, `residuals`) and publication-ready `autoplot()`.
 
@@ -34,8 +34,8 @@
 
 - **6 likelihood families**: Gaussian, Beta, Binomial, Poisson, Negative Binomial, Gamma
 - **Spatial random effects**: Besag ICAR, BYM, BYM2, Leroux, SAR, spatial lag
-- **Temporal random effects**: RW1, RW2, AR(1)
-- **Spatio-temporal interactions**: separable and non-separable structures
+- **Temporal random effects**: RW1, RW2, AR(1), iid
+- **Spatio-temporal interactions**: domain-specific trends, a separable space-time field, and Knorr-Held types I–IV
 
 **Compared with MCMC**: no chains to run and monitor, deterministic results, and fits in seconds. INLA is an approximation: fastsae chose its settings by comparing them with exact posteriors and long Stan runs, and `engine = jax_engine()` fits the same models by MCMC when a check is needed.
 
@@ -53,8 +53,8 @@ where:
 - $e_{ij} \sim N(0, D_{ij})$: Sampling error with known variance
 
 **Available implementations:**
-- `eblup_twofold()`: Frequentist EBLUP via REML Fisher-scoring (C++)
-- `hb_twofold()`: Bayesian hierarchical model via INLA with spatial support
+- `eblup_twofold()`: frequentist EBLUP by REML or ML Fisher scoring (C++), with analytical or bootstrap MSE and area means
+- `hb_twofold()`: hierarchical Bayesian model (INLA or MCMC) for Gaussian, binomial and Poisson responses, with an optional spatial area effect
 
 ---
 
@@ -77,21 +77,34 @@ where:
 
 | Model | Function | Random Effect Structure | MSE Estimation |
 |:---|:---|:---|:---|
-| **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects | Analytical (Prasad-Rao) |
-| **Spatial Fay-Herriot** | `eblup_sfh()` | SAR(1) spatial autocorrelation | Analytical, Bootstrap |
-| **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | SAR(1) + Temporal AR(1) | Analytical, Bootstrap |
+| **Fay-Herriot** (Area-level) | `eblup_fh()` | Independent area effects (optional log transformation) | Analytical (Prasad-Rao / Datta-Lahiri) |
+| **Spatial Fay-Herriot** | `eblup_sfh()` | SAR(1) spatial autocorrelation | Analytical, parametric and non-parametric bootstrap |
+| **Spatio-Temporal Fay-Herriot** | `eblup_stfh()` | SAR(1) + Temporal AR(1) | Analytical, parametric bootstrap |
 | **Battese-Harter-Fuller** (Unit-level) | `eblup_bhf()` | Random intercept nested in domains | Bootstrap |
-| **Two-Fold Subarea** | `eblup_twofold()` | Area + Subarea nested effects | Analytical, Bootstrap |
+| **Two-Fold Subarea** | `eblup_twofold()` | Area + Subarea nested effects | Analytical, parametric bootstrap |
 
-### Bayesian Models (INLA)
+### Bayesian Models (INLA or MCMC)
 
 | Model | Function | Distributions | Spatial/Temporal |
 |:---|:---|:---|:---|
 | **Area-level HB** | `hb_area()` | Gaussian, Beta, Binomial, Poisson, NB, Gamma | ✓ Full support |
 | **Unit-level HB** | `hb_unit()` | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
 | **Two-Fold HB** | `hb_twofold()` | Gaussian, Binomial, Poisson | ✓ BYM2/Besag |
+| **Sub-indicator of a parent indicator** | `hb_ratio()` | Binomial share of the parent, never above it | Through `hb_area()` |
 
-The Bayesian models are fitted with `engine = inla_engine()` (default). `hb_area()`, `hb_unit()` and `hb_twofold()` can also be fitted by MCMC in Python (JAX/NumPyro) with `engine = jax_engine()`.
+The Bayesian models are fitted with `engine = inla_engine()` (default). All four can also be fitted by MCMC in Python (NumPyro on JAX, CPU or GPU) with `engine = jax_engine()`; those fits report R-hat, effective sample sizes, divergences and E-BFMI. `hb_area()` also accepts covariates measured with error (`var_x`). The default priors are the same for both engines and are documented in the [priors article](articles/hb-priors.html).
+
+---
+
+## Tools around the models
+
+| Step | Functions |
+|:---|:---|
+| Before fitting | `create_weights()` (spatial weights), `spatial_test()` (Moran's I, LM tests), `gvf_smooth()` (smoothing of sampling variances), `effective_trials()` (effective sample sizes for binomial models), `step_sae()` (covariate selection) |
+| Checking a fit | `diagnose()` (precision gain, goodness of fit, calibration, residual spatial autocorrelation, PIT and CPO), `autoplot()`, `compare_sae()` (agreement between two models) |
+| Benchmarking | `benchmark_sae()` after the fit (ratio, difference, optimal, logit), or `self_benchmark = TRUE` inside the model functions |
+| Reporting | `add_reliability_flags()` (RSE tiers, or classes with their probability), `map_sae()` (choropleth maps), `export_sae()` (spreadsheets) |
+| Simulation | `sim_area_data()`, `sim_series_data()` |
 
 ---
 
@@ -122,14 +135,24 @@ Times are medians of `bench::mark()`. The frequentist rows were measured on 2026
 
 ## Installation
 
-```r
-# Install from CRAN (once published)
-install.packages("fastsae")
+CRAN has fastsae 0.1.0, which predates the hierarchical Bayes models and most of the tools above. Version 1.0.0, described on this site, is installed from GitHub:
 
-# Or install the development version from GitHub
+```r
 # install.packages("remotes")
 remotes::install_github("ridsonap/fastsae")
 ```
+
+The Bayesian models need **INLA**, which is not on CRAN:
+
+```r
+install.packages(
+  "INLA",
+  repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"),
+  dep = TRUE
+)
+```
+
+The optional MCMC engine (`jax_engine()`) needs Python with JAX and NumPyro: `setup_numpyro_env()` installs them through `reticulate`, and `setup_numpyro_env(check_only = TRUE)` checks the installation.
 
 ---
 
@@ -140,10 +163,15 @@ Explore detailed guides, worked examples, and performance analyses:
 - [**Getting Started with fastsae**](articles/getting-started.html): Step-by-step walkthrough of model fitting, diagnostics, and S3 extraction.
 - [**An Optimal SAE Workflow**](articles/optimal-workflow.html): The order of a complete analysis, from reliability of the direct estimates to benchmarking and reporting.
 - [**Spatial & Spatio-Temporal Models (EBLUP)**](articles/spatial-temporal.html): Working with spatial weights matrices, spatial kriging, and spatio-temporal panels.
-- [**Bayesian Area-Level Models (INLA)**](articles/hb-area-inla.html): Hierarchical Bayesian SAE using INLA with 6 distributions and spatial-temporal effects.
+- [**Bayesian Area-Level Models (INLA)**](articles/hb-area-inla.html): Hierarchical Bayesian SAE with 6 distributions and spatial-temporal effects, MCMC convergence checks, covariates measured with error, and `hb_ratio()`.
+- [**Default Priors of the HB Models**](articles/hb-priors.html): The default priors of both engines and the simulations behind them.
 - [**Model Diagnostics & Calibration**](articles/model-diagnostics.html): Diagnostics and benchmarking to aggregate targets.
-- [**Unit-Level Estimation (BHF)**](articles/unit-level-bhf.html): Fitting the Battese-Harter-Fuller model with individual survey data.
+- [**Unit-Level Estimation (BHF and HB)**](articles/unit-level-bhf.html): The Battese-Harter-Fuller model and its hierarchical Bayes counterpart with individual survey data.
+- [**Sub-Area Level Two-Fold Models**](articles/twofold-subarea.html): Sub-areas nested within areas, by EBLUP and hierarchical Bayes.
 - [**Performance Benchmarks**](articles/benchmarks.html): Interactive charts and speedup comparisons across sample sizes.
+- [**hb_area() Engines**](articles/hb-area-engines.html): INLA against MCMC with JAX on the CPU and GPU, and against tipsae.
+- [**Finite Population Validation**](articles/finite-population-validation.html): A design-based simulation against known population values.
+- [**Is fastsae Better?**](articles/fastsae-evaluation.html): Accuracy, speed and memory against sae, emdi and tipsae.
 - [**Function Reference**](reference/index.html): Comprehensive API reference and parameter documentation.
 
 ---
