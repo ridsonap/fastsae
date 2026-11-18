@@ -85,6 +85,7 @@ cmp <- rbind(
   "Unit-level model" = c("EBLUP, HB", "EBLUP, EB", "EBLUP, EBP", "EBLUP, HB", "--", "HB", "HB"),
   "HB likelihoods" = c("Gaussian, beta, gamma, binomial, Poisson, neg. binomial", "--", "--", "Gaussian", "beta, flexible beta, 0/1-inflated beta, ext. beta", "Gaussian, binomial, multinomial, Poisson, neg. binomial, gamma", "Gaussian, binomial, beta-binomial"),
   "HB spatial effects" = c("ICAR, BYM, BYM2, Leroux, SAR, SLM", "--", "--", "--", "ICAR", "ICAR, BYM2, Leroux", "ICAR, BYM2"),
+  "Covariates with error" = c("HB (structural, functional)", "--", "EBLUP (Ybarra-Lohr)", "--", "--", "HB", "--"),
   "Benchmarking" = c("ratio, difference, MSE-weighted, logit; one or two levels", "--", "raking, ratio, MSE-adjusted; one total", "linear constraints", "raking, ratio, double", "--", "national totals"),
   "Maps / export" = c("yes / spreadsheet", "-- / --", "yes / spreadsheet", "-- / --", "yes / CSV", "-- / --", "yes / --"),
   "Compiled code" = c("C++ (OpenMP)", "--", "--", "--", "Stan", "C++", "--")
@@ -125,16 +126,19 @@ rj_table(pri, caption = "Default priors of hb\\_area(), hb\\_unit() and hb\\_two
 ## ----functions----------------------------------------------------------------
 fns <- data.frame(
   Function = c("eblup\\_fh(), eblup\\_sfh(), eblup\\_stfh()", "eblup\\_bhf(), eblup\\_twofold()",
-               "hb\\_area()", "hb\\_unit(), hb\\_twofold()", "inla\\_engine(), jax\\_engine()",
+               "hb\\_area()", "hb\\_unit(), hb\\_twofold()", "hb\\_ratio()", "inla\\_engine(), jax\\_engine()",
+               "effective\\_trials()",
                "benchmark\\_sae()", "add\\_reliability\\_flags()", "compare\\_sae(), step\\_sae()",
                "diagnose(), autoplot()", "map\\_sae(), export\\_sae()"),
   Purpose = c("Fay-Herriot, spatial and spatio-temporal EBLUP with analytical or bootstrap MSE",
               "Unit-level and two-fold EBLUP",
-              "Area-level HB models: six likelihoods, spatial, temporal and space-time effects",
+              "Area-level HB models: six likelihoods, spatial, temporal and space-time effects, covariates measured with error",
               "Unit-level and two-fold HB models",
+              "Sub-indicator as a modelled share of a given parent indicator",
               "Estimation engines for the HB functions",
+              "Effective sample sizes of survey-weighted proportions for binomial models",
               "Ratio, difference, MSE-weighted and logit benchmarking at one or two levels",
-              "Reliability tiers by relative standard error",
+              "Reliability tiers by relative standard error; classes of the estimate with their probabilities",
               "Agreement and ranking of two models; covariate selection",
               "Model diagnostics and plots",
               "Choropleth maps; spreadsheet export")
@@ -304,7 +308,9 @@ head(bm[, c("domain", "group", "original", "benchmarked")], 4)
 
 
 ## ----reliability, echo = TRUE-------------------------------------------------
-as.data.frame(table(tier = add_reliability_flags(fit_beta)$reliability))
+rf <- add_reliability_flags(fit_beta, classes = c(0.05, 0.10))
+as.data.frame(table(tier = rf$reliability))
+head(rf[, c("domain", "hb", "rse", "est_class", "p_class")], 4)
 
 
 ## ----map, echo = TRUE, fig.width = 7, fig.height = 3.6, out.width = "100%", fig.cap = "Head-count poverty ratios of the health districts of Emilia-Romagna in 2016 estimated by the beta model with a BYM2 area effect (left) and their relative standard errors (right).", fig.alt = "Two choropleth maps of the 38 health districts of Emilia-Romagna. Left: estimated poverty ratios. Right: relative standard errors in percent."----

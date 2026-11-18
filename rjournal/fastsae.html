@@ -113,26 +113,26 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   <!--radix_placeholder_meta_tags-->
   <title>fastsae: Frequentist and Bayesian Small Area Estimation in R</title>
 
-  <meta property="description" itemprop="description" content="Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold nested error model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level, unit-level and two-fold models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods and spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, and the default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, compare runtimes and estimates with the packages sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna."/>
+  <meta property="description" itemprop="description" content="Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold sub-area level model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods, and unit-level and two-fold models with Gaussian, binomial and Poisson likelihoods, with spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, survey-weighted proportions enter binomial models through effective sample sizes, covariates that are themselves survey estimates can be modelled with their measurement error, and an indicator that is part of a published parent indicator is estimated through its share of the parent, so that it never exceeds it. The default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error or by the probability of a range of values, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, check the estimates against the packages sae and emdi, compare runtimes with sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna."/>
 
   <link rel="license" href="https://creativecommons.org/licenses/by/4.0/"/>
 
   <!--  https://schema.org/Article -->
-  <meta property="article:published" itemprop="datePublished" content="2026-10-23"/>
-  <meta property="article:created" itemprop="dateCreated" content="2026-10-23"/>
+  <meta property="article:published" itemprop="datePublished" content="2026-11-19"/>
+  <meta property="article:created" itemprop="dateCreated" content="2026-11-19"/>
   <meta name="article:author" content="Ridson Al Farizal P."/>
   <meta name="article:author" content="Azka Ubaidillah"/>
 
   <!--  https://developers.facebook.com/docs/sharing/webmasters#markup -->
   <meta property="og:title" content="fastsae: Frequentist and Bayesian Small Area Estimation in R"/>
   <meta property="og:type" content="article"/>
-  <meta property="og:description" content="Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold nested error model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level, unit-level and two-fold models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods and spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, and the default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, compare runtimes and estimates with the packages sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna."/>
+  <meta property="og:description" content="Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold sub-area level model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods, and unit-level and two-fold models with Gaussian, binomial and Poisson likelihoods, with spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, survey-weighted proportions enter binomial models through effective sample sizes, covariates that are themselves survey estimates can be modelled with their measurement error, and an indicator that is part of a published parent indicator is estimated through its share of the parent, so that it never exceeds it. The default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error or by the probability of a range of values, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, check the estimates against the packages sae and emdi, compare runtimes with sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna."/>
   <meta property="og:locale" content="en_US"/>
 
   <!--  https://dev.twitter.com/cards/types/summary -->
   <meta property="twitter:card" content="summary"/>
   <meta property="twitter:title" content="fastsae: Frequentist and Bayesian Small Area Estimation in R"/>
-  <meta property="twitter:description" content="Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold nested error model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level, unit-level and two-fold models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods and spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, and the default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, compare runtimes and estimates with the packages sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna."/>
+  <meta property="twitter:description" content="Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold sub-area level model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods, and unit-level and two-fold models with Gaussian, binomial and Poisson likelihoods, with spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, survey-weighted proportions enter binomial models through effective sample sizes, covariates that are themselves survey estimates can be modelled with their measurement error, and an indicator that is part of a published parent indicator is estimated through its share of the parent, so that it never exceeds it. The default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error or by the probability of a range of values, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, check the estimates against the packages sae and emdi, compare runtimes with sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna."/>
 
   <!--  https://scholar.google.com/intl/en/scholar/inclusion.html#indexing -->
   <meta name="citation_title" content="fastsae: Frequentist and Bayesian Small Area Estimation in R"/>
@@ -141,8 +141,8 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   <meta name="citation_issn" content="2073-4859"/>
   <meta name="citation_firstpage" content="1"/>
   <meta name="citation_fulltext_world_readable" content=""/>
-  <meta name="citation_online_date" content="2026/10/23"/>
-  <meta name="citation_publication_date" content="2026/10/23"/>
+  <meta name="citation_online_date" content="2026/11/19"/>
+  <meta name="citation_publication_date" content="2026/11/19"/>
   <meta name="citation_author" content="Ridson Al Farizal P."/>
   <meta name="citation_author_institution" content="Department of Computational Statistics, Politeknik Statistika STIS"/>
   <meta name="citation_author" content="Azka Ubaidillah"/>
@@ -155,20 +155,26 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   <meta name="citation_reference" content="citation_title=Small area estimation: The EBLUP estimator based on spatially correlated random area effects;citation_volume=17;citation_doi=10.1007/s10260-007-0061-9;citation_author=Monica Pratesi;citation_author=Nicola Salvati"/>
   <meta name="citation_reference" content="citation_title=Small area estimation with spatio-temporal Fay-Herriot models;citation_volume=58;citation_doi=10.1016/j.csda.2012.09.002;citation_author=Yolanda Marhuenda;citation_author=Isabel Molina;citation_author=Domingo Morales"/>
   <meta name="citation_reference" content="citation_title=An error-components model for prediction of county crop areas using survey and satellite data;citation_volume=83;citation_doi=10.1080/01621459.1988.10478561;citation_author=George E. Battese;citation_author=Rachel M. Harter;citation_author=Wayne A. Fuller"/>
+  <meta name="citation_reference" content="citation_title=Bootstrap mean squared error of a small-area EBLUP;citation_volume=78;citation_doi=10.1080/00949650601141811;citation_author=Wenceslao González-Manteiga;citation_author=María José Lombardía;citation_author=Isabel Molina;citation_author=Domingo Morales;citation_author=Laura Santamaría"/>
   <meta name="citation_reference" content="citation_title=Properties of the beta regression model for small area estimation of proportions and application to estimation of poverty rates;citation_volume=49;citation_doi=10.1080/03610926.2019.1570266;citation_author=Ryan Janicki"/>
   <meta name="citation_reference" content="citation_title=The R package tipsae: Tools for mapping proportions and indicators on the unit interval;citation_volume=108;citation_doi=10.18637/jss.v108.i01;citation_author=Silvia De Nicolò;citation_author=Aldo Gardini"/>
+  <meta name="citation_reference" content="citation_title=Mean-squared error estimation in transformed Fay-Herriot models;citation_volume=68;citation_doi=10.1111/j.1467-9868.2006.00542.x;citation_author=Eric V. Slud;citation_author=Tapabrata Maiti"/>
   <meta name="citation_reference" content="citation_title=Bayesian image restoration, with two applications in spatial statistics;citation_volume=43;citation_doi=10.1007/BF00116466;citation_author=Julian Besag;citation_author=Jeremy York;citation_author=Annie Mollié"/>
   <meta name="citation_reference" content="citation_title=Estimation of disease rates in small areas: A new mixed model for spatial dependence;citation_publisher=Springer-Verlag;citation_doi=10.1007/978-1-4612-1284-3_4;citation_author=Brian G. Leroux;citation_author=Xingye Lei;citation_author=Norman Breslow"/>
   <meta name="citation_reference" content="citation_title=Penalising model component complexity: A principled, practical approach to constructing priors;citation_volume=32;citation_doi=10.1214/16-STS576;citation_author=Daniel Simpson;citation_author=Håvard Rue;citation_author=Andrea Riebler;citation_author=Thiago G. Martins;citation_author=Sigrunn H. Sørbye"/>
   <meta name="citation_reference" content="citation_title=An intuitive Bayesian spatial model for disease mapping that accounts for scaling;citation_volume=25;citation_doi=10.1177/0962280216660421;citation_author=Andrea Riebler;citation_author=Sigrunn H. Sørbye;citation_author=Daniel Simpson;citation_author=Håvard Rue"/>
   <meta name="citation_reference" content="citation_title=Approximate Bayesian inference for latent Gaussian models by using integrated nested Laplace approximations;citation_volume=71;citation_doi=10.1111/j.1467-9868.2008.00700.x;citation_author=Håvard Rue;citation_author=Sara Martino;citation_author=Nicolas Chopin"/>
   <meta name="citation_reference" content="citation_title=sae: An R package for small area estimation;citation_volume=7;citation_doi=10.32614/RJ-2015-007;citation_author=Isabel Molina;citation_author=Yolanda Marhuenda"/>
+  <meta name="citation_reference" content="citation_title=Rcpp: Seamless R and C++ integration;citation_volume=40;citation_doi=10.18637/jss.v040.i08;citation_author=Dirk Eddelbuettel;citation_author=Romain François"/>
+  <meta name="citation_reference" content="citation_title=RcppArmadillo: Accelerating R with high-performance C++ linear algebra;citation_volume=71;citation_doi=10.1016/j.csda.2013.02.005;citation_author=Dirk Eddelbuettel;citation_author=Conrad Sanderson"/>
   <meta name="citation_reference" content="citation_title=The estimation of the mean squared error of small-area estimators;citation_volume=85;citation_doi=10.1080/01621459.1990.10475320;citation_author=N. G. N. Prasad;citation_author=J. N. K. Rao"/>
-  <meta name="citation_reference" content="citation_title=Small area estimation using unmatched sampling and linking models;citation_volume=30;citation_doi=10.2307/3315862;citation_author=Yong You;citation_author=J. N. K. Rao"/>
+  <meta name="citation_reference" content="citation_title=Evaluation of small area estimation methods: An application to unemployment estimates from the UK LFS;citation_publisher=Statistics Canada;citation_author=G. Brown;citation_author=R. Chambers;citation_author=P. Heady;citation_author=D. Heasman"/>
+  <meta name="citation_reference" content="citation_title=Small area estimation under a restriction;citation_volume=34;citation_author=Jianqiang Wang;citation_author=Wayne A. Fuller;citation_author=Yue Qu"/>
   <meta name="citation_reference" content="citation_title=Benchmarked estimators for a small area mean under a onefold nested regression model;citation_volume=89;citation_doi=10.1111/insr.12380;citation_author=Marius Stefan;citation_author=Michael A. Hidiroglou"/>
   <meta name="citation_reference" content="citation_title=Bayesian modelling of inseparable space-time variation in disease risk;citation_volume=19;citation_doi=10.1002/1097-0258(20000915/30)19:17/18&lt;2555::AID-SIM587&gt;3.0.CO;2-#;citation_author=Leonhard Knorr-Held"/>
   <meta name="citation_reference" content="citation_title=Bayesian benchmarking with applications to small area estimation;citation_volume=20;citation_doi=10.1007/s11749-010-0218-y;citation_author=Gauri S. Datta;citation_author=Malay Ghosh;citation_author=Rebecca Steorts;citation_author=Jerry Maples"/>
   <meta name="citation_reference" content="citation_title=Benchmarking small area estimators;citation_volume=100;citation_doi=10.1093/biomet/ass063;citation_author=William R. Bell;citation_author=Gauri S. Datta;citation_author=Malay Ghosh"/>
+  <meta name="citation_reference" content="citation_title=On small area estimation under a sub-area level model;citation_volume=127;citation_doi=10.1016/j.jmva.2014.02.001;citation_author=Mahmoud Torabi;citation_author=J. N. K. Rao"/>
   <meta name="citation_reference" content="citation_title=Out of sample estimation for small areas using area level data;citation_publisher=Southampton Statistical Sciences Research Institute, University of Southampton;citation_number=M05/11;citation_author=Ayoub Saei;citation_author=Ray Chambers"/>
   <meta name="citation_reference" content="citation_title=Prior distributions for variance parameters in hierarchical models;citation_volume=1;citation_doi=10.1214/06-BA117A;citation_author=Andrew Gelman"/>
   <meta name="citation_reference" content="citation_title=Scaling intrinsic Gaussian Markov random field priors in spatial modelling;citation_volume=8;citation_doi=10.1016/j.spasta.2013.06.004;citation_author=Sigrunn Holbek Sørbye;citation_author=Håvard Rue"/>
@@ -176,15 +182,32 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   <meta name="citation_reference" content="citation_title=The No-U-Turn sampler: Adaptively setting path lengths in Hamiltonian Monte Carlo;citation_volume=15;citation_author=Matthew D. Hoffman;citation_author=Andrew Gelman"/>
   <meta name="citation_reference" content="citation_title=Composable effects for flexible and accelerated probabilistic programming in NumPyro;citation_doi=10.48550/arXiv.1912.11554;citation_author=Du Phan;citation_author=Neeraj Pradhan;citation_author=Martin Jankowiak"/>
   <meta name="citation_reference" content="citation_title=Rank-normalization, folding, and localization: An improved $\widehat{R}$ for assessing convergence of MCMC (with discussion);citation_volume=16;citation_doi=10.1214/20-BA1221;citation_author=Aki Vehtari;citation_author=Andrew Gelman;citation_author=Daniel Simpson;citation_author=Bob Carpenter;citation_author=Paul-Christian Bürkner"/>
+  <meta name="citation_reference" content="citation_title=An adjusted maximum likelihood method for solving small area estimation problems;citation_volume=101;citation_doi=10.1016/j.jmva.2009.10.009;citation_author=Huilin Li;citation_author=P. Lahiri"/>
+  <meta name="citation_reference" content="citation_title=A new adjusted maximum likelihood method for the Fay-Herriot small area model;citation_volume=124;citation_doi=10.1016/j.jmva.2013.10.012;citation_author=Masayo Yoshimori;citation_author=Partha Lahiri"/>
+  <meta name="citation_reference" content="citation_title=Spatio-temporal models in small area estimation;citation_volume=31;citation_author=Bharat Bhushan Singh;citation_author=Girja Kant Shukla;citation_author=Debasis Kundu"/>
+  <meta name="citation_reference" content="citation_title=Bootstrap for estimating the MSE of the spatial EBLUP;citation_volume=24;citation_doi=10.1007/s00180-008-0138-4;citation_author=Isabel Molina;citation_author=Nicola Salvati;citation_author=Monica Pratesi"/>
+  <meta name="citation_reference" content="citation_title=A new avenue for Bayesian inference with INLA;citation_volume=181;citation_doi=10.1016/j.csda.2023.107692;citation_author=Janet Niekerk;citation_author=Elias Krainski;citation_author=Denis Rustand;citation_author=Håvard Rue"/>
+  <meta name="citation_reference" content="citation_title=The use of sampling weights in Bayesian hierarchical models for small area estimation;citation_volume=11;citation_doi=10.1016/j.sste.2014.07.002;citation_author=Cici Chen;citation_author=Jon Wakefield;citation_author=Thomas Lumley"/>
+  <meta name="citation_reference" content="citation_title=Information criteria for Fay-Herriot model selection;citation_volume=70;citation_doi=10.1016/j.csda.2013.09.016;citation_author=Yolanda Marhuenda;citation_author=Domingo Morales;citation_author=María Carmen Pardo"/>
+  <meta name="citation_reference" content="citation_title=Small area estimation of poverty indicators;citation_volume=38;citation_doi=10.1002/cjs.10051;citation_author=Isabel Molina;citation_author=J. N. K. Rao"/>
+  <meta name="citation_reference" content="citation_title=Small area estimation when auxiliary information is measured with error;citation_volume=95;citation_doi=10.1093/biomet/asn048;citation_author=Lynn M. R. Ybarra;citation_author=Sharon L. Lohr"/>
+  <meta name="citation_reference" content="citation_title=Bayesian estimators for small area models when auxiliary information is measured with error;citation_volume=42;citation_doi=10.1111/sjos.12120;citation_author=Serena Arima;citation_author=Gauri S. Datta;citation_author=Brunero Liseo"/>
+  <meta name="citation_reference" content="citation_title=Measurement error in small area estimation: Functional versus structural versus naïve models;citation_volume=45;citation_author=William R. Bell;citation_author=Hee Cheol Chung;citation_author=Gauri S. Datta;citation_author=Carolina Franco"/>
+  <meta name="citation_reference" content="citation_title=Bayesian analysis of measurement error models using integrated nested Laplace approximations;citation_volume=64;citation_doi=10.1111/rssc.12069;citation_author=Stefanie Muff;citation_author=Andrea Riebler;citation_author=Leonhard Held;citation_author=Håvard Rue;citation_author=Philippe Saner"/>
+  <meta name="citation_reference" content="citation_title=Borrowing information over time in binomial/logit normal models for small area estimation;citation_volume=16;citation_doi=10.21307/stattrans-2015-033;citation_author=Carolina Franco;citation_author=William R. Bell"/>
+  <meta name="citation_reference" content="citation_title=Predictive model assessment for count data;citation_volume=65;citation_doi=10.1111/j.1541-0420.2009.01191.x;citation_author=Claudia Czado;citation_author=Tilmann Gneiting;citation_author=Leonhard Held"/>
+  <meta name="citation_reference" content="citation_title=Approximate cross-validatory predictive checks in disease mapping models;citation_volume=22;citation_doi=10.1002/sim.1403;citation_author=E. C. Marshall;citation_author=D. J. Spiegelhalter"/>
+  <meta name="citation_reference" content="citation_title=Diagnosing suboptimal cotangent disintegrations in Hamiltonian Monte Carlo;citation_doi=10.48550/arXiv.1604.00695;citation_author=Michael Betancourt"/>
+  <meta name="citation_reference" content="citation_title=Visualization in Bayesian workflow;citation_volume=182;citation_doi=10.1111/rssa.12378;citation_author=Jonah Gabry;citation_author=Daniel Simpson;citation_author=Aki Vehtari;citation_author=Michael Betancourt;citation_author=Andrew Gelman"/>
   <!--radix_placeholder_rmarkdown_metadata-->
 
   <script type="text/json" id="radix-rmarkdown-metadata">
-  {"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","date","author","type","output","bibliography","description","draft","package","journal","slug","pdf_url","creative_commons","packages","CTV","csl"]}},"value":[{"type":"character","attributes":{},"value":["fastsae: Frequentist and Bayesian Small Area Estimation in R"]},{"type":"character","attributes":{},"value":["2026-10-23"]},{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","affiliation","address","email","orcid_id"]}},"value":[{"type":"character","attributes":{},"value":["Ridson Al Farizal P."]},{"type":"character","attributes":{},"value":["Department of Computational Statistics, Politeknik Statistika STIS"]},{"type":"character","attributes":{},"value":["Jl. Otto Iskandardinata No. 64C","Jakarta Timur 13330, Indonesia"]},{"type":"character","attributes":{},"value":["alfrzlp@gmail.com"]},{"type":"character","attributes":{},"value":["0000-0003-0617-0214"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","affiliation","address","email","orcid_id"]}},"value":[{"type":"character","attributes":{},"value":["Azka Ubaidillah"]},{"type":"character","attributes":{},"value":["Department of Statistics, Politeknik Statistika STIS"]},{"type":"character","attributes":{},"value":["Jl. Otto Iskandardinata No. 64C","Jakarta Timur 13330, Indonesia"]},{"type":"character","attributes":{},"value":["azka@stis.ac.id"]},{"type":"character","attributes":{},"value":["0000-0002-3597-0459"]}]}]},{"type":"character","attributes":{},"value":["package"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["distill::distill_article"]}},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["self_contained","toc"]}},"value":[{"type":"logical","attributes":{},"value":[true]},{"type":"logical","attributes":{},"value":[false]}]}]},{"type":"character","attributes":{},"value":["fastsae.bib"]},{"type":"character","attributes":{},"value":["Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold nested error model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level, unit-level and two-fold models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods and spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, and the default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, compare runtimes and estimates with the packages sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna.\n"]},{"type":"logical","attributes":{},"value":[false]},{"type":"character","attributes":{},"value":["fastsae","sae","emdi","hbsae","tipsae","mcmcsae","SUMMER","RcppArmadillo","RcppEigen","reticulate"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","issn","firstpage","lastpage"]}},"value":[{"type":"character","attributes":{},"value":["The R Journal"]},{"type":"character","attributes":{},"value":["2073-4859"]},{"type":"double","attributes":{},"value":[1]},{"type":"NULL"}]},{"type":"character","attributes":{},"value":["fastsae"]},{"type":"character","attributes":{},"value":["fastsae.pdf"]},{"type":"character","attributes":{},"value":["CC BY"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["cran","bioc"]}},"value":[{"type":"character","attributes":{},"value":["sae","emdi","hbsae","tipsae","mcmcsae","SUMMER","fastsae","RcppArmadillo","RcppEigen","reticulate","sf","bench"]},{"type":"list","attributes":{},"value":[]}]},{"type":"character","attributes":{},"value":["Bayesian","Cluster","HighPerformanceComputing","ModelDeployment","NumericalMathematics","OfficialStatistics","Spatial","SpatioTemporal"]},{"type":"character","attributes":{},"value":["/Library/Frameworks/R.framework/Versions/4.6/Resources/library/rjtools/rjournal.csl"]}]}
+  {"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","date","author","type","output","bibliography","description","draft","package","journal","slug","pdf_url","creative_commons","packages","CTV","csl"]}},"value":[{"type":"character","attributes":{},"value":["fastsae: Frequentist and Bayesian Small Area Estimation in R"]},{"type":"character","attributes":{},"value":["2026-11-19"]},{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","affiliation","address","email","orcid_id"]}},"value":[{"type":"character","attributes":{},"value":["Ridson Al Farizal P."]},{"type":"character","attributes":{},"value":["Department of Computational Statistics, Politeknik Statistika STIS"]},{"type":"character","attributes":{},"value":["Jl. Otto Iskandardinata No. 64C","Jakarta Timur 13330, Indonesia"]},{"type":"character","attributes":{},"value":["alfrzlp@gmail.com"]},{"type":"character","attributes":{},"value":["0000-0003-0617-0214"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","affiliation","address","email","orcid_id"]}},"value":[{"type":"character","attributes":{},"value":["Azka Ubaidillah"]},{"type":"character","attributes":{},"value":["Department of Statistics, Politeknik Statistika STIS"]},{"type":"character","attributes":{},"value":["Jl. Otto Iskandardinata No. 64C","Jakarta Timur 13330, Indonesia"]},{"type":"character","attributes":{},"value":["azka@stis.ac.id"]},{"type":"character","attributes":{},"value":["0000-0002-3597-0459"]}]}]},{"type":"character","attributes":{},"value":["package"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["distill::distill_article"]}},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["self_contained","toc"]}},"value":[{"type":"logical","attributes":{},"value":[true]},{"type":"logical","attributes":{},"value":[false]}]}]},{"type":"character","attributes":{},"value":["fastsae.bib"]},{"type":"character","attributes":{},"value":["Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold sub-area level model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods, and unit-level and two-fold models with Gaussian, binomial and Poisson likelihoods, with spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, survey-weighted proportions enter binomial models through effective sample sizes, covariates that are themselves survey estimates can be modelled with their measurement error, and an indicator that is part of a published parent indicator is estimated through its share of the parent, so that it never exceeds it. The default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error or by the probability of a range of values, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, check the estimates against the packages sae and emdi, compare runtimes with sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna.\n"]},{"type":"logical","attributes":{},"value":[false]},{"type":"character","attributes":{},"value":["fastsae","sae","emdi","hbsae","tipsae","mcmcsae","SUMMER","RcppArmadillo","RcppEigen","reticulate"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","issn","firstpage","lastpage"]}},"value":[{"type":"character","attributes":{},"value":["The R Journal"]},{"type":"character","attributes":{},"value":["2073-4859"]},{"type":"double","attributes":{},"value":[1]},{"type":"NULL"}]},{"type":"character","attributes":{},"value":["fastsae"]},{"type":"character","attributes":{},"value":["fastsae.pdf"]},{"type":"character","attributes":{},"value":["CC BY"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["cran","bioc"]}},"value":[{"type":"character","attributes":{},"value":["sae","emdi","hbsae","tipsae","mcmcsae","SUMMER","fastsae","Rcpp","RcppArmadillo","RcppEigen","reticulate","sf","bench"]},{"type":"list","attributes":{},"value":[]}]},{"type":"character","attributes":{},"value":["Bayesian","Cluster","HighPerformanceComputing","ModelDeployment","NumericalMathematics","OfficialStatistics","PackageDevelopment","Spatial","SpatioTemporal"]},{"type":"character","attributes":{},"value":["/Library/Frameworks/R.framework/Versions/4.6/Resources/library/rjtools/rjournal.csl"]}]}
   </script>
   <!--/radix_placeholder_rmarkdown_metadata-->
   
   <script type="text/json" id="radix-resource-manifest">
-  {"type":"character","attributes":{},"value":["fastsae_files/anchor-4.2.2/anchor.min.js","fastsae_files/bowser-1.9.3/bowser.min.js","fastsae_files/distill-2.2.21/template.v2.js","fastsae_files/figure-html5/concordance-1.png","fastsae_files/figure-html5/map-1.png","fastsae_files/header-attrs-2.31/header-attrs.js","fastsae_files/jquery-3.6.0/jquery-3.6.0.js","fastsae_files/jquery-3.6.0/jquery-3.6.0.min.js","fastsae_files/jquery-3.6.0/jquery-3.6.0.min.map","fastsae_files/kePrint-0.0.1/kePrint.js","fastsae_files/lightable-0.0.1/lightable.css","fastsae_files/popper-2.6.0/popper.min.js","fastsae_files/tippy-6.2.7/tippy-bundle.umd.min.js","fastsae_files/tippy-6.2.7/tippy-light-border.css","fastsae_files/tippy-6.2.7/tippy.css","fastsae_files/tippy-6.2.7/tippy.umd.min.js","fastsae_files/webcomponents-2.0.0/webcomponents.js","fastsae.bib","fastsae.log","fastsae.pdf","fastsae.tex","initial_checks.log","motivation-letter/motivation-letter.md","RJournal.sty","RJwrapper.log","RJwrapper.tex"]}
+  {"type":"character","attributes":{},"value":["fastsae_files/figure-html5/concordance-1.png","fastsae_files/figure-html5/map-1.png","fastsae.bib","fastsae.log","fastsae.pdf","fastsae.tex","motivation-letter/motivation-letter.md","RJournal.sty","RJwrapper.log","RJwrapper.tex"]}
   </script>
   <!--radix_placeholder_navigation_in_header-->
   <!--/radix_placeholder_navigation_in_header-->
@@ -1776,7 +1799,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <!--radix_placeholder_front_matter-->
 
 <script id="distill-front-matter" type="text/json">
-{"title":"fastsae: Frequentist and Bayesian Small Area Estimation in R","description":"Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold nested error model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level, unit-level and two-fold models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods and spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, and the default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, compare runtimes and estimates with the packages sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna.","authors":[{"author":"Ridson Al Farizal P.","authorURL":"#","affiliation":"Department of Computational Statistics, Politeknik Statistika STIS","affiliationURL":"#","orcidID":"0000-0003-0617-0214"},{"author":"Azka Ubaidillah","authorURL":"#","affiliation":"Department of Statistics, Politeknik Statistika STIS","affiliationURL":"#","orcidID":"0000-0002-3597-0459"}],"publishedDate":"2026-10-23T00:00:00.000+08:00","citationText":"P. & Ubaidillah, 2026"}
+{"title":"fastsae: Frequentist and Bayesian Small Area Estimation in R","description":"Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold sub-area level model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods, and unit-level and two-fold models with Gaussian, binomial and Poisson likelihoods, with spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, survey-weighted proportions enter binomial models through effective sample sizes, covariates that are themselves survey estimates can be modelled with their measurement error, and an indicator that is part of a published parent indicator is estimated through its share of the parent, so that it never exceeds it. The default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error or by the probability of a range of values, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, check the estimates against the packages sae and emdi, compare runtimes with sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna.","authors":[{"author":"Ridson Al Farizal P.","authorURL":"#","affiliation":"Department of Computational Statistics, Politeknik Statistika STIS","affiliationURL":"#","orcidID":"0000-0003-0617-0214"},{"author":"Azka Ubaidillah","authorURL":"#","affiliation":"Department of Statistics, Politeknik Statistika STIS","affiliationURL":"#","orcidID":"0000-0002-3597-0459"}],"publishedDate":"2026-11-19T00:00:00.000+07:00","citationText":"P. & Ubaidillah, 2026"}
 </script>
 
 <!--/radix_placeholder_front_matter-->
@@ -1790,7 +1813,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 
 <!--radix_placeholder_categories-->
 <!--/radix_placeholder_categories-->
-<p><p>Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold nested error model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level, unit-level and two-fold models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods and spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, and the default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, compare runtimes and estimates with the packages sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna.</p></p>
+<p><p>Small area estimation (SAE) combines survey data with auxiliary information to estimate parameters of domains whose samples are too small for direct estimation. We present fastsae, an R package that brings the main area-level and unit-level models of official statistics together in one interface. The frequentist part fits the Fay-Herriot model, its spatial and spatio-temporal extensions, the Battese-Harter-Fuller unit-level model and the two-fold sub-area level model, with analytical and bootstrap mean squared errors, in compiled code that never forms a dense inverse of the marginal covariance matrix. The hierarchical Bayes part fits area-level models with Gaussian, beta, gamma, binomial, Poisson and negative binomial likelihoods, and unit-level and two-fold models with Gaussian, binomial and Poisson likelihoods, with spatial, temporal and space-time random effects, by integrated nested Laplace approximations or, through the same call, by Hamiltonian Monte Carlo in JAX. For beta, gamma and negative binomial data the dispersion of each area is fixed by the design-based sampling variance of its direct estimate, survey-weighted proportions enter binomial models through effective sample sizes, covariates that are themselves survey estimates can be modelled with their measurement error, and an indicator that is part of a published parent indicator is estimated through its share of the parent, so that it never exceeds it. The default priors were chosen by simulation and are documented. Further functions benchmark estimates to published totals at one or two levels, classify them by relative standard error or by the probability of a range of values, compare models, and produce maps and spreadsheet exports. We describe the methods and their implementation, check the estimates against the packages sae and emdi, compare runtimes with sae, emdi and tipsae, report a design-based simulation, and illustrate a complete workflow with poverty rates of the health districts of Emilia-Romagna.</p></p>
 </div>
 
 <div class="d-byline">
@@ -1798,7 +1821,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   
 ,   Azka Ubaidillah  (Department of Statistics, Politeknik Statistika STIS)
   
-<br/>2026-10-23
+<br/>2026-11-19
 </div>
 
 <div class="d-article">
@@ -1998,6 +2021,32 @@ ICAR, BYM2
 </tr>
 <tr>
 <td style="width: 2.2cm; ">
+Covariates with error
+</td>
+<td style="width: 1.75cm; ">
+HB (structural, functional)
+</td>
+<td style="width: 1.75cm; ">
+–
+</td>
+<td style="width: 1.75cm; ">
+EBLUP (Ybarra-Lohr)
+</td>
+<td style="width: 1.75cm; ">
+–
+</td>
+<td style="width: 1.75cm; ">
+–
+</td>
+<td style="width: 1.75cm; ">
+HB
+</td>
+<td style="width: 1.75cm; ">
+–
+</td>
+</tr>
+<tr>
+<td style="width: 2.2cm; ">
 Benchmarking
 </td>
 <td style="width: 1.75cm; ">
@@ -2080,8 +2129,8 @@ C++
 <p><a href="https://cran.r-project.org/package=fastsae">fastsae</a> covers these models and steps in one interface and was written with the first two requirements in mind. Its contributions are:</p>
 <ol type="1">
 <li>Compiled implementations of the Fay-Herriot, spatial, spatio-temporal, unit-level and two-fold models with analytical and bootstrap MSEs that never form a dense inverse of the marginal covariance matrix, and run the bootstrap in parallel with results that do not depend on the number of threads.</li>
-<li>One HB interface, <code>hb_area()</code>, <code>hb_unit()</code> and <code>hb_twofold()</code>, for six likelihoods and spatial, temporal and space-time effects, fitted by INLA <span class="citation" data-cites="rue2009approximate">(<a href="#ref-rue2009approximate" role="doc-biblioref">Rue et al. 2009</a>)</span> or by the No-U-Turn sampler of NumPyro <span class="citation" data-cites="hoffman2014no phan2019composable">(<a href="#ref-hoffman2014no" role="doc-biblioref">Hoffman and Gelman 2014</a>; <a href="#ref-phan2019composable" role="doc-biblioref">Phan et al. 2019</a>)</span> through interchangeable engine objects. For beta, gamma and negative binomial data the dispersion of each area is fixed by the sampling variance of its direct estimate, and the default priors are documented together with the simulations that led to them.</li>
-<li>Post-estimation functions for benchmarking at one or two levels, reliability classification, model comparison, maps and export, which accept the output of every model.</li>
+<li>One HB interface, <code>hb_area()</code>, <code>hb_unit()</code> and <code>hb_twofold()</code>, for six likelihoods at the area level and three at the unit and sub-area levels, with spatial, temporal and space-time effects, fitted by INLA <span class="citation" data-cites="rue2009approximate">(<a href="#ref-rue2009approximate" role="doc-biblioref">Rue et al. 2009</a>)</span> or by the No-U-Turn sampler of NumPyro <span class="citation" data-cites="hoffman2014no phan2019composable">(<a href="#ref-hoffman2014no" role="doc-biblioref">Hoffman and Gelman 2014</a>; <a href="#ref-phan2019composable" role="doc-biblioref">Phan et al. 2019</a>)</span> through interchangeable engine objects. For beta, gamma and negative binomial data the dispersion of each area is fixed by the sampling variance of its direct estimate, and the default priors are documented together with the simulations that led to them. Extensions for survey practice cover effective sample sizes of weighted proportions, covariates measured with error, and sub-indicators that are coherent with a parent indicator (<code>hb_ratio()</code>).</li>
+<li>Post-estimation functions for benchmarking at one or two levels, reliability classification, model comparison, diagnostics, maps and export, which accept the output of every model.</li>
 </ol>
 <p>The remainder of the paper describes the <a href="#sec:methods">methods</a> and their <a href="#sec:design">implementation</a>, reports <a href="#sec:simulations">benchmarks and a design-based simulation</a>, and illustrates a <a href="#sec:applications">complete workflow</a>.</p>
 <h2 data-number="2" id="sec:methods"><span class="header-section-number">2</span> Methods</h2>
@@ -2092,23 +2141,29 @@ C++
 y_d = \boldsymbol{x}_d^\top \boldsymbol{\beta} + u_d + e_d, \quad u_d \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \sigma_u^2), \quad e_d \overset{\mathrm{ind}}{\sim} \mathcal{N}(0, \psi_d),
 \tag{1}
 \end{equation}\]</span>
-with <span class="math inline">\(\psi_d\)</span> known. Its empirical best linear unbiased predictor (EBLUP) is <span class="math inline">\(\hat{\theta}_d = \hat{\gamma}_d y_d + (1 - \hat{\gamma}_d)\boldsymbol{x}_d^\top\hat{\boldsymbol{\beta}}\)</span> with <span class="math inline">\(\hat{\gamma}_d = \hat{\sigma}_u^2 / (\hat{\sigma}_u^2 + \psi_d)\)</span>, where <span class="math inline">\(\hat{\boldsymbol{\beta}}\)</span> is the generalized least squares estimator at the REML or ML estimate <span class="math inline">\(\hat{\sigma}_u^2\)</span>. The MSE is estimated by the second-order approximation <span class="math inline">\(g_{1d} + g_{2d} + 2g_{3d}\)</span> of <span class="citation" data-cites="prasad1990estimation">Prasad and Rao (<a href="#ref-prasad1990estimation" role="doc-biblioref">1990</a>)</span> for REML, with the bias correction of <span class="citation" data-cites="datta2000unified">Datta and Lahiri (<a href="#ref-datta2000unified" role="doc-biblioref">2000</a>)</span> for ML, or by parametric bootstrap.</p>
-<p>The spatial Fay-Herriot model replaces the independent area effects by a simultaneous autoregressive (SAR) process, <span class="math inline">\(\boldsymbol{u} = \rho\boldsymbol{W}\boldsymbol{u} + \boldsymbol{\varepsilon}\)</span> with <span class="math inline">\(\boldsymbol{\varepsilon} \sim \mathcal{N}(\boldsymbol{0}, \sigma_u^2\boldsymbol{I})\)</span> and a row-standardized proximity matrix <span class="math inline">\(\boldsymbol{W}\)</span> <span class="citation" data-cites="petrucci2006small pratesi2008small">(<a href="#ref-petrucci2006small" role="doc-biblioref">Petrucci and Salvati 2006</a>; <a href="#ref-pratesi2008small" role="doc-biblioref">Pratesi and Salvati 2008</a>)</span>. The marginal covariance is then <span class="math inline">\(\boldsymbol{V} = \boldsymbol{G} + \boldsymbol{\Psi}\)</span> with <span class="math inline">\(\boldsymbol{G} = \sigma_u^2[(\boldsymbol{I} - \rho\boldsymbol{W})^\top(\boldsymbol{I} - \rho\boldsymbol{W})]^{-1}\)</span> and <span class="math inline">\(\boldsymbol{\Psi} = \mathrm{diag}(\psi_d)\)</span>, and the EBLUP is <span class="math inline">\(\hat{\boldsymbol{\theta}} = \boldsymbol{X}\hat{\boldsymbol{\beta}} + \hat{\boldsymbol{G}}\hat{\boldsymbol{V}}^{-1}(\boldsymbol{y} - \boldsymbol{X}\hat{\boldsymbol{\beta}})\)</span>. The process is defined on all areas of <span class="math inline">\(\boldsymbol{W}\)</span>, so areas without a sample are predicted as well. <span class="math inline">\((\sigma_u^2, \rho)\)</span> are estimated by REML or ML Fisher scoring on <span class="math inline">\(|\rho| \le 0.999\)</span>, with a projected iteration when the unconstrained one ends at a negative variance. MSEs follow <span class="citation" data-cites="molina2015sae">Molina and Marhuenda (<a href="#ref-molina2015sae" role="doc-biblioref">2015</a>)</span> (analytical, parametric or non-parametric bootstrap).</p>
+with <span class="math inline">\(\psi_d\)</span> known. Its empirical best linear unbiased predictor (EBLUP) is <span class="math inline">\(\hat{\theta}_d = \hat{\gamma}_d y_d + (1 - \hat{\gamma}_d)\boldsymbol{x}_d^\top\hat{\boldsymbol{\beta}}\)</span> with <span class="math inline">\(\hat{\gamma}_d = \hat{\sigma}_u^2 / (\hat{\sigma}_u^2 + \psi_d)\)</span>, where <span class="math inline">\(\hat{\boldsymbol{\beta}}\)</span> is the generalized least squares estimator at the REML or ML estimate <span class="math inline">\(\hat{\sigma}_u^2\)</span>. The MSE is estimated by the second-order approximation <span class="math inline">\(g_{1d} + g_{2d} + 2g_{3d}\)</span>, which <span class="citation" data-cites="prasad1990estimation">Prasad and Rao (<a href="#ref-prasad1990estimation" role="doc-biblioref">1990</a>)</span> derived for a moment estimator of <span class="math inline">\(\sigma_u^2\)</span> and <span class="citation" data-cites="datta2000unified">Datta and Lahiri (<a href="#ref-datta2000unified" role="doc-biblioref">2000</a>)</span> showed to hold for REML; for ML, <span class="citation" data-cites="datta2000unified">Datta and Lahiri (<a href="#ref-datta2000unified" role="doc-biblioref">2000</a>)</span> add a bias term. The (RE)ML estimate is truncated at zero, as in <a href="https://cran.r-project.org/package=sae">sae</a>. With few areas or large sampling variances this happens often; the EBLUPs then equal the synthetic estimates <span class="math inline">\(\boldsymbol{x}_d^\top\hat{\boldsymbol{\beta}}\)</span> and the MSE estimates can understate their error <span class="citation" data-cites="li2010adjusted">(<a href="#ref-li2010adjusted" role="doc-biblioref">Li and Lahiri 2010</a>)</span>. <code>eblup_fh()</code> reports such fits with a message; the adjusted likelihoods proposed for this problem <span class="citation" data-cites="li2010adjusted yoshimori2014new">(<a href="#ref-li2010adjusted" role="doc-biblioref">Li and Lahiri 2010</a>; <a href="#ref-yoshimori2014new" role="doc-biblioref">Yoshimori and Lahiri 2014</a>)</span> are not implemented. For positive indicators, <code>eblup_fh(transform = "log")</code> fits the model to <span class="math inline">\(\log y_d\)</span> and back-transforms with the conditional-mean correction <span class="math inline">\(\exp(\hat{\mu}_d + \hat{g}_{1d}/2)\)</span> and a delta-method MSE, which omits the higher-order terms of <span class="citation" data-cites="slud2006mean">Slud and Maiti (<a href="#ref-slud2006mean" role="doc-biblioref">2006</a>)</span>.</p>
+<p>The spatial Fay-Herriot model replaces the independent area effects by a simultaneous autoregressive (SAR) process, <span class="math inline">\(\boldsymbol{u} = \rho\boldsymbol{W}\boldsymbol{u} + \boldsymbol{\varepsilon}\)</span> with <span class="math inline">\(\boldsymbol{\varepsilon} \sim \mathcal{N}(\boldsymbol{0}, \sigma_u^2\boldsymbol{I})\)</span> and a row-standardized proximity matrix <span class="math inline">\(\boldsymbol{W}\)</span> <span class="citation" data-cites="petrucci2006small pratesi2008small">(<a href="#ref-petrucci2006small" role="doc-biblioref">Petrucci and Salvati 2006</a>; <a href="#ref-pratesi2008small" role="doc-biblioref">Pratesi and Salvati 2008</a>)</span>. The marginal covariance is then <span class="math inline">\(\boldsymbol{V} = \boldsymbol{G} + \boldsymbol{\Psi}\)</span> with <span class="math inline">\(\boldsymbol{G} = \sigma_u^2[(\boldsymbol{I} - \rho\boldsymbol{W})^\top(\boldsymbol{I} - \rho\boldsymbol{W})]^{-1}\)</span> and <span class="math inline">\(\boldsymbol{\Psi} = \mathrm{diag}(\psi_d)\)</span>, and the EBLUP is <span class="math inline">\(\hat{\boldsymbol{\theta}} = \boldsymbol{X}\hat{\boldsymbol{\beta}} + \hat{\boldsymbol{G}}\hat{\boldsymbol{V}}^{-1}(\boldsymbol{y} - \boldsymbol{X}\hat{\boldsymbol{\beta}})\)</span>. The process is defined on all areas of <span class="math inline">\(\boldsymbol{W}\)</span>, so areas without a sample are predicted as well. <span class="math inline">\((\sigma_u^2, \rho)\)</span> are estimated by REML or ML Fisher scoring on <span class="math inline">\(|\rho| \le 0.999\)</span>, with a projected iteration when the unconstrained one ends at a negative variance. At <span class="math inline">\(\sigma_u^2 = 0\)</span> the likelihood does not depend on <span class="math inline">\(\rho\)</span>, so an iteration that reaches zero would stop at whatever <span class="math inline">\(\rho\)</span> it had, often a bound, although a positive variance at another <span class="math inline">\(\rho\)</span> may have a larger likelihood. <a href="https://cran.r-project.org/package=fastsae">fastsae</a> therefore evaluates the standardized score of <span class="math inline">\(\sigma_u^2\)</span> at zero on a grid of <span class="math inline">\(\rho\)</span> and restarts from the most promising value, keeping the restart if it converges to a larger likelihood. The analytical MSE is the second-order approximation <span class="math inline">\(g_{1d} + g_{2d} + 2g_{3d} - g_{4d}\)</span> of <span class="citation" data-cites="singh2005spatio">Singh et al. (<a href="#ref-singh2005spatio" role="doc-biblioref">2005</a>)</span>, where <span class="math inline">\(g_{4d}\)</span> accounts for the nonlinearity of <span class="math inline">\(\boldsymbol{V}\)</span> in <span class="math inline">\(\rho\)</span>, and the parametric and non-parametric bootstrap MSEs are those of <span class="citation" data-cites="molina2009bootstrap">Molina et al. (<a href="#ref-molina2009bootstrap" role="doc-biblioref">2009</a>)</span>, as in <a href="https://cran.r-project.org/package=sae">sae</a> <span class="citation" data-cites="molina2015sae">(<a href="#ref-molina2015sae" role="doc-biblioref">Molina and Marhuenda 2015</a>)</span>. Two choices depart from <a href="https://cran.r-project.org/package=sae">sae</a>. When <span class="math inline">\(\hat{\rho}\)</span> lies on the boundary of its range the expansion is not valid, so <span class="math inline">\(\rho\)</span> is then treated as fixed in the MSE; and for ML fits, <span class="math inline">\(g_{3d}\)</span> and the bias term use the ML rather than the REML information, because the latter made the MSE explode for <span class="math inline">\(\hat{\sigma}_u^2 \approx 0\)</span> and <span class="math inline">\(\hat{\rho} \approx 1\)</span> in simulations. For areas without a sample, the MSE of the predictor includes <span class="math inline">\(g_{3d}\)</span> and the bias of the plug-in <span class="math inline">\(g_{1d}\)</span>.</p>
 <p>For repeated surveys, <span class="math inline">\(t = 1, \dots, T\)</span>, the spatio-temporal model of <span class="citation" data-cites="marhuenda2013small">Marhuenda et al. (<a href="#ref-marhuenda2013small" role="doc-biblioref">2013</a>)</span> is
 <span class="math display" id="eq:stfh">\[\begin{equation}
 y_{dt} = \boldsymbol{x}_{dt}^\top\boldsymbol{\beta} + u_{1d} + u_{2dt} + e_{dt},
 \tag{2}
 \end{equation}\]</span>
-with a SAR area effect <span class="math inline">\(u_{1d}\)</span> and an AR(1) effect <span class="math inline">\(u_{2dt} = \rho_2 u_{2d,t-1} + \varepsilon_{2dt}\)</span> within each area. The panel need not be complete: the model is defined on the full <span class="math inline">\(D \times T\)</span> grid, the variance parameters are estimated by REML from the observed cells, and missing periods and areas that were never sampled are predicted from the observed ones <span class="citation" data-cites="saei2005out">(<a href="#ref-saei2005out" role="doc-biblioref">Saei and Chambers 2005</a>)</span>, with analytical and parametric bootstrap MSEs for every cell.</p>
-<p>At the unit level, the nested error model of <span class="citation" data-cites="battese1988error">Battese et al. (<a href="#ref-battese1988error" role="doc-biblioref">1988</a>)</span>, <span class="math inline">\(y_{dj} = \boldsymbol{x}_{dj}^\top\boldsymbol{\beta} + u_d + e_{dj}\)</span> for unit <span class="math inline">\(j\)</span> of area <span class="math inline">\(d\)</span>, gives the EBLUP of the area mean <span class="math inline">\(\hat{\bar{Y}}_d = f_d\bar{y}_d + (1 - f_d)\{\bar{\boldsymbol{X}}_{d,r}^\top\hat{\boldsymbol{\beta}} + \hat{\gamma}_d(\bar{y}_d - \bar{\boldsymbol{x}}_d^\top\hat{\boldsymbol{\beta}})\}\)</span>, where <span class="math inline">\(f_d = n_d/N_d\)</span> is the sampling fraction and <span class="math inline">\(\bar{\boldsymbol{X}}_{d,r}\)</span> the covariate mean of the non-sampled units. <code>eblup_twofold()</code> fits the two-fold model with area and sub-area effects in the same way.</p>
+where <span class="math inline">\(\boldsymbol{u}_1 = (u_{11}, \dots, u_{1D})^\top\)</span> follows the SAR process of the spatial model with parameters <span class="math inline">\((\sigma_1^2, \rho_1)\)</span>, the effects of each area follow a stationary AR(1) process, <span class="math inline">\(u_{2dt} = \rho_2 u_{2d,t-1} + \varepsilon_{2dt}\)</span> with <span class="math inline">\(\varepsilon_{2dt} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \sigma_2^2)\)</span>, independently across areas, and <span class="math inline">\(e_{dt} \overset{\mathrm{ind}}{\sim} \mathcal{N}(0, \psi_{dt})\)</span>. With <code>model = "S"</code> the <span class="math inline">\(u_{2dt}\)</span> are independent. As in <span class="citation" data-cites="marhuenda2013small">Marhuenda et al. (<a href="#ref-marhuenda2013small" role="doc-biblioref">2013</a>)</span> and <a href="https://cran.r-project.org/package=sae">sae</a>, the variance parameters are estimated by REML only (with the same check when <span class="math inline">\(\sigma_1^2\)</span> or <span class="math inline">\(\sigma_2^2\)</span> is estimated at zero), and the MSE is estimated analytically by <span class="math inline">\(g_{1dt} + g_{2dt} + 2g_{3dt} - g_{4dt}\)</span> or by a parametric bootstrap that re-estimates the model in every replicate. The panel need not be complete: the model is defined on the full <span class="math inline">\(D \times T\)</span> grid, the variance parameters are estimated from the observed cells, and missing periods and areas that were never sampled are predicted from the observed ones <span class="citation" data-cites="saei2005out">(<a href="#ref-saei2005out" role="doc-biblioref">Saei and Chambers 2005</a>)</span>, with analytical and bootstrap MSEs for every cell.</p>
+<p>At the unit level, the nested error model of <span class="citation" data-cites="battese1988error">Battese et al. (<a href="#ref-battese1988error" role="doc-biblioref">1988</a>)</span>, <span class="math inline">\(y_{dj} = \boldsymbol{x}_{dj}^\top\boldsymbol{\beta} + u_d + e_{dj}\)</span> for unit <span class="math inline">\(j\)</span> of area <span class="math inline">\(d\)</span>, with <span class="math inline">\(u_d \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \sigma_u^2)\)</span> and <span class="math inline">\(e_{dj} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \sigma_e^2)\)</span>, gives the EBLUP of the area mean <span class="math inline">\(\hat{\bar{Y}}_d = f_d\bar{y}_d + (1 - f_d)\{\bar{\boldsymbol{X}}_{d,r}^\top\hat{\boldsymbol{\beta}} + \hat{\gamma}_d(\bar{y}_d - \bar{\boldsymbol{x}}_d^\top\hat{\boldsymbol{\beta}})\}\)</span>, where <span class="math inline">\(f_d = n_d/N_d\)</span> is the sampling fraction, <span class="math inline">\(\bar{\boldsymbol{X}}_{d,r}\)</span> the covariate mean of the non-sampled units and, here, <span class="math inline">\(\hat{\gamma}_d = \hat{\sigma}_u^2/(\hat{\sigma}_u^2 + \hat{\sigma}_e^2/n_d)\)</span>. Its MSE is estimated by the parametric bootstrap of <span class="citation" data-cites="gonzalez2008bootstrap">González-Manteiga et al. (<a href="#ref-gonzalez2008bootstrap" role="doc-biblioref">2008</a>)</span>.</p>
+<p>When the areas are divided into sub-areas, such as districts within provinces, with direct estimates <span class="math inline">\(y_{dj}\)</span> of the sub-area parameters <span class="math inline">\(\theta_{dj}\)</span>, <code>eblup_twofold()</code> fits the sub-area level model of <span class="citation" data-cites="torabi2014small">Torabi and Rao (<a href="#ref-torabi2014small" role="doc-biblioref">2014</a>)</span>,
+<span class="math display" id="eq:twofold">\[\begin{equation}
+y_{dj} = \theta_{dj} + e_{dj}, \qquad \theta_{dj} = \boldsymbol{x}_{dj}^\top\boldsymbol{\beta} + v_d + u_{dj},
+\tag{3}
+\end{equation}\]</span>
+with area effects <span class="math inline">\(v_d \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \sigma_v^2)\)</span>, sub-area effects <span class="math inline">\(u_{dj} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0, \sigma_u^2)\)</span> and <span class="math inline">\(e_{dj} \overset{\mathrm{ind}}{\sim} \mathcal{N}(0, \psi_{dj})\)</span>. A sub-area without a sample borrows from the sampled sub-areas of its area through <span class="math inline">\(\hat{v}_d\)</span>. The variance components are estimated by REML or ML, the MSE analytically (<span class="math inline">\(g_1 + g_2 + 2g_3\)</span>, with the bias term for ML) or by parametric bootstrap, and the function also returns the area means <span class="math inline">\(\theta_d = \sum_j w_{dj}\theta_{dj}\)</span> with an MSE that includes the covariances between the sub-area prediction errors.</p>
 <h3 data-number="2.2" id="sec:methods-hb"><span class="header-section-number">2.2</span> Hierarchical Bayes models</h3>
 <h4 class="unnumbered" data-number="2.2.1" id="latent-gaussian-models">Latent Gaussian models</h4>
 <p>The HB functions formulate each model as a latent Gaussian model <span class="citation" data-cites="rue2009approximate">(<a href="#ref-rue2009approximate" role="doc-biblioref">Rue et al. 2009</a>)</span>. For <code>hb_area()</code>,
 <span class="math display" id="eq:lgm">\[\begin{equation}
 y_d \mid \mu_d \sim \pi(y_d \mid \mu_d, \phi_d), \qquad g(\mu_d) = \boldsymbol{x}_d^\top\boldsymbol{\beta} + u_d,
-\tag{3}
+\tag{4}
 \end{equation}\]</span>
-where <span class="math inline">\(g\)</span> is the identity, logit or log link of the family, <span class="math inline">\(\phi_d\)</span> a dispersion parameter (below), and <span class="math inline">\(\boldsymbol{u}\)</span> a zero-mean Gaussian Markov random field: independent effects or one of the spatial structures below, plus temporal and space-time terms for panel data. <code>hb_unit()</code> applies the same construction to unit records with an area effect, and <code>hb_twofold()</code> to sub-areas within areas. The INLA engine approximates the posterior marginals by nested Laplace approximations and numerical integration over the hyperparameters; <a href="https://cran.r-project.org/package=fastsae">fastsae</a> uses the full Laplace approximation by default, which is more accurate than the simplified one for non-Gaussian likelihoods with little information per area. The JAX engine samples the same model with the No-U-Turn sampler.</p>
+where <span class="math inline">\(g\)</span> is the identity, logit or log link of the family, <span class="math inline">\(\phi_d\)</span> a dispersion parameter (below), and <span class="math inline">\(\boldsymbol{u}\)</span> a zero-mean Gaussian Markov random field: independent effects or one of the spatial structures below, plus temporal and space-time terms for panel data. <code>hb_unit()</code> applies the same construction to unit records with an area effect, and <code>hb_twofold()</code> to sub-areas within areas. Areas without a direct estimate stay in the model with a missing response, and their estimates are the posterior summaries of <span class="math inline">\(\mu_d\)</span>, which borrow from the covariates and, with a spatial or temporal effect, from the neighbouring areas or periods. The INLA engine approximates the posterior marginals by nested Laplace approximations and numerical integration over the hyperparameters; <a href="https://cran.r-project.org/package=fastsae">fastsae</a> uses the full Laplace approximation of the latent marginals by default instead of INLA’s simplified one <span class="citation" data-cites="rue2009approximate">(<a href="#ref-rue2009approximate" role="doc-biblioref">Rue et al. 2009</a>)</span>. Gaussian models, and the Leroux and spatial lag effects for every family, are fitted in INLA’s classic mode <span class="citation" data-cites="rue2009approximate">(<a href="#ref-rue2009approximate" role="doc-biblioref">Rue et al. 2009</a>)</span>, the other models in its default compact mode, which leaves the linear predictors out of the latent field <span class="citation" data-cites="vanniekerk2023new">(<a href="#ref-vanniekerk2023new" role="doc-biblioref"><span class="nocase">van Niekerk et al.</span> 2023</a>)</span>. These choices rest on comparisons with exact posteriors (numerical integration over the variance parameters) and with long <a href="#">Stan</a> runs of the same models and priors: for Gaussian models the compact mode overstated the posterior standard deviations by up to 18%, whereas in the classic mode the posterior means were within 0.07 posterior standard deviations of the reference and the standard deviations within 0.91 to 1.03 times; for binomial, Poisson, beta and gamma models both modes matched <a href="#">Stan</a> and the compact mode was much faster. The scripts are in <code>benchmarks/validation/</code> of the package repository. The JAX engine samples the same model with the No-U-Turn sampler.</p>
 <h4 class="unnumbered" data-number="2.2.2" id="sec:methods-dispersion">Dispersion from the sampling variances</h4>
 <p>When the sampling variances <span class="math inline">\(\psi_d\)</span> are known, <a href="https://cran.r-project.org/package=fastsae">fastsae</a> fixes the dispersion of each area so that the model variance of <span class="math inline">\(y_d\)</span> equals <span class="math inline">\(\psi_d\)</span>:</p>
 <ul>
@@ -2116,12 +2171,12 @@ where <span class="math inline">\(g\)</span> is the identity, logit or log link 
 <li><strong>Beta</strong>: for proportions with a logit link, <span class="math inline">\(\mathrm{Var}(y_d) = \mu_d(1 - \mu_d)/(1 + \phi_d)\)</span>, which gives the precision of <span class="citation" data-cites="janicki2020properties">Janicki (<a href="#ref-janicki2020properties" role="doc-biblioref">2020</a>)</span>,
 <span class="math display" id="eq:betaphi">\[\begin{equation}
 \phi_d = \max\left\{\frac{\mu_d(1 - \mu_d)}{\psi_d} - 1, \, 1\right\}.
-\tag{4}
+\tag{5}
 \end{equation}\]</span>
-It depends on the unknown <span class="math inline">\(\mu_d\)</span>. Replacing <span class="math inline">\(\mu_d\)</span> by <span class="math inline">\(y_d\)</span> makes the model variance <span class="math inline">\(\psi_d\mu_d(1 - \mu_d)/\{y_d(1 - y_d)\}\)</span>, too small wherever <span class="math inline">\(y_d\)</span> is far from <span class="math inline">\(\mu_d\)</span>; in a simulation with proportions near 0.08 the 95% intervals then covered 81–84% of the true values. <a href="https://cran.r-project.org/package=fastsae">fastsae</a> therefore fits the model twice and evaluates <a href="#eq:betaphi">(4)</a> at the posterior means of the first fit, which gave 90–94%. <a href="https://cran.r-project.org/package=tipsae">tipsae</a> instead makes <span class="math inline">\(\phi_d\)</span> a function of <span class="math inline">\(\mu_d\)</span> inside the model <span class="citation" data-cites="denicolo2024tipsae">(<a href="#ref-denicolo2024tipsae" role="doc-biblioref">De Nicolò and Gardini 2024</a>)</span>; this covered 93–95% in the same simulation, but makes the likelihood bimodal, with a mode of low precision near zero, and 11 of 240 fits did not converge (<span class="math inline">\(\hat{R} &gt; 1.05\)</span>). With known sample sizes instead of variances, <span class="math inline">\(\phi_d = n_d - 1\)</span>.</li>
-<li><strong>Gamma</strong>: for positive skewed indicators with a log link, <span class="math inline">\(\mathrm{Var}(y_d) = \mu_d^2/s_d\)</span> gives the shape <span class="math inline">\(s_d = y_d^2/\psi_d\)</span>, the inverse squared coefficient of variation.</li>
-<li><strong>Negative binomial</strong>: <span class="math inline">\(\mathrm{Var}(y_d) = \mu_d + \mu_d^2/k_d\)</span> gives the size <span class="math inline">\(k_d = \hat{\mu}_d^2/(\psi_d - \hat{\mu}_d)\)</span>, again at the posterior means of a first fit.</li>
-<li><strong>Binomial and Poisson</strong>: sample sizes are the numbers of trials, and population exposures enter as an offset.</li>
+It depends on the unknown <span class="math inline">\(\mu_d\)</span>. Replacing <span class="math inline">\(\mu_d\)</span> by <span class="math inline">\(y_d\)</span> makes the model variance <span class="math inline">\(\psi_d\mu_d(1 - \mu_d)/\{y_d(1 - y_d)\}\)</span>, too small wherever <span class="math inline">\(y_d\)</span> is far from <span class="math inline">\(\mu_d\)</span>; in a simulation with proportions near 0.08 the 95% intervals then covered 81–84% of the true values. <a href="https://cran.r-project.org/package=fastsae">fastsae</a> therefore fits the model twice and evaluates <a href="#eq:betaphi">(5)</a> at the posterior means of the first fit, which gave 90–94%. <a href="https://cran.r-project.org/package=tipsae">tipsae</a> instead makes <span class="math inline">\(\phi_d\)</span> a function of <span class="math inline">\(\mu_d\)</span> inside the model <span class="citation" data-cites="denicolo2024tipsae">(<a href="#ref-denicolo2024tipsae" role="doc-biblioref">De Nicolò and Gardini 2024</a>)</span>; this covered 93–95% in the same simulation, but makes the likelihood bimodal, with a mode of low precision near zero, and 11 of 240 fits did not converge (<span class="math inline">\(\hat{R} &gt; 1.05\)</span>). With known sample sizes instead of variances, <span class="math inline">\(\phi_d = n_d - 1\)</span>, which assumes simple random sampling; for complex designs, effective sample sizes <span class="math inline">\(n_d/\mathrm{deff}_d\)</span> should be supplied instead.</li>
+<li><strong>Gamma</strong>: for positive skewed indicators with a log link, <span class="math inline">\(\mathrm{Var}(y_d) = \mu_d^2/s_d\)</span> gives the shape <span class="math inline">\(s_d = y_d^2/\psi_d\)</span>, the inverse squared coefficient of variation of the direct estimate. The shape is evaluated at the direct estimate, so the model variance is <span class="math inline">\(\psi_d\mu_d^2/y_d^2\)</span> rather than <span class="math inline">\(\psi_d\)</span>, the same approximation that the two-stage precision avoids for the beta model.</li>
+<li><strong>Negative binomial</strong>: <span class="math inline">\(\mathrm{Var}(y_d) = \mu_d + \mu_d^2/k_d\)</span> gives the size <span class="math inline">\(k_d = \hat{\mu}_d^2/(\psi_d - \hat{\mu}_d)\)</span>, again at the posterior means of a first fit; areas with <span class="math inline">\(\psi_d \le \hat{\mu}_d\)</span>, i.e. without overdispersion relative to the Poisson model, get a near-Poisson size.</li>
+<li><strong>Binomial and Poisson</strong>: the response is a count, the numbers of trials are sample sizes and population exposures enter as an offset. Direct estimates from a weighted sample are not counts of a simple random sample; for them, the effective sample size <span class="math inline">\(n^*_d = n_d/\mathrm{deff}_d\)</span> and the effective number of cases <span class="math inline">\(n^*_d\hat{p}_d\)</span>, which make the binomial variance equal to the design-based variance, are the usual inputs <span class="citation" data-cites="chen2014use franco2015borrowing">(<a href="#ref-chen2014use" role="doc-biblioref">Chen et al. 2014</a>; <a href="#ref-franco2015borrowing" role="doc-biblioref">Franco and Bell 2015</a>)</span>. <code>hb_area()</code> and <code>hb_twofold()</code> accept proportions with effective sample sizes in <code>trials</code>, do not round the effective counts, and fit non-integer counts with INLA’s extended binomial likelihood, which equals the binomial one on whole numbers; direct estimates of 0 stay sampling zeros. The design effect <span class="math inline">\(\mathrm{deff}_d = \psi_d/\{\hat{p}_d(1 - \hat{p}_d)/n_d\}\)</span> of a single area is noisy and undefined where <span class="math inline">\(\hat{p}_d \in \{0, 1\}\)</span>, which is common for rare indicators, so <code>effective_trials()</code> pools it within groups (the ratio of the summed design variances to the summed simple random sampling variances), or uses the area’s own value where it is defined and a fallback, such as the design effect of a related indicator, elsewhere. In a simulation of a two-stage cluster sample of 72 districts in 12 provinces, the 95% intervals of <code>hb_twofold()</code> covered 92.5% of the district and 93.7% of the province proportions with pooled design effects, close to 92.9% and 94.6% with the true ones, and 91.1% and 89.7% when the design was ignored.</li>
 </ul>
 <p>Without sampling variances, one dispersion parameter is estimated. With one direct estimate per area it trades off against the area effect, so its prior determines the intervals (Table <a href="#tab:priors">2</a>), and <code>hb_area()</code> warns.</p>
 <h4 class="unnumbered" data-number="2.2.3" id="spatial-and-space-time-effects">Spatial and space-time effects</h4>
@@ -2212,24 +2267,36 @@ half-normal<span class="math inline">\((s)\)</span>
 </table>
 </div>
 <p>The half-normal prior is a weakly informative choice for hierarchical standard deviations <span class="citation" data-cites="gelman2006prior">(<a href="#ref-gelman2006prior" role="doc-biblioref">Gelman 2006</a>)</span>. Its scale is tied to the response, because a penalized complexity (PC) prior <span class="math inline">\(P(\sigma &gt; U) = \alpha\)</span> <span class="citation" data-cites="simpson2017penalising">(<a href="#ref-simpson2017penalising" role="doc-biblioref">Simpson et al. 2017</a>)</span> with the common <span class="math inline">\(U = 1\)</span> depends on the unit of <span class="math inline">\(y\)</span>: in a Fay-Herriot simulation with 30 areas the 95% intervals under PC<span class="math inline">\((1, 0.01)\)</span> covered 94%, 85% and 38% of the true means for the same data in three units. The scaled half-normal prior covered as well as the EBLUP intervals (93–97% for 15 to 60 areas, against 93–96%), whereas PC priors with <span class="math inline">\(U = \mathrm{sd}(\boldsymbol{y})\)</span> covered 85–94%, because they put much mass near <span class="math inline">\(\sigma = 0\)</span> <span class="citation" data-cites="sorbye2014scaling">(<a href="#ref-sorbye2014scaling" role="doc-biblioref">Sørbye and Rue 2014</a>)</span>. On the logit and log scales, half-normal<span class="math inline">\((1)\)</span> covered at least as well as the half-normal<span class="math inline">\((2.5)\)</span> default of <a href="https://cran.r-project.org/package=tipsae">tipsae</a> and estimated the area standard deviation with less bias. For the dispersion parameters estimated without <span class="math inline">\(\psi_d\)</span>, the INLA defaults put the gamma shape near 80 and the negative binomial size near 110–180 whatever the truth, and intervals for overdispersed data covered 52–92% of the true means; the half-normal<span class="math inline">\((10)\)</span> prior covered 90–99%, at the cost of too wide intervals when the sampling noise is small, which is why <span class="math inline">\(\psi_d\)</span> should be supplied whenever it is known. These simulations and their code are documented in <code>vignette("hb-priors")</code>.</p>
+<h4 class="unnumbered" data-number="2.2.5" id="sec:methods-me">Covariates measured with error</h4>
+<p>Area-level covariates are often estimates themselves, from another survey or an earlier wave. Such a covariate is observed as <span class="math inline">\(w_{dk} = x_{dk} + \eta_{dk}\)</span>, where <span class="math inline">\(x_{dk}\)</span> is its true value and <span class="math inline">\(\eta_{dk} \sim \mathcal{N}(0, C_{dk})\)</span> an error with known variance, independent of the sampling error of <span class="math inline">\(y_d\)</span>. Used as if it were the true value, <span class="math inline">\(w_{dk}\)</span> gets an attenuated coefficient, every area is shrunk alike however large its <span class="math inline">\(C_{dk}\)</span>, and the predictor can be worse than the direct estimate <span class="citation" data-cites="ybarra2008small">(<a href="#ref-ybarra2008small" role="doc-biblioref">Ybarra and Lohr 2008</a>)</span>. With the argument <code>var_x</code>, <code>hb_area()</code> replaces the observed values in the linear predictor by the true ones, with one of two models for them. The structural model (<code>me_model = "structural"</code>, the default) gives the true values a normal distribution, <span class="math inline">\(x_{dk} \sim \mathcal{N}(\mu_k, \sigma_k^2)\)</span> <span class="citation" data-cites="bell2019measurement">(<a href="#ref-bell2019measurement" role="doc-biblioref">Bell et al. 2019</a>)</span>, with a vague normal prior on <span class="math inline">\(\mu_k\)</span> and a half-normal prior on <span class="math inline">\(\sigma_k\)</span> scaled by the standard deviation of the observed values, so that the coefficient is that of the true covariate. The functional model (<code>"functional"</code>) puts a flat prior on the true values <span class="citation" data-cites="arima2015bayesian">(<a href="#ref-arima2015bayesian" role="doc-biblioref">Arima et al. 2015</a>)</span>; integrating them out gives <span class="math inline">\(y_d \sim \mathcal{N}(\boldsymbol{w}_d^\top\boldsymbol{\beta}, \psi_d + \sigma_u^2 + \boldsymbol{\beta}^\top\boldsymbol{C}_d\boldsymbol{\beta})\)</span>, so its area estimates agree with the EBLUP of <span class="citation" data-cites="ybarra2008small">Ybarra and Lohr (<a href="#ref-ybarra2008small" role="doc-biblioref">2008</a>)</span> (<code>emdi::fh(method = "me")</code>) but its coefficient keeps the attenuation. A variance of zero marks a value without error. The JAX engine samples the true values and the parameters of their distribution. With INLA, each covariate is a measurement error term of <span class="citation" data-cites="muff2015bayesian">Muff et al. (<a href="#ref-muff2015bayesian" role="doc-biblioref">2015</a>)</span>, fitted in classic mode, and <span class="math inline">\(\mu_k\)</span> and <span class="math inline">\(\sigma_k\)</span> of the structural model are fixed at their posterior mode given the observed values, which <span class="math inline">\(y\)</span> hardly informs; against <a href="#">Stan</a>, which integrates them out, the posterior means of the areas were within 0.03 posterior standard deviations with one such covariate.</p>
+<p>In a simulation with 60 areas (10 of them without a direct estimate) and 100 replicates for each of four scenarios (moderate and heavy errors, skewed true values, and a mix of exact and very noisy covariates), the 95% intervals of the structural model covered 94–97% of the true area means in every scenario, and its RMSE was the smallest, also against the Ybarra-Lohr EBLUP. Ignoring the error, the intervals covered 88.7% of the areas with noisy covariates in the mixed scenario. For a true coefficient of 0.8, the structural estimates averaged 0.80–0.86, the naive and functional ones 0.36–0.67, and those of <span class="citation" data-cites="ybarra2008small">Ybarra and Lohr (<a href="#ref-ybarra2008small" role="doc-biblioref">2008</a>)</span> 0.79–0.95. The scripts are <code>benchmarks/validation/me_area.R</code> and <code>me_area_coverage.R</code>.</p>
+<h4 class="unnumbered" data-number="2.2.6" id="sec:methods-ratio">Sub-indicators of a parent indicator</h4>
+<p>Statistical offices often publish an indicator and a part of it, such as poverty and extreme poverty, or stunting and severe stunting. Modelled separately, the sub-indicator can exceed its parent in some areas. <code>hb_ratio()</code> estimates it as <span class="math inline">\(\theta_d = s_dP_d\)</span>, where <span class="math inline">\(P_d\)</span> is the given estimate of the parent, for instance the released one, and <span class="math inline">\(s_d\)</span> the share of the parent population with the sub-characteristic. The share follows a binomial area-level model whose trials are the (effective) numbers of sampled parent cases, so <span class="math inline">\(0 \le s_d \le 1\)</span> and <span class="math inline">\(\theta_d \le P_d\)</span> for every posterior draw. Benchmarking to a target <span class="math inline">\(T_g\)</span> solves, for each draw and group, for a shift <span class="math inline">\(a_g\)</span> on the logit scale of the share,
+<span class="math display" id="eq:ratio-bench">\[\begin{equation}
+\frac{\sum_{d \in g} w_d P_d\,\mathrm{logit}^{-1}\{\mathrm{logit}(s_d) + a_g\}}{\sum_{d \in g} w_d} = T_g,
+\tag{6}
+\end{equation}\]</span>
+which keeps the benchmarked estimates below their parent. Without standard errors of <span class="math inline">\(P_d\)</span> the uncertainty is conditional on the parent; with them, draws of the parent, independent of <span class="math inline">\(s_d\)</span>, are added. The model of the share is an <code>hb_area()</code> fit with either engine and is returned for <code>diagnose()</code>, and the draws of <span class="math inline">\(\theta_d\)</span> are returned for the class probabilities of the <a href="#sec:methods-reliability">next section</a>.</p>
 <h3 data-number="2.3" id="sec:methods-bench"><span class="header-section-number">2.3</span> Benchmarking</h3>
 <p>Small area estimates <span class="math inline">\(\hat{\theta}_d\)</span> are often required to agree with direct estimates of larger domains <span class="citation" data-cites="rao2015small stefan2021benchmarked">(<a href="#ref-rao2015small" role="doc-biblioref">Rao and Molina 2015</a>; <a href="#ref-stefan2021benchmarked" role="doc-biblioref">Stefan and Hidiroglou 2021</a>)</span>. Let areas <span class="math inline">\(d\)</span> belong to groups <span class="math inline">\(g\)</span> (provinces, say) with weights <span class="math inline">\(w_d\)</span> (population shares) normalized within groups, <span class="math inline">\(\tilde{w}_d = w_d / \sum_{d&#39; \in g} w_{d&#39;}\)</span>, and let <span class="math inline">\(T_g\)</span> be the group targets. <code>benchmark_sae()</code> adjusts the estimates so that <span class="math inline">\(\sum_{d \in g}\tilde{w}_d\hat{\theta}^{\mathrm{B}}_d = T_g\)</span> by</p>
 <ul>
-<li>ratio adjustment, <span class="math inline">\(\hat{\theta}^{\mathrm{B}}_d = \hat{\theta}_d T_g / \sum_{d&#39; \in g}\tilde{w}_{d&#39;}\hat{\theta}_{d&#39;}\)</span> <span class="citation" data-cites="you2002small">(<a href="#ref-you2002small" role="doc-biblioref">You and Rao 2002</a>)</span>;</li>
+<li>ratio adjustment, <span class="math inline">\(\hat{\theta}^{\mathrm{B}}_d = \hat{\theta}_d T_g / \sum_{d&#39; \in g}\tilde{w}_{d&#39;}\hat{\theta}_{d&#39;}\)</span> <span class="citation" data-cites="rao2015small">(<a href="#ref-rao2015small" role="doc-biblioref">Rao and Molina 2015</a>)</span>;</li>
 <li>difference adjustment, <span class="math inline">\(\hat{\theta}^{\mathrm{B}}_d = \hat{\theta}_d + T_g - \sum_{d&#39; \in g}\tilde{w}_{d&#39;}\hat{\theta}_{d&#39;}\)</span>;</li>
 <li>MSE-weighted adjustment, which minimizes <span class="math inline">\(\sum_d(\hat{\theta}^{\mathrm{B}}_d - \hat{\theta}_d)^2/\mathrm{MSE}(\hat{\theta}_d)\)</span> under the constraint and so moves imprecise estimates most <span class="citation" data-cites="datta2011bayesian bell2013benchmarking">(<a href="#ref-datta2011bayesian" role="doc-biblioref">Datta et al. 2011</a>; <a href="#ref-bell2013benchmarking" role="doc-biblioref">Bell et al. 2013</a>)</span>:
 <span class="math display" id="eq:bench-opt">\[\begin{equation}
 \hat{\theta}^{\mathrm{B}}_d = \hat{\theta}_d + \frac{\tilde{w}_d\,\mathrm{MSE}(\hat{\theta}_d)}{\sum_{d&#39; \in g}\tilde{w}_{d&#39;}^2\,\mathrm{MSE}(\hat{\theta}_{d&#39;})}\Big(T_g - \sum_{d&#39; \in g}\tilde{w}_{d&#39;}\hat{\theta}_{d&#39;}\Big);
-\tag{5}
+\tag{7}
 \end{equation}\]</span></li>
 <li>a shift <span class="math inline">\(\alpha_g\)</span> on the logit scale, <span class="math inline">\(\sum_{d \in g}\tilde{w}_d\,\mathrm{logit}^{-1}\{\mathrm{logit}(\hat{\theta}_d) + \alpha_g\} = T_g\)</span>, solved by one-dimensional root finding, which keeps proportions inside <span class="math inline">\((0, 1)\)</span>.</li>
 </ul>
-<p>With a national target <span class="math inline">\(T\)</span> as well, the group targets are first adjusted so that their weighted mean equals <span class="math inline">\(T\)</span>, and the areas are then benchmarked to the adjusted group targets. hb_area() and eblup_fh() can also benchmark within the fit (argument <code>self_benchmark</code>); for hb_area(), the posterior draws are then benchmarked, so the intervals refer to the benchmarked estimates.</p>
+<p>With a national target <span class="math inline">\(T\)</span> as well, the group targets are first adjusted so that their weighted mean equals <span class="math inline">\(T\)</span>, and the areas are then benchmarked to the adjusted group targets. <code>benchmark_sae()</code> also returns a first-order approximation of the MSE of the benchmarked estimates, which uses the covariances between the area prediction errors of the fitted model. The area-level and two-fold EBLUP functions and <code>hb_area()</code> can also benchmark within the fit (argument <code>self_benchmark</code>): the EBLUP functions with the augmented model of <span class="citation" data-cites="wang2008small">Wang et al. (<a href="#ref-wang2008small" role="doc-biblioref">2008</a>)</span>, and <code>hb_area()</code> by adjusting every posterior draw, so that the intervals refer to the benchmarked estimates.</p>
 <h3 data-number="2.4" id="sec:methods-reliability"><span class="header-section-number">2.4</span> Reliability classification</h3>
-<p>Statistical offices publish small area estimates by tiers of their relative standard error, <span class="math inline">\(\mathrm{RSE}_d = \sqrt{\mathrm{MSE}(\hat{\theta}_d)}/|\hat{\theta}_d|\)</span>. <code>add_reliability_flags()</code> labels an estimate reliable for <span class="math inline">\(\mathrm{RSE}_d \le c_1\)</span>, to be used with caution for <span class="math inline">\(c_1 &lt; \mathrm{RSE}_d \le c_2\)</span>, and unreliable above <span class="math inline">\(c_2\)</span>. The defaults <span class="math inline">\(c_1 = 25\%\)</span> and <span class="math inline">\(c_2 = 50\%\)</span> are those of BPS-Statistics Indonesia; other cut-offs can be supplied.</p>
+<p>Statistical offices publish small area estimates by tiers of their relative standard error, <span class="math inline">\(\mathrm{RSE}_d = \sqrt{\mathrm{MSE}(\hat{\theta}_d)}/|\hat{\theta}_d|\)</span>. <code>add_reliability_flags()</code> labels an estimate reliable for <span class="math inline">\(\mathrm{RSE}_d \le c_1\)</span>, to be used with caution for <span class="math inline">\(c_1 &lt; \mathrm{RSE}_d \le c_2\)</span>, and unreliable above <span class="math inline">\(c_2\)</span>. The defaults <span class="math inline">\(c_1 = 25\%\)</span> and <span class="math inline">\(c_2 = 50\%\)</span> are those of BPS-Statistics Indonesia; other cut-offs can be supplied. For HB fits the posterior standard deviation takes the place of <span class="math inline">\(\sqrt{\mathrm{MSE}(\hat{\theta}_d)}\)</span>; the two measure different things, which <code>compare_sae()</code> points out when it compares an HB with an EBLUP fit.</p>
+<p>The RSE grows without bound as <span class="math inline">\(\hat{\theta}_d\)</span> approaches zero, so for rare characteristics most estimates are flagged unreliable even when their absolute error is small. With class boundaries <span class="math inline">\(b_1 &lt; \dots &lt; b_K\)</span>, <code>add_reliability_flags(classes = )</code> therefore also reports the class <span class="math inline">\([b_{k-1}, b_k)\)</span>, with <span class="math inline">\(b_0 = -\infty\)</span> and <span class="math inline">\(b_{K+1} = \infty\)</span>, that contains <span class="math inline">\(\hat{\theta}_d\)</span> and the probability that <span class="math inline">\(\theta_d\)</span> lies in it, which can be published instead of the point estimate (“below 1%, probability 0.87”). The probability is the share of the posterior or bootstrap draws in the class when draws are supplied, and otherwise <span class="math inline">\(\Phi\{(b_k - \hat{\theta}_d)/s_d\} - \Phi\{(b_{k-1} - \hat{\theta}_d)/s_d\}\)</span> with <span class="math inline">\(s_d = \sqrt{\mathrm{MSE}(\hat{\theta}_d)}\)</span>, which is only a rough guide near the bound of a proportion.</p>
 <h2 data-number="3" id="sec:design"><span class="header-section-number">3</span> Implementation</h2>
-<p>Table <a href="#tab:functions">3</a> lists the main functions. The frequentist functions call C++ code (<a href="https://cran.r-project.org/package=RcppArmadillo">RcppArmadillo</a>, <a href="https://cran.r-project.org/package=RcppEigen">RcppEigen</a>) that never forms a dense inverse of the marginal covariance matrix. The spatial model works with sparse Cholesky factors of <span class="math inline">\((\boldsymbol{I} - \rho\boldsymbol{W})^\top(\boldsymbol{I} - \rho\boldsymbol{W})\)</span> and of <span class="math inline">\((\boldsymbol{I} - \rho\boldsymbol{W})^\top(\boldsymbol{I} - \rho\boldsymbol{W}) + \sigma_u^2\boldsymbol{\Psi}^{-1}\)</span> through the Woodbury identity; the spatio-temporal and two-fold models compute REML scores, Fisher information and the analytical MSE from <span class="math inline">\(T \times T\)</span>, <span class="math inline">\(D \times D\)</span> and low-rank blocks; and the unit-level model works with area-level sufficient statistics, profiling <span class="math inline">\(\boldsymbol{\beta}\)</span> and <span class="math inline">\(\sigma_e^2\)</span> out of the (restricted) likelihood. Bootstrap replicates run in parallel with OpenMP; their random numbers are drawn beforehand from R’s generator, so the results depend on the seed but not on the number of threads.</p>
-<p>The HB functions translate formulas, adjacency information and sampling variances into a model and pass it to an engine object. <code>inla_engine()</code> (the default) holds the INLA strategy, the priors and further arguments of <code>INLA::inla()</code>; <code>jax_engine()</code> holds the device (CPU or GPU), the number of chains and draws and the sampler settings, and runs NumPyro through <a href="https://cran.r-project.org/package=reticulate">reticulate</a>. Both engines return the same object, so <code>print()</code>, <code>summary()</code>, <code>plot()</code>, <code>coef()</code>, <code>fitted()</code> and the post-estimation functions do not depend on how a model was estimated. INLA is not on CRAN and Python is optional, so both are suggested dependencies, as are <a href="https://cran.r-project.org/package=sf">sf</a> for maps and a spreadsheet writer for export; the frequentist and post-estimation functions need neither INLA nor Python.</p>
+<p>Table <a href="#tab:functions">3</a> lists the main functions. All model functions return objects of class <code>"fastsae"</code>, with the estimates, sampling variances, MSEs or posterior summaries and relative standard errors of all areas in one data frame, sampled or not, so the post-estimation functions accept every model. <code>diagnose()</code> computes the goodness-of-fit and bias diagnostics of <span class="citation" data-cites="brown2001evaluation">Brown et al. (<a href="#ref-brown2001evaluation" role="doc-biblioref">2001</a>)</span>, residual checks and, for HB fits, the calibration of the probability integral transform (PIT), and <code>step_sae()</code> selects covariates by stepwise search, with the information criteria of <span class="citation" data-cites="marhuenda2014information">Marhuenda et al. (<a href="#ref-marhuenda2014information" role="doc-biblioref">2014</a>)</span> for EBLUP models and the logarithmic conditional predictive ordinate, WAIC or DIC for HB models. The frequentist functions call C++ code [<a href="https://cran.r-project.org/package=Rcpp">Rcpp</a>, <span class="citation" data-cites="eddelbuettel2011rcpp">Eddelbuettel and François (<a href="#ref-eddelbuettel2011rcpp" role="doc-biblioref">2011</a>)</span>; <a href="https://cran.r-project.org/package=RcppArmadillo">RcppArmadillo</a>, <span class="citation" data-cites="eddelbuettel2014rcpparmadillo">Eddelbuettel and Sanderson (<a href="#ref-eddelbuettel2014rcpparmadillo" role="doc-biblioref">2014</a>)</span>; <a href="https://cran.r-project.org/package=RcppEigen">RcppEigen</a>] that never forms a dense inverse of the marginal covariance matrix. The spatial model works with sparse Cholesky factors of <span class="math inline">\((\boldsymbol{I} - \rho\boldsymbol{W})^\top(\boldsymbol{I} - \rho\boldsymbol{W})\)</span> and of <span class="math inline">\((\boldsymbol{I} - \rho\boldsymbol{W})^\top(\boldsymbol{I} - \rho\boldsymbol{W}) + \sigma_u^2\boldsymbol{\Psi}^{-1}\)</span> through the Woodbury identity; the spatio-temporal and two-fold models compute REML scores, Fisher information and the analytical MSE from <span class="math inline">\(T \times T\)</span>, <span class="math inline">\(D \times D\)</span> and low-rank blocks; and the unit-level model works with area-level sufficient statistics, profiling <span class="math inline">\(\boldsymbol{\beta}\)</span> and <span class="math inline">\(\sigma_e^2\)</span> out of the (restricted) likelihood. Bootstrap replicates run in parallel with OpenMP; their random numbers are drawn beforehand from R’s generator, so the results depend on the seed but not on the number of threads.</p>
+<p>The HB functions translate formulas, adjacency information and sampling variances into a model and pass it to an engine object. <code>inla_engine()</code> (the default) holds the INLA strategy, the priors and further arguments of <code>INLA::inla()</code>; <code>jax_engine()</code> holds the device (CPU or GPU), the number of chains and draws and the sampler settings, and runs NumPyro through <a href="https://cran.r-project.org/package=reticulate">reticulate</a>. Both engines return the same object, so <code>print()</code>, <code>summary()</code>, <code>plot()</code>, <code>coef()</code>, <code>fitted()</code> and the post-estimation functions do not depend on how a model was estimated. Fits by the JAX engine also report the split <span class="math inline">\(\hat{R}\)</span> and bulk and tail effective sample sizes <span class="citation" data-cites="vehtari2021rank">(<a href="#ref-vehtari2021rank" role="doc-biblioref">Vehtari et al. 2021</a>)</span>, the number of divergent transitions and the E-BFMI of each chain <span class="citation" data-cites="betancourt2016diagnosing">(<a href="#ref-betancourt2016diagnosing" role="doc-biblioref">Betancourt 2016</a>)</span>, and warn when one of them is poor; <code>autoplot()</code> draws trace plots, rank histograms and the draws of two parameters with the divergent ones marked <span class="citation" data-cites="gabry2019visualization">(<a href="#ref-gabry2019visualization" role="doc-biblioref">Gabry et al. 2019</a>)</span>, and the target acceptance probability of the step-size adaptation can be raised to remove divergences in funnel-shaped posteriors. INLA is not on CRAN and Python is optional, so both are suggested dependencies, as are <a href="https://cran.r-project.org/package=sf">sf</a> for maps and a spreadsheet writer for export; the frequentist and post-estimation functions need neither INLA nor Python.</p>
+<p>The PIT check of <code>diagnose()</code> needed care for count likelihoods. The PIT <span class="math inline">\(F_d(y_d)\)</span> of a count is not uniform even under the true model, so it is randomized, <span class="math inline">\(u_d = F_d(y_d - 1) + V_d\{F_d(y_d) - F_d(y_d - 1)\}\)</span> with <span class="math inline">\(V_d \sim \mathcal{U}(0, 1)\)</span> <span class="citation" data-cites="czado2009predictive">(<a href="#ref-czado2009predictive" role="doc-biblioref">Czado et al. 2009</a>)</span>. Moreover, INLA’s leave-one-out predictive of a count can be far from the one obtained by refitting without the area when the hyperparameters are integrated over: for three zero counts of a binomial model with 300 areas, INLA gave <span class="math inline">\(P(Y_d = 0 \mid \boldsymbol{y}_{-d})\)</span> of 0.03 to 0.13 where refitting gave 0.58 to 0.71, and no failure was flagged. For binomial and Poisson models with independent area effects, <code>diagnose()</code> therefore uses the mixed predictive of <span class="citation" data-cites="marshall2003approximate">Marshall and Spiegelhalter (<a href="#ref-marshall2003approximate" role="doc-biblioref">2003</a>)</span>, which replaces the area effect of each posterior draw by a new draw from its population distribution. In 20 replicates of correct models, the Kolmogorov-Smirnov test rejected the uniformity of INLA’s PIT in 20 (binomial) and 19 (Poisson) replicates, and that of the randomized mixed predictive PIT in none (script <code>benchmarks/validation/pit_discrete.R</code>). Other count models use INLA’s predictive with a warning.</p>
 <div class="layout-chunk" data-layout="l-body">
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
@@ -2267,7 +2334,7 @@ Unit-level and two-fold EBLUP
 hb_area()
 </td>
 <td style="width: 8.5cm; ">
-Area-level HB models: six likelihoods, spatial, temporal and space-time effects
+Area-level HB models: six likelihoods, spatial, temporal and space-time effects, covariates measured with error
 </td>
 </tr>
 <tr>
@@ -2280,10 +2347,26 @@ Unit-level and two-fold HB models
 </tr>
 <tr>
 <td style="width: 5.5cm; ">
+hb_ratio()
+</td>
+<td style="width: 8.5cm; ">
+Sub-indicator as a modelled share of a given parent indicator
+</td>
+</tr>
+<tr>
+<td style="width: 5.5cm; ">
 inla_engine(), jax_engine()
 </td>
 <td style="width: 8.5cm; ">
 Estimation engines for the HB functions
+</td>
+</tr>
+<tr>
+<td style="width: 5.5cm; ">
+effective_trials()
+</td>
+<td style="width: 8.5cm; ">
+Effective sample sizes of survey-weighted proportions for binomial models
 </td>
 </tr>
 <tr>
@@ -2299,7 +2382,7 @@ Ratio, difference, MSE-weighted and logit benchmarking at one or two levels
 add_reliability_flags()
 </td>
 <td style="width: 8.5cm; ">
-Reliability tiers by relative standard error
+Reliability tiers by relative standard error; classes of the estimate with their probabilities
 </td>
 </tr>
 <tr>
@@ -2330,12 +2413,311 @@ Choropleth maps; spreadsheet export
 </table>
 </div>
 <h2 data-number="4" id="sec:simulations"><span class="header-section-number">4</span> Benchmarks and simulations</h2>
-<p>All timings were measured on an Apple M4 (10 cores, 16 GB) under R 4.6.1. The scripts are in the <code>benchmarks/</code> directory of the package repository and store their results in <code>inst/extdata/</code>, from which this article computes its tables and figures.</p>
-<h3 data-number="4.1" id="frequentist-models"><span class="header-section-number">4.1</span> Frequentist models</h3>
+<p>All timings were measured on an Apple M4 (10 cores, 16 GB) under R 4.6.1 with R’s reference BLAS; OpenMP used its default number of threads, which matters only for the bootstrap, not timed here. The scripts are in the <code>benchmarks/</code> directory of the package repository and store their results in <code>inst/extdata/</code>, from which this article computes its tables and figures.</p>
+<h3 data-number="4.1" id="sec:agreement"><span class="header-section-number">4.1</span> Agreement with reference implementations</h3>
+<div class="layout-chunk" data-layout="l-body">
+<table class="table" style="font-size: 8px; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">
+<span id="tab:agreement">Table 4: </span>Largest relative difference, <span class="math inline">\(\max|a - b| / \max|b|\)</span>, between fastsae (<span class="math inline">\(a\)</span>) and sae 1.3 or emdi 2.2.3 (<span class="math inline">\(b\)</span>) fitted to the same data: regression coefficients, variance parameters (including <span class="math inline">\(\rho\)</span>), EBLUPs and analytical MSEs. sae has no analytical MSE for the spatio-temporal model, and both packages estimate the MSE of the unit-level model by bootstrap.
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Model
+</th>
+<th style="text-align:left;">
+Data
+</th>
+<th style="text-align:left;">
+Method
+</th>
+<th style="text-align:left;">
+Reference
+</th>
+<th style="text-align:right;">
+Coefficients
+</th>
+<th style="text-align:right;">
+Variances
+</th>
+<th style="text-align:right;">
+EBLUP
+</th>
+<th style="text-align:right;">
+MSE
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Fay-Herriot
+</td>
+<td style="text-align:left;">
+mys
+</td>
+<td style="text-align:left;">
+REML
+</td>
+<td style="text-align:left;">
+sae
+</td>
+<td style="text-align:right;">
+3e-14
+</td>
+<td style="text-align:right;">
+6e-15
+</td>
+<td style="text-align:right;">
+5e-15
+</td>
+<td style="text-align:right;">
+6e-15
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Fay-Herriot
+</td>
+<td style="text-align:left;">
+mys
+</td>
+<td style="text-align:left;">
+REML
+</td>
+<td style="text-align:left;">
+emdi
+</td>
+<td style="text-align:right;">
+2e-07
+</td>
+<td style="text-align:right;">
+5e-06
+</td>
+<td style="text-align:right;">
+5e-07
+</td>
+<td style="text-align:right;">
+3e-06
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Fay-Herriot
+</td>
+<td style="text-align:left;">
+mys
+</td>
+<td style="text-align:left;">
+ML
+</td>
+<td style="text-align:left;">
+sae
+</td>
+<td style="text-align:right;">
+9e-15
+</td>
+<td style="text-align:right;">
+4e-15
+</td>
+<td style="text-align:right;">
+2e-15
+</td>
+<td style="text-align:right;">
+4e-15
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Fay-Herriot
+</td>
+<td style="text-align:left;">
+mys
+</td>
+<td style="text-align:left;">
+ML
+</td>
+<td style="text-align:left;">
+emdi
+</td>
+<td style="text-align:right;">
+3e-07
+</td>
+<td style="text-align:right;">
+6e-06
+</td>
+<td style="text-align:right;">
+6e-07
+</td>
+<td style="text-align:right;">
+4e-06
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Spatial Fay-Herriot
+</td>
+<td style="text-align:left;">
+simulated, D = 100
+</td>
+<td style="text-align:left;">
+REML
+</td>
+<td style="text-align:left;">
+sae
+</td>
+<td style="text-align:right;">
+7e-16
+</td>
+<td style="text-align:right;">
+1e-15
+</td>
+<td style="text-align:right;">
+6e-16
+</td>
+<td style="text-align:right;">
+5e-15
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Spatial Fay-Herriot
+</td>
+<td style="text-align:left;">
+simulated, D = 100
+</td>
+<td style="text-align:left;">
+REML
+</td>
+<td style="text-align:left;">
+emdi
+</td>
+<td style="text-align:right;">
+6e-16
+</td>
+<td style="text-align:right;">
+5e-16
+</td>
+<td style="text-align:right;">
+6e-16
+</td>
+<td style="text-align:right;">
+5e-15
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Spatial Fay-Herriot
+</td>
+<td style="text-align:left;">
+simulated, D = 100
+</td>
+<td style="text-align:left;">
+ML
+</td>
+<td style="text-align:left;">
+sae
+</td>
+<td style="text-align:right;">
+2e-15
+</td>
+<td style="text-align:right;">
+3e-14
+</td>
+<td style="text-align:right;">
+1e-14
+</td>
+<td style="text-align:right;">
+2e-02
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Spatial Fay-Herriot
+</td>
+<td style="text-align:left;">
+simulated, D = 100
+</td>
+<td style="text-align:left;">
+ML
+</td>
+<td style="text-align:left;">
+emdi
+</td>
+<td style="text-align:right;">
+5e-15
+</td>
+<td style="text-align:right;">
+1e-13
+</td>
+<td style="text-align:right;">
+4e-14
+</td>
+<td style="text-align:right;">
+2e-02
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Spatio-temporal Fay-Herriot
+</td>
+<td style="text-align:left;">
+simulated, D = 100, T = 5
+</td>
+<td style="text-align:left;">
+REML
+</td>
+<td style="text-align:left;">
+sae
+</td>
+<td style="text-align:right;">
+6e-16
+</td>
+<td style="text-align:right;">
+9e-15
+</td>
+<td style="text-align:right;">
+2e-15
+</td>
+<td style="text-align:right;">
+–
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Battese-Harter-Fuller
+</td>
+<td style="text-align:left;">
+cornsoybean
+</td>
+<td style="text-align:left;">
+REML
+</td>
+<td style="text-align:left;">
+sae
+</td>
+<td style="text-align:right;">
+1e-09
+</td>
+<td style="text-align:right;">
+7e-09
+</td>
+<td style="text-align:right;">
+1e-09
+</td>
+<td style="text-align:right;">
+–
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Table <a href="#tab:agreement">4</a> compares <a href="https://cran.r-project.org/package=fastsae">fastsae</a> with <a href="https://cran.r-project.org/package=sae">sae</a> and <a href="https://cran.r-project.org/package=emdi">emdi</a> on the same data: the sampled areas of the example data <code>mys</code>, simulated spatial and spatio-temporal data with <span class="math inline">\(D = 100\)</span> areas (the design of the timings below), and the <code>cornsoybean</code> unit-level data of <span class="citation" data-cites="battese1988error">Battese et al. (<a href="#ref-battese1988error" role="doc-biblioref">1988</a>)</span>. Against <a href="https://cran.r-project.org/package=sae">sae</a>, all estimates and the analytical MSEs of REML fits agree to rounding error; the unit-level fit agrees to the tolerance of the optimizer. The differences from <a href="https://cran.r-project.org/package=emdi">emdi</a>, of order <span class="math inline">\(10^{-6}\)</span>, reflect its convergence tolerance. The ML MSE of the spatial model differs by 1.8% because <a href="https://cran.r-project.org/package=fastsae">fastsae</a> uses the ML information in <span class="math inline">\(g_{3d}\)</span> and the bias term (see <a href="#sec:methods-freq">Frequentist models</a>).</p>
+<h3 data-number="4.2" id="frequentist-models"><span class="header-section-number">4.2</span> Frequentist models</h3>
 <div class="layout-chunk" data-layout="l-body">
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:freq-table">Table 4: </span>Median time and memory allocated by R for point estimates and analytical MSEs. The spatio-temporal model has <span class="math inline">\(T = 5\)</span> periods. The fastsae rows were measured with fastsae 1.0.0; the sae and emdi rows come from an earlier run of the same design on other random draws.
+<span id="tab:freq-table">Table 5: </span>Median time and increase of the peak resident memory of the R process for point estimates and analytical MSEs, except for the spatio-temporal model (<span class="math inline">\(T = 5\)</span> periods), where only point estimates are timed because sae has no analytical MSE for it. All packages fitted the same data sets. Memory increases of a few tens of MB vary from run to run. <span class="math inline">\(^\dagger\)</span>The fit did not converge within the iteration limit.
 </caption>
 <thead>
 <tr>
@@ -2348,7 +2730,7 @@ Time (s)
 </th>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3">
 <div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">
-Memory allocated (MB)
+Peak memory (MB)
 </div>
 </th>
 </tr>
@@ -2387,22 +2769,22 @@ emdi
 30
 </td>
 <td style="text-align:right;">
-0.00034
+0.00033
 </td>
 <td style="text-align:right;">
-0.0016
+0.00084
 </td>
 <td style="text-align:right;">
-0.01
+0.0037
 </td>
 <td style="text-align:right;">
-0.42
+21.89
 </td>
 <td style="text-align:right;">
-0.15
+44.12
 </td>
 <td style="text-align:right;">
-4.18
+116
 </td>
 </tr>
 <tr>
@@ -2410,22 +2792,22 @@ emdi
 100
 </td>
 <td style="text-align:right;">
-0.00043
+0.00037
 </td>
 <td style="text-align:right;">
-0.0034
+0.0032
 </td>
 <td style="text-align:right;">
-0.05
+0.02
 </td>
 <td style="text-align:right;">
-0.04
+22.91
 </td>
 <td style="text-align:right;">
-0.92
+57.19
 </td>
 <td style="text-align:right;">
-37.34
+106
 </td>
 </tr>
 <tr>
@@ -2433,22 +2815,22 @@ emdi
 500
 </td>
 <td style="text-align:right;">
-0.00073
+0.0005
 </td>
 <td style="text-align:right;">
-0.20
+0.14
 </td>
 <td style="text-align:right;">
-5.86
+1.63
 </td>
 <td style="text-align:right;">
-0.21
+21.53
 </td>
 <td style="text-align:right;">
-18.24
+30.09
 </td>
 <td style="text-align:right;">
-880
+112
 </td>
 </tr>
 <tr>
@@ -2456,22 +2838,22 @@ emdi
 1,000
 </td>
 <td style="text-align:right;">
-0.0012
+0.00064
 </td>
 <td style="text-align:right;">
-1.50
+0.80
 </td>
 <td style="text-align:right;">
-51.02
+13.47
 </td>
 <td style="text-align:right;">
-0.41
+1.91
 </td>
 <td style="text-align:right;">
-71.98
+39.02
 </td>
 <td style="text-align:right;">
-3,774
+222
 </td>
 </tr>
 <tr grouplength="4">
@@ -2484,22 +2866,22 @@ emdi
 30
 </td>
 <td style="text-align:right;">
-0.04
-</td>
-<td style="text-align:right;">
-0.0041
+0.0031
 </td>
 <td style="text-align:right;">
 0.01
 </td>
 <td style="text-align:right;">
-0.04
+0.01
 </td>
 <td style="text-align:right;">
-1.37
+77.28
 </td>
 <td style="text-align:right;">
-4.18
+174
+</td>
+<td style="text-align:right;">
+178
 </td>
 </tr>
 <tr>
@@ -2507,22 +2889,22 @@ emdi
 100
 </td>
 <td style="text-align:right;">
-0.12
-</td>
-<td style="text-align:right;">
-0.07
+0.0073
 </td>
 <td style="text-align:right;">
 0.05
 </td>
 <td style="text-align:right;">
-0.16
+0.06
 </td>
 <td style="text-align:right;">
-17.98
+49.73
 </td>
 <td style="text-align:right;">
-37.34
+66.70
+</td>
+<td style="text-align:right;">
+74.31
 </td>
 </tr>
 <tr>
@@ -2530,22 +2912,22 @@ emdi
 500
 </td>
 <td style="text-align:right;">
-1.76
+0.11
 </td>
 <td style="text-align:right;">
-7.12
+3.08
 </td>
 <td style="text-align:right;">
-3.14
+3.45
 </td>
 <td style="text-align:right;">
-3.09
+57.08
 </td>
 <td style="text-align:right;">
-776
+98.80
 </td>
 <td style="text-align:right;">
-950
+128
 </td>
 </tr>
 <tr>
@@ -2553,27 +2935,27 @@ emdi
 1,000
 </td>
 <td style="text-align:right;">
-8.70
+0.52
 </td>
 <td style="text-align:right;">
-67.15
+24.10
 </td>
 <td style="text-align:right;">
-51.06
+25.21
 </td>
 <td style="text-align:right;">
-11.90
+78.67
 </td>
 <td style="text-align:right;">
-1,920
+239
 </td>
 <td style="text-align:right;">
-3,773
+310
 </td>
 </tr>
 <tr grouplength="4">
 <td colspan="7" style="border-bottom: 1px solid;">
-<strong>Spatio-temporal Fay-Herriot</strong>
+<strong>Spatio-temporal Fay-Herriot, point estimates</strong>
 </td>
 </tr>
 <tr>
@@ -2581,19 +2963,19 @@ emdi
 30
 </td>
 <td style="text-align:right;">
-0.14
+0.07
 </td>
 <td style="text-align:right;">
-0.12
+0.70<span class="math inline">\(^\dagger\)</span>
 </td>
 <td style="text-align:right;">
 –
 </td>
 <td style="text-align:right;">
-2.72
+44.02
 </td>
 <td style="text-align:right;">
-43.80
+127
 </td>
 <td style="text-align:right;">
 –
@@ -2604,19 +2986,19 @@ emdi
 100
 </td>
 <td style="text-align:right;">
-0.17
+0.11
 </td>
 <td style="text-align:right;">
-17.94
+1.95
 </td>
 <td style="text-align:right;">
 –
 </td>
 <td style="text-align:right;">
-0.56
+52.97
 </td>
 <td style="text-align:right;">
-2,551
+137
 </td>
 <td style="text-align:right;">
 –
@@ -2627,19 +3009,19 @@ emdi
 500
 </td>
 <td style="text-align:right;">
-7.34
+5.21
 </td>
 <td style="text-align:right;">
-253
+124
 </td>
 <td style="text-align:right;">
 –
 </td>
 <td style="text-align:right;">
-5.13
+116
 </td>
 <td style="text-align:right;">
-8,124
+1,114
 </td>
 <td style="text-align:right;">
 –
@@ -2650,19 +3032,19 @@ emdi
 1,000
 </td>
 <td style="text-align:right;">
-50.53
+39.84
 </td>
 <td style="text-align:right;">
-1,786
+1,156
 </td>
 <td style="text-align:right;">
 –
 </td>
 <td style="text-align:right;">
-15.96
+495
 </td>
 <td style="text-align:right;">
-32,478
+3,684
 </td>
 <td style="text-align:right;">
 –
@@ -2671,12 +3053,12 @@ emdi
 </tbody>
 </table>
 </div>
-<p>We timed the three area-level models with point estimates and analytical MSEs on simulated data with five covariates and <span class="math inline">\(D\)</span> up to 1,000 areas (Table <a href="#tab:freq-table">4</a>). Times are medians from the <a href="https://cran.r-project.org/package=bench">bench</a> package, and memory is the total memory allocated by R during one call (<code>mem_alloc</code>), not the peak memory of the process, and does not include memory allocated by compiled code. The rows for <a href="https://cran.r-project.org/package=sae">sae</a> and <a href="https://cran.r-project.org/package=emdi">emdi</a> come from an earlier run of the same design whose data generator is no longer available, so they were obtained on other random draws than the <a href="https://cran.r-project.org/package=fastsae">fastsae</a> rows; we report them for orientation. At <span class="math inline">\(D = 1{,}000\)</span>, <a href="https://cran.r-project.org/package=fastsae">fastsae</a> fitted the Fay-Herriot model in 0.0012 s against 1.50 s for <a href="https://cran.r-project.org/package=sae">sae</a>, the spatial model in 8.70 s against 67.15 s, and the spatio-temporal model in 50.53 s against 30 minutes, for which <a href="https://cran.r-project.org/package=sae">sae</a> allocated 31.7 GB. For small <span class="math inline">\(D\)</span> the fixed costs dominate and <a href="https://cran.r-project.org/package=sae">sae</a> is as fast or faster for the spatial models.</p>
-<h3 data-number="4.2" id="sec:bench-beta"><span class="header-section-number">4.2</span> Beta models: fastsae and tipsae</h3>
+<p>We timed the three area-level models on simulated data with five covariates and <span class="math inline">\(D\)</span> up to 1,000 areas (Table <a href="#tab:freq-table">5</a>), with the same data sets for all packages. Each combination of model, package and <span class="math inline">\(D\)</span> ran in its own R process: times are medians from the <a href="https://cran.r-project.org/package=bench">bench</a> package, and memory is the increase of the peak resident memory of the process over that of a process that had loaded the same packages and data, so it includes memory allocated by compiled code. At <span class="math inline">\(D = 1{,}000\)</span>, <a href="https://cran.r-project.org/package=fastsae">fastsae</a> fitted the Fay-Herriot model in 0.00064 s against 0.80 s for <a href="https://cran.r-project.org/package=sae">sae</a> and 13.47 s for <a href="https://cran.r-project.org/package=emdi">emdi</a>, and the spatial model in 0.52 s against 24.10 s and 25.21 s. For the spatio-temporal model, <a href="https://cran.r-project.org/package=sae">sae</a> provides point estimates and a bootstrap MSE but no analytical MSE, so we timed point estimates: 39.84 s for <a href="https://cran.r-project.org/package=fastsae">fastsae</a> and 19 minutes for <a href="https://cran.r-project.org/package=sae">sae</a>; with the analytical MSE, <a href="https://cran.r-project.org/package=fastsae">fastsae</a> took about as long (39.34 s). The Fisher scoring of <a href="https://cran.r-project.org/package=sae">sae</a> did not converge within its 100 iterations for <span class="math inline">\(D = 30, 50\)</span>, so these times are those of 100 iterations, whereas <a href="https://cran.r-project.org/package=fastsae">fastsae</a> switches to a constrained iteration when the classical one fails. With 30 areas every fit took less than a second, so the differences matter mainly when a model is fitted many times, as in simulation studies.</p>
+<h3 data-number="4.3" id="sec:bench-beta"><span class="header-section-number">4.3</span> Beta models: fastsae and tipsae</h3>
 <div class="layout-chunk" data-layout="l-body">
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:beta-table">Table 5: </span>Median time in seconds of beta models with sampling variances, fitted by fastsae (INLA, two-stage precision) and tipsae (Stan, 4 chains of 2,000 iterations). The spatio-temporal model has <span class="math inline">\(T = 5\)</span> periods and was run up to <span class="math inline">\(D = 50\)</span>.
+<span id="tab:beta-table">Table 6: </span>Median time in seconds of beta models with sampling variances, fitted by fastsae (INLA, two-stage precision) and tipsae (Stan, 4 chains of 2,000 iterations). The spatio-temporal model has <span class="math inline">\(T = 5\)</span> periods and was run up to <span class="math inline">\(D = 50\)</span>.
 </caption>
 <thead>
 <tr>
@@ -2864,8 +3246,8 @@ tipsae
 </tbody>
 </table>
 </div>
-<p>For beta models we compared <code>hb_area(family = "beta")</code> with <a href="https://cran.r-project.org/package=tipsae">tipsae</a> <span class="citation" data-cites="denicolo2024tipsae">(<a href="#ref-denicolo2024tipsae" role="doc-biblioref">De Nicolò and Gardini 2024</a>)</span> on data simulated by <code>sim_area_data()</code>, with sampling variances <span class="math inline">\(\psi_d = y_d(1 - y_d)/26\)</span> computed from the direct estimates as a survey would, and <a href="https://cran.r-project.org/package=tipsae">tipsae</a> with <code>type_disp = "var"</code> and its default sampler settings (Table <a href="#tab:beta-table">5</a>). The two packages do not fit the same model: their priors differ (see <a href="#sec:methods-priors">Default priors</a>), and the precision is fixed at a first-stage estimate in <a href="https://cran.r-project.org/package=fastsae">fastsae</a> but a function of the model mean in <a href="https://cran.r-project.org/package=tipsae">tipsae</a>. The comparison is therefore between what a user obtains from each package with its defaults. At <span class="math inline">\(D = 1{,}000\)</span> the independent model took 3.73 s in <a href="https://cran.r-project.org/package=fastsae">fastsae</a> and 180 s in <a href="https://cran.r-project.org/package=tipsae">tipsae</a>, and the spatial model 4.28 s and 362 s. At these sizes most of an INLA fit is fixed cost, such as starting the INLA program, and the two-stage precision fits the model twice, so the runtime of <a href="https://cran.r-project.org/package=fastsae">fastsae</a> grows slowly with <span class="math inline">\(D\)</span>.</p>
-<p>To compare the estimates, we fitted both packages to the <span class="math inline">\(D = 1{,}000\)</span> data set of Table <a href="#tab:beta-table">5</a> and compared them with the true area means (Figure <a href="#fig:concordance">1</a>). The posterior means of the two packages correlated at <span class="math inline">\(r = 0.9988\)</span> with a mean absolute difference of 0.0096, and the posterior standard deviations of <a href="https://cran.r-project.org/package=fastsae">fastsae</a> were 0.99 times those of <a href="https://cran.r-project.org/package=tipsae">tipsae</a> in the median area (90% of the areas between 0.88 and 1.17). Against the true means, the RMSE was 0.0678 for <a href="https://cran.r-project.org/package=fastsae">fastsae</a> and 0.0684 for <a href="https://cran.r-project.org/package=tipsae">tipsae</a>, and the 95% intervals covered 93.3% and 91.1% of the true means, with mean widths 0.252 and 0.259.</p>
+<p>For beta models we compared <code>hb_area(family = "beta")</code> with <a href="https://cran.r-project.org/package=tipsae">tipsae</a> <span class="citation" data-cites="denicolo2024tipsae">(<a href="#ref-denicolo2024tipsae" role="doc-biblioref">De Nicolò and Gardini 2024</a>)</span> on data simulated by <code>sim_area_data()</code>, with sampling variances <span class="math inline">\(\psi_d = y_d(1 - y_d)/26\)</span> computed from the direct estimates as a survey would, and <a href="https://cran.r-project.org/package=tipsae">tipsae</a> with <code>type_disp = "var"</code> and its default sampler settings (Table <a href="#tab:beta-table">6</a>). The two packages do not fit the same model: their priors differ (see <a href="#sec:methods-priors">Default priors</a>), and the precision is fixed at a first-stage estimate in <a href="https://cran.r-project.org/package=fastsae">fastsae</a> but a function of the model mean in <a href="https://cran.r-project.org/package=tipsae">tipsae</a>. The comparison is therefore between what a user obtains from each package with its defaults. At <span class="math inline">\(D = 1{,}000\)</span> the independent model took 3.73 s in <a href="https://cran.r-project.org/package=fastsae">fastsae</a> and 180 s in <a href="https://cran.r-project.org/package=tipsae">tipsae</a>, and the spatial model 4.28 s and 362 s. At these sizes most of an INLA fit is fixed cost, such as starting the INLA program, and the two-stage precision fits the model twice, so the runtime of <a href="https://cran.r-project.org/package=fastsae">fastsae</a> grows slowly with <span class="math inline">\(D\)</span>.</p>
+<p>To compare the estimates, we fitted both packages to the <span class="math inline">\(D = 1{,}000\)</span> data set of Table <a href="#tab:beta-table">6</a> and compared them with the true area means (Figure <a href="#fig:concordance">1</a>). The posterior means of the two packages correlated at <span class="math inline">\(r = 0.9988\)</span> with a mean absolute difference of 0.0096, and the posterior standard deviations of <a href="https://cran.r-project.org/package=fastsae">fastsae</a> were 0.99 times those of <a href="https://cran.r-project.org/package=tipsae">tipsae</a> in the median area (90% of the areas between 0.88 and 1.17). Against the true means, the RMSE was 0.0678 for <a href="https://cran.r-project.org/package=fastsae">fastsae</a> and 0.0684 for <a href="https://cran.r-project.org/package=tipsae">tipsae</a>, and the 95% intervals covered 93.3% and 91.1% of the true means, with mean widths 0.252 and 0.259.</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="figure" style="text-align: center"><span style="display:block;" id="fig:concordance"></span>
 <img src="fastsae_files/figure-html5/concordance-1.png" alt="Two scatter plots. Left: posterior means from fastsae on the x axis against tipsae on the y axis, between 0 and 1, close to the identity line. Right: posterior standard deviations from fastsae against tipsae." width="672" />
@@ -2874,14 +3256,14 @@ Figure 1: Posterior means (left) and posterior standard deviations (right) of a 
 </p>
 </div>
 </div>
-<h3 data-number="4.3" id="sec:bench-engines"><span class="header-section-number">4.3</span> Estimation engines</h3>
+<h3 data-number="4.4" id="sec:bench-engines"><span class="header-section-number">4.4</span> Estimation engines</h3>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:engines">Table 6: </span>Time in seconds of a second (warm) fit of hb_area() with an ICAR area effect, by estimation engine. JAX: NumPyro NUTS, 2 chains of 1,000 draws after 500 warm-up iterations; tipsae: Stan defaults (4 chains of 2,000 iterations), beta model only. Times are for these run lengths, not per effective sample.
+<span id="tab:engines">Table 7: </span>Time in seconds of a second (warm) fit of hb_area() with an ICAR area effect, by estimation engine. JAX: NumPyro NUTS, 2 chains of 1,000 draws after 500 warm-up iterations; tipsae: Stan defaults (4 chains of 2,000 iterations), beta model only. Times are for these run lengths, not per effective sample.
 </caption>
 <thead>
 <tr>
@@ -3052,19 +3434,21 @@ tipsae
 </tbody>
 </table>
 </div>
-<p>The same <code>hb_area()</code> model can be estimated by INLA or by the No-U-Turn sampler of NumPyro on JAX, on the CPU or a GPU. Table <a href="#tab:engines">6</a> compares the engines on Gaussian and beta models with an ICAR area effect on a regular grid with queen adjacency; for the beta model, <a href="https://cran.r-project.org/package=tipsae">tipsae</a> was run with its ICAR effect. Each engine ran in its own R process and each fit was run twice on the same data. At <span class="math inline">\(D = 2,500\)</span> INLA fitted the spatial beta model in 6.32 s, against 620 s for <a href="https://cran.r-project.org/package=tipsae">tipsae</a> and 1,269 s for JAX on the CPU. The JAX engine is a way to check INLA by MCMC rather than a faster alternative to it. Its time grows faster with <span class="math inline">\(D\)</span> than that of INLA, because it represents the ICAR effect through the eigenvectors of the graph Laplacian, which costs <span class="math inline">\(O(D^2)\)</span> per gradient, and for the beta model it runs the sampler twice, once for each stage of the precision. On the CPU it took 0.4 times the time of <a href="https://cran.r-project.org/package=tipsae">tipsae</a> at <span class="math inline">\(D = 100\)</span> and 2.0 times at <span class="math inline">\(D = 2,500\)</span>. The Apple GPU has a fixed cost of about 2 minutes per sampler run, as each step of the tree-building loop of NUTS synchronizes GPU and CPU; it pays off only for the largest models. Running NumPyro on Apple GPUs required replacing two operations that <a href="#">jax-metal</a> cannot compile (<code>popcnt</code> and <code>lax.cond</code> with constant outputs). The posterior means of JAX correlated with those of INLA at <span class="math inline">\(r \ge 0.9999\)</span> with median ratios of posterior standard deviations between 1.00 and 1.02. The largest split <span class="math inline">\(\hat{R}\)</span> of the JAX fits was 1.016, slightly above the threshold of 1.01 recommended by <span class="citation" data-cites="vehtari2021rank">Vehtari et al. (<a href="#ref-vehtari2021rank" role="doc-biblioref">2021</a>)</span>, so longer chains than these two of 1,000 draws are advisable for inference. Not all <a href="https://cran.r-project.org/package=tipsae">tipsae</a> fits converged: the largest <span class="math inline">\(\hat{R}\)</span> was 3.71, at <span class="math inline">\(D = 100\)</span>, in line with the bimodal likelihood described under <a href="#sec:methods-dispersion">Dispersion from the sampling variances</a>, so its times refer to the run length and not to a converged posterior.</p>
-<h3 data-number="4.4" id="sec:mc"><span class="header-section-number">4.4</span> Design-based simulation</h3>
+<p>The same <code>hb_area()</code> model can be estimated by INLA or by the No-U-Turn sampler of NumPyro on JAX, on the CPU or a GPU. Table <a href="#tab:engines">7</a> compares the engines on Gaussian and beta models with an ICAR area effect on a regular grid with queen adjacency; for the beta model, <a href="https://cran.r-project.org/package=tipsae">tipsae</a> was run with its ICAR effect. Each engine ran in its own R process and each fit was run twice on the same data. At <span class="math inline">\(D = 2,500\)</span> INLA fitted the spatial beta model in 6.32 s, against 620 s for <a href="https://cran.r-project.org/package=tipsae">tipsae</a> and 1,269 s for JAX on the CPU. The JAX engine is a way to check INLA by MCMC rather than a faster alternative to it. Its time grows faster with <span class="math inline">\(D\)</span> than that of INLA, because it represents the ICAR effect through the eigenvectors of the graph Laplacian, which costs <span class="math inline">\(O(D^2)\)</span> per gradient, and for the beta model it runs the sampler twice, once for each stage of the precision. On the CPU it took 0.4 times the time of <a href="https://cran.r-project.org/package=tipsae">tipsae</a> at <span class="math inline">\(D = 100\)</span> and 2.0 times at <span class="math inline">\(D = 2,500\)</span>. The Apple GPU has a fixed cost of about 2 minutes per sampler run, as each step of the tree-building loop of NUTS synchronizes GPU and CPU; it pays off only for the largest models. Running NumPyro on Apple GPUs required replacing two operations that <a href="#">jax-metal</a> cannot compile (<code>popcnt</code> and <code>lax.cond</code> with constant outputs). The posterior means of JAX correlated with those of INLA at <span class="math inline">\(r \ge 0.9999\)</span> with median ratios of posterior standard deviations between 1.00 and 1.02. The largest split <span class="math inline">\(\hat{R}\)</span> of the JAX fits was 1.016, slightly above the threshold of 1.01 recommended by <span class="citation" data-cites="vehtari2021rank">Vehtari et al. (<a href="#ref-vehtari2021rank" role="doc-biblioref">2021</a>)</span>, so longer chains than these two of 1,000 draws are advisable for inference. Not all <a href="https://cran.r-project.org/package=tipsae">tipsae</a> fits converged: the largest <span class="math inline">\(\hat{R}\)</span> was 3.71, at <span class="math inline">\(D = 100\)</span>, in line with the bimodal likelihood described under <a href="#sec:methods-dispersion">Dispersion from the sampling variances</a>, so its times refer to the run length and not to a converged posterior.</p>
+<h3 data-number="4.5" id="sec:mc"><span class="header-section-number">4.5</span> Design-based simulation</h3>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
-<p>To assess the estimators under repeated sampling from a finite population, we generated a population of about <span class="math inline">\(N = 250{,}000\)</span> individuals in <span class="math inline">\(D = 500\)</span> areas on a <span class="math inline">\(20 \times 25\)</span> grid, with a binary outcome that is logistic in two covariates with ICAR and independent area effects, and drew <span class="math inline">\(R = 25\)</span> samples of 20 to 50 units per area by simple random sampling. Each sample was fitted by a beta model with an ICAR area effect and the sampling variances of the direct proportions, by <code>hb_area()</code> with its defaults and by <a href="https://cran.r-project.org/package=tipsae">tipsae</a> (<code>type_disp = "var"</code>, one chain of 500 iterations after 150 warm-up iterations). The script is <code>benchmarks/sim_mc_finite_pop_d500.R</code>.</p>
+<p>To assess the estimators under repeated sampling from a finite population, we generated a population of 250,824 individuals in <span class="math inline">\(D = 500\)</span> areas on a <span class="math inline">\(20 \times 25\)</span> grid, with a binary outcome that is logistic in two covariates with ICAR and independent area effects, and drew <span class="math inline">\(R = 200\)</span> stratified simple random samples of 20 to 50 units per area. The direct estimates were the sample proportions, with a continuity adjustment that keeps them inside <span class="math inline">\((0, 1)\)</span>, and their variances under simple random sampling with the finite population correction. Each sample was fitted by the Fay-Herriot and spatial Fay-Herriot EBLUPs with analytical MSEs (<code>eblup_fh()</code>, and <code>eblup_sfh()</code> with the row-standardized contiguity matrix), and by beta models with an ICAR area effect and the sampling variances, by <code>hb_area()</code> with its defaults and by <a href="https://cran.r-project.org/package=tipsae">tipsae</a> (<code>type_disp = "var"</code>, 2 chains of 1,000 iterations after 500 warm-up iterations). The intervals were <span class="math inline">\(\hat{\theta}_d \pm 1.96\sqrt{\mathrm{mse}_d}\)</span> for the EBLUPs and the 95% credible intervals for the HB fits. The script is <code>benchmarks/sim_mc_finite_pop_d500.R</code>.</p>
 <div class="layout-chunk" data-layout="l-body">
-<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
-<caption>
-<span id="tab:mc">Table 7: </span>Design-based simulation (<span class="math inline">\(D = 500\)</span>, <span class="math inline">\(R = 25\)</span>): root mean squared error, relative RMSE and mean absolute relative bias, averaged over areas, coverage of the 95% intervals (standard error across areas in parentheses), mean interval width, and time per fit with five replicates running in parallel.
+<table class="table" style="font-size: 9px; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">
+<span id="tab:mc">Table 8: </span>Design-based simulation (<span class="math inline">\(D = 500\)</span>, <span class="math inline">\(R = 200\)</span>): root mean squared error, relative RMSE and mean absolute relative bias, averaged over areas; coverage of the 95% intervals (Monte Carlo standard error across replicates in parentheses) and their mean width; median over areas of the ratio of the mean estimated MSE (posterior variance for the HB fits) to the empirical MSE; and time per fit with 5 replicates running in parallel.
 </caption>
 <thead>
 <tr>
+<th style="text-align:left;">
+</th>
 <th style="text-align:left;">
 Estimator
 </th>
@@ -3084,6 +3468,9 @@ Coverage (%)
 Width
 </th>
 <th style="text-align:right;">
+Variance ratio
+</th>
+<th style="text-align:right;">
 Time (s)
 </th>
 </tr>
@@ -3093,75 +3480,151 @@ Time (s)
 <td style="text-align:left;">
 Direct
 </td>
-<td style="text-align:right;">
-0.0719
+<td style="text-align:left;">
+Direct
 </td>
 <td style="text-align:right;">
-27.1
+0.0725
 </td>
 <td style="text-align:right;">
-21.7
+27.4
+</td>
+<td style="text-align:right;">
+21.6
+</td>
+<td style="text-align:right;">
+94.8 (0.1)
+</td>
+<td style="text-align:right;">
+0.292
+</td>
+<td style="text-align:right;">
+1.09
 </td>
 <td style="text-align:right;">
 –
 </td>
-<td style="text-align:right;">
-–
+</tr>
+<tr>
+<td style="text-align:left;">
+FH
+</td>
+<td style="text-align:left;">
+Fay-Herriot EBLUP
 </td>
 <td style="text-align:right;">
-–
+0.0518
+</td>
+<td style="text-align:right;">
+20.0
+</td>
+<td style="text-align:right;">
+16.6
+</td>
+<td style="text-align:right;">
+94.4 (0.1)
+</td>
+<td style="text-align:right;">
+0.207
+</td>
+<td style="text-align:right;">
+1.27
+</td>
+<td style="text-align:right;">
+0.0096
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SFH
+</td>
+<td style="text-align:left;">
+Spatial Fay-Herriot EBLUP
+</td>
+<td style="text-align:right;">
+0.0497
+</td>
+<td style="text-align:right;">
+19.1
+</td>
+<td style="text-align:right;">
+15.9
+</td>
+<td style="text-align:right;">
+94.2 (0.1)
+</td>
+<td style="text-align:right;">
+0.198
+</td>
+<td style="text-align:right;">
+1.26
+</td>
+<td style="text-align:right;">
+0.96
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
 fastsae
 </td>
-<td style="text-align:right;">
-0.0489
+<td style="text-align:left;">
+Beta-ICAR, fastsae (INLA)
 </td>
 <td style="text-align:right;">
-18.8
+0.0495
 </td>
 <td style="text-align:right;">
-15.8
+19.1
 </td>
 <td style="text-align:right;">
-93.4 (0.5)
+15.9
 </td>
 <td style="text-align:right;">
-0.194
+93.2 (0.1)
 </td>
 <td style="text-align:right;">
-8.5
+0.193
+</td>
+<td style="text-align:right;">
+1.25
+</td>
+<td style="text-align:right;">
+9.48
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
 tipsae
 </td>
-<td style="text-align:right;">
-0.0487
+<td style="text-align:left;">
+Beta-ICAR, tipsae (Stan)
 </td>
 <td style="text-align:right;">
-18.7
+0.0490
 </td>
 <td style="text-align:right;">
-15.7
+18.8
 </td>
 <td style="text-align:right;">
-93.7 (0.4)
+15.6
 </td>
 <td style="text-align:right;">
-0.202
+94.1 (0.1)
 </td>
 <td style="text-align:right;">
-40.0
+0.203
+</td>
+<td style="text-align:right;">
+1.38
+</td>
+<td style="text-align:right;">
+126
 </td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>Both HB fits reduced the RMSE of the direct estimator from 0.0719 to about 0.049, an efficiency gain (ratio of mean squared errors) of 1.99 (Table <a href="#tab:mc">7</a>). The two packages were equivalent in accuracy and in the coverage of their 95% intervals, which was slightly below the nominal level for both; the intervals of <a href="https://cran.r-project.org/package=fastsae">fastsae</a> were slightly narrower. An earlier version of this simulation, with a PC prior on the area standard deviation and the precision evaluated at the direct estimates, covered 89.0%, against 93.4% with the default priors and the <a href="#sec:methods-dispersion">two-stage precision</a>.</p>
+<p>All model-based estimators reduced the RMSE of the direct estimator from 0.0725 to between 0.0490 and 0.0518 (Table <a href="#tab:mc">8</a>). The two beta models were about equally accurate and covered 93.2% and 94.1% of the true proportions. The Fay-Herriot EBLUPs covered 94.4% (spatial: 94.2%), and their analytical MSE estimates were 1.27 and 1.26 times the empirical MSE in the median area. The largest <span class="math inline">\(\hat{R}\)</span> of the <a href="https://cran.r-project.org/package=tipsae">tipsae</a> fits exceeded 1.01 in 167 and 1.05 in 20 of the 200 replicates. An earlier version of this simulation, with a PC prior on the area standard deviation and the beta precision evaluated at the direct estimates, covered 89.0% with <code>hb_area()</code>.</p>
 <h2 data-number="5" id="sec:applications"><span class="header-section-number">5</span> Example: poverty in Emilia-Romagna</h2>
 <p>We illustrate a complete workflow with the head-count poverty ratios of the 38 health districts of the Italian region Emilia-Romagna in 2016, distributed with <a href="https://cran.r-project.org/package=tipsae">tipsae</a> <span class="citation" data-cites="denicolo2024tipsae">(<a href="#ref-denicolo2024tipsae" role="doc-biblioref">De Nicolò and Gardini 2024</a>)</span>. The data contain the direct estimates <code>hcr</code>, their sampling variances <code>vars</code>, the sample sizes <code>n</code> (10 to 285 households), the populations <code>pop</code> and the province <code>prov</code> of each district, and a shapefile of the districts. The only covariate, <code>x</code>, is artificial, so the example illustrates the software rather than a substantive analysis.</p>
 <div class="layout-chunk" data-layout="l-body">
@@ -3177,9 +3640,9 @@ tipsae
 <p>We fit a Fay-Herriot model and a beta model with a BYM2 area effect, both with the sampling variances of the direct estimates:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>fit_fh</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.github.io/fastsae/reference/eblup_fh.html'>eblup_fh</a></span><span class='op'>(</span><span class='va'>hcr</span> <span class='op'>~</span> <span class='va'>x</span>, vardir <span class='op'>=</span> <span class='st'>"vars"</span>, domain <span class='op'>=</span> <span class='st'>"id"</span>,</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>fit_fh</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.is-a.dev/fastsae/reference/eblup_fh.html'>eblup_fh</a></span><span class='op'>(</span><span class='va'>hcr</span> <span class='op'>~</span> <span class='va'>x</span>, vardir <span class='op'>=</span> <span class='st'>"vars"</span>, domain <span class='op'>=</span> <span class='st'>"id"</span>,</span>
 <span>  data <span class='op'>=</span> <span class='va'>emilia_cs</span>, print_result <span class='op'>=</span> <span class='cn'>FALSE</span><span class='op'>)</span></span>
-<span><span class='va'>fit_beta</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.github.io/fastsae/reference/hb_area.html'>hb_area</a></span><span class='op'>(</span><span class='va'>hcr</span> <span class='op'>~</span> <span class='va'>x</span>, data <span class='op'>=</span> <span class='va'>emilia_cs</span>, domain <span class='op'>=</span> <span class='st'>"id"</span>,</span>
+<span><span class='va'>fit_beta</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.is-a.dev/fastsae/reference/hb_area.html'>hb_area</a></span><span class='op'>(</span><span class='va'>hcr</span> <span class='op'>~</span> <span class='va'>x</span>, data <span class='op'>=</span> <span class='va'>emilia_cs</span>, domain <span class='op'>=</span> <span class='st'>"id"</span>,</span>
 <span>  vardir <span class='op'>=</span> <span class='st'>"vars"</span>, family <span class='op'>=</span> <span class='st'>"beta"</span>, spatial <span class='op'>=</span> <span class='st'>"bym2"</span>, W <span class='op'>=</span> <span class='va'>W</span>,</span>
 <span>  print_result <span class='op'>=</span> <span class='cn'>FALSE</span><span class='op'>)</span></span></code></pre>
 </div>
@@ -3187,7 +3650,7 @@ tipsae
 <p><code>compare_sae()</code> summarizes how far the two sets of estimates agree and which of them has the smaller estimated uncertainty; below are its agreement and efficiency measures:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>cmp</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.github.io/fastsae/reference/compare_sae.html'>compare_sae</a></span><span class='op'>(</span><span class='va'>fit_fh</span>, <span class='va'>fit_beta</span>, names <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"FH"</span>, <span class='st'>"Beta-BYM2"</span><span class='op'>)</span><span class='op'>)</span></span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>cmp</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.is-a.dev/fastsae/reference/compare_sae.html'>compare_sae</a></span><span class='op'>(</span><span class='va'>fit_fh</span>, <span class='va'>fit_beta</span>, names <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"FH"</span>, <span class='st'>"Beta-BYM2"</span><span class='op'>)</span><span class='op'>)</span></span>
 <span><span class='fu'><a href='https://rdrr.io/r/base/subset.html'>subset</a></span><span class='op'>(</span><span class='va'>cmp</span><span class='op'>$</span><span class='va'>metrics</span>, <span class='va'>Group</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"Agreement"</span>, <span class='st'>"Efficiency"</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='va'>Metric</span>, <span class='va'>Value</span><span class='op'>)</span><span class='op'>)</span></span></code></pre>
 </div>
 <pre><code>                                                   Metric
@@ -3219,31 +3682,40 @@ tipsae
 <pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>prov_target</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/tapply.html'>tapply</a></span><span class='op'>(</span><span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>hcr</span> <span class='op'>*</span> <span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>pop</span>, <span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>prov</span>, <span class='va'>sum</span><span class='op'>)</span> <span class='op'>/</span></span>
 <span>  <span class='fu'><a href='https://rdrr.io/r/base/tapply.html'>tapply</a></span><span class='op'>(</span><span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>pop</span>, <span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>prov</span>, <span class='va'>sum</span><span class='op'>)</span></span>
 <span><span class='va'>reg_target</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>hcr</span> <span class='op'>*</span> <span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>pop</span><span class='op'>)</span> <span class='op'>/</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>pop</span><span class='op'>)</span></span>
-<span><span class='va'>bm</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.github.io/fastsae/reference/benchmark_sae.html'>benchmark_sae</a></span><span class='op'>(</span><span class='va'>fit_beta</span>, target <span class='op'>=</span> <span class='va'>prov_target</span>, group <span class='op'>=</span> <span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>prov</span>,</span>
+<span><span class='va'>bm</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.is-a.dev/fastsae/reference/benchmark_sae.html'>benchmark_sae</a></span><span class='op'>(</span><span class='va'>fit_beta</span>, target <span class='op'>=</span> <span class='va'>prov_target</span>, group <span class='op'>=</span> <span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>prov</span>,</span>
 <span>  weight <span class='op'>=</span> <span class='va'>emilia_cs</span><span class='op'>$</span><span class='va'>pop</span>, national_target <span class='op'>=</span> <span class='va'>reg_target</span>, method <span class='op'>=</span> <span class='st'>"logit"</span><span class='op'>)</span></span>
 <span><span class='fu'><a href='https://rdrr.io/r/utils/head.html'>head</a></span><span class='op'>(</span><span class='va'>bm</span><span class='op'>[</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"domain"</span>, <span class='st'>"group"</span>, <span class='st'>"original"</span>, <span class='st'>"benchmarked"</span><span class='op'>)</span><span class='op'>]</span>, <span class='fl'>4</span><span class='op'>)</span></span></code></pre>
 </div>
 <pre><code>               domain group   original benchmarked
-1 CASALECCHIO DI RENO    BO 0.05724889  0.05642104
-2   CITTA&#39; DI BOLOGNA    BO 0.06635274  0.06540237
-3               IMOLA    BO 0.07000439  0.06900558
-4         PIANURA EST    BO 0.06648956  0.06553737</code></pre>
+1 CASALECCHIO DI RENO    BO 0.05724946  0.05642136
+2   CITTA&#39; DI BOLOGNA    BO 0.06635286  0.06540221
+3               IMOLA    BO 0.07000461  0.06900551
+4         PIANURA EST    BO 0.06648976  0.06553729</code></pre>
 </div>
-<p>Finally, the estimates are classified by their RSE, mapped (Figure <a href="#fig:map">2</a>), and exported to a spreadsheet with <code>export_sae()</code>:</p>
+<p>Finally, the estimates are classified by their RSE and by classes of 5 and 10%, mapped (Figure <a href="#fig:map">2</a>), and exported to a spreadsheet with <code>export_sae()</code>. All districts are reliable by their RSE; the class probabilities show how sure the classification of each district is:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'><a href='https://rdrr.io/r/base/as.data.frame.html'>as.data.frame</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/table.html'>table</a></span><span class='op'>(</span>tier <span class='op'>=</span> <span class='fu'><a href='https://ridsonap.github.io/fastsae/reference/add_reliability_flags.html'>add_reliability_flags</a></span><span class='op'>(</span><span class='va'>fit_beta</span><span class='op'>)</span><span class='op'>$</span><span class='va'>reliability</span><span class='op'>)</span><span class='op'>)</span></span></code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>rf</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.is-a.dev/fastsae/reference/add_reliability_flags.html'>add_reliability_flags</a></span><span class='op'>(</span><span class='va'>fit_beta</span>, classes <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>0.05</span>, <span class='fl'>0.10</span><span class='op'>)</span><span class='op'>)</span></span>
+<span><span class='fu'><a href='https://rdrr.io/r/base/as.data.frame.html'>as.data.frame</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/table.html'>table</a></span><span class='op'>(</span>tier <span class='op'>=</span> <span class='va'>rf</span><span class='op'>$</span><span class='va'>reliability</span><span class='op'>)</span><span class='op'>)</span></span></code></pre>
 </div>
 <pre><code>                                tier Freq
 1               Reliable (RSE &lt;= 25%)   38
 2 Use with caution (25% &lt; RSE &lt;= 50%)    0
 3             Unreliable (RSE &gt; 50%)    0</code></pre>
+<div class="sourceCode">
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'><a href='https://rdrr.io/r/utils/head.html'>head</a></span><span class='op'>(</span><span class='va'>rf</span><span class='op'>[</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"domain"</span>, <span class='st'>"hb"</span>, <span class='st'>"rse"</span>, <span class='st'>"est_class"</span>, <span class='st'>"p_class"</span><span class='op'>)</span><span class='op'>]</span>, <span class='fl'>4</span><span class='op'>)</span></span></code></pre>
+</div>
+<pre><code>                domain         hb      rse   est_class   p_class
+77 CASALECCHIO DI RENO 0.05724946 15.60496 0.05 - &lt;0.1 0.7914508
+78   CITTA&#39; DI BOLOGNA 0.06635286 11.64311 0.05 - &lt;0.1 0.9828518
+79               IMOLA 0.07000461 15.74073 0.05 - &lt;0.1 0.9620273
+80         PIANURA EST 0.06648976 13.63243 0.05 - &lt;0.1 0.9654523</code></pre>
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>p_est</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.github.io/fastsae/reference/map_sae.html'>map_sae</a></span><span class='op'>(</span><span class='va'>fit_beta</span>, sf_geom <span class='op'>=</span> <span class='va'>shp</span>, key <span class='op'>=</span> <span class='st'>"NAME_DISTRICT"</span>,</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>p_est</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.is-a.dev/fastsae/reference/map_sae.html'>map_sae</a></span><span class='op'>(</span><span class='va'>fit_beta</span>, sf_geom <span class='op'>=</span> <span class='va'>shp</span>, key <span class='op'>=</span> <span class='st'>"NAME_DISTRICT"</span>,</span>
 <span>  type <span class='op'>=</span> <span class='st'>"estimate"</span>, title <span class='op'>=</span> <span class='st'>"Head-count ratio"</span>, subtitle <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
-<span><span class='va'>p_rse</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.github.io/fastsae/reference/map_sae.html'>map_sae</a></span><span class='op'>(</span><span class='va'>fit_beta</span>, sf_geom <span class='op'>=</span> <span class='va'>shp</span>, key <span class='op'>=</span> <span class='st'>"NAME_DISTRICT"</span>,</span>
+<span><span class='va'>p_rse</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://ridsonap.is-a.dev/fastsae/reference/map_sae.html'>map_sae</a></span><span class='op'>(</span><span class='va'>fit_beta</span>, sf_geom <span class='op'>=</span> <span class='va'>shp</span>, key <span class='op'>=</span> <span class='st'>"NAME_DISTRICT"</span>,</span>
 <span>  type <span class='op'>=</span> <span class='st'>"rse"</span>, title <span class='op'>=</span> <span class='st'>"RSE (%)"</span>, subtitle <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span><span class='fu'>patchwork</span><span class='fu'>::</span><span class='fu'><a href='https://patchwork.data-imaginist.com/reference/wrap_plots.html'>wrap_plots</a></span><span class='op'>(</span><span class='va'>p_est</span>, <span class='va'>p_rse</span><span class='op'>)</span></span></code></pre>
 </div>
@@ -3255,27 +3727,36 @@ Figure 2: Head-count poverty ratios of the health districts of Emilia-Romagna in
 </div>
 </div>
 <h2 data-number="6" id="sec:summary"><span class="header-section-number">6</span> Summary and discussion</h2>
-<p><a href="https://cran.r-project.org/package=fastsae">fastsae</a> brings the frequentist and hierarchical Bayes small area models used in official statistics, and the steps that follow a fit, together in one interface. The compiled frequentist implementations reduce the time of the spatio-temporal Fay-Herriot model with analytical MSE at 1,000 areas from half an hour to about a minute, and its memory allocated by R from gigabytes to megabytes. The HB functions fit beta and other non-Gaussian models in seconds with INLA, and the same models can be checked against full MCMC with the JAX engine without rewriting them.</p>
-<p>Some limitations should be kept in mind. INLA has a fixed cost per fit, so for small Gaussian models numerical integration as in <a href="https://cran.r-project.org/package=hbsae">hbsae</a> is faster: for the Fay-Herriot model with 250 areas, <code>hb_area()</code> took 0.70 s and <code>hbsae::fSAE.Area()</code> 0.05 s (script <code>benchmarks/bench_hb_normal.R</code>). The beta and negative binomial dispersions are fixed at first-stage posterior means, and their uncertainty is not propagated. INLA is an approximation whose accuracy can deteriorate for non-Gaussian likelihoods with very little information per area; the JAX engine allows such cases to be checked. Our benchmarks were run on a single machine, and the runtimes of <a href="https://cran.r-project.org/package=sae">sae</a> and <a href="https://cran.r-project.org/package=emdi">emdi</a> were not measured on the same draws as those of <a href="https://cran.r-project.org/package=fastsae">fastsae</a>.</p>
-<p>Future work will add unit-level models for non-Gaussian outcomes, zero-inflated beta models for indicators with many zeros, and benchmarking that propagates into the MSE of frequentist estimates.</p>
+<p><a href="https://cran.r-project.org/package=fastsae">fastsae</a> brings the frequentist and hierarchical Bayes small area models used in official statistics, and the steps that follow a fit, together in one interface. On the same data, the compiled frequentist implementations reproduce the estimates of <a href="https://cran.r-project.org/package=sae">sae</a> and fit the spatial Fay-Herriot model with analytical MSE for 1,000 areas in 0.52 s, against 24.10 s for <a href="https://cran.r-project.org/package=sae">sae</a>. The HB functions fit beta and other non-Gaussian models in seconds with INLA, and the same models can be checked against full MCMC with the JAX engine without rewriting them. Effective sample sizes, covariates measured with error and the ratio model for sub-indicators address problems that arise when small area estimates are produced from complex surveys and published together with other statistics.</p>
+<p>Some limitations should be kept in mind. INLA has a fixed cost per fit, so for small Gaussian models numerical integration as in <a href="https://cran.r-project.org/package=hbsae">hbsae</a> is faster: for the Fay-Herriot model with 250 areas, <code>hb_area()</code> took 0.70 s and <code>hbsae::fSAE.Area()</code> 0.05 s (script <code>benchmarks/bench_hb_normal.R</code>). The beta and negative binomial dispersions are fixed at first-stage posterior means, and their uncertainty is not propagated; the gamma shape is fixed at the direct estimates. Variance estimates of zero are reported but not prevented, as they would be by adjusted likelihoods <span class="citation" data-cites="yoshimori2014new">(<a href="#ref-yoshimori2014new" role="doc-biblioref">Yoshimori and Lahiri 2014</a>)</span>. INLA is an approximation whose accuracy can deteriorate for non-Gaussian likelihoods with very little information per area; the JAX engine allows such cases to be checked. With INLA, the distribution of the true covariate values of the structural measurement error model is fixed at its posterior mode, which the JAX engine avoids. The design effects behind effective sample sizes are supplied, not estimated by the model, so the intervals of binomial models are only as good as these. <code>hb_ratio()</code> treats the parent estimate as independent of the share, and the mixed predictive PIT is available only for binomial and Poisson models with independent area effects. Our benchmarks were run on a single machine.</p>
+<p>Future work will add unit-level models for binary and count outcomes that use unit-level population covariates, as the empirical best predictor of <span class="citation" data-cites="molina2010small">Molina and Rao (<a href="#ref-molina2010small" role="doc-biblioref">2010</a>)</span> does (the present <code>hb_unit()</code> predicts the non-sampled units at the mean covariates, which is approximate for these families), a two-stage shape for the gamma model, zero-inflated beta models for indicators with many zeros, and second-order MSE estimators for benchmarked EBLUPs.</p>
 <h2 class="unnumbered" id="computational-details">Computational details</h2>
-<p>The results were obtained with R 4.6.1, <a href="https://cran.r-project.org/package=fastsae">fastsae</a> 1.0.0, <a href="#">R-INLA</a> 26.8.7, <a href="https://cran.r-project.org/package=tipsae">tipsae</a> 1.0.3, <a href="https://cran.r-project.org/package=sae">sae</a> 1.3, <a href="https://cran.r-project.org/package=emdi">emdi</a> 2.2 and <a href="https://cran.r-project.org/package=hbsae">hbsae</a> 1.2; the JAX engine used JAX 0.5.0 and NumPyro 0.19.0. R and the packages are available from CRAN at <a href="https://CRAN.R-project.org/" class="uri">https://CRAN.R-project.org/</a>, <a href="#">R-INLA</a> from <a href="https://www.r-inla.org/" class="uri">https://www.r-inla.org/</a>, and the source of <a href="https://cran.r-project.org/package=fastsae">fastsae</a>, including the benchmark scripts, from <a href="https://github.com/ridsonap/fastsae" class="uri">https://github.com/ridsonap/fastsae</a>.</p>
+<p>The results were obtained with R 4.6.1, <a href="https://cran.r-project.org/package=fastsae">fastsae</a> 1.0.0, <a href="#">R-INLA</a> 26.8.7, <a href="https://cran.r-project.org/package=tipsae">tipsae</a> 1.0.3, <a href="https://cran.r-project.org/package=sae">sae</a> 1.3, <a href="https://cran.r-project.org/package=emdi">emdi</a> 2.2.3 and <a href="https://cran.r-project.org/package=hbsae">hbsae</a> 1.2; the JAX engine used JAX 0.5.0 and NumPyro 0.19.0. R and the packages are available from CRAN at <a href="https://CRAN.R-project.org/" class="uri">https://CRAN.R-project.org/</a>, <a href="#">R-INLA</a> from <a href="https://www.r-inla.org/" class="uri">https://www.r-inla.org/</a>, and the source of <a href="https://cran.r-project.org/package=fastsae">fastsae</a>, including the benchmark scripts, from <a href="https://github.com/ridsonap/fastsae" class="uri">https://github.com/ridsonap/fastsae</a>.</p>
 <h2 class="unnumbered" id="acknowledgments">Acknowledgments</h2>
 <p>The authors thank the Department of Computational Statistics and the Department of Statistics at Politeknik Statistika STIS for institutional support, and colleagues at BPS-Statistics Indonesia for their feedback.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
 <h3 class="appendix" data-number="6.1" id="cran-packages-used"><span class="header-section-number">6.1</span> CRAN packages used</h3>
-<p><a href="https://cran.r-project.org/package=sae">sae</a>, <a href="https://cran.r-project.org/package=emdi">emdi</a>, <a href="https://cran.r-project.org/package=hbsae">hbsae</a>, <a href="https://cran.r-project.org/package=tipsae">tipsae</a>, <a href="https://cran.r-project.org/package=mcmcsae">mcmcsae</a>, <a href="https://cran.r-project.org/package=SUMMER">SUMMER</a>, <a href="https://cran.r-project.org/package=fastsae">fastsae</a>, <a href="https://cran.r-project.org/package=RcppArmadillo">RcppArmadillo</a>, <a href="https://cran.r-project.org/package=RcppEigen">RcppEigen</a>, <a href="https://cran.r-project.org/package=reticulate">reticulate</a>, <a href="https://cran.r-project.org/package=sf">sf</a>, <a href="https://cran.r-project.org/package=bench">bench</a></p>
+<p><a href="https://cran.r-project.org/package=sae">sae</a>, <a href="https://cran.r-project.org/package=emdi">emdi</a>, <a href="https://cran.r-project.org/package=hbsae">hbsae</a>, <a href="https://cran.r-project.org/package=tipsae">tipsae</a>, <a href="https://cran.r-project.org/package=mcmcsae">mcmcsae</a>, <a href="https://cran.r-project.org/package=SUMMER">SUMMER</a>, <a href="https://cran.r-project.org/package=fastsae">fastsae</a>, <a href="https://cran.r-project.org/package=Rcpp">Rcpp</a>, <a href="https://cran.r-project.org/package=RcppArmadillo">RcppArmadillo</a>, <a href="https://cran.r-project.org/package=RcppEigen">RcppEigen</a>, <a href="https://cran.r-project.org/package=reticulate">reticulate</a>, <a href="https://cran.r-project.org/package=sf">sf</a>, <a href="https://cran.r-project.org/package=bench">bench</a></p>
 <h3 class="appendix" data-number="6.2" id="cran-task-views-implied-by-cited-packages"><span class="header-section-number">6.2</span> CRAN Task Views implied by cited packages</h3>
-<p><a href="https://cran.r-project.org/view=Bayesian">Bayesian</a>, <a href="https://cran.r-project.org/view=Cluster">Cluster</a>, <a href="https://cran.r-project.org/view=HighPerformanceComputing">HighPerformanceComputing</a>, <a href="https://cran.r-project.org/view=ModelDeployment">ModelDeployment</a>, <a href="https://cran.r-project.org/view=NumericalMathematics">NumericalMathematics</a>, <a href="https://cran.r-project.org/view=OfficialStatistics">OfficialStatistics</a>, <a href="https://cran.r-project.org/view=Spatial">Spatial</a>, <a href="https://cran.r-project.org/view=SpatioTemporal">SpatioTemporal</a></p>
+<p><a href="https://cran.r-project.org/view=Bayesian">Bayesian</a>, <a href="https://cran.r-project.org/view=Cluster">Cluster</a>, <a href="https://cran.r-project.org/view=HighPerformanceComputing">HighPerformanceComputing</a>, <a href="https://cran.r-project.org/view=ModelDeployment">ModelDeployment</a>, <a href="https://cran.r-project.org/view=NumericalMathematics">NumericalMathematics</a>, <a href="https://cran.r-project.org/view=OfficialStatistics">OfficialStatistics</a>, <a href="https://cran.r-project.org/view=PackageDevelopment">PackageDevelopment</a>, <a href="https://cran.r-project.org/view=Spatial">Spatial</a>, <a href="https://cran.r-project.org/view=SpatioTemporal">SpatioTemporal</a></p>
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-arima2015bayesian" class="csl-entry" role="listitem">
+S. Arima, G. S. Datta and B. Liseo. Bayesian estimators for small area models when auxiliary information is measured with error. <em>Scandinavian Journal of Statistics</em>, 42(2): 518–529, 2015. DOI <a href="https://doi.org/10.1111/sjos.12120">10.1111/sjos.12120</a>.
+</div>
 <div id="ref-battese1988error" class="csl-entry" role="listitem">
 G. E. Battese, R. M. Harter and W. A. Fuller. An error-components model for prediction of county crop areas using survey and satellite data. <em>Journal of the American Statistical Association</em>, 83(401): 28–36, 1988. DOI <a href="https://doi.org/10.1080/01621459.1988.10478561">10.1080/01621459.1988.10478561</a>.
+</div>
+<div id="ref-bell2019measurement" class="csl-entry" role="listitem">
+W. R. Bell, H. C. Chung, G. S. Datta and C. Franco. Measurement error in small area estimation: Functional versus structural versus naïve models. <em>Survey Methodology</em>, 45(1): 61–80, 2019. URL <a href="https://www150.statcan.gc.ca/n1/pub/12-001-x/2019001/article/00005-eng.htm">https://www150.statcan.gc.ca/n1/pub/12-001-x/2019001/article/00005-eng.htm</a>.
 </div>
 <div id="ref-bell2013benchmarking" class="csl-entry" role="listitem">
 W. R. Bell, G. S. Datta and M. Ghosh. Benchmarking small area estimators. <em>Biometrika</em>, 100(1): 189–202, 2013. DOI <a href="https://doi.org/10.1093/biomet/ass063">10.1093/biomet/ass063</a>.
 </div>
 <div id="ref-besag1991bayesian" class="csl-entry" role="listitem">
 J. Besag, J. York and A. Mollié. Bayesian image restoration, with two applications in spatial statistics. <em>Annals of the Institute of Statistical Mathematics</em>, 43(1): 1–20, 1991. DOI <a href="https://doi.org/10.1007/BF00116466">10.1007/BF00116466</a>.
+</div>
+<div id="ref-betancourt2016diagnosing" class="csl-entry" role="listitem">
+M. Betancourt. Diagnosing suboptimal cotangent disintegrations in <span>H</span>amiltonian <span>M</span>onte <span>C</span>arlo. 2016. URL <a href="https://arxiv.org/abs/1604.00695">https://arxiv.org/abs/1604.00695</a>.
 </div>
 <div id="ref-boonstra2022hbsae" class="csl-entry" role="listitem">
 H. J. Boonstra. <em><span class="nocase">hbsae</span>: Hierarchical <span>B</span>ayesian small area estimation.</em> 2022. URL <a href="https://CRAN.R-project.org/package=hbsae">https://CRAN.R-project.org/package=hbsae</a>. <span>R</span> package version 1.2.
@@ -3286,6 +3767,15 @@ H. J. Boonstra. <em><span class="nocase">mcmcsae</span>: Markov chain monte carl
 <div id="ref-boubeta2016empirical" class="csl-entry" role="listitem">
 M. Boubeta, M. J. Lombardía and D. Morales. Empirical best prediction under area-level <span>Poisson</span> mixed models. <em>TEST</em>, 25(3): 548–569, 2016. DOI <a href="https://doi.org/10.1007/s11749-015-0469-8">10.1007/s11749-015-0469-8</a>.
 </div>
+<div id="ref-brown2001evaluation" class="csl-entry" role="listitem">
+G. Brown, R. Chambers, P. Heady and D. Heasman. Evaluation of small area estimation methods: An application to unemployment estimates from the <span>UK LFS</span>. In <em>Proceedings of statistics canada symposium 2001: Achieving data quality in a statistical agency: A methodological perspective</em>, 2001. Ottawa: Statistics Canada.
+</div>
+<div id="ref-chen2014use" class="csl-entry" role="listitem">
+C. Chen, J. Wakefield and T. Lumley. The use of sampling weights in <span>Bayesian</span> hierarchical models for small area estimation. <em>Spatial and Spatio-temporal Epidemiology</em>, 11: 33–43, 2014. DOI <a href="https://doi.org/10.1016/j.sste.2014.07.002">10.1016/j.sste.2014.07.002</a>.
+</div>
+<div id="ref-czado2009predictive" class="csl-entry" role="listitem">
+C. Czado, T. Gneiting and L. Held. Predictive model assessment for count data. <em>Biometrics</em>, 65(4): 1254–1261, 2009. DOI <a href="https://doi.org/10.1111/j.1541-0420.2009.01191.x">10.1111/j.1541-0420.2009.01191.x</a>.
+</div>
 <div id="ref-datta2011bayesian" class="csl-entry" role="listitem">
 G. S. Datta, M. Ghosh, R. Steorts and J. Maples. Bayesian benchmarking with applications to small area estimation. <em>TEST</em>, 20(3): 574–588, 2011. DOI <a href="https://doi.org/10.1007/s11749-010-0218-y">10.1007/s11749-010-0218-y</a>.
 </div>
@@ -3295,14 +3785,29 @@ G. S. Datta and P. Lahiri. A unified measure of uncertainty of estimated best li
 <div id="ref-denicolo2024tipsae" class="csl-entry" role="listitem">
 S. De Nicolò and A. Gardini. The <span>R</span> package <span class="nocase">tipsae</span>: Tools for mapping proportions and indicators on the unit interval. <em>Journal of Statistical Software</em>, 108(1): 1–36, 2024. DOI <a href="https://doi.org/10.18637/jss.v108.i01">10.18637/jss.v108.i01</a>.
 </div>
+<div id="ref-eddelbuettel2011rcpp" class="csl-entry" role="listitem">
+D. Eddelbuettel and R. François. <span>Rcpp</span>: Seamless <span>R</span> and <span>C++</span> integration. <em>Journal of Statistical Software</em>, 40(8): 1–18, 2011. DOI <a href="https://doi.org/10.18637/jss.v040.i08">10.18637/jss.v040.i08</a>.
+</div>
+<div id="ref-eddelbuettel2014rcpparmadillo" class="csl-entry" role="listitem">
+D. Eddelbuettel and C. Sanderson. <span>RcppArmadillo</span>: Accelerating <span>R</span> with high-performance <span>C++</span> linear algebra. <em>Computational Statistics &amp; Data Analysis</em>, 71: 1054–1063, 2014. DOI <a href="https://doi.org/10.1016/j.csda.2013.02.005">10.1016/j.csda.2013.02.005</a>.
+</div>
 <div id="ref-fabrizi2011hierarchical" class="csl-entry" role="listitem">
 E. Fabrizi, M. R. Ferrante, S. Pacei and C. Trivisano. Hierarchical <span>Bayes</span> multivariate estimation of poverty rates based on increasing thresholds for small domains. <em>Computational Statistics &amp; Data Analysis</em>, 55(4): 1736–1747, 2011. DOI <a href="https://doi.org/10.1016/j.csda.2010.11.001">10.1016/j.csda.2010.11.001</a>.
 </div>
 <div id="ref-fay1979estimates" class="csl-entry" role="listitem">
 R. E. Fay and R. A. Herriot. Estimates of income for small places: An application of <span>James-Stein</span> procedures to census data. <em>Journal of the American Statistical Association</em>, 74(366a): 269–277, 1979. DOI <a href="https://doi.org/10.1080/01621459.1979.10482505">10.1080/01621459.1979.10482505</a>.
 </div>
+<div id="ref-franco2015borrowing" class="csl-entry" role="listitem">
+C. Franco and W. R. Bell. Borrowing information over time in binomial/logit normal models for small area estimation. <em>Statistics in Transition New Series</em>, 16(4): 563–584, 2015. DOI <a href="https://doi.org/10.21307/stattrans-2015-033">10.21307/stattrans-2015-033</a>.
+</div>
+<div id="ref-gabry2019visualization" class="csl-entry" role="listitem">
+J. Gabry, D. Simpson, A. Vehtari, M. Betancourt and A. Gelman. Visualization in <span>B</span>ayesian workflow. <em>Journal of the Royal Statistical Society: Series A (Statistics in Society)</em>, 182(2): 389–402, 2019. DOI <a href="https://doi.org/10.1111/rssa.12378">10.1111/rssa.12378</a>.
+</div>
 <div id="ref-gelman2006prior" class="csl-entry" role="listitem">
 A. Gelman. Prior distributions for variance parameters in hierarchical models. <em>Bayesian Analysis</em>, 1(3): 515–534, 2006. DOI <a href="https://doi.org/10.1214/06-BA117A">10.1214/06-BA117A</a>.
+</div>
+<div id="ref-gonzalez2008bootstrap" class="csl-entry" role="listitem">
+W. González-Manteiga, M. J. Lombardía, I. Molina, D. Morales and L. Santamaría. Bootstrap mean squared error of a small-area <span>EBLUP</span>. <em>Journal of Statistical Computation and Simulation</em>, 78(5): 443–462, 2008. DOI <a href="https://doi.org/10.1080/00949650601141811">10.1080/00949650601141811</a>.
 </div>
 <div id="ref-hoffman2014no" class="csl-entry" role="listitem">
 M. D. Hoffman and A. Gelman. The <span>No-U-Turn</span> sampler: Adaptively setting path lengths in <span>H</span>amiltonian <span>M</span>onte <span>C</span>arlo. <em>Journal of Machine Learning Research</em>, 15(47): 1593–1623, 2014. URL <a href="https://jmlr.org/papers/v15/hoffman14a.html">https://jmlr.org/papers/v15/hoffman14a.html</a>.
@@ -3319,6 +3824,9 @@ A.-K. Kreutzmann, S. Pannier, N. Rojas-Perilla, T. Schmid, M. Templ and N. Tzavi
 <div id="ref-leroux2000estimation" class="csl-entry" role="listitem">
 B. G. Leroux, X. Lei and N. Breslow. Estimation of disease rates in small areas: A new mixed model for spatial dependence. In <em>Statistical models in epidemiology, the environment, and clinical trials</em>, pages. 135–178 2000. New York: Springer-Verlag. DOI <a href="https://doi.org/10.1007/978-1-4612-1284-3_4">10.1007/978-1-4612-1284-3_4</a>.
 </div>
+<div id="ref-li2010adjusted" class="csl-entry" role="listitem">
+H. Li and P. Lahiri. An adjusted maximum likelihood method for solving small area estimation problems. <em>Journal of Multivariate Analysis</em>, 101(4): 882–892, 2010. DOI <a href="https://doi.org/10.1016/j.jmva.2009.10.009">10.1016/j.jmva.2009.10.009</a>.
+</div>
 <div id="ref-li2019changes" class="csl-entry" role="listitem">
 Z. R. Li, Y. Hsiao, J. Godwin, B. D. Martin, J. Wakefield and S. J. Clark. Changes in the spatial distribution of the under-five mortality rate: Small-area analysis of 122 <span>DHS</span> surveys in 262 subregions of 35 countries in <span>Africa</span>. <em>PLOS ONE</em>, 14(1): e0210645, 2019. DOI <a href="https://doi.org/10.1371/journal.pone.0210645">10.1371/journal.pone.0210645</a>.
 </div>
@@ -3328,8 +3836,23 @@ Z. R. Li, B. D. Martin, Y. Hsiao, J. Godwin, J. Paige, P. Gao, J. Wakefield, S. 
 <div id="ref-marhuenda2013small" class="csl-entry" role="listitem">
 Y. Marhuenda, I. Molina and D. Morales. Small area estimation with spatio-temporal <span>Fay-Herriot</span> models. <em>Computational Statistics &amp; Data Analysis</em>, 58: 308–325, 2013. DOI <a href="https://doi.org/10.1016/j.csda.2012.09.002">10.1016/j.csda.2012.09.002</a>.
 </div>
+<div id="ref-marhuenda2014information" class="csl-entry" role="listitem">
+Y. Marhuenda, D. Morales and M. del Carmen Pardo. Information criteria for <span>Fay-Herriot</span> model selection. <em>Computational Statistics &amp; Data Analysis</em>, 70: 268–280, 2014. DOI <a href="https://doi.org/10.1016/j.csda.2013.09.016">10.1016/j.csda.2013.09.016</a>.
+</div>
+<div id="ref-marshall2003approximate" class="csl-entry" role="listitem">
+E. C. Marshall and D. J. Spiegelhalter. Approximate cross-validatory predictive checks in disease mapping models. <em>Statistics in Medicine</em>, 22(10): 1649–1660, 2003. DOI <a href="https://doi.org/10.1002/sim.1403">10.1002/sim.1403</a>.
+</div>
 <div id="ref-molina2015sae" class="csl-entry" role="listitem">
 I. Molina and Y. Marhuenda. <span class="nocase">sae</span>: An <span>R</span> package for small area estimation. <em>The R Journal</em>, 7(1): 73–87, 2015. DOI <a href="https://doi.org/10.32614/RJ-2015-007">10.32614/RJ-2015-007</a>.
+</div>
+<div id="ref-molina2010small" class="csl-entry" role="listitem">
+I. Molina and J. N. K. Rao. Small area estimation of poverty indicators. <em>The Canadian Journal of Statistics</em>, 38(3): 369–385, 2010. DOI <a href="https://doi.org/10.1002/cjs.10051">10.1002/cjs.10051</a>.
+</div>
+<div id="ref-molina2009bootstrap" class="csl-entry" role="listitem">
+I. Molina, N. Salvati and M. Pratesi. Bootstrap for estimating the <span>MSE</span> of the spatial <span>EBLUP</span>. <em>Computational Statistics</em>, 24(3): 441–458, 2009. DOI <a href="https://doi.org/10.1007/s00180-008-0138-4">10.1007/s00180-008-0138-4</a>.
+</div>
+<div id="ref-muff2015bayesian" class="csl-entry" role="listitem">
+S. Muff, A. Riebler, L. Held, H. Rue and P. Saner. <span>B</span>ayesian analysis of measurement error models using integrated nested <span>L</span>aplace approximations. <em>Journal of the Royal Statistical Society: Series C (Applied Statistics)</em>, 64(2): 231–252, 2015. DOI <a href="https://doi.org/10.1111/rssc.12069">10.1111/rssc.12069</a>.
 </div>
 <div id="ref-petrucci2006small" class="csl-entry" role="listitem">
 A. Petrucci and N. Salvati. Small area estimation for spatial correlation in watershed erosion assessment. <em>Journal of Agricultural, Biological, and Environmental Statistics</em>, 11(2): 169–182, 2006. DOI <a href="https://doi.org/10.1198/108571106X110531">10.1198/108571106X110531</a>.
@@ -3361,17 +3884,35 @@ A. Saei and R. Chambers. Out of sample estimation for small areas using area lev
 <div id="ref-simpson2017penalising" class="csl-entry" role="listitem">
 D. Simpson, H. Rue, A. Riebler, T. G. Martins and S. H. Sørbye. Penalising model component complexity: A principled, practical approach to constructing priors. <em>Statistical Science</em>, 32(1): 1–28, 2017. DOI <a href="https://doi.org/10.1214/16-STS576">10.1214/16-STS576</a>.
 </div>
+<div id="ref-singh2005spatio" class="csl-entry" role="listitem">
+B. B. Singh, G. K. Shukla and D. Kundu. Spatio-temporal models in small area estimation. <em>Survey Methodology</em>, 31(2): 183–195, 2005.
+</div>
+<div id="ref-slud2006mean" class="csl-entry" role="listitem">
+E. V. Slud and T. Maiti. Mean-squared error estimation in transformed <span>Fay-Herriot</span> models. <em>Journal of the Royal Statistical Society: Series B (Statistical Methodology)</em>, 68(2): 239–257, 2006. DOI <a href="https://doi.org/10.1111/j.1467-9868.2006.00542.x">10.1111/j.1467-9868.2006.00542.x</a>.
+</div>
 <div id="ref-sorbye2014scaling" class="csl-entry" role="listitem">
 S. H. Sørbye and H. Rue. Scaling intrinsic <span>Gaussian</span> <span>Markov</span> random field priors in spatial modelling. <em>Spatial Statistics</em>, 8: 39–51, 2014. DOI <a href="https://doi.org/10.1016/j.spasta.2013.06.004">10.1016/j.spasta.2013.06.004</a>.
 </div>
 <div id="ref-stefan2021benchmarked" class="csl-entry" role="listitem">
 M. Stefan and M. A. Hidiroglou. Benchmarked estimators for a small area mean under a onefold nested regression model. <em>International Statistical Review</em>, 89(1): 108–131, 2021. DOI <a href="https://doi.org/10.1111/insr.12380">10.1111/insr.12380</a>.
 </div>
+<div id="ref-torabi2014small" class="csl-entry" role="listitem">
+M. Torabi and J. N. K. Rao. On small area estimation under a sub-area level model. <em>Journal of Multivariate Analysis</em>, 127: 36–55, 2014. DOI <a href="https://doi.org/10.1016/j.jmva.2014.02.001">10.1016/j.jmva.2014.02.001</a>.
+</div>
+<div id="ref-vanniekerk2023new" class="csl-entry" role="listitem">
+<span class="nocase">J. van Niekerk, E. Krainski, D. Rustand and H. Rue</span>. A new avenue for <span>Bayesian</span> inference with <span>INLA</span>. <em>Computational Statistics &amp; Data Analysis</em>, 181: 107692, 2023. DOI <a href="https://doi.org/10.1016/j.csda.2023.107692">10.1016/j.csda.2023.107692</a>.
+</div>
 <div id="ref-vehtari2021rank" class="csl-entry" role="listitem">
 A. Vehtari, A. Gelman, D. Simpson, B. Carpenter and P.-C. Bürkner. Rank-normalization, folding, and localization: An improved <span><span class="math inline">\(\widehat{R}\)</span></span> for assessing convergence of <span>MCMC</span> (with discussion). <em>Bayesian Analysis</em>, 16(2): 667–718, 2021. DOI <a href="https://doi.org/10.1214/20-BA1221">10.1214/20-BA1221</a>.
 </div>
-<div id="ref-you2002small" class="csl-entry" role="listitem">
-Y. You and J. N. K. Rao. Small area estimation using unmatched sampling and linking models. <em>The Canadian Journal of Statistics</em>, 30(1): 3–15, 2002. DOI <a href="https://doi.org/10.2307/3315862">10.2307/3315862</a>.
+<div id="ref-wang2008small" class="csl-entry" role="listitem">
+J. Wang, W. A. Fuller and Y. Qu. Small area estimation under a restriction. <em>Survey Methodology</em>, 34(1): 29–36, 2008. URL <a href="https://www150.statcan.gc.ca/n1/pub/12-001-x/2008001/article/10619-eng.pdf">https://www150.statcan.gc.ca/n1/pub/12-001-x/2008001/article/10619-eng.pdf</a>.
+</div>
+<div id="ref-ybarra2008small" class="csl-entry" role="listitem">
+L. M. R. Ybarra and S. L. Lohr. Small area estimation when auxiliary information is measured with error. <em>Biometrika</em>, 95(4): 919–931, 2008. DOI <a href="https://doi.org/10.1093/biomet/asn048">10.1093/biomet/asn048</a>.
+</div>
+<div id="ref-yoshimori2014new" class="csl-entry" role="listitem">
+M. Yoshimori and P. Lahiri. A new adjusted maximum likelihood method for the <span>Fay-Herriot</span> small area model. <em>Journal of Multivariate Analysis</em>, 124: 281–294, 2014. DOI <a href="https://doi.org/10.1016/j.jmva.2013.10.012">10.1016/j.jmva.2013.10.012</a>.
 </div>
 </div>
 <!--radix_placeholder_article_footer-->

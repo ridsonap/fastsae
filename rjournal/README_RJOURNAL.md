@@ -26,6 +26,12 @@ renders in a few minutes:
 | Gaussian HB, fastsae vs hbsae | `benchmarks/bench_hb_normal.R` | `inst/extdata/hb_normal_benchmark.rds` |
 | Design-based simulation | `benchmarks/sim_mc_finite_pop_d500.R` | `benchmarks/output/mc_design_based_D500_R200.rds` |
 
+Some numbers in the text are quoted from validation scripts whose results are recorded in
+the script headers or in `benchmarks/validation/`, not computed during the render:
+`binomial_neff.R` (effective sample sizes), `me_area.R` and `me_area_coverage.R`
+(covariates measured with error), and `pit_discrete.R` (PIT of count models). Update the
+text by hand when one of them is re-run.
+
 The frequentist timings run every cell in its own R process; run them on an otherwise idle
 machine (about two hours, most of it `sae::eblupSTFH()` at 500 and 1,000 areas). The
 design-based simulation takes about an hour with 5 workers of 2 cores each.
